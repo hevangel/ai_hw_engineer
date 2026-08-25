@@ -1,160 +1,202 @@
 # AI Hardware Engineering Docker Image
-# Tools: xezim, Verilator, Yosys + SymbiYosys, Surfer Waveform Viewer
+# Tools: xezim, Verilator, Yosys + SymbiYosys, Surfer, Verible
 # Base: Ubuntu 22.04 LTS
 
-FROM ubuntu:22.04 AS base
+FROM ubuntu:22.04@sha256:2edbbc5dc405e9612ba3584ce95480277e3eb374407b5505fe26f17df77c7dbc AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
 
-# System dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+ARG UBUNTU_SNAPSHOT=20260824T000000Z
+# The pinned minimal base has no CA bundle yet. Bootstrap ca-certificates with
+# APT TLS peer checks disabled; signed metadata and package hashes remain verified.
+RUN rm -f /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources && \
+    printf '%s\n' \
+      "deb [check-valid-until=no] https://snapshot.ubuntu.com/ubuntu/${UBUNTU_SNAPSHOT} jammy main restricted universe multiverse" \
+      "deb [check-valid-until=no] https://snapshot.ubuntu.com/ubuntu/${UBUNTU_SNAPSHOT} jammy-updates main restricted universe multiverse" \
+      "deb [check-valid-until=no] https://snapshot.ubuntu.com/ubuntu/${UBUNTU_SNAPSHOT} jammy-security main restricted universe multiverse" \
+      "deb [check-valid-until=no] https://snapshot.ubuntu.com/ubuntu/${UBUNTU_SNAPSHOT} jammy-backports main restricted universe multiverse" \
+      > /etc/apt/sources.list && \
+    apt-get -o Acquire::https::Verify-Peer=false update && \
+    apt-get -o Acquire::https::Verify-Peer=false install -y --no-install-recommends \
+    autoconf \
+    bison \
     build-essential \
     ca-certificates \
+    ccache \
+    clang \
+    cmake \
     curl \
-    wget \
+    flex \
+    g++ \
+    gawk \
     git \
+    gperf \
+    graphviz \
+    help2man \
+    libboost-all-dev \
+    libffi-dev \
+    libfl-dev \
+    libfl2 \
+    libgoogle-perftools-dev \
+    liblz4-dev \
+    libreadline-dev \
+    libspeechd-dev \
+    libssl-dev \
+    libwayland-dev \
+    libx11-xcb-dev \
+    libxcb-render0-dev \
+    libxcb-shape0-dev \
+    libxcb-xfixes0-dev \
+    libxkbcommon-dev \
+    make \
+    ninja-build \
+    numactl \
+    perl \
+    pkg-config \
     python3 \
     python3-pip \
     python3-venv \
-    autoconf \
-    flex \
-    bison \
-    ccache \
-    libgoogle-perftools-dev \
-    numactl \
-    libfl2 \
-    libfl-dev \
+    tcl-dev \
+    wget \
+    xdot \
+    z3 \
     zlib1g \
     zlib1g-dev \
-    liblz4-dev \
-    pkg-config \
-    tcl-dev \
-    libreadline-dev \
-    libffi-dev \
-    graphviz \
-    xdot \
-    clang \
-    cmake \
-    ninja-build \
-    gperf \
-    libboost-all-dev \
-    help2man \
-    perl \
-    make \
-    g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Rust (needed for xezim and surfer)
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ARG RUST_VERSION=1.94.0
+ARG RUSTUP_VERSION=1.29.0
+ARG RUSTUP_TARGET=x86_64-unknown-linux-gnu
+ARG RUSTUP_INIT_SHA256=4acc9acc76d5079515b46346a485974457b5a79893cfb01112423c89aeb5aa10
+RUN curl --proto '=https' --tlsv1.2 -sSf \
+        "https://static.rust-lang.org/rustup/archive/${RUSTUP_VERSION}/${RUSTUP_TARGET}/rustup-init" \
+        -o /tmp/rustup-init && \
+    echo "${RUSTUP_INIT_SHA256}  /tmp/rustup-init" | sha256sum -c - && \
+    chmod +x /tmp/rustup-init && \
+    /tmp/rustup-init -y --profile minimal --default-toolchain "${RUST_VERSION}" && \
+    rm /tmp/rustup-init
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 # ============================================================
-# Stage 1: Build Verilator from source
+# Build Verilator
 # ============================================================
 FROM base AS verilator-build
-
-RUN git clone https://github.com/verilator/verilator.git /opt/verilator-src && \
+ARG VERILATOR_REV=3d2421f3bf8cda84b49d8f739e39bce73c93cc46
+RUN git clone --filter=blob:none https://github.com/verilator/verilator.git /opt/verilator-src && \
+    git -C /opt/verilator-src checkout --detach "${VERILATOR_REV}" && \
     cd /opt/verilator-src && \
-    git checkout stable && \
     autoconf && \
     ./configure --prefix=/opt/verilator && \
-    make -j$(nproc) && \
+    make -j"$(nproc)" && \
     make install
 
 # ============================================================
-# Stage 2: Build Yosys from source
+# Build Yosys
 # ============================================================
 FROM base AS yosys-build
-
-RUN git clone https://github.com/YosysHQ/yosys.git /opt/yosys-src && \
+ARG YOSYS_REV=e97731b9dda91fa5fa53ed87df7c34163ba59a41
+RUN git clone --filter=blob:none https://github.com/YosysHQ/yosys.git /opt/yosys-src && \
+    git -C /opt/yosys-src checkout --detach "${YOSYS_REV}" && \
+    git -C /opt/yosys-src submodule update --init --recursive && \
     cd /opt/yosys-src && \
-    git checkout yosys-0.46 && \
     make config-gcc && \
-    make -j$(nproc) PREFIX=/opt/yosys && \
+    make -j"$(nproc)" PREFIX=/opt/yosys && \
     make install PREFIX=/opt/yosys
 
 # ============================================================
-# Stage 3: Build SymbiYosys
+# Install SymbiYosys
 # ============================================================
 FROM base AS sby-build
-
 COPY --from=yosys-build /opt/yosys /opt/yosys
 ENV PATH="/opt/yosys/bin:${PATH}"
-
-# Install SMT solvers
-RUN pip3 install --no-cache-dir z3-solver
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    yices2 \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN git clone https://github.com/YosysHQ/sby.git /opt/sby-src && \
-    cd /opt/sby-src && \
-    make install PREFIX=/opt/sby
+ARG SBY_REV=b1a1e98cba941ec8433f8dc27f416cd7bb7f14be
+RUN git clone --filter=blob:none https://github.com/YosysHQ/sby.git /opt/sby-src && \
+    git -C /opt/sby-src checkout --detach "${SBY_REV}" && \
+    make -C /opt/sby-src install PREFIX=/opt/sby
 
 # ============================================================
-# Stage 4: Build xezim from source
+# Build xezim
 # ============================================================
 FROM base AS xezim-build
-
-RUN git clone https://github.com/aionhw/xezim.git /opt/xezim-src && \
+ARG XEZIM_REV=66efe062841d586407192a34ea2c36a9af0f0e8b
+RUN git clone --filter=blob:none https://github.com/aionhw/xezim.git /opt/xezim-src && \
+    git -C /opt/xezim-src checkout --detach "${XEZIM_REV}" && \
     cd /opt/xezim-src && \
-    cargo build --release --features jit && \
+    cargo build --release --features jit --bin xezim && \
     mkdir -p /opt/xezim/bin && \
     cp target/release/xezim /opt/xezim/bin/ && \
     cp -r include /opt/xezim/include
 
 # ============================================================
-# Stage 5: Build Surfer waveform viewer
+# Build Surfer waveform viewer
 # ============================================================
 FROM base AS surfer-build
-
-RUN git clone https://gitlab.com/surfer-project/surfer.git /opt/surfer-src && \
+ARG SURFER_REV=f8cafdacbe5d5b351c35de0e78490a5eb3b3ce37
+RUN git clone --filter=blob:none https://gitlab.com/surfer-project/surfer.git /opt/surfer-src && \
+    git -C /opt/surfer-src checkout --detach "${SURFER_REV}" && \
     cd /opt/surfer-src && \
-    cargo build --release && \
+    cargo build --release --locked --bin surfer && \
     mkdir -p /opt/surfer/bin && \
     cp target/release/surfer /opt/surfer/bin/
 
 # ============================================================
-# Final Stage: Combine all tools
+# Download pinned Verible pre-built binaries
+# ============================================================
+FROM base AS verible-download
+ARG VERIBLE_VERSION=v0.0-4148-g1ea007ec
+ARG VERIBLE_SHA256=5198d7980e5c8e039ad371fd963dfec375aacac1ea80cfa530804b945132ab10
+RUN mkdir -p /opt/verible && \
+    curl -fsSL "https://github.com/chipsalliance/verible/releases/download/${VERIBLE_VERSION}/verible-${VERIBLE_VERSION}-linux-static-x86_64.tar.gz" \
+        -o /tmp/verible.tar.gz && \
+    echo "${VERIBLE_SHA256}  /tmp/verible.tar.gz" | sha256sum -c - && \
+    tar -xzf /tmp/verible.tar.gz --strip-components=1 -C /opt/verible && \
+    rm /tmp/verible.tar.gz
+
+# ============================================================
+# Final image
 # ============================================================
 FROM base AS final
 
-# Copy built tools
+# SymbiYosys runtime dependency. Keep this in the final stage so changes do not
+# invalidate the expensive compiler-tool build stages.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-click \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=verilator-build /opt/verilator /opt/verilator
 COPY --from=yosys-build /opt/yosys /opt/yosys
 COPY --from=sby-build /opt/sby /opt/sby
 COPY --from=xezim-build /opt/xezim /opt/xezim
 COPY --from=surfer-build /opt/surfer /opt/surfer
+COPY --from=verible-download /opt/verible /opt/verible
+COPY libs/uvm /opt/uvm
 
-# Set PATH for all tools
-ENV PATH="/opt/verilator/bin:/opt/yosys/bin:/opt/sby/bin:/opt/xezim/bin:/opt/surfer/bin:${PATH}"
-ENV VERILATOR_ROOT=/opt/verilator
-
-# Install SMT solvers for SymbiYosys
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    yices2 \
-    && rm -rf /var/lib/apt/lists/*
-RUN pip3 install --no-cache-dir z3-solver
-
-# Clone UVM libraries (1.2, 1800.2-2017, 1800.2-2020)
-RUN git clone https://github.com/nitronis/UVM.git /opt/uvm && \
-    echo "UVM libraries installed at /opt/uvm"
-
+ENV PATH="/opt/verilator/bin:/opt/yosys/bin:/opt/sby/bin:/opt/xezim/bin:/opt/surfer/bin:/opt/verible/bin:${PATH}"
 ENV XEZIM_UVM_DIR=/opt/uvm
 ENV UVM_HOME_12=/opt/uvm/1.2
 ENV UVM_HOME_2017=/opt/uvm/1800.2-2017
 ENV UVM_HOME_2020=/opt/uvm/1800.2-2020
 
-# Working directory
 WORKDIR /workspace
 
-# Verify installations
-RUN verilator --version && \
-    yosys --version && \
-    xezim --version || true && \
-    echo "All tools installed successfully"
+# Fail the build if any required command is missing or cannot start.
+RUN set -eux; \
+    test -x /opt/verilator/bin/verilator; \
+    verilator --version; \
+    test -x /opt/yosys/bin/yosys; \
+    yosys --version; \
+    test -x /opt/sby/bin/sby; \
+    sby --help >/dev/null; \
+    z3 --version; \
+    test -x /opt/xezim/bin/xezim; \
+    xezim --help >/dev/null; \
+    test -x /opt/surfer/bin/surfer; \
+    surfer --version; \
+    test -x /opt/verible/bin/verible-verilog-lint; \
+    verible-verilog-lint --version; \
+    test -f /opt/uvm/1.2/src/uvm_pkg.sv; \
+    test -f /opt/uvm/1800.2-2017/src/uvm_pkg.sv; \
+    echo "All EDA tools installed successfully"
 
-# Default shell
 CMD ["/bin/bash"]
