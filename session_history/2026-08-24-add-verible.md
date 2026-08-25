@@ -1,7 +1,7 @@
 # Session: Reproducible EDA Image and SN74LS181
 
 **Conversation chain date:** 2026-08-24 through 2026-08-25 UTC
-**Capture timestamp:** 2026-08-25T15:51:31Z
+**Capture timestamp:** 2026-08-25T15:54:57Z
 **Conversation UUID:** Not exposed in the available Kiro context; this is the existing record for the current conversation chain and was updated in place.
 
 ## Goal
@@ -32,7 +32,7 @@ Create a reproducible Docker image containing xezim, Verilator, Yosys, SymbiYosy
 8. Replaced template scripts with deterministic lint, simulation, formal, synthesis, coverage, and complete sign-off entry points.
 9. Added exact coverage and final sign-off reports.
 
-### Final staged-diff review and remediation
+### Final staged-diff review and publication
 
 1. Reviewed the complete staged diff for RTL/spec/oracle correctness, evidence honesty, Docker reproducibility/bootstrap security, command consistency, and generated artifacts.
 2. The initial review found an incorrect active-LOW logic table, mutable rustup bootstrap executable, checksum-incompatible Verible update instructions, and redundant `.gitkeep` placeholders.
@@ -40,6 +40,7 @@ Create a reproducible Docker image containing xezim, Verilator, Yosys, SymbiYosy
 4. Removed the temporary generated review artifact rather than publishing it; the findings and remediation are retained in this session record.
 5. Rebuilt the image from the remediated Dockerfile and reran independent smoke plus the full sign-off flow successfully.
 6. Ran a final independent staged-diff re-review. It returned `READY` with no blocking, major, or minor findings and reconfirmed all four remediations, image identity, evidence, script modes, and repository hygiene.
+7. Created feature commit `c6de490a87d468df1177cc48e6f09372d84c167c` (`design/alu_74181: implement and exhaustively verify ALU`) and non-force pushed `design/complete-alu-74181` to `origin` with upstream tracking.
 
 ## Validation Status
 
@@ -62,6 +63,7 @@ All final checks used image `sha256:d2ffb0d844d69e4de521c2c8e376d46ea34f6edfec1d
 | Optimized primitive cells | 82: 42 AND, 19 OR, 12 XOR, 9 NOT |
 | Final semantic re-review | READY, no findings |
 | Staged diff and submodule checks | PASS |
+| Feature-branch commit and push | PASS |
 
 The UVM library emits 23 known false `UVM/COMP/NAME` warnings under required `UVM_NO_DPI`; its diagnostic states that this name checker requires DPI. All scoreboard checks pass and UVM errors/fatals are zero.
 
@@ -74,7 +76,7 @@ The UVM library emits 23 known false `UVM/COMP/NAME` warnings under required `UV
 - `abc bmc3`/`abc pdr` are used for finite Boolean checking; Z3 remains the cover engine.
 - A symbolic sampling stage gives BMC a state boundary without constraining any DUT functional input.
 - The 82 generic Yosys primitives are not directly compared with the datasheet's approximately 75 TTL-equivalent gates because decomposition libraries differ.
-- Work was moved from `main` to `design/complete-alu-74181` before publication.
+- Work was moved from `main` to `design/complete-alu-74181` before publication; no direct push to `main` was performed.
 
 ## Files Added or Updated
 
@@ -91,15 +93,15 @@ Generated simulation/formal/synthesis work directories are ignored. The obsolete
 - Exact model invocation count: not exposed in the available Kiro context.
 - Per-model invocation counts: not exposed; no reliable count is available to record.
 - Exact input/output/cache token totals: not exposed by Kiro and therefore not reported or estimated.
-- Available execution evidence: the 11-item task tracker, tool command transcripts, pinned-image rebuild and smoke output, active-LOW duality check, repeated `run_all.sh` output, initial and final semantic-review results, and Git diff/status checks.
+- Available execution evidence: the 11-item task tracker, tool command transcripts, pinned-image rebuild and smoke output, active-LOW duality check, repeated `run_all.sh` output, initial and final semantic-review results, Git diff/status checks, commit output, and push output.
 
 ## Duration
 
 - Prior record estimated conversation-chain start: approximately 2026-08-24T22:00Z.
-- Current capture: 2026-08-25T15:51:31Z.
-- Approximate wall-clock span: 17 hours 52 minutes, including user pauses, builds, validation, review, remediation, tool runs, and inactive intervals.
+- Current capture: 2026-08-25T15:54:57Z.
+- Approximate wall-clock span: 17 hours 55 minutes, including user pauses, builds, validation, review, remediation, publication, tool runs, and inactive intervals.
 - Active model/tool time is not separately exposed and cannot be reported exactly.
 
 ## Publication State
 
-Implementation, review remediation, reproducible image rebuild, final validation, and the independent staged-diff re-review are complete. The staged deliverable is `READY`; only the requested non-force feature-branch commit and push remain.
+Publication is complete. The signed-off feature commit was non-force pushed to `origin/design/complete-alu-74181`, and this final session record is stored in a follow-up bookkeeping commit on the same feature branch. No implementation, validation, review-remediation, or publication work remains.
