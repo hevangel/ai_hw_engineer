@@ -1,0 +1,46 @@
+# Build artifacts
+design/*/work/
+obj_dir/
+target/
+
+# Waveform dumps (can be large)
+*.vcd
+*.fst
+*.fst.hier
+*.xtrace
+*.xtrace.zst
+
+# Simulation logs (keep in work/)
+*.log
+
+# Yosys/SymbiYosys work directories
+*_bmc/
+*_prove/
+*_cover/
+
+# Coverage data
+*.dat
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Rust
+/target/
+
+# Compiled DPI libraries
+*.so
+*.dylib
+*.dll
