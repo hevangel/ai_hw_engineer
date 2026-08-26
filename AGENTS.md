@@ -74,6 +74,9 @@ ai_hw_engineer/
 - One tool per subfolder under `docs/`
 - Keep docs current when tool versions change
 - Each doc file should be self-contained and useful to an AI agent
+- Maintain `design/README.md` as the chip index; every entry must list the chip, its function, its first-introduced year, and a link to the design folder.
+- Every `design/<chip_name>/` folder must contain a `README.md` with historical context, why the chip is important, the first-introduced year, source links, and links to the folder's relevant Markdown documents.
+- When adding or changing a chip design, update both the design index and the chip README. Historical dates must be sourced and any uncertainty, such as disagreement over the exact month, must be stated rather than guessed.
 
 ### Scripts
 - Bash (POSIX-compatible where possible)
