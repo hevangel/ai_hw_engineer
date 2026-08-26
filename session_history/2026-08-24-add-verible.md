@@ -1,7 +1,7 @@
 # Session: Reproducible EDA Image and SN74LS181
 
 **Conversation chain date:** 2026-08-24 through 2026-08-25 UTC
-**Capture timestamp:** 2026-08-25T15:54:57Z
+**Capture timestamp:** 2026-08-26T06:40:09Z
 **Conversation UUID:** Not exposed in the available Kiro context; this is the existing record for the current conversation chain and was updated in place.
 
 ## Goal
@@ -105,3 +105,107 @@ Generated simulation/formal/synthesis work directories are ignored. The obsolete
 ## Publication State
 
 Publication is complete. The signed-off feature commit was non-force pushed to `origin/design/complete-alu-74181`, and this final session record is stored in a follow-up bookkeeping commit on the same feature branch. No implementation, validation, review-remediation, or publication work remains.
+
+## License publication bookkeeping
+
+**Capture timestamp:** 2026-08-26T06:29:16Z
+
+### Completed work
+
+- Added the repository-root `LICENSE` containing the standard MIT License with `Copyright (c) 2026 hevangel`.
+- Updated `README.md` to link project-owned material to the MIT license while preserving third-party tool license distinctions.
+- Updated `CONTRIBUTING.md` to replace the obsolete Apache-2.0 project-wide statement with the MIT project license and third-party license clarification.
+- Committed the changes as `3c638177b748bd294bbdd44eaedc8ec7a1a3bf4b` (`infra: add MIT license`) and pushed directly to `origin/main` as explicitly requested.
+
+### Validation status
+
+| Check | Result |
+|---|---|
+| MIT license text | PASS: standard permission, conditions, and warranty disclaimer present |
+| Documentation references | PASS: README and CONTRIBUTING link to `LICENSE` and distinguish third-party terms |
+| Whitespace validation | PASS: `git diff --check` |
+| Remote publication | PASS: `origin/main` resolves to `3c638177b748bd294bbdd44eaedc8ec7a1a3bf4b` |
+| Final branch state | PASS: local `main` and `origin/main` are synchronized |
+
+### Model-call evidence
+
+- Exact model invocation count, per-model counts, and token totals remain unavailable in Kiro context; no counts were fabricated.
+- Current-session execution evidence: repository/license inspection, MIT file creation, documentation edits, diff validation, commit output, push output, remote-ref verification, and final Git status/log checks.
+
+### Duration
+
+- Capture updated to `2026-08-26T06:29:16Z`.
+- Using the prior estimated chain start of approximately `2026-08-24T22:00Z`, the approximate wall-clock span is 32 hours 29 minutes, including user pauses and inactive intervals.
+- Active model/tool time is not separately exposed and cannot be reported exactly.
+
+### Current publication state
+
+The MIT license and documentation updates are committed on and pushed to `main`. The requested license publication is complete.
+
+## Chip documentation bookkeeping
+
+**Capture timestamp:** 2026-08-26T06:36:50Z
+
+### Completed work
+
+- Added `design/README.md` as the chip index, including the 74181/SN74LS181 entry and its first-introduced year of 1970.
+- Added `design/alu_74181/README.md` with historical context, the chip's importance, implementation overview, local Markdown links, datasheet links, and historical/technical references.
+- Updated `AGENTS.md` to require the design index and a historical, source-linked README for every chip folder, including sourced first-introduced dates and explicit uncertainty.
+
+### Validation status
+
+| Check | Result |
+|---|---|
+| Historical year | PASS: documented 1970 and noted month-level source disagreement |
+| Local Markdown links | PASS: specification, plans, and reports all exist |
+| Local datasheet links | PASS: both referenced PDFs exist |
+| Documentation content | PASS: design index, history, significance, references, and AGENTS.md instructions verified |
+| Whitespace validation | PASS: `git diff --check` |
+
+### Model-call evidence
+
+- Exact model invocation count, per-model counts, and token totals remain unavailable in Kiro context; no counts were fabricated.
+- Current-session execution evidence: repository inspection, source/date searches, documentation creation, AGENTS.md update, content reads, local-link checks, and final Git validation.
+
+### Duration
+
+- Capture updated to `2026-08-26T06:36:50Z`.
+- Using the prior estimated chain start of approximately `2026-08-24T22:00Z`, the approximate wall-clock span is 32 hours 36 minutes, including user pauses and inactive intervals.
+- Active model/tool time is not separately exposed and cannot be reported exactly.
+
+### Current publication state
+
+The requested documentation changes are implemented and validated locally. They remain uncommitted in the working tree pending the repository's normal review/commit workflow.
+
+## Chip documentation publication bookkeeping
+
+**Capture timestamp:** 2026-08-26T06:40:09Z
+
+### Completed work
+
+- Committed the design index, 74181 historical README, and AGENTS.md convention as `bed5425f3599173c2cbb740d243513491b1c50f4` (`design: document chip history and index`).
+- Pushed the commit directly to `origin/main` as requested.
+
+### Validation status
+
+| Check | Result |
+|---|---|
+| Documentation commit contents | PASS: only AGENTS.md and the two requested design README files |
+| Remote publication | PASS: `origin/main` resolves to `bed5425f3599173c2cbb740d243513491b1c50f4` |
+| Local branch synchronization | PASS: local `main` and `origin/main` point to `bed5425` |
+| Final Git validation | PASS: `git diff --check` |
+
+### Model-call evidence
+
+- Exact model invocation count, per-model counts, and token totals remain unavailable in Kiro context; no counts were fabricated.
+- Current-session execution evidence: pending-diff inspection, staged-diff validation, selective commit, direct push, remote-ref verification, and final status/log checks.
+
+### Duration
+
+- Capture updated to `2026-08-26T06:40:09Z`.
+- Using the prior estimated chain start of approximately `2026-08-24T22:00Z`, the approximate wall-clock span is 32 hours 40 minutes, including user pauses and inactive intervals.
+- Active model/tool time is not separately exposed and cannot be reported exactly.
+
+### Current publication state
+
+The requested chip documentation changes are committed on and pushed to `main`. The session-history bookkeeping remains the only local working-tree modification and was intentionally excluded from the documentation commit.
