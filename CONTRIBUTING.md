@@ -147,7 +147,7 @@ Good issue titles:
 
 ## License
 
-By contributing, you agree that your contributions are licensed under the same terms as the project (see individual tool licenses in README.md). The overall project structure and scripts are under Apache-2.0.
+By contributing, you agree that your contributions are licensed under the same terms as the project (see [LICENSE](LICENSE) and the individual tool licenses in README.md). The repository’s project-owned structure, scripts, documentation, RTL, and verification material are licensed under the MIT License; third-party components retain their own licenses.
 
 ## Questions?
 

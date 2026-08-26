@@ -225,8 +225,9 @@ Those limitations are part of the experiment. They should be documented, not edi
 
 ## License
 
-The repository combines this project’s own material with third-party open-source tools and references. See the applicable files and upstream projects for complete license terms.
+Project-owned material in this repository is licensed under the [MIT License](LICENSE). The repository also includes third-party open-source tools and references; see the applicable files and upstream projects for their complete license terms.
 
+- Project-owned material: MIT (see [LICENSE](LICENSE))
 - Xezim: Apache-2.0
 - Verilator: LGPL-3.0 or Artistic-2.0
 - Yosys: ISC
