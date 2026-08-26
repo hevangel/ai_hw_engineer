@@ -1,0 +1,88 @@
+[tasks]
+bmc_8253
+prove_8253
+cover_8253_mode0
+cover_8253_mode1
+cover_8253_mode2
+cover_8253_bus_reset_readback
+bmc_8254
+prove_8254
+cover_8254
+
+[options]
+bmc_8253: mode bmc
+bmc_8253: depth 16
+prove_8253: mode prove
+prove_8253: depth 16
+cover_8253_mode0: mode cover
+cover_8253_mode0: depth 10
+cover_8253_mode0: skip 1
+cover_8253_mode1: mode cover
+cover_8253_mode1: depth 10
+cover_8253_mode1: skip 1
+cover_8253_mode2: mode cover
+cover_8253_mode2: depth 10
+cover_8253_mode2: skip 1
+cover_8253_bus_reset_readback: mode cover
+cover_8253_bus_reset_readback: depth 10
+cover_8253_bus_reset_readback: skip 1
+bmc_8254: mode bmc
+bmc_8254: depth 16
+prove_8254: mode prove
+prove_8254: depth 16
+cover_8254: mode cover
+cover_8254: depth 16
+cover_8254: skip 1
+
+[engines]
+bmc_8253: abc bmc3
+prove_8253: abc pdr
+cover_8253_mode0: smtbmc --syn --unroll --nopresat z3 rewriter.cache_all=true
+cover_8253_mode1: smtbmc --syn --unroll --nopresat z3 rewriter.cache_all=true
+cover_8253_mode2: smtbmc --syn --unroll --nopresat z3 rewriter.cache_all=true
+cover_8253_bus_reset_readback: smtbmc --syn --unroll --nopresat z3 rewriter.cache_all=true
+bmc_8254: abc bmc3
+prove_8254: abc pdr
+cover_8254: smtbmc --syn --unroll --nopresat z3 rewriter.cache_all=true
+
+[script]
+bmc_8253: read -formal -D FORMAL_SAFETY ../src/intel_8253_8254.sv
+bmc_8253: read -formal intel_8253_8254_props.sv formal_8253.sv
+bmc_8253: prep -top formal_8253
+prove_8253: read -formal -D FORMAL_SAFETY ../src/intel_8253_8254.sv
+prove_8253: read -formal intel_8253_8254_props.sv formal_8253.sv
+prove_8253: prep -top formal_8253
+cover_8253_mode0: read -formal ../src/intel_8253_8254.sv
+cover_8253_mode0: read -formal intel_8253_8254_cover.sv cover_8253.sv
+cover_8253_mode0: chparam -set SCENARIO 0 cover_8253
+cover_8253_mode0: prep -top cover_8253
+cover_8253_mode1: read -formal ../src/intel_8253_8254.sv
+cover_8253_mode1: read -formal intel_8253_8254_cover.sv cover_8253.sv
+cover_8253_mode1: chparam -set SCENARIO 1 cover_8253
+cover_8253_mode1: prep -top cover_8253
+cover_8253_mode2: read -formal ../src/intel_8253_8254.sv
+cover_8253_mode2: read -formal intel_8253_8254_cover.sv cover_8253.sv
+cover_8253_mode2: chparam -set SCENARIO 2 cover_8253
+cover_8253_mode2: prep -top cover_8253
+cover_8253_bus_reset_readback: read -formal ../src/intel_8253_8254.sv
+cover_8253_bus_reset_readback: read -formal intel_8253_8254_cover.sv cover_8253.sv
+cover_8253_bus_reset_readback: chparam -set SCENARIO 3 cover_8253
+cover_8253_bus_reset_readback: prep -top cover_8253
+bmc_8254: read -formal -D FORMAL_SAFETY ../src/intel_8253_8254.sv
+bmc_8254: read -formal intel_8253_8254_props.sv formal_8254.sv
+bmc_8254: prep -top formal_8254
+prove_8254: read -formal -D FORMAL_SAFETY ../src/intel_8253_8254.sv
+prove_8254: read -formal intel_8253_8254_props.sv formal_8254.sv
+prove_8254: prep -top formal_8254
+cover_8254: read -formal ../src/intel_8253_8254.sv
+cover_8254: read -formal intel_8253_8254_cover.sv cover_8254.sv
+cover_8254: prep -top cover_8254
+
+[files]
+../src/intel_8253_8254.sv
+intel_8253_8254_props.sv
+intel_8253_8254_cover.sv
+formal_8253.sv
+formal_8254.sv
+cover_8253.sv
+cover_8254.sv
