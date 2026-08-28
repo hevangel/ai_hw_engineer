@@ -1,0 +1,39 @@
+[tasks]
+bmc
+prove
+cover
+
+[options]
+bmc: mode bmc
+bmc: depth 30
+prove: mode prove
+prove: depth 30
+cover: mode cover
+cover: depth 30
+
+[engines]
+bmc: abc bmc3
+prove: abc pdr
+cover: smtbmc --unroll z3
+
+[script]
+bmc: read -formal -D FORMAL ../src/intel_4002.sv
+bmc: read -formal intel_4002_props.sv
+bmc: prep -top intel_4002
+prove: read -formal -D FORMAL ../src/intel_4002.sv
+prove: read -formal intel_4002_props.sv
+prove: prep -top intel_4002
+cover: read -formal -D FORMAL -D FORMAL_COVER ../src/intel_4002.sv
+cover: read -formal intel_4002_cover.sv
+cover: prep -top intel_4002
+# Map the main/status arrays to flip-flops for the SMT cover engine: with
+# SMT-array memories, z3 does not converge on this design (it stalled for
+# hours at cover steps 7-9; see plans/formal_plan.md). The abc-based bmc and
+# prove tasks map memories internally and keep their proven fast flow.
+cover: memory_map
+cover: opt -fast
+
+[files]
+../src/intel_4002.sv
+intel_4002_props.sv
+intel_4002_cover.sv
