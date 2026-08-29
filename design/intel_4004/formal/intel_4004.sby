@@ -1,0 +1,33 @@
+[tasks]
+bmc
+prove
+cover
+
+[options]
+bmc: mode bmc
+bmc: depth 24
+prove: mode prove
+prove: depth 24
+cover: mode cover
+cover: depth 120
+
+[engines]
+bmc: abc bmc3
+prove: abc pdr
+cover: smtbmc --unroll z3
+
+[script]
+bmc: read -formal -D FORMAL ../src/intel_4004.sv
+bmc: read -formal intel_4004_props.sv
+bmc: prep -top intel_4004
+prove: read -formal -D FORMAL ../src/intel_4004.sv
+prove: read -formal intel_4004_props.sv
+prove: prep -top intel_4004
+cover: read -formal -D FORMAL -D FORMAL_COVER ../src/intel_4004.sv
+cover: read -formal intel_4004_cover.sv
+cover: prep -top intel_4004
+
+[files]
+../src/intel_4004.sv
+intel_4004_props.sv
+intel_4004_cover.sv
