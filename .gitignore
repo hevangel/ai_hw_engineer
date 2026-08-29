@@ -31,6 +31,7 @@ Thumbs.db
 *~
 .vscode/
 .idea/
+.minosa/
 
 # Python
 __pycache__/
