@@ -27,7 +27,7 @@ EOF
 yosys -Q -s "$SYNTH_SCRIPT" -l "$LOG_FILE"
 cat "$LOG_FILE"
 grep -Fq "Found and reported 0 problems." "$LOG_FILE"
-grep -Fq "Number of cells:" "$LOG_FILE"
+grep -Eq "Number of cells:|^[[:space:]]*[0-9]+ cells$" "$LOG_FILE"
 
 echo "=== Synthesis passed ==="
 echo "Netlist: $WORK_DIR/alu_74181_synth.v"

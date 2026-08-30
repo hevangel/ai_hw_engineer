@@ -36,7 +36,7 @@ EOF
     echo "=== Yosys generic synthesis: $variant_name ==="
     yosys -Q -s "$synth_script" -l "$log_file"
     grep -q "Found and reported 0 problems" "$log_file"
-    grep -q "Number of cells:" "$log_file"
+    grep -Eq "Number of cells:|^[[:space:]]*[0-9]+ cells$" "$log_file"
 }
 
 run_variant intel_8253 0
