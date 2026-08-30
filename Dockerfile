@@ -65,7 +65,7 @@ RUN rm -f /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources && \
     zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
-ARG RUST_VERSION=1.94.0
+ARG RUST_VERSION=1.98.0
 ARG RUSTUP_VERSION=1.29.0
 ARG RUSTUP_TARGET=x86_64-unknown-linux-gnu
 ARG RUSTUP_INIT_SHA256=4acc9acc76d5079515b46346a485974457b5a79893cfb01112423c89aeb5aa10
@@ -95,7 +95,7 @@ RUN git clone --filter=blob:none https://github.com/verilator/verilator.git /opt
 # Build Yosys
 # ============================================================
 FROM base AS yosys-build
-ARG YOSYS_REV=e97731b9dda91fa5fa53ed87df7c34163ba59a41
+ARG YOSYS_REV=26b51148a80ea546481cf4f0516be97e4ba251cc
 RUN git clone --filter=blob:none https://github.com/YosysHQ/yosys.git /opt/yosys-src && \
     git -C /opt/yosys-src checkout --detach "${YOSYS_REV}" && \
     git -C /opt/yosys-src submodule update --init --recursive && \
@@ -119,7 +119,7 @@ RUN git clone --filter=blob:none https://github.com/YosysHQ/sby.git /opt/sby-src
 # Build xezim
 # ============================================================
 FROM base AS xezim-build
-ARG XEZIM_REV=66efe062841d586407192a34ea2c36a9af0f0e8b
+ARG XEZIM_REV=4d145813a65ab1ea0b8d2802b0b0f2a2b8a1fe4a
 RUN git clone --filter=blob:none https://github.com/aionhw/xezim.git /opt/xezim-src && \
     git -C /opt/xezim-src checkout --detach "${XEZIM_REV}" && \
     cd /opt/xezim-src && \
@@ -132,7 +132,7 @@ RUN git clone --filter=blob:none https://github.com/aionhw/xezim.git /opt/xezim-
 # Build Surfer waveform viewer
 # ============================================================
 FROM base AS surfer-build
-ARG SURFER_REV=f8cafdacbe5d5b351c35de0e78490a5eb3b3ce37
+ARG SURFER_REV=fef7cf161dca4271406c0cf4d94926449f63304f
 RUN git clone --filter=blob:none https://gitlab.com/surfer-project/surfer.git /opt/surfer-src && \
     git -C /opt/surfer-src checkout --detach "${SURFER_REV}" && \
     cd /opt/surfer-src && \
@@ -144,8 +144,8 @@ RUN git clone --filter=blob:none https://gitlab.com/surfer-project/surfer.git /o
 # Download pinned Verible pre-built binaries
 # ============================================================
 FROM base AS verible-download
-ARG VERIBLE_VERSION=v0.0-4148-g1ea007ec
-ARG VERIBLE_SHA256=5198d7980e5c8e039ad371fd963dfec375aacac1ea80cfa530804b945132ab10
+ARG VERIBLE_VERSION=v0.0-4157-gfdbac312
+ARG VERIBLE_SHA256=9e7ead54bc5efcc31476eb87dd970fe51314e8ca6bd00e0646e1ea6cde137448
 RUN mkdir -p /opt/verible && \
     curl -fsSL "https://github.com/chipsalliance/verible/releases/download/${VERIBLE_VERSION}/verible-${VERIBLE_VERSION}-linux-static-x86_64.tar.gz" \
         -o /tmp/verible.tar.gz && \
