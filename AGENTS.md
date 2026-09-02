@@ -20,6 +20,8 @@ ai_hw_engineer/
 ├── design/                 — Chip designs
 │   ├── _template/          — Design template (copy for new chips)
 │   └── <chip_name>/        — One folder per chip
+├── system/                 — Virtual-platform system builds (chips + real
+│   └── <system_name>/      firmware + web front panel; see system/README.md)
 ├── scripts/                — Project-level utilities
 ├── AGENTS.md               — This file
 └── CONTRIBUTING.md         — Contribution guidelines

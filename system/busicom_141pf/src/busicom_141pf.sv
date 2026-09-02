@@ -30,7 +30,7 @@ module busicom_141pf (
     output logic        advance_evt_o,// one-shot: paper advanced one line
     output logic        red_o,        // red/black ribbon level (RAM0 bit0)
     output logic [2:0]  lamps_o,      // {negative, overflow, memory}
-    output logic [3:0]  drum_pos_o,   // current drum character position 0..12
+    input  logic [3:0]  drum_pos_i,   // current drum character position 0..12
     output logic        key_seen_o,   // one-shot: firmware sampled the key
     output logic [9:0]  kb_scan_o     // keyboard scan one-hot (4003 #0)
 );
@@ -268,13 +268,12 @@ module busicom_141pf (
     // ------------------------------------------------------------------------
     // Front panel: printer drum position and event capture
     // ------------------------------------------------------------------------
-    // drum_pos advances once per full revolution (two TEST half-spins); the
-    // character under the hammers while a hammer pulse arrives is the
-    // previous position (reference behaviour). Hammer and paper-advance are
-    // RAM0 port rising edges; they latch a one-shot event that survives
-    // until the host bridge acknowledges it with a panel tick.
-    logic [3:0] drum_pos;
-    logic test_prev;
+    // The drum position arrives from the testbench (which generates the
+    // sector/index timing). The character under the hammers while a hammer
+    // pulse arrives is the previous position (the sector pulse closes the
+    // print window). Hammer and paper-advance are RAM0 port rising edges;
+    // they latch a one-shot event that survives until the host bridge
+    // acknowledges it with a panel tick.
     logic [1:0] ram0_prev;
     logic [1:0] tick_prev;
     logic key_seen;
@@ -287,8 +286,6 @@ module busicom_141pf (
 
     always_ff @(posedge clk) begin
         if (!rst_n) begin
-            test_prev  <= 1'b0;
-            drum_pos   <= 4'd0;
             ram0_prev  <= 2'b00;
             tick_prev  <= 2'b00;
             key_seen   <= 1'b0;
@@ -298,10 +295,6 @@ module busicom_141pf (
             red_o       <= 1'b0;
             lamps_o     <= 3'b000;
         end else begin
-            test_prev <= test_i;
-            if (test_i && !test_prev)
-                drum_pos <= (drum_pos == 4'd12) ? 4'd0 : drum_pos + 4'd1;
-
             ram0_prev <= {ram0_port[3], ram0_port[1]};
             tick_prev <= {tick_prev[0], panel_tick_i};
 
@@ -313,7 +306,10 @@ module busicom_141pf (
             end
             if (hammer_edge) begin
                 hammer_evt_o  <= 1'b1;
-                hammer_data_o <= {(drum_pos == 4'd0 ? 4'd12 : drum_pos - 4'd1),
+                // the sector pulse closes the character's print window, so
+                // the character under the hammers is the previous position
+                hammer_data_o <= {(drum_pos_i == 4'd0 ? 4'd12
+                                                      : drum_pos_i - 4'd1),
                                   sh2_q, sh1_q};
             end
             if (advance_edge)
@@ -326,7 +322,6 @@ module busicom_141pf (
         end
     end
 
-    assign drum_pos_o = drum_pos;
     assign key_seen_o = key_seen;
 
     `ifdef DEBUG_TRACE

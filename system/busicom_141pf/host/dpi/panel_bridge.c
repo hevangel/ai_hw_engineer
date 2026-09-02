@@ -73,7 +73,7 @@ static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
  * registers one entry per press, as with a physically held key). */
 #define QUEUE_CAP 64
 #define PRESENT_TICKS 64
-#define RELEASE_TICKS 2
+#define RELEASE_TICKS 30 /* span a full drum index period (26 ticks) */
 /* press presentation states */
 #define PS_IDLE 0
 #define PS_PRESENT 1

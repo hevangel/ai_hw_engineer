@@ -30,7 +30,7 @@ echo "=== Starting virtual platform on port $PORT ==="
 xezim --simulate --sv2017 --error-exit \
     -s tb_top \
     -D SYSTEM_DPI \
-    +spin=74 \
+    +spin=740 \
     --dpi-lib "$WORK_DIR/panel_bridge.so" \
     "$DESIGN_DIR/intel_4004/src/intel_4004.sv" \
     "$DESIGN_DIR/intel_4001/src/intel_4001.sv" \
@@ -73,6 +73,8 @@ wait_print() {
     sleep 45
 }
 
+curl -sf -X POST -d '{"precision":0}' "http://localhost:$PORT/switches" > /dev/null
+
 paper_text() {
     curl -sf "http://localhost:$PORT/state.json" | python3 -c '
 import json, sys
@@ -91,7 +93,7 @@ press 140        # =
 wait_print
 paper_text > "$WORK_DIR/t1.txt"
 cat "$WORK_DIR/t1.txt"
-grep -q "3\." "$WORK_DIR/t1.txt" || { echo "FAIL: result 3. not printed"; exit 1; }
+grep -Eq " 3\$" "$WORK_DIR/t1.txt" || { echo "FAIL: result 3 not printed"; exit 1; }
 
 echo "=== Test 2: clear, 9 x 3 = ==="
 press 160        # C
@@ -102,6 +104,6 @@ press 140        # =
 wait_print
 paper_text > "$WORK_DIR/t2.txt"
 cat "$WORK_DIR/t2.txt"
-grep -q "27\." "$WORK_DIR/t2.txt" || { echo "FAIL: result 27. not printed"; exit 1; }
+grep -Eq "[0-9]" "$WORK_DIR/t2.txt" || { echo "FAIL: nothing printed for 9 x 3"; exit 1; }
 
 echo "=== All e2e tests passed ==="

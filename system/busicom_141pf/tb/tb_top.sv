@@ -42,6 +42,7 @@ module tb_top;
     logic [3:0]  precision = 4'h0;
     logic [3:0]  rounding  = 4'h0;
     logic        paper_btn = 1'b0;
+    logic [3:0]  drum_pos = 4'h0;
 
     // front panel outputs
     logic        hammer_evt;
@@ -49,7 +50,6 @@ module tb_top;
     logic        advance_evt;
     logic        red;
     logic [2:0]  lamps;       // {negative, overflow, memory}
-    logic [3:0]  drum_pos;
     logic        key_seen;
     logic [9:0]  kb_scan;
 
@@ -68,7 +68,7 @@ module tb_top;
         .advance_evt_o  (advance_evt),
         .red_o          (red),
         .lamps_o        (lamps),
-        .drum_pos_o     (drum_pos),
+        .drum_pos_i     (drum_pos),
         .key_seen_o     (key_seen),
         .kb_scan_o      (kb_scan)
     );
@@ -107,10 +107,14 @@ module tb_top;
                 if (spin_cnt % 2 == 0) begin
                     test_i <= 1'b1;
                     if (spin_cnt == SPINS_PER_INDEX) begin
+                        // index: character 0 is in the print position
                         drum_idx <= 1'b1;
+                        drum_pos <= 4'd0;
                         spin_cnt = 1;
                     end else begin
                         drum_idx <= 1'b0;
+                        drum_pos <= (drum_pos == 4'd12) ? 4'd0
+                                                        : drum_pos + 4'd1;
                         spin_cnt = spin_cnt + 1;
                     end
                 end else begin
