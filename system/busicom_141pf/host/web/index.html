@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=0.9" />
+<title>BUSICOM 141-PF — virtual platform</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="machine">
+  <div class="brand">BUSICOM <span>141-PF</span></div>
+
+  <div class="paperwell">
+    <table id="paper"></table>
+    <div class="drum-label">printer drum</div>
+    <table id="drum"></table>
+  </div>
+
+  <div class="controls">
+    <button id="advance" title="Advance paper">Move<br/>Up</button>
+    <div class="switch-block">
+      <label class="slider-label"><span id="digits_label">0</span> decimal points</label>
+      <input type="range" id="digits" min="0" max="8" value="0" />
+    </div>
+    <div class="switch-block radios">
+      <label><input type="radio" name="rounding" id="round_truncate" value="8" /> Truncate</label>
+      <label><input type="radio" name="rounding" id="round_float" value="0" checked /> Float</label>
+      <label><input type="radio" name="rounding" id="round_round" value="1" /> Round</label>
+    </div>
+    <div class="lamps">
+      <div class="led" id="led_overflow">Overflow</div>
+      <div class="led" id="led_negative">Negative</div>
+      <div class="led" id="led_memory">Memory</div>
+    </div>
+  </div>
+
+  <table id="keyboard">
+    <tr>
+      <td><button class="key red fn" code="157" id="sign">Sign</button></td>
+      <td><button class="key" code="153">7</button></td>
+      <td><button class="key" code="149">8</button></td>
+      <td><button class="key" code="145">9</button></td>
+      <td class="gap"></td>
+      <td><button class="key op" code="141">&minus;</button></td>
+      <td><button class="key op" code="137">&#9671;</button></td>
+      <td class="gap"></td>
+      <td><button class="key fn" code="133">&radic;</button></td>
+      <td><button class="key mem" code="129">CM</button></td>
+    </tr>
+    <tr>
+      <td><button class="key fn small" code="158">Ex&#8202;change</button></td>
+      <td><button class="key" code="154">4</button></td>
+      <td><button class="key" code="150">5</button></td>
+      <td><button class="key" code="146">6</button></td>
+      <td class="gap"></td>
+      <td rowspan="2"><button class="key op tall" code="142">+</button></td>
+      <td><button class="key op" code="138">&divide;</button></td>
+      <td class="gap"></td>
+      <td><button class="key fn" code="134">%</button></td>
+      <td><button class="key mem" code="130">RM</button></td>
+    </tr>
+    <tr>
+      <td><button class="key fn" code="159">CE</button></td>
+      <td><button class="key" code="155">1</button></td>
+      <td><button class="key" code="151">2</button></td>
+      <td><button class="key" code="147">3</button></td>
+      <td class="gap"></td>
+      <td><button class="key op" code="139">&times;</button></td>
+      <td class="gap"></td>
+      <td><button class="key mem red" code="135">M&#8791;</button></td>
+      <td><button class="key mem red" code="131">M&minus;</button></td>
+    </tr>
+    <tr>
+      <td><button class="key fn" code="160">C</button></td>
+      <td><button class="key" code="156">0</button></td>
+      <td><button class="key" code="152">00</button></td>
+      <td><button class="key" code="148">.</button></td>
+      <td class="gap"></td>
+      <td colspan="2"><button class="key op wide" code="140">=</button></td>
+      <td class="gap"></td>
+      <td><button class="key mem" code="136">M&#10876;</button></td>
+      <td><button class="key mem" code="132">M+</button></td>
+    </tr>
+  </table>
+
+  <div class="hint">Type with the keyboard too: digits, + - * / = . % and # for &#9671;.</div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

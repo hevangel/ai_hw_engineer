@@ -298,6 +298,9 @@ module tb_intel_4004;
           if (!iss_opa[0]) begin  // FIN
             iss_idx[{iss_opa[3:1], 1'b0}] = iss_w2[7:4];
             iss_idx[{iss_opa[3:1], 1'b1}] = iss_w2[3:0];
+            // FIN is one word: the program counter advances by one even
+            // though the instruction runs over two cycles.
+            iss_stack[iss_sp] = pc1;
           end else begin  // JIN
             iss_stack[iss_sp] = {pc1[11:8], iss_idx[{iss_opa[3:1], 1'b0}],
                                  iss_idx[{iss_opa[3:1], 1'b1}]};
