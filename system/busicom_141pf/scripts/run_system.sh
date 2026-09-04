@@ -26,8 +26,9 @@ PACE="${BUSICOM_PACE:-1}"
 SPIN="${BUSICOM_SPIN:-740}"
 
 mkdir -p "$WORK_DIR"
-
-sh "$SCRIPT_DIR/gen_rom_wrappers.sh" > /dev/null
+# $readmemh paths in the board resolve against the simulator's working
+# directory (src/rom/rom_4001_N.hex), so run from the system folder.
+cd "$SYSTEM_DIR"
 
 echo "=== Building panel bridge ==="
 cc -O2 -shared -fPIC -pthread \
@@ -50,11 +51,6 @@ xezim --simulate --sv2017 --error-exit \
     "$DESIGN_DIR/intel_4001/src/intel_4001.sv" \
     "$DESIGN_DIR/intel_4002/src/intel_4002.sv" \
     "$DESIGN_DIR/intel_4003/src/intel_4003.sv" \
-    "$SYSTEM_DIR/src/intel_4001_rom0.sv" \
-    "$SYSTEM_DIR/src/intel_4001_rom1.sv" \
-    "$SYSTEM_DIR/src/intel_4001_rom2.sv" \
-    "$SYSTEM_DIR/src/intel_4001_rom3.sv" \
-    "$SYSTEM_DIR/src/intel_4001_rom4.sv" \
     "$SYSTEM_DIR/src/busicom_141pf.sv" \
     "$SYSTEM_DIR/tb/tb_top.sv" \
     --max-time 86400000000000ns \

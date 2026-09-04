@@ -208,8 +208,8 @@ module tb_top;
             if (dpi_keys != 0 || hammer_evt || advance_evt || lamps != 0)
                 $display("[%0t] TICK keys=%08h h=%b a=%b red=%b lamp=%b dpos=%0d iosel=%0d rdr=%b wrr=%b",
                          $time, dpi_keys, hammer_evt, advance_evt, red, lamps,
-                         drum_pos, dut.u_rom1.u_4001.io_sel_q,
-                         dut.u_rom1.u_4001.s_rdr, dut.u_rom1.u_4001.s_wrr);
+                         drum_pos, dut.u_rom1.io_sel_q,
+                         dut.u_rom1.s_rdr, dut.u_rom1.s_wrr);
             if (tick_count % 8 == 0)
                 $display("[%0t] RAM0 r0=%h%h%h%h %h%h%h%h %h%h%h%h %h%h%h%h st=%h%h%h%h | r1=%h%h%h%h %h%h%h%h %h%h%h%h %h%h%h%h",
                          $time,

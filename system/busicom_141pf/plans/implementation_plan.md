@@ -5,9 +5,11 @@ ordered so each one is independently verifiable.
 
 1. **Firmware extraction** — `scripts/extract_rom.py` splits the reference
    1280-byte dump into `src/rom/rom_4001_N.hex` (done; verified 5×256).
-2. **ROM wrappers** — `scripts/gen_rom_wrappers.sh` turns the hex files into
-   thin generated wrappers (`src/intel_4001_romN.sv`) that carry the mask as
-   the 4001's `ROM_INIT` parameter plus that chip's `CHIP_NO`/`IO_DIR`.
+2. **ROM contents** — `src/rom/rom_4001_N.hex` feed the five 4001s
+   directly: the board instantiates the design-folder `intel_4001` with
+   `ROM_FILE`/`CHIP_NO`/`IO_DIR` per chip (the earlier generated-wrapper
+   step was removed when the 4001 switched from a mask parameter to
+   `$readmemh`).
 3. **Board RTL** — `src/busicom_141pf.sv`: shared 4-bit bus, 4004, five
    4001s, two 4002s on separate CM-RAM lines, three 4003s wired to the
    ROM0 port lines per spec §3.1; front-panel edge detectors (hammer /

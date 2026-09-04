@@ -134,11 +134,20 @@ module busicom_141pf (
     );
 
     // ------------------------------------------------------------------------
-    // ROMs (generated wrappers carry the authentic masks and board straps)
+    // ROMs: the design-folder 4001, five instances, each loading its
+    // authentic 141-PF mask from src/rom/rom_4001_N.hex ($readmemh; the
+    // path resolves against the simulator's working directory, which the
+    // launch scripts set to the system folder). Board straps per spec 3.1:
+    // rom0 drives the 4003 shifters (IO_DIR 0111), rom1 keyboard columns
+    // (inputs), rom2 drum index + paper button, rom3/rom4 unused.
     // ------------------------------------------------------------------------
     logic [3:0] rom0_port;
 
-    intel_4001_rom0 u_rom0 (
+    intel_4001 #(
+        .CHIP_NO  (4'h0),
+        .IO_DIR   (4'b0111),
+        .ROM_FILE ("src/rom/rom_4001_0.hex")
+    ) u_rom0 (
         .clk(clk), .rst_n(rst_n), .clr_n(clr_n),
         .data_i(data_chips), .data_o(rom_data_o[0]), .data_oe(rom_data_oe[0]),
         .sync(sync), .cm_rom(cm_rom),
@@ -148,7 +157,11 @@ module busicom_141pf (
     // keyboard matrix columns are decoded below (front-panel section)
     logic [3:0] kb_col;
 
-    intel_4001_rom1 u_rom1 (
+    intel_4001 #(
+        .CHIP_NO  (4'h1),
+        .IO_DIR   (4'b0000),
+        .ROM_FILE ("src/rom/rom_4001_1.hex")
+    ) u_rom1 (
         .clk(clk), .rst_n(rst_n), .clr_n(clr_n),
         .data_i(data_chips), .data_o(rom_data_o[1]), .data_oe(rom_data_oe[1]),
         .sync(sync), .cm_rom(cm_rom),
@@ -158,19 +171,31 @@ module busicom_141pf (
     // ROM2 port pins: bit3 = paper button, bit0 = drum index pulse
     logic drum_idx;
 
-    intel_4001_rom2 u_rom2 (
+    intel_4001 #(
+        .CHIP_NO  (4'h2),
+        .IO_DIR   (4'b0000),
+        .ROM_FILE ("src/rom/rom_4001_2.hex")
+    ) u_rom2 (
         .clk(clk), .rst_n(rst_n), .clr_n(clr_n),
         .data_i(data_chips), .data_o(rom_data_o[2]), .data_oe(rom_data_oe[2]),
         .sync(sync), .cm_rom(cm_rom),
         .port_i({paper_btn_i, 2'b00, drum_idx}), .port_o(), .port_oe()
     );
-    intel_4001_rom3 u_rom3 (
+    intel_4001 #(
+        .CHIP_NO  (4'h3),
+        .IO_DIR   (4'b0000),
+        .ROM_FILE ("src/rom/rom_4001_3.hex")
+    ) u_rom3 (
         .clk(clk), .rst_n(rst_n), .clr_n(clr_n),
         .data_i(data_chips), .data_o(rom_data_o[3]), .data_oe(rom_data_oe[3]),
         .sync(sync), .cm_rom(cm_rom),
         .port_i(4'h0), .port_o(), .port_oe()
     );
-    intel_4001_rom4 u_rom4 (
+    intel_4001 #(
+        .CHIP_NO  (4'h4),
+        .IO_DIR   (4'b0000),
+        .ROM_FILE ("src/rom/rom_4001_4.hex")
+    ) u_rom4 (
         .clk(clk), .rst_n(rst_n), .clr_n(clr_n),
         .data_i(data_chips), .data_o(rom_data_o[4]), .data_oe(rom_data_oe[4]),
         .sync(sync), .cm_rom(cm_rom),
@@ -334,18 +359,18 @@ module busicom_141pf (
     logic [3:0] prev_iosel = 4'hF;
     always @(posedge clk) begin
         if (rst_n) begin
-            if (u_rom1.u_4001.io_sel_q != prev_iosel) begin
-                prev_iosel <= u_rom1.u_4001.io_sel_q;
+            if (u_rom1.io_sel_q != prev_iosel) begin
+                prev_iosel <= u_rom1.io_sel_q;
                 `ifdef DEBUG_XLATE
                 $display("[%0t] SRCSEL raw=%0d xphase=%0d cm=%b opr=%h opa=%h src=%b",
-                         $time, u_rom1.u_4001.io_sel_q, xlate_phase, cm_rom,
+                         $time, u_rom1.io_sel_q, xlate_phase, cm_rom,
                          xlate_opr, xlate_opa, xlate_src_x2);
                 `endif
             end
-            if (u_rom1.u_4001.s_rdr && u_rom1.u_4001.io_selected &&
-                u_rom1.u_4001.phase >= 6 && kb_scan_o == 10'b0001000000)
+            if (u_rom1.s_rdr && u_rom1.io_selected &&
+                u_rom1.phase >= 6 && kb_scan_o == 10'b0001000000)
                 $display("[%0t] KBDROW6 col=%b bus=%b acc=%b keys=%08h",
-                         $time, u_rom1.u_4001.rdr_value, data_bus, u_cpu.acc,
+                         $time, u_rom1.rdr_value, data_bus, u_cpu.acc,
                          keys_mask_i);
             // RAM0 I/O commands (WMP/WR0/RD0/WRM/RDM/ADM) with bus value
             if (dut.u_ram0.selected && dut.u_ram0.cmd_opr == 4'he &&
