@@ -14,16 +14,19 @@
 // pins become synchronous active-low `rst_n` and `clr_n`; per the MCS-4
 // Users Manual they have distinct jobs: RESET clears the static flip-flops
 // and inhibits data out, while CL clears only the I/O output flip-flops.
-// The mask-programmed ROM contents (ROM_INIT) and the per-pin I/O
-// direction metal option (IO_DIR) are parameters.
+// The mask-programmed ROM contents load from a hex file named by the
+// ROM_FILE parameter (one 8-bit word per line, 256 lines, address order);
+// the per-pin I/O direction metal option (IO_DIR) is a parameter.
 module intel_4001 #(
     // Metal mask options (ordering options 1 and 2 of the manual)
     parameter logic [3:0]    CHIP_NO = 4'h0,   // chip number 0-15
     parameter logic [3:0]    IO_DIR  = 4'b1111, // per-pin 1 = output, 0 = input
-    // Mask-programmed contents: word at address a is bits 8*a +: 8
-    // (default: word(a) = (37*a + 61) mod 256, a fixed bijective pattern
-    // chosen so every address is distinguishable in verification)
-    parameter logic [2047:0] ROM_INIT = 2048'h18f3cea9845f3a15f0cba6815c3712edc8a37e59340feac5a07b56310ce7c29d78532e09e4bf9a75502b06e1bc97724d2803deb9946f4a2500dbb6916c4722fdd8b38e69441ffad5b08b66411cf7d2ad88633e19f4cfaa85603b16f1cca7825d3813eec9a47f5a3510ebc6a17c57320de8c39e79542f0ae5c09b76512c07e2bd98734e2904dfba95704b2601dcb7926d4823fed9b48f6a4520fbd6b18c67421df8d3ae89643f1af5d0ab86613c17f2cda8835e3914efcaa5805b3611ecc7a27d58330ee9c49f7a55300be6c19c77522d08e3be99744f2a05e0bb96714c2702ddb8936e4924ffdab5906b4621fcd7b28d68431ef9d4af8a65401bf6d1ac87623d
+    // Mask-programmed contents, loaded from this hex file ($readmemh,
+    // one 8-bit word per line in address order). Default: word(a) =
+    // (37*a + 61) mod 256, a fixed bijective pattern chosen so every
+    // address is distinguishable in verification. The path resolves
+    // against the simulator's working directory.
+    parameter                ROM_FILE = "src/rom_4001_default.hex"
 ) (
     input  logic       clk,
     input  logic       rst_n,   // historical RESET pin (synchronous model)
@@ -61,20 +64,25 @@ module intel_4001 #(
   logic [3:0] port_q;       // I/O output latch (cleared by CL, not RESET)
 
   // ------------------------------------------------------------------
-  // Mask contents: a parameter in simulation/synthesis, a free constant
+  // Mask contents: a hex file in simulation/synthesis, a free constant
   // under formal so proofs cover every possible mask pattern.
   // ------------------------------------------------------------------
 `ifdef FORMAL
   (* anyconst *) logic [2047:0] rom_mask;
   logic [2047:0] rom_flat;
   assign rom_flat = rom_mask;
-`else
-  logic [2047:0] rom_flat;
-  assign rom_flat = ROM_INIT;
-`endif
 
   logic [7:0] rom_word;
   assign rom_word = rom_flat[8*addr_q +: 8];
+`else
+  logic [7:0] rom_mem [0:255];
+  initial begin
+      $readmemh(ROM_FILE, rom_mem);
+  end
+
+  logic [7:0] rom_word;
+  assign rom_word = rom_mem[addr_q];
+`endif
 
   // ------------------------------------------------------------------
   // Snooped opcode decode: every chip hears every fetch on the shared bus

@@ -86,12 +86,13 @@ integration `data_o` would be tri-stated by `data_oe` onto a shared wire and
 |-----------|---------|-------------|
 | `CHIP_NO` | 4'h0 | Metal-option chip number 0-15 compared against the A3 nibble and the SRC X2 nibble |
 | `IO_DIR` | 4'b1111 | Per-pin I/O direction mask option: 1 = output pin, 0 = input pin |
-| `ROM_INIT` | 256 x 8 pattern | The mask-programmed ROM contents as a packed 2048-bit vector; word at address *a* is bits `8*a +: 8` |
+| `ROM_FILE` | `src/rom_4001_default.hex` | Hex file holding the mask-programmed ROM contents, loaded with `$readmemh`: one 8-bit word per line, 256 lines in address order; word at address *a* is line *a*+1. The path resolves against the simulator's working directory |
 
-The default `ROM_INIT` pattern is a fixed, address-distinguishable function
-chosen for verification (see `src/intel_4001.sv`); real chips are ordered
-with an arbitrary customer truth table. In formal mode the contents vector is
-replaced by a free constant (`anyconst`) so proofs cover every possible mask.
+The default ROM pattern is a fixed, address-distinguishable function
+chosen for verification (`src/rom_4001_default.hex`); real chips are
+ordered with an arbitrary customer truth table, supplied as their own hex
+file. In formal mode the contents vector is replaced by a free constant
+(`anyconst`) so proofs cover every possible mask and no file is read.
 
 ## 4. The MCS-4 Instruction Cycle
 
