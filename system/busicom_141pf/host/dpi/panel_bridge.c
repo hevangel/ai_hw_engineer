@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
@@ -67,13 +68,18 @@
 /* ------------------------------------------------------------------ */
 static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
 
-/* pending key presses. Each accepted press is presented to the keyboard
- * matrix for PRESENT_TICKS consecutive panel ticks - long enough to span
- * several firmware scan bursts - then drops (the firmware debounces and
- * registers one entry per press, as with a physically held key). */
+/* pending key presses. Panel ticks arrive once per drum half-spin
+ * (~spin machine cycles, see tb_top.sv). The firmware has no key
+ * buffer: its main-loop key dispatcher only registers a key if the
+ * matrix is still down when the dispatch pass runs, roughly every
+ * 2900 machine cycles. A press is therefore held for PRESENT_TICKS
+ * panel ticks (several dispatch passes) and kept up RELEASE_TICKS (at
+ * least one pass) before the next press, so exactly one click
+ * registers - the same contract as a human holding a key down for a
+ * fraction of a second. */
 #define QUEUE_CAP 64
-#define PRESENT_TICKS 64
-#define RELEASE_TICKS 30 /* span a full drum index period (26 ticks) */
+#define PRESENT_TICKS 8
+#define RELEASE_TICKS 4
 /* press presentation states */
 #define PS_IDLE 0
 #define PS_PRESENT 1
@@ -225,11 +231,8 @@ int dpi_panel_keys(void)
 {
     int mask = 0;
 
-    pace_tick();
-
     pthread_mutex_lock(&g_lock);
-    /* release the presented key a couple of ticks after the firmware
-     * actually sampled it, then present the next queued press */
+    /* release countdown, then present the next queued press */
     if (present_state == 2) { /* release countdown */
         if (--present_release <= 0) {
             present_state = PS_IDLE;
@@ -245,8 +248,8 @@ int dpi_panel_keys(void)
     if (present_state == 1) {
         mask = 1 << (press_active[0].code - KEY_BASE);
         if (--press_active[0].remaining <= 0) {
-            present_state = 2; /* max hold reached: release anyway */
-            present_release = 2;
+            present_state = 2; /* hold elapsed: release */
+            present_release = RELEASE_TICKS;
         }
     }
     pthread_mutex_unlock(&g_lock);
@@ -261,10 +264,10 @@ int dpi_panel_ctrl(int evflags, int hammer24, int lamps)
     int paper_btn;
     int64_t now;
 
-    if (evflags & 0x80 && present_state == PS_PRESENT) {
-        present_state = PS_RELEASE;
-        present_release = RELEASE_TICKS;
-    }
+    /* machine-time pacing rides the drum tick (one tick = ~16ms of
+     * machine time); the faster key tick must not pace, or machine time
+     * would run 8x slower than the drum rate assumes */
+    pace_tick();
 
     pthread_mutex_lock(&g_lock);
     now = now_ns();
@@ -341,7 +344,8 @@ static void respond(int fd, enum ctype ct, const char *body, size_t len)
     static const char p1[] =
         "HTTP/1.1 200 OK\r\nContent-Type: ";
     static const char p2[] = "Content-Length: ";
-    static const char p3[] = "Connection: close\r\n\r\n";
+    /* leading CRLF terminates the Content-Length line */
+    static const char p3[] = "\r\nConnection: close\r\n\r\n";
     const char *ctext = ctype_str(ct);
     size_t ct_len = strlen(ctext);
     char hdr[256];
@@ -480,6 +484,31 @@ static void handle_client(int fd)
             break;
     }
 
+    /* headers and body can arrive in separate segments: drain up to
+     * Content-Length more bytes so POST bodies are never truncated */
+    const char *hdr_end = strstr(req, "\r\n\r\n");
+    size_t want_body = 0;
+    for (const char *p = req; hdr_end && p + 15 < hdr_end; p++) {
+        if (strncasecmp(p, "content-length:", 15) == 0) {
+            const char *d = p + 15;
+            while (d < hdr_end && *d == ' ')
+                d++;
+            while (d < hdr_end && *d >= '0' && *d <= '9')
+                want_body = want_body * 10 + (size_t)(*d++ - '0');
+            break;
+        }
+    }
+    if (want_body > 4096)
+        want_body = 4096;
+    while (hdr_end && got - (size_t)(hdr_end - req + 4) < want_body &&
+           got < sizeof(req) - 1) {
+        n = read(fd, req + got, sizeof(req) - 1 - got);
+        if (n <= 0)
+            break;
+        got += (size_t)n;
+        req[got] = '\0';
+    }
+
     /* request line: METHOD SP TARGET SP VERSION CRLF (bounded copies) */
     char method[8] = "";
     char path[128] = "";
@@ -524,6 +553,8 @@ static void handle_client(int fd)
                 press_count < QUEUE_CAP) {
                 press_queue[(press_head + press_count) % QUEUE_CAP] = code;
                 press_count++;
+                fprintf(stderr, "[press] code=%d count=%d\n", code,
+                        press_count);
             }
             pthread_mutex_unlock(&g_lock);
             respond(fd, CT_JSON, "{\"ok\":true}", 11);

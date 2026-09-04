@@ -302,7 +302,7 @@ module busicom_141pf (
                 // events were delivered to the host with this tick
                 hammer_evt_o  <= 1'b0;
                 advance_evt_o <= 1'b0;
-                key_seen_o    <= 1'b0;
+                key_seen      <= 1'b0;
             end
             if (hammer_edge) begin
                 hammer_evt_o  <= 1'b1;
@@ -314,6 +314,8 @@ module busicom_141pf (
             end
             if (advance_edge)
                 advance_evt_o <= 1'b1;
+            // a fresh sample re-arms the latch after the tick clear, so
+            // every key read delivers its own event to the host
             if (kbd_sampled)
                 key_seen <= 1'b1;
 
