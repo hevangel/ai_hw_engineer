@@ -200,6 +200,12 @@ module intel_4004 (
   logic [11:0] pc_next;
   always_comb begin
     pc_next = cycle2 ? pc_plus2 : pc_plus1;
+    // FIN is a one-word instruction executed over two cycles: the program
+    // counter advances by one, past the FIN itself. (Its second cycle
+    // reuses the increment to present the pair-0 indirect address, so no
+    // second word follows.)
+    if (fin_word)
+      pc_next = pc_plus1;
     unique case (opr)
       OprJcn: begin
         if (jcn_taken) begin
