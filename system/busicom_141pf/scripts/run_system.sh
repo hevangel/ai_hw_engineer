@@ -20,6 +20,10 @@ LOG_FILE="$WORK_DIR/busicom_141pf.log"
 
 PORT="${BUSICOM_PORT:-8080}"
 PACE="${BUSICOM_PACE:-1}"
+# spin=740: the firmware's key-dispatch cadence is coupled to the drum
+# rate, and at the authentic 1481 the host key presses register garbled
+# (see report known issues). 740 is the E2E-verified configuration.
+SPIN="${BUSICOM_SPIN:-740}"
 
 mkdir -p "$WORK_DIR"
 
@@ -34,9 +38,13 @@ cc -O2 -shared -fPIC -pthread \
     -o "$WORK_DIR/panel_bridge.so"
 
 echo "=== BUSICOM 141-PF virtual platform (web panel: http://0.0.0.0:$PORT/) ==="
+# NOTE: deliberately NOT using XEZIM_JIT/AOT - those backends miscompile
+# this board (E2E prints wrong results with them enabled; interpreter is
+# correct). Revisit only after an upstream xezim fix.
 xezim --simulate --sv2017 --error-exit \
     -s tb_top \
     -D SYSTEM_DPI \
+    ${SPIN:++spin=$SPIN} \
     --dpi-lib "$WORK_DIR/panel_bridge.so" \
     "$DESIGN_DIR/intel_4004/src/intel_4004.sv" \
     "$DESIGN_DIR/intel_4001/src/intel_4001.sv" \

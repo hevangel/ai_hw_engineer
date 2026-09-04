@@ -48,22 +48,44 @@ All 4004 verification passes with the corrected semantics.
 
 ## Known issues / refinements
 
-- **Print content under accelerated drums**: with `+spin` drum speedups the
-  firmware's per-sector shifter setup gets tight; multi-character lines can
-  smear across paper rows. `run_system_test.sh` uses +spin=740 (2× real
-  drum speed) where single results print exactly; authentic timing
-  (+spin=1481) is deterministic but slow in wall time.
+- **Firmware key dispatch is drum-coupled (spin is NOT transparent)**:
+  at the authentic `+spin=1481` the firmware's main-loop key dispatcher
+  registers host key presses as garbage or misses them; at
+  `+spin=740` presses register exactly (E2E-verified). The earlier
+  assumption "all drum timings scale together, so firmware behaviour is
+  unchanged" is false for the keyboard path — `run_system.sh` therefore
+  defaults to spin=740. Beware: xezim 0.10.3 silently DROPS a `+plusarg`
+  placed after `--dpi-lib` on its command line; keep plusargs before it
+  (this bit us: the launch script looked like spin=740 but ran 1481).
+- **xezim 0.10.3 JIT/AOT miscompiles this board**: with
+  `XEZIM_JIT=1 XEZIM_AOT=1 XEZIM_PROC_FSM=1` the E2E prints wrong
+  results (interpreter is correct; speedup was only ~25% anyway). Do
+  not enable those for this design until an upstream fix.
+- **Only ONE testbench process may call into the DPI bridge**: driving
+  `dpi_panel_keys()` from a second, faster `#delay` process garbles the
+  machine's view of key presses (lost presses, ghost keys). All bridge
+  traffic rides the single drum-tick loop in `tb_top.sv`.
+- **Print content under accelerated drums**: multi-character lines can
+  smear across paper rows at 2× drum speed; single results print
+  exactly (E2E asserts them).
 - **Decimal-point switch**: the front-panel precision switch passes its
   value to the firmware, but printed decimal rendering at non-zero
   settings has not been tuned yet (default 0 prints integers).
+- Wall-time behaviour at the default settings: the interpreter simulates
+  ~3.5k machine cycles/s on the reference host, ~14× slower than the
+  16 ms/tick pacing target, so key echo takes ~1-3 s and a printed
+  result ~10-20 s — faithful machine behaviour, slowed by simulation
+  throughput, not by pacing.
 - z3 remains the jammy apt version (4.8.12); SBY runs it fine.
 
 ## Tool notes for the next agent
 
 - xezim 0.10.3: DPI calls cost ~0.2 ms wall each — never call per clock;
   keep testbench processes time-driven (`#delay`), never `@(posedge clk)`
-  once a DPI import is in the build.
+  once a DPI import is in the build, and keep exactly one DPI-calling
+  process (see known issues above).
 - xezim 0.10.3 rejects `import "DPI-C" function void f(...)` (parse error
   at the `)`): return `int` and ignore it.
-- Debug `$display` output goes to stdout (redirect it), not the `-l` log,
-  and is block-buffered while the sim runs.
+- `$display` output (TB and RTL) lands in the `-l` log file, and is
+  block-buffered while the sim runs; stdout carries only the launcher's
+  own prints.

@@ -190,10 +190,13 @@ module tb_top;
         forever begin
             repeat (spin_cycles) #(CYCLE_NS); // one tick per drum half-spin
             tick_count = tick_count + 1;
-            dpi_keys = dpi_panel_keys();
-            dpi_keys = dpi_panel_keys();
-            evflags  = {23'h0, key_seen, drum_pos, red, advance_evt,
-                        hammer_evt};
+            // key state and printer/lamp events both ride this single
+            // tick loop: with DPI in the build, xezim 0.10.3 interleaves
+            // TWO dpi-calling processes badly (lost/garbled host key
+            // state), so only this process may call into the bridge
+            dpi_keys  = dpi_panel_keys();
+            evflags   = {23'h0, key_seen, drum_pos, red, advance_evt,
+                         hammer_evt};
             dpi_ctrl = dpi_panel_ctrl(evflags, {8'h0, hammer_data},
                                       {29'h0, lamps});
             keys_mask    <= key_hold ? key_hold : dpi_keys;
@@ -258,6 +261,24 @@ module tb_top;
     // Debug heartbeat (any build with +define+DEBUG_TRACE)
     // ------------------------------------------------------------------------
     `ifdef DEBUG_TRACE
+    // keyboard probe: every host-supplied mask change and every firmware
+    // keyboard-port read that lands on a nonzero column
+    logic [31:0] mask_prev = 32'h0;
+    initial begin
+        #305;
+        forever begin
+            #CYCLE_NS;
+            if (keys_mask !== mask_prev) begin
+                $display("[%0t] MASK -> %08h", $time, keys_mask);
+                mask_prev <= keys_mask;
+            end
+            if (dut.kbd_sampled)
+                $display("[%0t] SAMPLED scan=%b col=%h mask=%08h seen=%b",
+                         $time, dut.kb_scan_o, dut.kb_col, keys_mask,
+                         dut.key_seen);
+        end
+    end
+
     initial begin
         forever begin
             #40000000; // every 500k machine cycles

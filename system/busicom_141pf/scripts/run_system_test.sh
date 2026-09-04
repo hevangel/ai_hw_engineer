@@ -22,7 +22,7 @@ echo "=== Building panel bridge (test config) ==="
 cc -O2 -shared -fPIC -pthread -Werror \
     -DBUSICOM_WEB_DIR_PATH="\"$SYSTEM_DIR/host/web\"" \
     -DBUSICOM_PORT="$PORT" \
-    -DBUSICOM_PACE=0 \
+    -DBUSICOM_PACE=${BUSICOM_TEST_PACE:-0} \
     "$SYSTEM_DIR/host/dpi/panel_bridge.c" \
     -o "$WORK_DIR/panel_bridge.so"
 
@@ -30,7 +30,7 @@ echo "=== Starting virtual platform on port $PORT ==="
 xezim --simulate --sv2017 --error-exit \
     -s tb_top \
     -D SYSTEM_DPI \
-    +spin=740 \
+    +spin=${BUSICOM_TEST_SPIN:-740} \
     --dpi-lib "$WORK_DIR/panel_bridge.so" \
     "$DESIGN_DIR/intel_4004/src/intel_4004.sv" \
     "$DESIGN_DIR/intel_4001/src/intel_4001.sv" \
