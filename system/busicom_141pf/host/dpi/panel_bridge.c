@@ -69,17 +69,21 @@
 static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /* pending key presses. Panel ticks arrive once per drum half-spin
- * (~spin machine cycles, see tb_top.sv). The firmware has no key
- * buffer: its main-loop key dispatcher only registers a key if the
- * matrix is still down when the dispatch pass runs, roughly every
- * 2900 machine cycles. A press is therefore held for PRESENT_TICKS
- * panel ticks (several dispatch passes) and kept up RELEASE_TICKS (at
- * least one pass) before the next press, so exactly one click
- * registers - the same contract as a human holding a key down for a
- * fraction of a second. */
+ * (~spin machine cycles, see tb_top.sv). The firmware samples the
+ * keyboard matrix from its main loop, whose period is not constant:
+ * short while idle (~3k machine cycles) but up to ~30k machine cycles
+ * (~40 panel ticks) after operations that print or compute. A key is
+ * only registered if some main-loop pass reads its matrix row while it
+ * is down, so a press is held for PRESENT_TICKS - one full worst-case
+ * main-loop period, guaranteeing at least one sampling pass per press
+ * regardless of phase - and followed by RELEASE_TICKS of no key before
+ * the next press (several idle-period passes, so the firmware observes
+ * one clean released scan and registers one click = one entry). The
+ * queue absorbs the spacing: a human can keep typing; keys take effect
+ * serially. */
 #define QUEUE_CAP 64
-#define PRESENT_TICKS 8
-#define RELEASE_TICKS 4
+#define PRESENT_TICKS 48
+#define RELEASE_TICKS 16
 /* press presentation states */
 #define PS_IDLE 0
 #define PS_PRESENT 1

@@ -49,6 +49,7 @@ echo "=== BUSICOM 141-PF virtual platform (web panel: http://0.0.0.0:$PORT/) ===
 xezim --simulate --sv2017 --error-exit \
     -s tb_top \
     -D SYSTEM_DPI \
+    ${BUSICOM_DEBUG:+-D DEBUG_TRACE} \
     ${SPIN:++spin=$SPIN} \
     --dpi-lib "$WORK_DIR/panel_bridge.so" \
     "$DESIGN_DIR/intel_4004/src/intel_4004.sv" \

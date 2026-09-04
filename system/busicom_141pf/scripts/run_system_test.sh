@@ -63,10 +63,12 @@ press() {
     sleep 1
 }
 
-# printing takes a few drum revolutions of simulated time; the sim runs
-# slower than wall time in test builds, so wait generously
+# printing takes a few drum revolutions of simulated time, and the
+# press queue serializes keystrokes with a large machine-time spacing
+# (see panel_bridge.c), so the last press takes effect long after it is
+# POSTed; wait generously
 wait_print() {
-    sleep 45
+    sleep 210
 }
 
 curl -sf -X POST -d '{"precision":0}' "http://localhost:$PORT/switches" > /dev/null
