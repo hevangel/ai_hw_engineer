@@ -166,6 +166,30 @@ When changing tool versions or adding tools:
 - If synthesis fails, check for unsynthesizable constructs (initial blocks in RTL, delays, etc.)
 - Document known issues in `report/final_report.md`
 
+## Learning From Escaped Defects
+
+A bug found by anything other than the design's own verification suite
+(real firmware, a third-party tool, an external reviewer) is an escaped
+defect: write a post-mortem in `failure_notes/` (convention and template in
+`failure_notes/README.md`). For CPU and processor-like designs, these rules
+are mandatory because per-instruction agreement against a self-written
+reference model cannot catch shared misreadings (see
+`failure_notes/2026-09-02-intel4004-fin-pc-advance.md` for the FIN incident):
+
+- **Real-software regression**: the design's `run_all.sh` must run actual
+  historical software for the device, not only per-instruction tests.
+- **Independent-oracle reference models**: the ISS / formal golden model
+  must be derived from an external artifact (manufacturer disassembly,
+  third-party emulator, recovered code traces) — never by re-reading the
+  RTL. When a semantic fix changes RTL and model together, cite the
+  external source that pins the new behavior.
+- **Assumption ledger**: any behavior the primary documentation does not
+  explicitly state gets an `ASSUMPTION:` comment in the RTL, an entry in
+  the design spec, and validation against real code before sign-off.
+- **No land-tolerant CPU tests**: instruction tests assert the exact
+  post-instruction PC and next-executed instruction; padding placed to
+  absorb unknown PC landings is a defect in the test.
+
 ## Context for LLM Agents
 
 When working on this repo, you have access to:
