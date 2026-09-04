@@ -341,7 +341,8 @@ static void respond(int fd, enum ctype ct, const char *body, size_t len)
     static const char p1[] =
         "HTTP/1.1 200 OK\r\nContent-Type: ";
     static const char p2[] = "Content-Length: ";
-    static const char p3[] = "Connection: close\r\n\r\n";
+    /* leading CRLF terminates the Content-Length line */
+    static const char p3[] = "\r\nConnection: close\r\n\r\n";
     const char *ctext = ctype_str(ct);
     size_t ct_len = strlen(ctext);
     char hdr[256];
