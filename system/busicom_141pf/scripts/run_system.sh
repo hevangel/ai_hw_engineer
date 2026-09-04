@@ -19,7 +19,11 @@ WORK_DIR="$SYSTEM_DIR/work/system"
 LOG_FILE="$WORK_DIR/busicom_141pf.log"
 
 PORT="${BUSICOM_PORT:-8080}"
-PACE="${BUSICOM_PACE:-1}"
+# PACE=1 (sleeping ~16 ms inside a DPI call every tick) correlates with
+# dropped/garbled key registration on the reference host and achieves
+# nothing there - the interpreter simulates slower than real time with
+# or without it. Keep it off until an xezim fix; see report known issues.
+PACE="${BUSICOM_PACE:-0}"
 # spin=740: the firmware's key-dispatch cadence is coupled to the drum
 # rate, and at the authentic 1481 the host key presses register garbled
 # (see report known issues). 740 is the E2E-verified configuration.
