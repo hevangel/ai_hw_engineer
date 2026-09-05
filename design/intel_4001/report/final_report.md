@@ -23,9 +23,10 @@ verified `intel_4004` reconstruction on branch `design/add-intel-4004`.
   A3-qualified chip-select flip-flop, CM-ROM tracking flip-flop, snooped
   OPR/OPA registers, 4-bit SRC select register, 4-bit I/O output latch
   (cleared by CL only, never by RESET)
-- Mask options as parameters: `CHIP_NO`, `IO_DIR`, `ROM_INIT` (under
-  formal, the contents become an `anyconst` free constant so proofs cover
-  every possible mask)
+- Mask options as parameters: `CHIP_NO`, `IO_DIR`, and `ROM_FILE` (the
+  ROM contents load from a hex file with `$readmemh`; under formal, the
+  contents become an `anyconst` free constant so proofs cover every
+  possible mask and no file is read)
 
 ## 3. Verification Status
 

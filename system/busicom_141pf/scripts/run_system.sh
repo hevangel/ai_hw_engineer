@@ -19,15 +19,20 @@ WORK_DIR="$SYSTEM_DIR/work/system"
 LOG_FILE="$WORK_DIR/busicom_141pf.log"
 
 PORT="${BUSICOM_PORT:-8080}"
-PACE="${BUSICOM_PACE:-1}"
+# PACE=1 (sleeping ~16 ms inside a DPI call every tick) correlates with
+# dropped/garbled key registration on the reference host and achieves
+# nothing there - the interpreter simulates slower than real time with
+# or without it. Keep it off until an xezim fix; see report known issues.
+PACE="${BUSICOM_PACE:-0}"
 # spin=740: the firmware's key-dispatch cadence is coupled to the drum
 # rate, and at the authentic 1481 the host key presses register garbled
 # (see report known issues). 740 is the E2E-verified configuration.
 SPIN="${BUSICOM_SPIN:-740}"
 
 mkdir -p "$WORK_DIR"
-
-sh "$SCRIPT_DIR/gen_rom_wrappers.sh" > /dev/null
+# $readmemh paths in the board resolve against the simulator's working
+# directory (src/rom/rom_4001_N.hex), so run from the system folder.
+cd "$SYSTEM_DIR"
 
 echo "=== Building panel bridge ==="
 cc -O2 -shared -fPIC -pthread \
@@ -44,17 +49,13 @@ echo "=== BUSICOM 141-PF virtual platform (web panel: http://0.0.0.0:$PORT/) ===
 xezim --simulate --sv2017 --error-exit \
     -s tb_top \
     -D SYSTEM_DPI \
+    ${BUSICOM_DEBUG:+-D DEBUG_TRACE} \
     ${SPIN:++spin=$SPIN} \
     --dpi-lib "$WORK_DIR/panel_bridge.so" \
     "$DESIGN_DIR/intel_4004/src/intel_4004.sv" \
     "$DESIGN_DIR/intel_4001/src/intel_4001.sv" \
     "$DESIGN_DIR/intel_4002/src/intel_4002.sv" \
     "$DESIGN_DIR/intel_4003/src/intel_4003.sv" \
-    "$SYSTEM_DIR/src/intel_4001_rom0.sv" \
-    "$SYSTEM_DIR/src/intel_4001_rom1.sv" \
-    "$SYSTEM_DIR/src/intel_4001_rom2.sv" \
-    "$SYSTEM_DIR/src/intel_4001_rom3.sv" \
-    "$SYSTEM_DIR/src/intel_4001_rom4.sv" \
     "$SYSTEM_DIR/src/busicom_141pf.sv" \
     "$SYSTEM_DIR/tb/tb_top.sv" \
     --max-time 86400000000000ns \

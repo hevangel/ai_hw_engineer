@@ -15,8 +15,9 @@ WORK_DIR="$SYSTEM_DIR/work/test"
 PORT=18099
 
 mkdir -p "$WORK_DIR"
-
-sh "$SCRIPT_DIR/gen_rom_wrappers.sh" > /dev/null
+# $readmemh paths in the board resolve against the simulator's working
+# directory (src/rom/rom_4001_N.hex), so run from the system folder.
+cd "$SYSTEM_DIR"
 
 echo "=== Building panel bridge (test config) ==="
 cc -O2 -shared -fPIC -pthread -Werror \
@@ -36,11 +37,6 @@ xezim --simulate --sv2017 --error-exit \
     "$DESIGN_DIR/intel_4001/src/intel_4001.sv" \
     "$DESIGN_DIR/intel_4002/src/intel_4002.sv" \
     "$DESIGN_DIR/intel_4003/src/intel_4003.sv" \
-    "$SYSTEM_DIR/src/intel_4001_rom0.sv" \
-    "$SYSTEM_DIR/src/intel_4001_rom1.sv" \
-    "$SYSTEM_DIR/src/intel_4001_rom2.sv" \
-    "$SYSTEM_DIR/src/intel_4001_rom3.sv" \
-    "$SYSTEM_DIR/src/intel_4001_rom4.sv" \
     "$SYSTEM_DIR/src/busicom_141pf.sv" \
     "$SYSTEM_DIR/tb/tb_top.sv" \
     --max-time 120000000000ns \
@@ -67,10 +63,12 @@ press() {
     sleep 1
 }
 
-# printing takes a few drum revolutions of simulated time; the sim runs
-# slower than wall time in test builds, so wait generously
+# printing takes a few drum revolutions of simulated time, and the
+# press queue serializes keystrokes with a large machine-time spacing
+# (see panel_bridge.c), so the last press takes effect long after it is
+# POSTed; wait generously
 wait_print() {
-    sleep 45
+    sleep 210
 }
 
 curl -sf -X POST -d '{"precision":0}' "http://localhost:$PORT/switches" > /dev/null

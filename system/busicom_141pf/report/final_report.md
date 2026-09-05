@@ -76,6 +76,14 @@ All 4004 verification passes with the corrected semantics.
   16 ms/tick pacing target, so key echo takes ~1-3 s and a printed
   result ~10-20 s — faithful machine behaviour, slowed by simulation
   throughput, not by pacing.
+- **Wall-clock pacing (PACE=1) is unreliable and off by default**:
+  sleeping ~16 ms inside every `dpi_panel_ctrl` call correlates with
+  dropped or garbled key registrations (E2E fails with it enabled,
+  passes with it disabled, same tree). The mechanism is unclear -
+  pacing only delays wall time and cannot change machine-visible
+  behaviour, so the trigger is likely a xezim DPI/scheduler
+  interaction. On the reference host pacing is pointless anyway: the
+  interpreter runs ~14x slower than real time with or without it.
 - z3 remains the jammy apt version (4.8.12); SBY runs it fine.
 
 ## Tool notes for the next agent

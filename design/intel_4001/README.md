@@ -55,7 +55,9 @@ repository's verified `intel_4004` reconstruction (branch
   (clears the sequencer and selection flip-flops, inhibits the bus output)
   and `clr_n` (clears only the I/O output latch), per the manual's split of
   responsibilities between the two pins;
-- the mask-programmed ROM contents as the `ROM_INIT` parameter and the chip
+- the mask-programmed ROM contents loaded by `$readmemh` from the hex file
+  named by the `ROM_FILE` parameter (`src/rom_4001_default.hex` ships the
+  verification pattern; give each instance its own hex file), and the chip
   number as `CHIP_NO`, reproducing the part's metal options.
 
 The original part's electrical behavior (PMOS levels, two-phase

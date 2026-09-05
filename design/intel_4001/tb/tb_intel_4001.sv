@@ -89,12 +89,12 @@ module tb_intel_4001;
       .port_oe (dut0_port_oe)
   );
 
-  localparam logic [2047:0] MASK_B = 2048'h7c6f6255483b2e211407faede0d3c6b9ac9f9285786b5e5144372a1d1003f6e9dccfc2b5a89b8e8174675a4d403326190cfff2e5d8cbbeb1a4978a7d706356493c2f221508fbeee1d4c7baada09386796c5f5245382b1e1104f7eaddd0c3b6a99c8f8275685b4e4134271a0d00f3e6d9ccbfb2a5988b7e7164574a3d30231609fcefe2d5c8bbaea194877a6d605346392c1f1205f8ebded1c4b7aa9d908376695c4f4235281b0e01f4e7dacdc0b3a6998c7f7265584b3e3124170afdf0e3d6c9bcafa295887b6e6154473a2d201306f9ecdfd2c5b8ab9e9184776a5d504336291c0f02f5e8dbcec1b4a79a8d807366594c3f3225180bfef1e4d7cabdb0a39689;
-
+  // Mask B: word(a) = (13*a + 137) mod 256, checked against the mask_b()
+  // function below; contents live in the hex file, not in this bench.
   intel_4001 #(
-      .CHIP_NO (4'h1),
-      .IO_DIR  (4'b0011),
-      .ROM_INIT(MASK_B)
+      .CHIP_NO  (4'h1),
+      .IO_DIR   (4'b0011),
+      .ROM_FILE ("tb/rom_4001_testpattern.hex")
   ) dut1 (
       .clk     (clk),
       .rst_n   (rst_n),

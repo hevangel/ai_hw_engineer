@@ -15,6 +15,8 @@ TOP_MODULE=${2:-intel_4001}
 
 # Create work directory
 mkdir -p $WORK_DIR
+# $readmemh paths in the RTL resolve against the yosys working directory
+cd "$DESIGN_DIR"
 
 echo "=== Running synthesis: $TOP_MODULE (target: $TARGET) ==="
 

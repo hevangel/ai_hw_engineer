@@ -13,6 +13,11 @@ DESIGN_DIR=$(dirname "$SCRIPT_DIR")
 WORK_DIR=${1:-$DESIGN_DIR/work/sim}
 
 mkdir -p "$WORK_DIR"
+# $readmemh paths in the RTL resolve against the process working
+# directory, so run from the design root (ROM_FILE is e.g.
+# "src/rom_4001_default.hex").
+WORK_DIR=$(CDPATH= cd -- "$WORK_DIR" && pwd)
+cd "$DESIGN_DIR"
 
 echo "=== Simulation: intel_4001 ==="
 echo "  Design dir: $DESIGN_DIR"
