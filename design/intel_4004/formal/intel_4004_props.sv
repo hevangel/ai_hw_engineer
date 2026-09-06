@@ -200,7 +200,9 @@ module intel_4004_props (
       end
 
       if (g_instr_end) begin
-        g_stack[g_sp] <= g_cycle2 ? g_pc2 : g_pc1;
+        // FIN is one word over two cycles: its second cycle must land the PC
+        // on g_pc1. Only true two-word two-cycle instructions advance by two.
+        g_stack[g_sp] <= (g_cycle2 && !g_fin_word) ? g_pc2 : g_pc1;
         case (g_opr)
           4'h1: begin  // JCN
             if (g_jcn_taken) begin
