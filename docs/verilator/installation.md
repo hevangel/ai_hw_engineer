@@ -27,7 +27,7 @@ sudo apt-get install zlibc zlib1g zlib1g-dev liblz4 liblz4-dev  # Ubuntu only
 ```bash
 git clone https://github.com/verilator/verilator
 cd verilator
-git checkout stable       # Or: git checkout v5.050
+git checkout stable       # Or: git checkout v5.052
 autoconf
 ./configure
 make -j $(nproc)

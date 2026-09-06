@@ -9,8 +9,8 @@ The Dockerfile stage pins both the release and archive digest:
 ```dockerfile
 FROM base AS verible-download
 
-ARG VERIBLE_VERSION=v0.0-4157-gfdbac312
-ARG VERIBLE_SHA256=9e7ead54bc5efcc31476eb87dd970fe51314e8ca6bd00e0646e1ea6cde137448
+ARG VERIBLE_VERSION=v0.0-4163-g6cce8f19
+ARG VERIBLE_SHA256=ddb9c7ea1fe60146ce2fc9f2f2d7a6c0257d08bf51a98dc0ccb4b47b44161bd8
 
 RUN mkdir -p /opt/verible && \
     curl -fsSL "https://github.com/chipsalliance/verible/releases/download/${VERIBLE_VERSION}/verible-${VERIBLE_VERSION}-linux-static-x86_64.tar.gz" \
@@ -46,8 +46,8 @@ docker build \
 ### Linux (pre-built binary)
 
 ```bash
-VERSION=v0.0-4157-gfdbac312
-SHA256=9e7ead54bc5efcc31476eb87dd970fe51314e8ca6bd00e0646e1ea6cde137448
+VERSION=v0.0-4163-g6cce8f19
+SHA256=ddb9c7ea1fe60146ce2fc9f2f2d7a6c0257d08bf51a98dc0ccb4b47b44161bd8
 ARCHIVE="verible-${VERSION}-linux-static-x86_64.tar.gz"
 curl -fL "https://github.com/chipsalliance/verible/releases/download/${VERSION}/${ARCHIVE}" \
   -o "${ARCHIVE}"

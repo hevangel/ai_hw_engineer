@@ -12,33 +12,48 @@ xezim <source_files> [+plusargs] [options]
 |--------|---------|
 | `-D<MACRO>[=val]` | Define a preprocessor macro |
 | `-I<dir>` | Add an include directory |
-| `--simulate` | Run the simulation (vs `--parse` / `--compile` / `--preprocess`) |
+| `--simulate` | Run the simulation (default mode; vs `--parse` / `--compile` / `--preprocess`) |
 | `-s <module>` | Select a top-level module. Repeat for multiple roots |
+| `--strict-top` / `--no-strict-top` | Error (default) vs warn + auto-detect the design root when `-s` names no module |
 | `--dpi-lib <path>` | Load a DPI-C shared library. Repeatable |
 | `--vpi-lib <path>` (`-m`) | Load a VPI module. Repeatable |
+| `--upf <file>` / `--upf-top <path>` | Load IEEE 1801 power intent (supply nets, power switches, domain corruption, isolation). Repeatable |
 | `--module-timescale [mods=]<unit>/<prec>` | Assign timescale to modules without one |
+| `--timescale <unit>/<prec>` | Alias for the unnamed `--module-timescale` form |
 | `--dump-timescales` | Print every module's resolved timescale |
-| `--max-time <N>[ps\|ns\|us\|ms\|s]` | Stop simulation after N simulated time |
-| `+trace` | Enable waveform tracing |
-| `+seed=<n>` | Seed RNG for reproducible runs |
-| `--sdf <file> --sdf-{min,typ,max}` | Annotate standard delays |
+| `--max-time <N>[ps\|ns\|us\|ms\|s]` | Stop simulation after N simulated time (bare N is ns; default 100000) |
+| `+seed=<n>` | Seed RNG for reproducible runs (`+seed=random` draws from entropy and prints the seed) |
 | `--sim-debug` | Print debug diagnostics |
 | `--verbose` | Per-file compile progress |
+| `--profile` | Print the `[PROF]` end-of-run profile report (same as `XEZIM_PROFILE_REPORT=1`) |
+| `--report-stats[=json]` | End-of-run statistics footer on stderr (human text or JSON) |
 | `--dump-files-list` | Print resolved file list and exit |
 | `--dump-merged-sv <file>` | Write preprocessed self-contained .sv |
+| `--dump-tokens` / `--dump-ast` | With `--parse`, print the token stream / AST |
+| `--x-warn` / `--x-warn-limit N` | Warn when a valid 0/1 signal takes an x bit after time 0 (cap N, default 50) |
+| `--no-strict` | Accept LRM-illegal constructs instead of erroring (strict is the default) |
+| `--sv2017` / `--sv2023` | Parse as IEEE 1800-2017 / 1800-2023 (2023 is the default) |
 | `--artifact-compression <none\|1-22>` | Compression level for compiled artifact |
-| `--cache-dir <dir>` | Select elaborated-design cache directory |
-| `--no-cache` | Disable automatic elaborated-design cache |
-| `-l, --log <file>` | Redirect stdout/stderr to log file |
+| `--cache` | Enable the experimental warm-start design cache (off by default) |
+| `--cache-dir <dir>` | Select elaborated-design cache directory (implies `--cache`) |
+| `--no-cache` | Force-disable the elaborated-design cache (default) |
+| `--cache-compression-level <1-22>` / `--cache-stats` | Cache-file zstd level / print cache statistics |
+| `-l, --log <file>` | Redirect all stdout/stderr (including DPI output) to log file |
 | `-v <file>` | Library file: modules compiled on demand |
+| `--primitive-verbose` | Show parse/adoption diagnostics for explicit `-v` files |
 | `-y <dir>` | Library directory: `<module>.<ext>` loaded on demand |
 | `+libext+<ext>+...` | Extension list for -y search |
-| `+nospecify` | Suppress specify-block path delays |
+| `+nospecify` | Suppress specify-block path delays (zero-delay gate sim) |
+| `+delay_mode_zero` / `+delay_mode_unit` | Force all structural delays to 0 / collapse nonzero delays to 1 unit |
+| `+mindelays/+typdelays/+maxdelays` | min:typ:max selection for specify blocks and SDF (default typ) |
 | `+notimingcheck` | Accepted no-op for timing checks |
+| `--wave` | Compile with waveform support so `$dumpfile`/`$dumpvars` emit VCD. Off by default; `--fst`/`--xtrace` imply it |
 | `--fst <file>` | Emit FST waveform dump |
 | `--fst-scope <hier>` | Restrict FST dump to scope (repeatable) |
-| `--xtrace <file>` | Emit XTrace v1.0 dump |
+| `--xtrace <file>` | Emit XTrace v1.0 dump (a `.zst`/`.zstd` suffix compresses the stream) |
 | `--xtrace-scope <hier>` | Restrict XTrace dump to scope (repeatable) |
+| `--xtrace-from/-to <ns>` | Bound the XTrace dump to a time range |
+| `--xtrace-level/-format/-profile/-compress` | XTrace compliance level, output format, `@profile` header, stream compression |
 | `--relax-implicit-static` | Accept `int x = ...` inside static task with warning |
 | `--error-exit` | Exit nonzero if any `$error` reported |
 
@@ -64,6 +79,15 @@ xezim <source_files> [+plusargs] [options]
 | `XEZIM_STACK_MB=N` | Stack size of simulation worker thread (default 1024) |
 | `XEZIM_VALUE_TRACE=<substr>` | Print every committed change of matching signals |
 | `XEZIM_VALUE_TRACE_LIMIT=N` | Cap value-trace output lines (default 20000) |
+| `XEZIM_X_WARN=1` | Enable `--x-warn` X-propagation warnings |
+| `XEZIM_REPORT_STATS=1` | Print summary statistics at end of run |
+| `XEZIM_PROFILE_REPORT=1` | Print the `[PROF]` end-of-run profile report |
+| `XEZIM_DIAG_LIMIT=N` | Per-kind cap for elaboration warnings (default 5; 0 = unlimited) |
+| `XEZIM_ENABLE_CACHE=1` | Force-enable the design cache (overrides `--no-cache` heuristics) |
+| `XEZIM_TWO_STATE=0` | Disable the two-state u64 fast path (on by default) |
+
+`xezim --show-env-avail` prints every supported variable with a description —
+200+ additional internal tuning/debug knobs exist beyond this curated list.
 
 ## Examples
 
@@ -111,10 +135,10 @@ XEZIM_JIT=1 XEZIM_AOT=1 XEZIM_PROC_FSM=1 \
 
 ### Waveform generation
 ```bash
-# VCD (default with $dumpfile/$dumpvars in design)
-xezim --simulate -s top design.sv +trace
+# VCD via $dumpfile/$dumpvars (needs --wave; a dump forces the slower AST path)
+xezim --simulate --wave -s top design.sv
 
-# FST format
+# FST format (--fst implies --wave)
 xezim --simulate -s top design.sv --fst output.fst
 
 # XTrace format (with compression)
