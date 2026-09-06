@@ -13,13 +13,18 @@ sudo apt-get install yosys
 
 ## Build from Source
 
+Yosys 0.67 replaced the `make config-gcc` flow with a CMake build requiring
+CMake >= 3.28 and a C++20 compiler (gcc >= 12 recommended).
+
 ### Prerequisites
 
 ```bash
-sudo apt-get install build-essential clang bison flex \
+sudo apt-get install build-essential g++-12 bison flex \
   libreadline-dev gawk tcl-dev libffi-dev git \
-  graphviz xdot pkg-config python3 libboost-system-dev \
-  libboost-python-dev libboost-filesystem-dev zlib1g-dev
+  pkg-config python3 zlib1g-dev
+# CMake >= 3.28: distros with an older cmake (e.g. Ubuntu 22.04) can get a
+# current one from PyPI:
+sudo pip3 install cmake
 ```
 
 ### Build
@@ -27,15 +32,23 @@ sudo apt-get install build-essential clang bison flex \
 ```bash
 git clone https://github.com/YosysHQ/yosys.git
 cd yosys
-make config-gcc    # or: make config-clang
-make -j$(nproc)
-sudo make install
+git submodule update --init --recursive
+cmake -B build -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_C_COMPILER=gcc-12 -DCMAKE_CXX_COMPILER=g++-12 \
+  -DYOSYS_USE_BUNDLED_LIBS=ON
+cmake --build build -j$(nproc)
+sudo cmake --install build
 ```
+
+`YOSYS_USE_BUNDLED_LIBS=ON` takes fmt/slang/cxxopts/tomlplusplus/
+boost_regex from the repo's own submodules instead of system packages.
 
 ### Custom prefix
 
 ```bash
-make install PREFIX=/opt/yosys
+cmake -B build -DCMAKE_INSTALL_PREFIX=/opt/yosys [other options as above]
+cmake --build build -j$(nproc)
+cmake --install build
 export PATH=/opt/yosys/bin:$PATH
 ```
 

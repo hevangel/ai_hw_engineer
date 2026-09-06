@@ -63,7 +63,7 @@ verilator [options] [source_files.v ...] [source_files.sv ...]
 | `--coverage-line` | Enable line coverage |
 | `--coverage-toggle` | Enable toggle coverage |
 | `--coverage-user` | Enable user cover points |
-| `--assert` | Enable assertions |
+| `--no-assert` | Disable all assertions (assertions are enabled by default) |
 | `--threads <N>` | Number of simulation threads |
 | `--savable` | Enable save/restore |
 
@@ -73,7 +73,7 @@ verilator [options] [source_files.v ...] [source_files.sv ...]
 | `-Wall` | Enable all warnings |
 | `-Werror-<msg>` | Promote warning to error |
 | `-Wno-<msg>` | Disable specific warning |
-| `--Wno-fatal` | Don't exit on warnings |
+| `-Wno-fatal` | Don't exit on warnings |
 
 ### Language Control
 | Option | Description |
@@ -115,7 +115,7 @@ verilator --binary -j 0 -Wall top.sv
 ### Full-Featured Compilation
 ```bash
 verilator --binary -j 0 \
-  --trace-fst --coverage --assert \
+  --trace-fst --coverage \
   --threads 4 -O3 -Wall \
   --top-module soc_top \
   -I./rtl -I./includes \

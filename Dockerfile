@@ -7,7 +7,7 @@ FROM ubuntu:22.04@sha256:2edbbc5dc405e9612ba3584ce95480277e3eb374407b5505fe26f17
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
 
-ARG UBUNTU_SNAPSHOT=20260824T000000Z
+ARG UBUNTU_SNAPSHOT=20260831T000000Z
 # The pinned minimal base has no CA bundle yet. Bootstrap ca-certificates with
 # APT TLS peer checks disabled; signed metadata and package hashes remain verified.
 RUN rm -f /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources && \
@@ -65,7 +65,7 @@ RUN rm -f /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources && \
     zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
-ARG RUST_VERSION=1.98.0
+ARG RUST_VERSION=1.98.1
 ARG RUSTUP_VERSION=1.29.0
 ARG RUSTUP_TARGET=x86_64-unknown-linux-gnu
 ARG RUSTUP_INIT_SHA256=4acc9acc76d5079515b46346a485974457b5a79893cfb01112423c89aeb5aa10
@@ -82,7 +82,7 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 # Build Verilator
 # ============================================================
 FROM base AS verilator-build
-ARG VERILATOR_REV=3d2421f3bf8cda84b49d8f739e39bce73c93cc46
+ARG VERILATOR_REV=7cf8c5cca6e8fd2922ded9b6162c359d5a033837
 RUN git clone --filter=blob:none https://github.com/verilator/verilator.git /opt/verilator-src && \
     git -C /opt/verilator-src checkout --detach "${VERILATOR_REV}" && \
     cd /opt/verilator-src && \
@@ -95,14 +95,26 @@ RUN git clone --filter=blob:none https://github.com/verilator/verilator.git /opt
 # Build Yosys
 # ============================================================
 FROM base AS yosys-build
-ARG YOSYS_REV=26b51148a80ea546481cf4f0516be97e4ba251cc
+# Yosys moved to a CMake build requiring cmake >= 3.28 and C++20. Jammy's
+# cmake (3.22) and default gcc (11) are too old, so pull cmake from PyPI and
+# build with gcc-12. YOSYS_USE_BUNDLED_LIBS takes fmt/slang/cxxopts/
+# tomlplusplus/boost_regex from the repo's own submodules.
+ARG YOSYS_REV=435977e97008578a4532da60e70f75b5e88d076d
+ARG CMAKE_PIP_VERSION=4.4.3
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc-12 g++-12 \
+    && rm -rf /var/lib/apt/lists/*
+RUN pip3 install --no-cache-dir "cmake==${CMAKE_PIP_VERSION}"
 RUN git clone --filter=blob:none https://github.com/YosysHQ/yosys.git /opt/yosys-src && \
     git -C /opt/yosys-src checkout --detach "${YOSYS_REV}" && \
     git -C /opt/yosys-src submodule update --init --recursive && \
-    cd /opt/yosys-src && \
-    make config-gcc && \
-    make -j"$(nproc)" PREFIX=/opt/yosys && \
-    make install PREFIX=/opt/yosys
+    cmake -S /opt/yosys-src -B /opt/yosys-src/build \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_C_COMPILER=gcc-12 -DCMAKE_CXX_COMPILER=g++-12 \
+      -DCMAKE_INSTALL_PREFIX=/opt/yosys \
+      -DYOSYS_USE_BUNDLED_LIBS=ON && \
+    cmake --build /opt/yosys-src/build -j"$(nproc)" && \
+    cmake --install /opt/yosys-src/build
 
 # ============================================================
 # Install SymbiYosys
@@ -119,7 +131,7 @@ RUN git clone --filter=blob:none https://github.com/YosysHQ/sby.git /opt/sby-src
 # Build xezim
 # ============================================================
 FROM base AS xezim-build
-ARG XEZIM_REV=4d145813a65ab1ea0b8d2802b0b0f2a2b8a1fe4a
+ARG XEZIM_REV=409bc7724a130a6fa6052d663dfc97db113cae3e
 RUN git clone --filter=blob:none https://github.com/aionhw/xezim.git /opt/xezim-src && \
     git -C /opt/xezim-src checkout --detach "${XEZIM_REV}" && \
     cd /opt/xezim-src && \
@@ -132,7 +144,7 @@ RUN git clone --filter=blob:none https://github.com/aionhw/xezim.git /opt/xezim-
 # Build Surfer waveform viewer
 # ============================================================
 FROM base AS surfer-build
-ARG SURFER_REV=fef7cf161dca4271406c0cf4d94926449f63304f
+ARG SURFER_REV=db1ca915a989860f11c440b0a932b1f5fbce71b2
 RUN git clone --filter=blob:none https://gitlab.com/surfer-project/surfer.git /opt/surfer-src && \
     git -C /opt/surfer-src checkout --detach "${SURFER_REV}" && \
     cd /opt/surfer-src && \
@@ -144,8 +156,8 @@ RUN git clone --filter=blob:none https://gitlab.com/surfer-project/surfer.git /o
 # Download pinned Verible pre-built binaries
 # ============================================================
 FROM base AS verible-download
-ARG VERIBLE_VERSION=v0.0-4157-gfdbac312
-ARG VERIBLE_SHA256=9e7ead54bc5efcc31476eb87dd970fe51314e8ca6bd00e0646e1ea6cde137448
+ARG VERIBLE_VERSION=v0.0-4163-g6cce8f19
+ARG VERIBLE_SHA256=ddb9c7ea1fe60146ce2fc9f2f2d7a6c0257d08bf51a98dc0ccb4b47b44161bd8
 RUN mkdir -p /opt/verible && \
     curl -fsSL "https://github.com/chipsalliance/verible/releases/download/${VERIBLE_VERSION}/verible-${VERIBLE_VERSION}-linux-static-x86_64.tar.gz" \
         -o /tmp/verible.tar.gz && \
