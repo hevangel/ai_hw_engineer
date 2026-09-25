@@ -69,8 +69,12 @@ All 4004 verification passes with the corrected semantics.
   smear across paper rows at 2× drum speed; single results print
   exactly (E2E asserts them).
 - **Decimal-point switch**: the front-panel precision switch passes its
-  value to the firmware, but printed decimal rendering at non-zero
-  settings has not been tuned yet (default 0 prints integers).
+  value to the firmware, and printed decimal rendering at non-zero
+  settings has been verified: the drum table emits "." at spins 10/11
+  (matching the reference emulator), the precision path
+  (/switches → dpi_panel_ctrl[3:0] → precision_i → firmware) is correct,
+  and empirical testing with precision=2 confirmed "." prints on paper.
+  (Default 0 prints integers.)
 - Wall-time behaviour at the default settings: the interpreter simulates
   ~3.5k machine cycles/s on the reference host, ~14× slower than the
   16 ms/tick pacing target, so key echo takes ~1-3 s and a printed
