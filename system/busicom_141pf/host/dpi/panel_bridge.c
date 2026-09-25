@@ -53,7 +53,10 @@
 #define KEY_COUNT 32
 #define KEY_BASE 129
 #define HOLD_MS 250 /* front-panel key press hold time */
-#define ADVANCE_MS 180
+#define ADVANCE_TICKS 4 /* panel ticks the paper-advance button stays down */
+#define QUIET_TICKS 32 /* idle ticks (no key/printer activity) before the */
+/* machine is declared idle: covers >2 full drum character cycles so a */
+/* print in progress is never mistaken for idle */
 #define STATE_JSON_MAX 32768
 
 /* ------------------------------------------------------------------ */
@@ -92,7 +95,16 @@ static int press_head, press_count;
 
 static int precision; /* decimal digits selector, 0..8 */
 static int rounding;  /* 0 float, 1 round, 8 truncate */
-static int64_t advance_btn_until;
+static int advance_ticks; /* remaining ticks the paper-advance button is down */
+
+/* Busy tracking for the web UI: a transaction starts on /press or
+ * /advance (busy=1) and ends after QUIET_TICKS consecutive ticks with
+ * the key presenter idle, the press queue empty, and no hammer or
+ * paper-advance events - i.e. the 4004 has finished the key and any
+ * print it caused. The web UI reads `busy` from state.json to block
+ * input and show a spinner while the machine is working. */
+static int busy;
+static int quiet_ticks;
 
 static int lamp_memory, lamp_overflow, lamp_negative;
 static int red_latch;
@@ -101,12 +113,6 @@ static int paper_red[PAPER_ROWS];
 static char drum_row[PAPER_COLS][5]; /* drum window rendering */
 
 /* ------------------------------------------------------------------ */
-static int64_t now_ns(void)
-{
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (int64_t)ts.tv_sec * 1000000000LL + ts.tv_nsec;
-}
 
 /* bounded printf-append: never lets *p pass buf+size */
 static void appendf(char **p, size_t *left, const char *fmt, ...)
@@ -236,10 +242,8 @@ int dpi_panel_ctrl(int evflags, int hammer24, int lamps)
      * [7]=key_seen (the firmware sampled the presented key) */
     int drum_pos = (evflags >> 3) & 0xF;
     int paper_btn;
-    int64_t now;
 
     pthread_mutex_lock(&g_lock);
-    now = now_ns();
 
     render_drum_row_at(drum_pos);
 
@@ -254,7 +258,23 @@ int dpi_panel_ctrl(int evflags, int hammer24, int lamps)
     lamp_overflow = (lamps >> 1) & 0x1;
     lamp_negative = (lamps >> 2) & 0x1;
 
-    paper_btn = now < advance_btn_until;
+    /* paper-advance button: held down for ADVANCE_TICKS ticks per click */
+    paper_btn = advance_ticks > 0;
+    if (advance_ticks > 0)
+        advance_ticks--;
+
+    /* busy tracking for the web UI: a transaction is active until the
+     * key presenter is idle, the press queue is empty, and QUIET_TICKS
+     * consecutive ticks pass with no hammer or paper-advance events. */
+    if (evflags & 0x3) {
+        quiet_ticks = 0;
+    } else if (busy && press_count == 0 && present_state == PS_IDLE) {
+        if (++quiet_ticks >= QUIET_TICKS)
+            busy = 0;
+    } else {
+        quiet_ticks = 0;
+    }
+
     pthread_mutex_unlock(&g_lock);
     return (paper_btn << 8) | ((rounding & 0xF) << 4) | (precision & 0xF);
 }
@@ -397,8 +417,9 @@ static void respond_state(int fd)
     pthread_mutex_lock(&g_lock);
     appendf(&p, &left,
             "{\"lamps\":{\"memory\":%d,\"overflow\":%d,\"negative\":%d},"
-            "\"precision\":%d,\"rounding\":%d,\"drumRow\":[",
-            lamp_memory, lamp_overflow, lamp_negative, precision, rounding);
+            "\"precision\":%d,\"rounding\":%d,\"busy\":%d,\"drumRow\":[",
+            lamp_memory, lamp_overflow, lamp_negative, precision, rounding,
+            busy);
     for (int c = 0; c < PAPER_COLS; c++)
         appendf(&p, &left, "%s\"%s\"", c ? "," : "", drum_row[c]);
     appendf(&p, &left, "],\"paper\":[");
@@ -524,12 +545,17 @@ static void handle_client(int fd)
                 press_count++;
                 fprintf(stderr, "[press] code=%d count=%d\n", code,
                         press_count);
+                /* start a transaction for the UI busy indicator */
+                busy = 1;
+                quiet_ticks = 0;
             }
             pthread_mutex_unlock(&g_lock);
             respond(fd, CT_JSON, "{\"ok\":true}", 11);
         } else if (plen >= 4 && strncmp(path, "/advance", plen) == 0) {
             pthread_mutex_lock(&g_lock);
-            advance_btn_until = now_ns() + ADVANCE_MS * 1000000LL;
+            advance_ticks = ADVANCE_TICKS;
+            busy = 1;
+            quiet_ticks = 0;
             pthread_mutex_unlock(&g_lock);
             respond(fd, CT_JSON, "{\"ok\":true}", 11);
         } else if (plen >= 4 && strncmp(path, "/switches", plen) == 0) {

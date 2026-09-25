@@ -18,6 +18,9 @@
 
   <div class="controls">
     <button id="advance" title="Advance paper">Move<br/>Up</button>
+    <div id="busy" class="busy" hidden>
+      <span class="spinner"></span><span class="busy-label">4004 working&hellip;</span>
+    </div>
     <div class="switch-block">
       <label class="slider-label"><span id="digits_label">0</span> decimal points</label>
       <input type="range" id="digits" min="0" max="8" value="0" />
