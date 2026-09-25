@@ -1,5 +1,5 @@
 # AI Hardware Engineering Docker Image
-# Tools: xezim, Verilator, Yosys + SymbiYosys, Surfer, Verible
+# Tools: xezim, Verilator, Yosys + SymbiYosys + EQY, Surfer, Verible
 # Base: Ubuntu 22.04 LTS
 
 FROM ubuntu:22.04@sha256:2edbbc5dc405e9612ba3584ce95480277e3eb374407b5505fe26f17df77c7dbc AS base
@@ -128,6 +128,40 @@ RUN git clone --filter=blob:none https://github.com/YosysHQ/sby.git /opt/sby-src
     make -C /opt/sby-src install PREFIX=/opt/sby
 
 # ============================================================
+# Build Yices 2 SMT solver
+# ============================================================
+# Not packaged in Ubuntu jammy. yices is EQY's preferred SMT solver and the
+# checker SBY uses to validate abc-engine counterexamples (aigsmt).
+FROM base AS yices-build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgmp-dev \
+    && rm -rf /var/lib/apt/lists/*
+ARG YICES_REV=85cf17e44eac76b5d14b297c09fc9bfecf47ef65  # yices-2.7.0
+RUN git clone https://github.com/SRI-CSL/yices2.git /opt/yices-src && \
+    git -C /opt/yices-src checkout --detach "${YICES_REV}" && \
+    cd /opt/yices-src && \
+    autoconf && \
+    ./configure --prefix=/opt/yices && \
+    make -j"$(nproc)" && \
+    make install
+
+# ============================================================
+# Build EQY (equivalence checking with Yosys)
+# ============================================================
+# EQY's strategies are part Yosys plugin, part Python driver. Plugins must be
+# compiled against the same Yosys they run with, and yosys-config bakes in the
+# g++-12 that built Yosys, so this stage descends from yosys-build. EQY tags
+# name the oldest confirmed Yosys release (yosys-0.47 at pin time); we pair
+# tool HEADs with tool HEADs like the rest of this image and verify with an
+# in-image LEC smoke test.
+FROM yosys-build AS eqy-build
+ENV PATH="/opt/yosys/bin:${PATH}"
+ARG EQY_REV=4a72eb94fc253062464afee4d0018359017bb846
+RUN git clone --filter=blob:none https://github.com/YosysHQ/eqy.git /opt/eqy-src && \
+    git -C /opt/eqy-src checkout --detach "${EQY_REV}" && \
+    make -C /opt/eqy-src install PREFIX=/opt/eqy
+
+# ============================================================
 # Build xezim
 # ============================================================
 FROM base AS xezim-build
@@ -170,8 +204,8 @@ RUN mkdir -p /opt/verible && \
 # ============================================================
 FROM base AS final
 
-# SymbiYosys runtime dependency. Keep this in the final stage so changes do not
-# invalidate the expensive compiler-tool build stages.
+# Python driver (SBY, EQY) runtime dependencies. Keep this in the final
+# stage so changes do not invalidate the expensive compiler-tool build stages.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-click \
     && rm -rf /var/lib/apt/lists/*
@@ -179,12 +213,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=verilator-build /opt/verilator /opt/verilator
 COPY --from=yosys-build /opt/yosys /opt/yosys
 COPY --from=sby-build /opt/sby /opt/sby
+COPY --from=yices-build /opt/yices /opt/yices
+COPY --from=eqy-build /opt/eqy /opt/eqy
 COPY --from=xezim-build /opt/xezim /opt/xezim
 COPY --from=surfer-build /opt/surfer /opt/surfer
 COPY --from=verible-download /opt/verible /opt/verible
 COPY libs/uvm /opt/uvm
 
-ENV PATH="/opt/verilator/bin:/opt/yosys/bin:/opt/sby/bin:/opt/xezim/bin:/opt/surfer/bin:/opt/verible/bin:${PATH}"
+ENV PATH="/opt/verilator/bin:/opt/yosys/bin:/opt/sby/bin:/opt/yices/bin:/opt/eqy/bin:/opt/xezim/bin:/opt/surfer/bin:/opt/verible/bin:${PATH}"
 ENV XEZIM_UVM_DIR=/opt/uvm
 ENV UVM_HOME_12=/opt/uvm/1.2
 ENV UVM_HOME_2017=/opt/uvm/1800.2-2017
@@ -201,6 +237,9 @@ RUN set -eux; \
     test -x /opt/sby/bin/sby; \
     sby --help >/dev/null; \
     z3 --version; \
+    yices-smt2 --version; \
+    test -x /opt/eqy/bin/eqy; \
+    eqy --help >/dev/null; \
     test -x /opt/xezim/bin/xezim; \
     xezim --help >/dev/null; \
     test -x /opt/surfer/bin/surfer; \
