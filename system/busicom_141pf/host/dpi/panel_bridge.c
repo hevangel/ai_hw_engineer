@@ -207,6 +207,23 @@ static void advance_paper(void)
 /* DPI entry points: called once per panel tick (~16ms machine time)  */
 /* ------------------------------------------------------------------ */
 
+/* On-demand simulation: returns nonzero when the 4004 has work to do -
+ * a latched key press waiting in the queue, a key currently being
+ * presented, a paper-advance in progress, or an unfinished transaction
+ * (busy). The tick loop in tb_top.sv parks on this (spinning on #0,
+ * which advances no sim time) until work arrives. Called from SV, so
+ * it must be thread-safe. */
+int dpi_has_work(void)
+{
+    int work;
+
+    pthread_mutex_lock(&g_lock);
+    work = busy || press_count > 0 || present_state != PS_IDLE ||
+           advance_ticks > 0;
+    pthread_mutex_unlock(&g_lock);
+    return work;
+}
+
 int dpi_panel_keys(void)
 {
     int mask = 0;

@@ -174,6 +174,7 @@ module tb_top;
     import "DPI-C" function int dpi_panel_keys();
     import "DPI-C" function int dpi_panel_ctrl(int evflags, int hammer24,
                                                int lamps);
+    import "DPI-C" function int dpi_has_work();
 
     int dpi_keys;
     int dpi_ctrl;
@@ -188,6 +189,20 @@ module tb_top;
     initial begin
         #305;
         forever begin
+            // On-demand simulation: park here without advancing sim
+            // time until the bridge latches work - a key press, a
+            // paper-advance, or an unfinished transaction. The #0
+            // spins the scheduler without consuming sim time; when
+            // /press or /advance arrives, dpi_has_work() goes nonzero
+            // and the clock resumes to capture the latched key.
+            // Skipped for +keyhold test mode, which drives keys_mask
+            // directly and never posts bridge work. The first 2000
+            // ticks always run to let the 4004 firmware boot before
+            // any parking - otherwise a key pressed early would be
+            // presented and released before the firmware samples.
+            if (key_hold == 0 && tick_count >= 2000) begin
+                while (dpi_has_work() == 0) #0;
+            end
             repeat (spin_cycles) #(CYCLE_NS); // one tick per drum half-spin
             tick_count = tick_count + 1;
             // key state and printer/lamp events both ride this single
