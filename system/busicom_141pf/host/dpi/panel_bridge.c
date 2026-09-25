@@ -21,8 +21,6 @@
  * Configuration is compile-time (set by scripts/run_system.sh):
  *   BUSICOM_WEB_DIR_PATH  directory with index.html/app.js/style.css
  *   BUSICOM_PORT          HTTP port (default 8080)
- *   BUSICOM_PACE          1 = pace ticks to the authentic ~16.01 ms of
- *                         machine time each (default off)
  *
  * Build: cc -O2 -shared -fPIC -pthread \
  *           -DBUSICOM_WEB_DIR_PATH='"/.../host/web"' \
@@ -49,10 +47,6 @@
 #ifndef BUSICOM_PORT
 #define BUSICOM_PORT 8080
 #endif
-#ifndef BUSICOM_PACE
-#define BUSICOM_PACE 0
-#endif
-
 #define PAPER_ROWS 7
 #define PAPER_COLS 18
 #define NUM_COLS 15 /* numeric drum columns (hammer bits 3..17) */
@@ -60,7 +54,6 @@
 #define KEY_BASE 129
 #define HOLD_MS 250 /* front-panel key press hold time */
 #define ADVANCE_MS 180
-#define TICK_MS 16 /* one panel tick = ~16ms of machine time */
 #define STATE_JSON_MAX 32768
 
 /* ------------------------------------------------------------------ */
@@ -106,8 +99,6 @@ static int red_latch;
 static char paper[PAPER_ROWS][PAPER_COLS][5]; /* utf-8 char cells */
 static int paper_red[PAPER_ROWS];
 static char drum_row[PAPER_COLS][5]; /* drum window rendering */
-
-static int pace; /* machine-time pacing enable */
 
 /* ------------------------------------------------------------------ */
 static int64_t now_ns(void)
@@ -209,27 +200,6 @@ static void advance_paper(void)
 /* ------------------------------------------------------------------ */
 /* DPI entry points: called once per panel tick (~16ms machine time)  */
 /* ------------------------------------------------------------------ */
-static int64_t tick_deadline;
-
-static void pace_tick(void)
-{
-    int64_t now;
-    struct timespec ts;
-
-    if (!pace)
-        return;
-    now = now_ns();
-    if (!tick_deadline || now - tick_deadline > 200000000LL)
-        tick_deadline = now; /* resync after stalls */
-    tick_deadline += (int64_t)TICK_MS * 1000000LL;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    int64_t cur = (int64_t)ts.tv_sec * 1000000000LL + ts.tv_nsec;
-    if (tick_deadline > cur) {
-        ts.tv_sec = tick_deadline / 1000000000LL;
-        ts.tv_nsec = tick_deadline % 1000000000LL;
-        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
-    }
-}
 
 int dpi_panel_keys(void)
 {
@@ -267,11 +237,6 @@ int dpi_panel_ctrl(int evflags, int hammer24, int lamps)
     int drum_pos = (evflags >> 3) & 0xF;
     int paper_btn;
     int64_t now;
-
-    /* machine-time pacing rides the drum tick (one tick = ~16ms of
-     * machine time); the faster key tick must not pace, or machine time
-     * would run 8x slower than the drum rate assumes */
-    pace_tick();
 
     pthread_mutex_lock(&g_lock);
     now = now_ns();
@@ -619,7 +584,6 @@ static void *http_thread(void *arg)
 
 __attribute__((constructor)) static void panel_bridge_init(void)
 {
-    pace = (BUSICOM_PACE == 1);
     for (int r = 0; r < PAPER_ROWS; r++)
         clear_paper_row(r);
     render_drum_row_at(0);

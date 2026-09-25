@@ -23,7 +23,6 @@ echo "=== Building panel bridge (test config) ==="
 cc -O2 -shared -fPIC -pthread -Werror \
     -DBUSICOM_WEB_DIR_PATH="\"$SYSTEM_DIR/host/web\"" \
     -DBUSICOM_PORT="$PORT" \
-    -DBUSICOM_PACE=${BUSICOM_TEST_PACE:-0} \
     "$SYSTEM_DIR/host/dpi/panel_bridge.c" \
     -o "$WORK_DIR/panel_bridge.so"
 
