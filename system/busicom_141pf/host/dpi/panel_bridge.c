@@ -63,6 +63,9 @@
 /* Shared front-panel state                                           */
 /* ------------------------------------------------------------------ */
 static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
+/* Signaled whenever new work arrives (/press, /advance) so a parked
+ * simulator thread can sleep with zero CPU instead of spinning. */
+static pthread_cond_t work_cond = PTHREAD_COND_INITIALIZER;
 
 /* pending key presses. Panel ticks arrive once per drum half-spin
  * (~spin machine cycles, see tb_top.sv). The firmware samples the
@@ -210,18 +213,35 @@ static void advance_paper(void)
 /* On-demand simulation: returns nonzero when the 4004 has work to do -
  * a latched key press waiting in the queue, a key currently being
  * presented, a paper-advance in progress, or an unfinished transaction
- * (busy). The tick loop in tb_top.sv parks on this (spinning on #0,
- * which advances no sim time) until work arrives. Called from SV, so
- * it must be thread-safe. */
+ * (busy). The tick loop in tb_top.sv parks on dpi_wait_for_work()
+ * (which sleeps with zero CPU and advances no sim time) until work
+ * arrives. Called from SV, so it must be thread-safe. */
+static int has_work_locked(void)
+{
+    return busy || press_count > 0 || present_state != PS_IDLE ||
+           advance_ticks > 0;
+}
+
 int dpi_has_work(void)
 {
     int work;
 
     pthread_mutex_lock(&g_lock);
-    work = busy || press_count > 0 || present_state != PS_IDLE ||
-           advance_ticks > 0;
+    work = has_work_locked();
     pthread_mutex_unlock(&g_lock);
     return work;
+}
+
+/* Block the simulator thread until the bridge latches work. Uses a
+ * condition variable: zero CPU while parked, wakes immediately on
+ * /press or /advance. Must only be called when the tick loop is at a
+ * safe parking point (firmware idle). */
+void dpi_wait_for_work(void)
+{
+    pthread_mutex_lock(&g_lock);
+    while (!has_work_locked())
+        pthread_cond_wait(&work_cond, &g_lock);
+    pthread_mutex_unlock(&g_lock);
 }
 
 int dpi_panel_keys(void)
@@ -565,6 +585,8 @@ static void handle_client(int fd)
                 /* start a transaction for the UI busy indicator */
                 busy = 1;
                 quiet_ticks = 0;
+                /* wake a parked simulator thread */
+                pthread_cond_signal(&work_cond);
             }
             pthread_mutex_unlock(&g_lock);
             respond(fd, CT_JSON, "{\"ok\":true}", 11);
@@ -573,6 +595,8 @@ static void handle_client(int fd)
             advance_ticks = ADVANCE_TICKS;
             busy = 1;
             quiet_ticks = 0;
+            /* wake a parked simulator thread */
+            pthread_cond_signal(&work_cond);
             pthread_mutex_unlock(&g_lock);
             respond(fd, CT_JSON, "{\"ok\":true}", 11);
         } else if (plen >= 4 && strncmp(path, "/switches", plen) == 0) {

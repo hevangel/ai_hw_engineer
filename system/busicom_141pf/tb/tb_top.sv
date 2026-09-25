@@ -175,6 +175,7 @@ module tb_top;
     import "DPI-C" function int dpi_panel_ctrl(int evflags, int hammer24,
                                                int lamps);
     import "DPI-C" function int dpi_has_work();
+    import "DPI-C" function void dpi_wait_for_work();
 
     int dpi_keys;
     int dpi_ctrl;
@@ -191,14 +192,18 @@ module tb_top;
         forever begin
             // On-demand simulation: park here without advancing sim
             // time until the bridge latches work - a key press, a
-            // On-demand parking was attempted here (spinning on #0 while
-            // dpi_has_work()==0) to avoid advancing sim time when idle.
-            // It caused key garbling: the 4004 firmware's keyboard scan
-            // timing assumes continuous time, and resuming from a park
-            // disrupts the sampling window. The web UI's busy indicator
-            // already blocks input while the machine works, so the sim
-            // free-runs. (dpi_has_work remains for future use.)
-            // Skipped for +keyhold test mode.
+            // paper-advance, or an unfinished transaction.
+            // dpi_wait_for_work() blocks on a condition variable: zero
+            // CPU while parked, wakes immediately on /press or /advance.
+            // xezim has no Tcl/interactive control; this is the pause.
+            // Skipped for +keyhold test mode, which drives keys_mask
+            // directly and never posts bridge work. The first 2000
+            // ticks always run to let the 4004 firmware boot before
+            // any parking - otherwise a key pressed early would be
+            // presented and released before the firmware samples.
+            if (key_hold == 0 && tick_count >= 2000) begin
+                dpi_wait_for_work();
+            end
             repeat (spin_cycles) #(CYCLE_NS); // one tick per drum half-spin
             tick_count = tick_count + 1;
             // key state and printer/lamp events both ride this single
