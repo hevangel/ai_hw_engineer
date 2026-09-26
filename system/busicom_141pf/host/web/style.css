@@ -86,6 +86,27 @@ table {
   cursor: pointer;
 }
 #advance:active { background: #454d55; }
+#advance:disabled { opacity: 0.45; cursor: default; }
+
+/* ---- busy indicator ---- */
+.busy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 12px/1 sans-serif;
+  letter-spacing: 1px;
+  color: #e8b93c;
+}
+.busy[hidden] { display: none; }
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 3px solid #4a545d;
+  border-top-color: #e8b93c;
+  border-radius: 50%;
+  animation: busy-spin 0.8s linear infinite;
+}
+@keyframes busy-spin { to { transform: rotate(360deg); } }
 .switch-block { font: 13px/1.4px sans-serif; color: #b8c0c8; }
 .slider-label { display: block; text-align: center; margin-bottom: 4px; }
 .radios label { display: block; margin: 2px 0; }
@@ -123,6 +144,11 @@ table {
 .key:active, .key.pressed {
   transform: translateY(3px);
   box-shadow: 0 1px 0 #191c1f;
+}
+.key:disabled {
+  opacity: 0.45;
+  cursor: default;
+  transform: none;
 }
 .key.fn { background: linear-gradient(180deg, #dfe5ea, #b9c4cd); }
 .key.op { background: linear-gradient(180deg, #f4ede0, #d9cdb4); }

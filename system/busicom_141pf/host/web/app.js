@@ -31,14 +31,37 @@ function post(path, body) {
   });
 }
 
+/* ---- busy state: while the 4004 is working a key press, block new
+ * input and show a spinner. Driven by the bridge's `busy` flag in
+ * state.json; set optimistically on click so double-clicks can't
+ * queue a second press before the next poll. ---- */
+let busy = false;
+const busyEl = document.getElementById("busy");
+const keyBtns = Array.from(document.querySelectorAll("#keyboard .key"));
+const advanceBtn = document.getElementById("advance");
+
+function setBusy(b) {
+  if (busy === b) return;
+  busy = b;
+  busyEl.hidden = !b;
+  keyBtns.forEach((btn) => { btn.disabled = b; });
+  advanceBtn.disabled = b;
+  document.body.classList.toggle("is-busy", b);
+}
+
 /* ---- front panel inputs ---- */
-document.querySelectorAll("#keyboard .key").forEach((btn) => {
+keyBtns.forEach((btn) => {
   btn.addEventListener("click", () => {
-    post("/press", { code: parseInt(btn.getAttribute("code"), 10) });
+    if (busy) return;
+    setBusy(true);
+    post("/press", { code: parseInt(btn.getAttribute("code"), 10) })
+      .catch(() => setBusy(false));
   });
 });
-document.getElementById("advance").addEventListener("click", () => {
-  post("/advance", {});
+advanceBtn.addEventListener("click", () => {
+  if (busy) return;
+  setBusy(true);
+  post("/advance", {}).catch(() => setBusy(false));
 });
 
 const digitsSlider = document.getElementById("digits");
@@ -64,7 +87,9 @@ const keymap = {
 document.addEventListener("keydown", (e) => {
   const code = keymap[e.key];
   if (code) {
-    post("/press", { code });
+    if (busy) return;
+    setBusy(true);
+    post("/press", { code }).catch(() => setBusy(false));
     const btn = document.querySelector(`#keyboard .key[code="${code}"]`);
     if (btn) {
       btn.classList.add("pressed");
@@ -103,6 +128,9 @@ async function poll() {
     setLed("led_memory", s.lamps.memory, "memory");
     setLed("led_overflow", s.lamps.overflow, "overflow");
     setLed("led_negative", s.lamps.negative, "negative");
+
+    /* the bridge clears busy when the 4004 is idle again */
+    setBusy(!!s.busy);
 
     if (parseInt(digitsSlider.value, 10) !== s.precision) {
       digitsSlider.value = s.precision;
