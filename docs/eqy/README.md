@@ -47,3 +47,8 @@ SBY uses to validate abc-engine counterexamples).
 ## In This Folder
 
 - [Usage Guide](usage.md) — `.eqy` file format, strategies, worked examples.
+# Docker revision
+
+The image builds EQY against Yosys 0.69 using the upstream revision recorded
+in [toolchain release pins](../toolchain-releases.md). EQY has no standalone
+published GitHub release; its compatibility tags are not release versions.

@@ -1,5 +1,9 @@
 # Surfer Installation
 
+The Docker image pins release 0.7.0 and initializes its Git submodules
+(including `f128`) before the locked Cargo build. See
+[toolchain release pins](../toolchain-releases.md).
+
 Source: [surfer-project.org](https://surfer-project.org/)
 
 ## Build from Source (Recommended)
@@ -25,6 +29,7 @@ sudo dnf install libxcb-devel speechd-devel libxkbcommon-devel openssl-devel
 ```bash
 git clone https://gitlab.com/surfer-project/surfer.git
 cd surfer
+git submodule update --init --recursive
 cargo build --release
 # Binary at target/release/surfer
 ```

@@ -61,6 +61,7 @@ The UVM repo contains:
 ## Docker
 
 See the project root `Dockerfile` for a containerized build with all tools.
+It pins release 0.11.0; see [toolchain release pins](../toolchain-releases.md).
 
 ## Development Workflow
 

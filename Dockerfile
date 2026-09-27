@@ -1,21 +1,21 @@
 # AI Hardware Engineering Docker Image
 # Tools: xezim, Verilator, Yosys + SymbiYosys + EQY, Surfer, Verible
-# Base: Ubuntu 22.04 LTS
+# Base: Ubuntu 26.04 LTS
 
-FROM ubuntu:22.04@sha256:2edbbc5dc405e9612ba3584ce95480277e3eb374407b5505fe26f17df77c7dbc AS base
+FROM ubuntu:26.04@sha256:da6fc2be547864451aa253836dd926da33623312df4a9a243e35dc877c378a78 AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
 
-ARG UBUNTU_SNAPSHOT=20260831T000000Z
+ARG UBUNTU_SNAPSHOT=20260927T000000Z
 # The pinned minimal base has no CA bundle yet. Bootstrap ca-certificates with
 # APT TLS peer checks disabled; signed metadata and package hashes remain verified.
 RUN rm -f /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources && \
     printf '%s\n' \
-      "deb [check-valid-until=no] https://snapshot.ubuntu.com/ubuntu/${UBUNTU_SNAPSHOT} jammy main restricted universe multiverse" \
-      "deb [check-valid-until=no] https://snapshot.ubuntu.com/ubuntu/${UBUNTU_SNAPSHOT} jammy-updates main restricted universe multiverse" \
-      "deb [check-valid-until=no] https://snapshot.ubuntu.com/ubuntu/${UBUNTU_SNAPSHOT} jammy-security main restricted universe multiverse" \
-      "deb [check-valid-until=no] https://snapshot.ubuntu.com/ubuntu/${UBUNTU_SNAPSHOT} jammy-backports main restricted universe multiverse" \
+      "deb [check-valid-until=no] https://snapshot.ubuntu.com/ubuntu/${UBUNTU_SNAPSHOT} resolute main restricted universe multiverse" \
+      "deb [check-valid-until=no] https://snapshot.ubuntu.com/ubuntu/${UBUNTU_SNAPSHOT} resolute-updates main restricted universe multiverse" \
+      "deb [check-valid-until=no] https://snapshot.ubuntu.com/ubuntu/${UBUNTU_SNAPSHOT} resolute-security main restricted universe multiverse" \
+      "deb [check-valid-until=no] https://snapshot.ubuntu.com/ubuntu/${UBUNTU_SNAPSHOT} resolute-backports main restricted universe multiverse" \
       > /etc/apt/sources.list && \
     apt-get -o Acquire::https::Verify-Peer=false update && \
     apt-get -o Acquire::https::Verify-Peer=false install -y --no-install-recommends \
@@ -60,15 +60,18 @@ RUN rm -f /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources && \
     tcl-dev \
     wget \
     xdot \
-    z3 \
+    unzip \
     zlib1g \
     zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
+ARG BUILD_JOBS=4
+ENV CARGO_BUILD_JOBS=${BUILD_JOBS}
+
 ARG RUST_VERSION=1.98.1
-ARG RUSTUP_VERSION=1.29.0
+ARG RUSTUP_VERSION=1.29.1
 ARG RUSTUP_TARGET=x86_64-unknown-linux-gnu
-ARG RUSTUP_INIT_SHA256=4acc9acc76d5079515b46346a485974457b5a79893cfb01112423c89aeb5aa10
+ARG RUSTUP_INIT_SHA256=dda7234360b7f578ca8b0ddcb80145646fa61a67c1720a5abc7051b35c9fcb71
 RUN curl --proto '=https' --tlsv1.2 -sSf \
         "https://static.rust-lang.org/rustup/archive/${RUSTUP_VERSION}/${RUSTUP_TARGET}/rustup-init" \
         -o /tmp/rustup-init && \
@@ -82,38 +85,33 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 # Build Verilator
 # ============================================================
 FROM base AS verilator-build
-ARG VERILATOR_REV=7cf8c5cca6e8fd2922ded9b6162c359d5a033837
+ARG VERILATOR_REV=ea338be98e1e838d3518809ce8899f85a009963c
 RUN git clone --filter=blob:none https://github.com/verilator/verilator.git /opt/verilator-src && \
     git -C /opt/verilator-src checkout --detach "${VERILATOR_REV}" && \
     cd /opt/verilator-src && \
     autoconf && \
     ./configure --prefix=/opt/verilator && \
-    make -j"$(nproc)" && \
+    make -j"${BUILD_JOBS}" && \
     make install
 
 # ============================================================
 # Build Yosys
 # ============================================================
 FROM base AS yosys-build
-# Yosys moved to a CMake build requiring cmake >= 3.28 and C++20. Jammy's
-# cmake (3.22) and default gcc (11) are too old, so pull cmake from PyPI and
-# build with gcc-12. YOSYS_USE_BUNDLED_LIBS takes fmt/slang/cxxopts/
-# tomlplusplus/boost_regex from the repo's own submodules.
-ARG YOSYS_REV=435977e97008578a4532da60e70f75b5e88d076d
+# Yosys 0.69 uses CMake and C++20. Use the release submodules for bundled libraries.
+ARG YOSYS_REV=9f75ca1f9834a39a863915b5dae0c7b1e33533bc
 ARG CMAKE_PIP_VERSION=4.4.3
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc-12 g++-12 \
-    && rm -rf /var/lib/apt/lists/*
-RUN pip3 install --no-cache-dir "cmake==${CMAKE_PIP_VERSION}"
+RUN python3 -m venv /opt/cmake && /opt/cmake/bin/pip install --no-cache-dir "cmake==${CMAKE_PIP_VERSION}"
+ENV PATH="/opt/cmake/bin:${PATH}"
 RUN git clone --filter=blob:none https://github.com/YosysHQ/yosys.git /opt/yosys-src && \
     git -C /opt/yosys-src checkout --detach "${YOSYS_REV}" && \
     git -C /opt/yosys-src submodule update --init --recursive && \
     cmake -S /opt/yosys-src -B /opt/yosys-src/build \
       -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_C_COMPILER=gcc-12 -DCMAKE_CXX_COMPILER=g++-12 \
+      -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ \
       -DCMAKE_INSTALL_PREFIX=/opt/yosys \
       -DYOSYS_USE_BUNDLED_LIBS=ON && \
-    cmake --build /opt/yosys-src/build -j"$(nproc)" && \
+    cmake --build /opt/yosys-src/build -j"${BUILD_JOBS}" && \
     cmake --install /opt/yosys-src/build
 
 # ============================================================
@@ -130,7 +128,7 @@ RUN git clone --filter=blob:none https://github.com/YosysHQ/sby.git /opt/sby-src
 # ============================================================
 # Build Yices 2 SMT solver
 # ============================================================
-# Not packaged in Ubuntu jammy. yices is EQY's preferred SMT solver and the
+# Not packaged in Ubuntu resolute. yices is EQY's preferred SMT solver and the
 # checker SBY uses to validate abc-engine counterexamples (aigsmt).
 FROM base AS yices-build
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -142,21 +140,17 @@ RUN git clone https://github.com/SRI-CSL/yices2.git /opt/yices-src && \
     cd /opt/yices-src && \
     autoconf && \
     ./configure --prefix=/opt/yices && \
-    make -j"$(nproc)" && \
+    make -j"${BUILD_JOBS}" && \
     make install
 
 # ============================================================
 # Build EQY (equivalence checking with Yosys)
 # ============================================================
-# EQY's strategies are part Yosys plugin, part Python driver. Plugins must be
-# compiled against the same Yosys they run with, and yosys-config bakes in the
-# g++-12 that built Yosys, so this stage descends from yosys-build. EQY tags
-# name the oldest confirmed Yosys release (yosys-0.47 at pin time); we pair
-# tool HEADs with tool HEADs like the rest of this image and verify with an
-# in-image LEC smoke test.
+# EQY plugins are built against the installed Yosys release. SBY and EQY
+# have no standalone releases; use pinned upstream revisions.
 FROM yosys-build AS eqy-build
 ENV PATH="/opt/yosys/bin:${PATH}"
-ARG EQY_REV=4a72eb94fc253062464afee4d0018359017bb846
+ARG EQY_REV=7a92d8441aa442dd1b5543458d6f1060a8f85dd1
 RUN git clone --filter=blob:none https://github.com/YosysHQ/eqy.git /opt/eqy-src && \
     git -C /opt/eqy-src checkout --detach "${EQY_REV}" && \
     make -C /opt/eqy-src install PREFIX=/opt/eqy
@@ -165,7 +159,7 @@ RUN git clone --filter=blob:none https://github.com/YosysHQ/eqy.git /opt/eqy-src
 # Build xezim
 # ============================================================
 FROM base AS xezim-build
-ARG XEZIM_REV=409bc7724a130a6fa6052d663dfc97db113cae3e
+ARG XEZIM_REV=6558a1e64e251cbd8d0c4e936860af268cf7e04f
 RUN git clone --filter=blob:none https://github.com/aionhw/xezim.git /opt/xezim-src && \
     git -C /opt/xezim-src checkout --detach "${XEZIM_REV}" && \
     cd /opt/xezim-src && \
@@ -178,9 +172,10 @@ RUN git clone --filter=blob:none https://github.com/aionhw/xezim.git /opt/xezim-
 # Build Surfer waveform viewer
 # ============================================================
 FROM base AS surfer-build
-ARG SURFER_REV=db1ca915a989860f11c440b0a932b1f5fbce71b2
+ARG SURFER_REV=bd749b1f786c1c62cd67893ca71346cbe6983915
 RUN git clone --filter=blob:none https://gitlab.com/surfer-project/surfer.git /opt/surfer-src && \
     git -C /opt/surfer-src checkout --detach "${SURFER_REV}" && \
+    git -C /opt/surfer-src submodule update --init --recursive && \
     cd /opt/surfer-src && \
     cargo build --release --locked --bin surfer && \
     mkdir -p /opt/surfer/bin && \
@@ -190,8 +185,8 @@ RUN git clone --filter=blob:none https://gitlab.com/surfer-project/surfer.git /o
 # Download pinned Verible pre-built binaries
 # ============================================================
 FROM base AS verible-download
-ARG VERIBLE_VERSION=v0.0-4163-g6cce8f19
-ARG VERIBLE_SHA256=ddb9c7ea1fe60146ce2fc9f2f2d7a6c0257d08bf51a98dc0ccb4b47b44161bd8
+ARG VERIBLE_VERSION=v0.0-4296-g0f262651
+ARG VERIBLE_SHA256=8569defb891d2316067613ea00442af28a7a09d405d95b54c0c91f9942d26635
 RUN mkdir -p /opt/verible && \
     curl -fsSL "https://github.com/chipsalliance/verible/releases/download/${VERIBLE_VERSION}/verible-${VERIBLE_VERSION}-linux-static-x86_64.tar.gz" \
         -o /tmp/verible.tar.gz && \
@@ -202,6 +197,14 @@ RUN mkdir -p /opt/verible && \
 # ============================================================
 # Final image
 # ============================================================
+# Official Z3 release (glibc 2.39 binaries run on Ubuntu 26.04).
+FROM base AS z3-download
+ARG Z3_VERSION=5.1.0
+ARG Z3_SHA256=f47be8d27d3230e823bf1eeede2fe0abaca55bb78d0b59974370e6689a92284a
+RUN curl -fsSL "https://github.com/Z3Prover/z3/releases/download/z3-${Z3_VERSION}/z3-${Z3_VERSION}-x64-glibc-2.39.zip" -o /tmp/z3.zip && \
+    echo "${Z3_SHA256}  /tmp/z3.zip" | sha256sum -c - && \
+    unzip -q /tmp/z3.zip -d /tmp/z3 && \
+    mv /tmp/z3/z3-* /opt/z3 && rm /tmp/z3.zip
 FROM base AS final
 
 # Python driver (SBY, EQY) runtime dependencies. Keep this in the final
@@ -217,10 +220,11 @@ COPY --from=yices-build /opt/yices /opt/yices
 COPY --from=eqy-build /opt/eqy /opt/eqy
 COPY --from=xezim-build /opt/xezim /opt/xezim
 COPY --from=surfer-build /opt/surfer /opt/surfer
+COPY --from=z3-download /opt/z3 /opt/z3
 COPY --from=verible-download /opt/verible /opt/verible
 COPY libs/uvm /opt/uvm
 
-ENV PATH="/opt/verilator/bin:/opt/yosys/bin:/opt/sby/bin:/opt/yices/bin:/opt/eqy/bin:/opt/xezim/bin:/opt/surfer/bin:/opt/verible/bin:${PATH}"
+ENV PATH="/opt/verilator/bin:/opt/yosys/bin:/opt/sby/bin:/opt/yices/bin:/opt/eqy/bin:/opt/xezim/bin:/opt/surfer/bin:/opt/verible/bin:/opt/z3/bin:${PATH}"
 ENV XEZIM_UVM_DIR=/opt/uvm
 ENV UVM_HOME_12=/opt/uvm/1.2
 ENV UVM_HOME_2017=/opt/uvm/1800.2-2017

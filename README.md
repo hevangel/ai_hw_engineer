@@ -201,13 +201,16 @@ cd design/<chip>
 
 The Dockerfile builds a multi-stage image containing:
 
-- **Verilator 5.050** — built from a pinned source revision.
-- **Yosys 0.46** — built from a pinned source revision.
+- **Verilator 5.052** — built from the pinned published release.
+- **Yosys 0.69** — built from the pinned published release.
 - **SymbiYosys** — pinned source revision with the Z3 and ABC engines.
-- **Xezim 0.10.3** — pinned source revision with JIT support.
+- **Xezim 0.11.0** — pinned source revision with JIT support.
 - **Surfer 0.7.0** — pinned source revision.
 - **Verible** — pinned static release binaries.
 - **UVM** — the repository's pinned submodule copied to `/opt/uvm`.
+
+The [release manifest](docs/toolchain-releases.md) records all versions, upstream
+sources, snapshot exceptions, and the Ubuntu package snapshot used by this build.
 
 Exact tool behavior and invocation details belong in `docs/`, because asking an AI to use a tool without giving it the manual is a little like hiring an intern and hiding the keyboard.
 

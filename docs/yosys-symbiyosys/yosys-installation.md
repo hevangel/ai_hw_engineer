@@ -1,5 +1,9 @@
 # Yosys Installation
 
+The Docker image builds release 0.69 on Ubuntu 26.04 with a C++20 compiler
+and CMake 4.4.3 in a virtual environment. SBY has a pinned upstream snapshot;
+see [toolchain release pins](../toolchain-releases.md).
+
 Source: [github.com/YosysHQ/yosys](https://github.com/YosysHQ/yosys)
 
 ## Package Manager
