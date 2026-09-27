@@ -86,10 +86,14 @@ All 4004 verification passes with the corrected semantics.
   defaults to spin=740. Beware: xezim 0.10.3 silently DROPS a `+plusarg`
   placed after `--dpi-lib` on its command line; keep plusargs before it
   (this bit us: the launch script looked like spin=740 but ran 1481).
-- **xezim 0.10.3 JIT/AOT miscompiles this board**: with
-  `XEZIM_JIT=1 XEZIM_AOT=1 XEZIM_PROC_FSM=1` the E2E prints wrong
-  results (interpreter is correct; speedup was only ~25% anyway). Do
-  not enable those for this design until an upstream fix.
+- **xezim JIT/AOT on this board (retracted)**: an earlier note claimed
+  `XEZIM_JIT=1 XEZIM_AOT=1` miscompiled this board (wrong E2E results).
+  That report was withdrawn (xezim issue #153, closed 2026-09-05): with a
+  deterministic stub bridge the interpreter and JIT produce byte-identical
+  results. The wrong-results symptom was a wall-clock harness artifact
+  (the pacing removed on 2026-09-25), not a simulator bug. JIT is safe to
+  try; note the prebuilt binary must be compiled with `--features jit`
+  (it is not in the default feature set).
 - **Only ONE testbench process may call into the DPI bridge**: driving
   `dpi_panel_keys()` from a second, faster `#delay` process garbles the
   machine's view of key presses (lost presses, ghost keys). All bridge

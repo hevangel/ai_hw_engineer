@@ -23,7 +23,7 @@
     </div>
     <div class="switch-block">
       <label class="slider-label"><span id="digits_label">0</span> decimal points</label>
-      <input type="range" id="digits" min="0" max="8" value="0" />
+      <input type="range" id="digits" min="0" max="7" value="0" title="Positions 0,1,2,3,4,5,6,8 (no 7 on the real machine)" />
     </div>
     <div class="switch-block radios">
       <label><input type="radio" name="rounding" id="round_truncate" value="8" /> Truncate</label>
@@ -77,6 +77,7 @@
       <td><button class="key fn" code="160">C</button></td>
       <td><button class="key" code="156">0</button></td>
       <td><button class="key" code="152">00</button></td>
+      <td><button class="key" code="144">000</button></td>
       <td><button class="key" code="148">.</button></td>
       <td class="gap"></td>
       <td colspan="2"><button class="key op wide" code="140">=</button></td>

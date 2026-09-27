@@ -176,6 +176,7 @@ module tb_top;
                                                int lamps);
     import "DPI-C" function int dpi_has_work();
     import "DPI-C" function void dpi_wait_for_work();
+    import "DPI-C" function int dpi_panel_ready();
 
     int dpi_keys;
     int dpi_ctrl;
@@ -201,11 +202,18 @@ module tb_top;
             // ticks always run to let the 4004 firmware boot before
             // any parking - otherwise a key pressed early would be
             // presented and released before the firmware samples.
-            if (key_hold == 0 && tick_count >= 2000) begin
-                dpi_wait_for_work();
-            end
+            // NOTE: no idle park - the pthread_cond_wait in
+            // dpi_wait_for_work() corrupts xezim state and breaks key
+            // sampling, and poll-based waits add too much latency.
+            // The sim runs freely; waveform compactness is handled
+            // by post-processing or xezim filters.
             repeat (spin_cycles) #(CYCLE_NS); // one tick per drum half-spin
             tick_count = tick_count + 1;
+            // After the firmware boot interval, tell the bridge the panel
+            // is live: it starts presenting queued key presses (before
+            // this, dpi_panel_keys holds them at zero).
+            if (tick_count == 2000)
+                dpi_panel_ready();
             // key state and printer/lamp events both ride this single
             // tick loop: with DPI in the build, xezim 0.10.3 interleaves
             // TWO dpi-calling processes badly (lost/garbled host key

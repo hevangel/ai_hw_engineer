@@ -81,8 +81,8 @@ static pthread_cond_t work_cond = PTHREAD_COND_INITIALIZER;
  * queue absorbs the spacing: a human can keep typing; keys take effect
  * serially. */
 #define QUEUE_CAP 64
-#define PRESENT_TICKS 48
-#define RELEASE_TICKS 16
+#define PRESENT_TICKS 540
+#define RELEASE_TICKS 540
 /* press presentation states */
 #define PS_IDLE 0
 #define PS_PRESENT 1
@@ -96,7 +96,7 @@ static int present_release;
 static int press_queue[QUEUE_CAP];
 static int press_head, press_count;
 
-static int precision; /* decimal digits selector, 0..8 */
+static int precision; /* decimal-point selector: 0,1,2,3,4,5,6,8 (no 7) */
 static int rounding;  /* 0 float, 1 round, 8 truncate */
 static int advance_ticks; /* remaining ticks the paper-advance button is down */
 
@@ -342,6 +342,18 @@ static int http_write(int fd, const char *buf, size_t len)
         off += (size_t)n;
     }
     return 0;
+}
+
+/* the real decimal-point switch has 8 positions: 0,1,2,3,4,5,6,8
+ * (user manual); anything else is rejected, keeping the old value */
+static int valid_precision(int v)
+{
+    switch (v) {
+    case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 8:
+        return v;
+    default:
+        return -1;
+    }
 }
 
 /* bounded unsigned-to-decimal, returns chars written */
@@ -615,8 +627,11 @@ static void handle_client(int fd)
         } else if (plen >= 4 && strncmp(path, "/switches", plen) == 0) {
             int v;
             pthread_mutex_lock(&g_lock);
-            if (json_int(body, "precision", &v))
-                precision = v < 0 ? 0 : (v > 8 ? 8 : v);
+            if (json_int(body, "precision", &v)) {
+                int ok = valid_precision(v);
+                if (ok >= 0)
+                    precision = ok;
+            }
             if (json_int(body, "rounding", &v))
                 rounding = (v == 0 || v == 1 || v == 8) ? v : rounding;
             pthread_mutex_unlock(&g_lock);

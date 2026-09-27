@@ -21,7 +21,7 @@ module busicom_141pf (
     input  logic        panel_tick_i, // host bridge tick (level toggles)
     // front panel -> board (quasi-static, host provided)
     input  logic [31:0] keys_mask_i,  // bit i = scancode 129+i pressed
-    input  logic [3:0]  precision_i,  // decimal digits selector 0..8
+    input  logic [3:0]  precision_i,  // decimal-point selector: 0,1,2,3,4,5,6,8 (no 7)
     input  logic [3:0]  rounding_i,   // 0 float, 1 round, 8 truncate
     input  logic        paper_btn_i,  // manual paper advance button
     // board -> front panel
@@ -236,7 +236,7 @@ module busicom_141pf (
 
     intel_4003 #(.WIDTH(10)) u_sh_keyboard (
         .clk(clk), .rst_n(rst_n),
-        .cp_i(rom0_port[0]), .data_in_i(~rom0_port[1]), .en_i(1'b1),
+        .cp_i(rom0_port[0]), .data_in_i(rom0_port[1]), .en_i(1'b1),
         .q_o(kb_scan_o), .so_o()
     );
     intel_4003 #(.WIDTH(10)) u_sh_printer_lo (
@@ -306,8 +306,8 @@ module busicom_141pf (
     wire hammer_edge  = (ram0_prev[0] == 1'b0) && (ram0_port[1] == 1'b1);
     wire advance_edge = (ram0_prev[1] == 1'b0) && (ram0_port[3] == 1'b1);
     wire tick_pulse   = (panel_tick_i != tick_prev[0]);
-    wire kbd_sampled  = u_rom1.u_4001.s_rdr && u_rom1.u_4001.io_selected &&
-                        u_rom1.u_4001.phase >= 6 && kb_col != 4'h0;
+    wire kbd_sampled  = u_rom1.s_rdr && u_rom1.io_selected &&
+                        u_rom1.phase >= 6 && kb_col != 4'h0;
 
     always_ff @(posedge clk) begin
         if (!rst_n) begin

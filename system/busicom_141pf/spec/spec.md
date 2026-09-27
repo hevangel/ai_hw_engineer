@@ -18,7 +18,13 @@ sequence and `report/` for verification results.
 | Significance | First commercial product powered by a microprocessor (Intel 4004) |
 | CPU clock | ~740 kHz two-phase; 8 clocks per machine cycle (~10.8 µs/instruction) |
 | Output | Shinshu Seiki (Epson) Model-102 impact drum printer — **no tube display** |
-| Input | 32-key keyboard, decimal-point selector (0–8), rounding selector |
+| Input | 32-key keyboard, decimal-point selector (0, 1, 2, 3, 4, 5, 6, 8 — no 7), rounding selector |
+| Capacity | 14 digits, plus decimal point and sign (user manual §13–16) |
+| Operation speed | addition/subtraction 0.45 s, multiplication 1.1 s, division 1.2 s |
+| Input buffer | 8 words; keyboard scanned 40 times/s regardless of calculating/printing |
+| Registers | 5 working registers (entry, sub-total, main total, 2 multiply/divide) + 1 memory |
+| Paper | 2-1/4" wide roll; red section signals low supply |
+| Power | AC 115 V, 20 W |
 
 The 141-PF is a **printing** calculator: entries and results appear on the
 paper roll as the drum printer types them. Typed digits are not shown until
@@ -91,16 +97,27 @@ not keys but the two selector switches, read through the same matrix:
 | Q5 | 8, 5, 2, 00 |
 | Q6 | 7, 4, 1, 0 |
 | Q7 | Sign, Exchange, CE, C |
-| Q8 | returns decimal-point selector value (0–8) |
-| Q9 | returns rounding selector (0 = float, 1 = round, 8 = truncate) |
+| Q8 | returns decimal-point selector value (0, 1, 2, 3, 4, 5, 6, 8 — eight positions, no 7, per user manual) |
+| Q9 | returns rounding selector (0 = float, 1 = round, 8 = truncate; three positions per user manual) |
 
 Front-panel button (not scanned): Move Up = paper advance (ROM2 bit 3).
 
 ### 4.2 Printer model (Model-102 drum)
 
+Capacity is **14 digits, plus decimal point and sign** (user manual
+§12–16): in floating mode a product/quotient may not exceed 14 integer
+digits; in fixed mode the integer digits may not exceed 14 minus the
+D.P. selector setting; exceeding capacity turns on the overflow lamp
+and the accumulators/memory keep their previous figures, recoverable
+via the manual's key sequence. Number entry is likewise 14 digits plus
+decimal point and sign.
+
 * 20-bit hammer word from the 4003 #1+#2 chain:
   * bits 3–17 → 15 numeric columns,
   * bit 0 → symbol column A, bit 1 → symbol column B, bit 2 unused.
+* The original firmware never drives more than the 14 documented digit
+  positions, so the 15th numeric column of the model is inert in
+  practice; it is kept because the hammer word is firmware-defined.
 * The drum has 13 positions per revolution; the character under the hammers
   at spin *n* is printed:
 
@@ -139,6 +156,20 @@ DPI-C calls ←— tb_top.sv (clock/reset, machine-cycle pacing, TEST pin)
 * The **web app** (`host/web/`) replicates the real front panel: paper
   tape, drum window, keyboard, switches, lamps, Move Up button.
 
+### 5.1 Known deviations from the real machine
+
+* **No 8-word input buffer.** The real 141 scans the keyboard 40
+  times/s and buffers up to 8 keystrokes, executing them after the
+  preceding calculation finishes (user manual §12). The virtual
+  platform instead blocks new input and shows a busy indicator until
+  the 4004 is idle — a deliberate simplification (the simulator runs
+  slower than the web UI), requested for this build.
+* **No power switch.** The virtual platform boots straight into the
+  firmware; the real machine's power switch (which clears all
+  registers including memory) is not modelled — use the C key.
+* **Printer analog timing** is not modelled (already a non-goal in
+  §6); the drum is a virtual half-spin timer driving the TEST pin.
+
 ## 6. Verification plan
 
 1. **Board smoke (headless)**: run the firmware without keys; assert the
@@ -153,6 +184,14 @@ DPI-C calls ←— tb_top.sv (clock/reset, machine-cycle pacing, TEST pin)
 
 ## 7. Sources and attribution
 
+* User operating manual: *Unicom 141 Series Calculator Operating
+  Instructions* (Unicom Systems, Inc., Cupertino) —
+  `spec/reference/Unicom_141P_manual.md` (extracted from
+  `spec/reference/Unicom_141P_manual_text.pdf`, via
+  https://archive.org/details/Unicom141PManual). Unicom was the US
+  brand name for Busicom machines; the manual covers the 141 series
+  including the 141-PF. It is the authority for key functions, print
+  symbols, selector positions, capacities, and operation examples.
 * Original firmware reverse-engineering: B. & B. Silverman, E. Dvorak,
   L. Kintli — <https://www.4004.com> (Busicom 141-PF Replication Project,
   CC BY-NC-SA 2.5 for project materials). ROM contents:
