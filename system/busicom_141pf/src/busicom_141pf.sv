@@ -21,7 +21,7 @@ module busicom_141pf (
     input  logic        panel_tick_i, // host bridge tick (level toggles)
     // front panel -> board (quasi-static, host provided)
     input  logic [31:0] keys_mask_i,  // bit i = scancode 129+i pressed
-    input  logic [3:0]  precision_i,  // decimal digits selector 0..8
+    input  logic [3:0]  precision_i,  // decimal-point selector: 0,1,2,3,4,5,6,8 (no 7)
     input  logic [3:0]  rounding_i,   // 0 float, 1 round, 8 truncate
     input  logic        paper_btn_i,  // manual paper advance button
     // board -> front panel

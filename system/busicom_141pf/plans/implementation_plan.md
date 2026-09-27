@@ -27,3 +27,14 @@ ordered so each one is independently verifiable.
    sequences, assert printed results.
 9. **Docs/report** — `report/final_report.md`, `system/README.md` index,
    AGENTS.md structure update.
+10. **User-manual alignment** — `spec/reference/Unicom_141P_manual.md`
+    extracted from the Unicom 141 operating-instructions PDF; spec
+    updated to the manual (selector positions, 14-digit capacity,
+    buffer/speed/register facts, known deviations); code updated:
+    decimal selector offers only the 8 real positions
+    (0,1,2,3,4,5,6,8 — no 7), bridge validates against that set,
+    web app gains the missing `000` key.
+11. **Manual example tests** — extend `scripts/check_panel.py` with
+    key sequences from the manual's operation examples (§1–16):
+    subtotal/total accumulators, percent, memory keys, rounding and
+    truncation, overflow lamp.

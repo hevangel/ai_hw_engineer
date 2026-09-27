@@ -68,9 +68,14 @@ advanceBtn.addEventListener("click", () => {
 
 const digitsSlider = document.getElementById("digits");
 const digitsLabel = document.getElementById("digits_label");
+/* Decimal-point selector: the real machine has 8 positions mapping to
+   values 0,1,2,3,4,5,6,8 (there is no 7) — user manual, key functions. */
+const DP_VALUES = [0, 1, 2, 3, 4, 5, 6, 8];
+const dpToSlider = (v) => Math.max(0, DP_VALUES.indexOf(v));
 digitsSlider.addEventListener("input", () => {
-  digitsLabel.textContent = digitsSlider.value;
-  post("/switches", { precision: parseInt(digitsSlider.value, 10) });
+  const v = DP_VALUES[parseInt(digitsSlider.value, 10)];
+  digitsLabel.textContent = v;
+  post("/switches", { precision: v });
 });
 document.querySelectorAll('input[name="rounding"]').forEach((radio) => {
   radio.addEventListener("change", () => {
@@ -136,8 +141,9 @@ async function poll() {
       ? "Starting 4004…" : "4004 working…";
     setBusy(!!s.busy);
 
-    if (parseInt(digitsSlider.value, 10) !== s.precision) {
-      digitsSlider.value = s.precision;
+    const sliderPos = dpToSlider(s.precision);
+    if (parseInt(digitsSlider.value, 10) !== sliderPos) {
+      digitsSlider.value = sliderPos;
       digitsLabel.textContent = s.precision;
     }
     const wanted = s.rounding === 8 ? "round_truncate"
