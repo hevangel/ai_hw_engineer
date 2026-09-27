@@ -236,7 +236,7 @@ module busicom_141pf (
 
     intel_4003 #(.WIDTH(10)) u_sh_keyboard (
         .clk(clk), .rst_n(rst_n),
-        .cp_i(rom0_port[0]), .data_in_i(~rom0_port[1]), .en_i(1'b1),
+        .cp_i(rom0_port[0]), .data_in_i(rom0_port[1]), .en_i(1'b1),
         .q_o(kb_scan_o), .so_o()
     );
     intel_4003 #(.WIDTH(10)) u_sh_printer_lo (
