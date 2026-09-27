@@ -81,8 +81,8 @@ static pthread_cond_t work_cond = PTHREAD_COND_INITIALIZER;
  * queue absorbs the spacing: a human can keep typing; keys take effect
  * serially. */
 #define QUEUE_CAP 64
-#define PRESENT_TICKS 48
-#define RELEASE_TICKS 16
+#define PRESENT_TICKS 540
+#define RELEASE_TICKS 540
 /* press presentation states */
 #define PS_IDLE 0
 #define PS_PRESENT 1
