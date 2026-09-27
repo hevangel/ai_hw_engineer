@@ -30,3 +30,8 @@ author is the same agent in every session — the useful question is never
   Escaped per-instruction sim + formal because the ISS and the formal
   golden model shared the RTL's wrong FIN PC rule. Caught by running the
   original BUSICOM 141-PF firmware.
+- [2026-09-27 — busicom_141pf keyboard 4003 data polarity](2026-09-27-busicom-kbd-4003-polarity.md)
+  Escaped board bring-up because the tests drove keys_mask directly and
+  never exercised the serial shift path. Caught by Kintli's annotated
+  firmware source (user-supplied): the `~` on the keyboard 4003 data
+  input inverted the firmware's active-low column scan.
