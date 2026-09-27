@@ -7,10 +7,17 @@ The reconstructed MCS-4 board (intel_4004 + 5×intel_4001 + 2×intel_4002 +
 (spec/reference). The web front panel drives keys and switches over HTTP
 through the DPI panel bridge; printed output returns to the web paper tape.
 
-Automated verification (`scripts/run_system_test.sh`): 1 + 2 = prints
-**3**; 9 × 3 = prints the product digits. Rebuilt image sanity gate and all
-eight chip-design flows (lint/sim/formal/synth) pass on the updated
-toolchain.
+Automated verification (`scripts/run_system_test.sh`) now checks exact totals
+from the original firmware, using adding-machine entry (`+` after each
+operand): `1 + 2 + =` → **3**, `5 + 6 + =` → **11**, `9 × 3 =` → **27**,
+`14 + 29 + =` → **43**, and `9 + 3 − =` → **6**. The earlier test's
+"any digit" multiplication check was insufficient to establish correctness.
+
+The 2026-09-26 repairs connect the missing drum-index signal, capture the
+current drum character, fix stale ROM hierarchy references, and correct the
+4004's DAA/TCS semantics against an external oracle. CPU lint, ISA simulation,
+formal BMC/prove/cover, and synthesis pass. See the
+[failure note](../../../failure_notes/2026-09-26-busicom-printer-decimal-carry.md).
 
 ## What was verified
 
@@ -18,6 +25,13 @@ toolchain.
    sweeps all 10 matrix rows (`run_sim.sh` self-check).
 2. **End-to-end (host bridge)**: HTTP-driven key sequences print results on
    the virtual paper tape (`run_system_test.sh`).
+   On 2026-09-26 all five exact-total checks passed in xezim 0.10.5 and
+   independently in Verilator 5.053. Precision-2 output `3.00` was also
+   checked in Verilator. The board's `-Wall` lint has no errors; it retains
+   unused-signal/parameter, empty-pin, and clock-initializer warnings.
+   After restarting the live app, browser clicks `C`, `5`, `+`, `6`, `+`,
+   `=` produced tape rows `0 C`, `5 +`, `6 +`, `11 *`; the busy indicator
+   cleared and all keys were enabled afterward.
 3. **intel_4004 FIN fix** (found by this system, see below): the 4004
    regression, formal (bmc/prove/cover with a corrected golden model),
    lint and synthesis all pass after the fix.
@@ -47,6 +61,21 @@ All 4004 verification passes with the corrected semantics.
   4002s on CM-RAM line 0, P0 straps 0/1), sector/index printer timing.
 
 ## Known issues / refinements
+
+- **Startup**: the panel reports `ready: 0` and disables keys for the first
+  2000 simulation ticks. Early HTTP key requests are held until ready.
+  At idle, the simulation parks; a key press wakes it. The drum window
+  shows the rotating print characters, while calculations print on the tape.
+- **Historical timing observations below** predate the 2026-09-26 fixes.
+  The supported regression configuration remains `spin=740`; do not infer
+  current correctness for other simulator options from old runs.
+
+- **Web panel busy indicator fixed (2026-09-26)**: drum cells now live in a
+  table row. Previously, each status update threw when accessing the missing
+  row, leaving the controls disabled after a click even when the bridge was
+  idle. Verified in the running browser: a digit press enters busy, then clears
+  the spinner and re-enables controls. See the
+  [failure note](../../../failure_notes/2026-09-26-busicom-panel-busy.md).
 
 - **Firmware key dispatch is drum-coupled (spin is NOT transparent)**:
   at the authentic `+spin=1481` the firmware's main-loop key dispatcher
