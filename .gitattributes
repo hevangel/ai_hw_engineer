@@ -1,0 +1,3 @@
+# These shell entry points run inside Linux containers from Windows checkouts.
+design/intel_4004/scripts/*.sh text eol=lf
+system/busicom_141pf/scripts/*.sh text eol=lf

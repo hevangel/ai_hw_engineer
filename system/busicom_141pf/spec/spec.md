@@ -52,7 +52,7 @@ driver at a time), `sync`, `cm_rom`; the 4002s sit on separate CM-RAM lines.
 | ROM port | Direction (IO_DIR) | Signal |
 |---|---|---|
 | ROM0 bit 0 | output | 4003 #0 and #1/#2 shift clock (active low pulse) |
-| ROM0 bit 1 | output | serial data: ~bit for 4003 #0 (keyboard), bit for 4003 #1 (printer) |
+| ROM0 bit 1 | output | serial data: bit for both 4003 #0 (keyboard) and 4003 #1 (printer) |
 | ROM0 bit 2 | output | shift clock for 4003 #1 and #2 (printer chain, active low) |
 | ROM1 bits 3:0 | input | keyboard matrix column nibble |
 | ROM2 bit 0 | input | printer drum index (one pulse per drum revolution) |

@@ -1,5 +1,22 @@
 # Final Design Report: Intel 4004
 
+## Follow-up verification: 2026-09-27
+
+The real Busicom firmware exposed TCS and DAA defects shared by the RTL and its
+earlier local reference models. Corrected semantics are independently grounded
+in MAME's MCS-40 implementation; see the
+[failure note](../../../failure_notes/2026-09-27-busicom-manual-regression.md).
+The updated xezim 0.11.0 regression passes 166,754 cycles and 20,192 instruction
+boundaries, including all 46 instruction classes. Verilator 5.052 lint, Verible
+lint, SBY BMC/prove/cover with Yosys 0.69 and Z3 5.1.0, and synthesis pass.
+
+The [42-example manual regression](../../../system/busicom_141pf/report/manual_regression.md)
+adds historical-software coverage. `run_all.sh` now runs it using the documented
+recovered-ROM profile, with Verilator by default for speed. The original scan
+expectations remain available as a separate strict profile. The older numerical
+results below are historical; mutual RTL/local-model agreement was insufficient
+to detect these escaped defects.
+
 ## 1. Executive summary
 
 The Intel 4004 — the first commercially available microprocessor (MCS-4,

@@ -6,7 +6,7 @@ This directory contains the historical chip designs recreated and verified by th
 
 | Chip | Description | First introduced | Design |
 |---|---|---:|---|
-| Intel 4004 | 4-bit microprocessor, the first commercial single-chip CPU (MCS-4) | 1971 | [intel_4004](intel_4004/) |
+| Intel 4004 | 4-bit microprocessor (MCS-4); authentic Busicom manual regression | 1971 | [intel_4004](intel_4004/) |
 | 74181 / SN74LS181 | 4-bit TTL arithmetic logic unit and function generator | 1970 | [alu_74181](alu_74181/) |
 | Intel 4001 | 2048-bit mask-programmable ROM + 4-bit I/O port chip (MCS-4) | 1971 | [intel_4001](intel_4001/) |
 | Intel 4003 | 10-bit serial-in/parallel-out shift-register I/O expander (MCS-4) | 1971 | [intel_4003](intel_4003/) |

@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=0.9" />
 <title>BUSICOM 141-PF — virtual platform</title>
-<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="style.css?v=20260927" />
 </head>
 <body>
 <div class="machine">
@@ -92,6 +92,21 @@
     Results appear on the paper tape above.</div>
   <div class="hint">Type with the keyboard too: digits, + - * / = . % and # for &#9671;.</div>
 </div>
-<script src="app.js"></script>
+<section class="manual-replay" aria-label="Manual examples">
+  <h2>Replay manual examples</h2>
+  <button id="manual_load">Load included examples</button>
+  <label>Examples JSON <input id="manual_file" type="file" accept=".json,application/json"></label>
+  <select id="manual_profile" aria-label="Expected results">
+    <option value="manual">As printed in manual</option>
+    <option value="recovered-rom">Recovered ROM (5 documented differences)</option>
+  </select>
+  <select id="manual_example" aria-label="Example"><option value="">All examples</option></select>
+  <button id="manual_run" disabled>Run</button>
+  <button id="manual_stop" disabled>Stop after current key</button>
+  <button id="manual_download" disabled>Save results</button>
+  <pre id="manual_status" aria-live="polite">Load Unicom_141P_examples.json to begin.</pre>
+</section>
+<script src="app.js?v=20260927"></script>
+<script src="replay.js?v=20260927"></script>
 </body>
 </html>

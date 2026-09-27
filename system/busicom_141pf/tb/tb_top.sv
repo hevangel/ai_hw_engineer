@@ -58,6 +58,7 @@ module tb_top;
         .rst_n          (rst_n),
         .clr_n          (clr_n),
         .test_i         (test_i),
+        .drum_idx_i     (drum_idx),
         .panel_tick_i   (panel_tick),
         .keys_mask_i    (keys_mask),
         .precision_i    (precision),
@@ -156,8 +157,8 @@ module tb_top;
         #305;
         forever begin
             #CYCLE_NS;
-            if (kb_scan != '0 && (kb_scan & (kb_scan - 1)) == '0)
-                seen <= seen | kb_scan;
+            if (~kb_scan != '0 && ((~kb_scan) & ((~kb_scan) - 10'd1)) == '0)
+                seen <= seen | ~kb_scan;
             if (dut.ram0_port != ram0_prev) begin
                 ram0_prev <= dut.ram0_port;
                 if (dut.ram0_port != 4'h0)

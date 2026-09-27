@@ -206,9 +206,9 @@ behavior.
 | RAR | 1111 0110 | {CY, ACC} ← {ACC[0], CY, ACC[3:1]} (rotate right through carry) |
 | TCC | 1111 0111 | ACC ← {3'b0, CY}, CY ← 0 |
 | DAC | 1111 1000 | {CY, ACC} ← ACC + 15 (i.e., ACC - 1) |
-| TCS | 1111 1001 | ACC ← CY ? 9 : 10 (2's-complement tens digit, 4-bit); CY ← 0 |
+| TCS | 1111 1001 | ACC ← 9 + CY; CY ← 0 (MAME MCS-40 TCS; Kintli firmware at $135) |
 | STC | 1111 1010 | CY ← 1 |
-| DAA | 1111 1011 | If CY = 1 or ACC > 9 then {CY', ACC} ← ACC + 6 (CY' is the carry of that add); otherwise CY unchanged |
+| DAA | 1111 1011 | If CY = 1 or ACC > 9 then ACC ← (ACC + 6) mod 16; CY is set on overflow and otherwise retained (MAME MCS-40 DAA) |
 | KBP | 1111 1100 | ACC ← one-hot-to-binary of old ACC: 0→0, 1→1, 2→2, 4→3, 8→4, any other value (0 or >1 bits set)→15 |
 | DCL | 1111 1101 | CMD ← ACC[2:0] |
 

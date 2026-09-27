@@ -388,14 +388,17 @@ module tb_intel_4004;
               {iss_cy, iss_acc} = sum;
             end
             4'h9: begin  // TCS
-              iss_acc = iss_cy ? 4'h9 : 4'ha;
+              // Oracle: MAME mcs40.cpp TCS (9 + carry).
+              iss_acc = iss_cy ? 4'ha : 4'h9;
               iss_cy = 1'b0;
             end
             4'ha: iss_cy = 1'b1;  // STC
             4'hb: begin  // DAA
               if (iss_cy || iss_acc > 4'd9) begin
                 sum = iss_acc + 4'd6;
-                {iss_cy, iss_acc} = sum;
+                // Oracle: MAME DAA preserves carry unless it sets it.
+                iss_acc = sum[3:0];
+                iss_cy = iss_cy | sum[4];
               end
             end
             4'hc: iss_acc = iss_kbp(iss_acc);  // KBP

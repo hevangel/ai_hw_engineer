@@ -42,6 +42,7 @@ const keyBtns = Array.from(document.querySelectorAll("#keyboard .key"));
 const advanceBtn = document.getElementById("advance");
 
 function setBusy(b) {
+  b = b || !!window.manualReplayActive;
   if (busy === b) return;
   busy = b;
   busyEl.hidden = !b;
@@ -92,6 +93,7 @@ const keymap = {
   "=": 140, Enter: 140, "%": 134, "#": 137,
 };
 document.addEventListener("keydown", (e) => {
+  if (e.target.closest('.manual-replay, input, select, textarea')) return;
   const code = keymap[e.key];
   if (code) {
     if (busy) return;

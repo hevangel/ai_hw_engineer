@@ -83,6 +83,11 @@ contract and its sources.
 
 ## Sources
 
+The real-software regression in `scripts/run_all.sh` replays all 42 numbered
+Unicom 141 manual examples through the authentic Busicom firmware. Decimal
+TCS/DAA semantics are checked against the independent MAME MCS-40 core; see
+[the escaped-defect note](../../failure_notes/2026-09-27-busicom-manual-regression.md).
+
 - [MCS-4 Micro Computer Set user manual (scanned original, including the
   instruction repertoire, DCL/SRC command-line operation, stack description,
   and WPM)](http://codeabbey.github.io/heavy-data-1/msc4-manual.pdf)

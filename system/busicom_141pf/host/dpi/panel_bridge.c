@@ -70,9 +70,8 @@ static pthread_cond_t work_cond = PTHREAD_COND_INITIALIZER;
 /* pending key presses. Panel ticks arrive once per drum half-spin
  * (~spin machine cycles, see tb_top.sv). The firmware samples the
  * keyboard matrix from its main loop, whose period is not constant:
- * short while idle (~3k machine cycles) but up to ~30k machine cycles
- * (~40 panel ticks) after operations that print or compute. A key is
- * only registered if some main-loop pass reads its matrix row while it
+ * short while idle, with keyboard scans interleaved into printing. A key is
+ * only registered if a keyboard scan reads its matrix row while it
  * is down, so a press is held for PRESENT_TICKS - one full worst-case
  * main-loop period, guaranteeing at least one sampling pass per press
  * regardless of phase - and followed by RELEASE_TICKS of no key before
@@ -81,8 +80,10 @@ static pthread_cond_t work_cond = PTHREAD_COND_INITIALIZER;
  * queue absorbs the spacing: a human can keep typing; keys take effect
  * serially. */
 #define QUEUE_CAP 64
-#define PRESENT_TICKS 540
-#define RELEASE_TICKS 540
+/* Kintli $0b0-$0ff scans once per sector (two half-spin ticks), including
+ * during printing. 64 ticks cover more than two full drum revolutions. */
+#define PRESENT_TICKS 64
+#define RELEASE_TICKS 64
 /* press presentation states */
 #define PS_IDLE 0
 #define PS_PRESENT 1
@@ -114,6 +115,7 @@ static int lamp_memory, lamp_overflow, lamp_negative;
 static int red_latch;
 static char paper[PAPER_ROWS][PAPER_COLS][5]; /* utf-8 char cells */
 static int paper_red[PAPER_ROWS];
+static unsigned long paper_sequence; /* advances; gives visible rows stable IDs */
 static char drum_row[PAPER_COLS][5]; /* drum window rendering */
 
 /* ------------------------------------------------------------------ */
@@ -198,6 +200,7 @@ static void hit_hammer_at(int pos, int bits20)
 
 static void advance_paper(void)
 {
+    paper_sequence++;
     for (int r = 0; r < PAPER_ROWS - 1; r++) {
         for (int c = 0; c < PAPER_COLS; c++)
             set_cell(r, c, paper[r + 1][c]);
@@ -247,7 +250,7 @@ void dpi_wait_for_work(void)
 
 int dpi_panel_keys(void)
 {
-    int mask = 0;
+    uint32_t mask = 0;
 
     pthread_mutex_lock(&g_lock);
     if (!ready) {
@@ -268,14 +271,14 @@ int dpi_panel_keys(void)
         present_state = 1;
     }
     if (present_state == 1) {
-        mask = 1 << (press_active[0].code - KEY_BASE);
+        mask = UINT32_C(1) << (press_active[0].code - KEY_BASE);
         if (--press_active[0].remaining <= 0) {
             present_state = 2; /* hold elapsed: release */
             present_release = RELEASE_TICKS;
         }
     }
     pthread_mutex_unlock(&g_lock);
-    return mask;
+    return (int32_t)mask;
 }
 
 int dpi_panel_ready(void)
@@ -396,7 +399,7 @@ static void respond(int fd, enum ctype ct, const char *body, size_t len)
         "HTTP/1.1 200 OK\r\nContent-Type: ";
     static const char p2[] = "Content-Length: ";
     /* leading CRLF terminates the Content-Length line */
-    static const char p3[] = "\r\nConnection: close\r\n\r\n";
+    static const char p3[] = "\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n";
     const char *ctext = ctype_str(ct);
     size_t ct_len = strlen(ctext);
     char hdr[256];
@@ -484,7 +487,7 @@ static void respond_state(int fd)
             busy || !ready, ready);
     for (int c = 0; c < PAPER_COLS; c++)
         appendf(&p, &left, "%s\"%s\"", c ? "," : "", drum_row[c]);
-    appendf(&p, &left, "],\"paper\":[");
+    appendf(&p, &left, "],\"paper_sequence\":%lu,\"paper\":[", paper_sequence);
     for (int r = 0; r < PAPER_ROWS; r++) {
         appendf(&p, &left, "%s[", r ? "," : "");
         for (int c = 0; c < PAPER_COLS; c++)
@@ -588,6 +591,10 @@ static void handle_client(int fd)
             respond_state(fd);
         } else if (plen >= 5 && strncmp(path, "/app.js", plen) == 0) {
             respond_file(fd, "app.js", CT_JS);
+        } else if (plen == 10 && strncmp(path, "/replay.js", plen) == 0) {
+            respond_file(fd, "replay.js", CT_JS);
+        } else if (plen == 21 && strncmp(path, "/manual-examples.json", plen) == 0) {
+            respond_file(fd, "../../spec/reference/Unicom_141P_examples.json", CT_JSON);
         } else if (plen >= 5 && strncmp(path, "/style.css", plen) == 0) {
             respond_file(fd, "style.css", CT_CSS);
         } else {
@@ -599,12 +606,14 @@ static void handle_client(int fd)
     if (strcmp(method, "POST") == 0) {
         if (plen >= 4 && strncmp(path, "/press", plen) == 0) {
             int code = 0;
+            int accepted = 0;
             json_int(body, "code", &code);
             pthread_mutex_lock(&g_lock);
             if (code >= KEY_BASE && code < KEY_BASE + KEY_COUNT &&
                 press_count < QUEUE_CAP) {
                 press_queue[(press_head + press_count) % QUEUE_CAP] = code;
                 press_count++;
+                accepted = 1;
                 fprintf(stderr, "[press] code=%d count=%d\n", code,
                         press_count);
                 /* start a transaction for the UI busy indicator */
@@ -614,7 +623,8 @@ static void handle_client(int fd)
                 pthread_cond_signal(&work_cond);
             }
             pthread_mutex_unlock(&g_lock);
-            respond(fd, CT_JSON, "{\"ok\":true}", 11);
+            const char *reply = accepted ? "{\"ok\":true}" : "{\"ok\":false}";
+            respond(fd, CT_JSON, reply, strlen(reply));
         } else if (plen >= 4 && strncmp(path, "/advance", plen) == 0) {
             pthread_mutex_lock(&g_lock);
             advance_ticks = ADVANCE_TICKS;
@@ -662,7 +672,7 @@ static void *http_thread(void *arg)
     addr.sin_port = htons((uint16_t)port);
     if (bind(srv, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
         perror("bind (web panel port busy?)");
-        return NULL;
+        exit(EXIT_FAILURE);
     }
     listen(srv, 8);
     fprintf(stderr, "[panel-bridge] web front panel on http://0.0.0.0:%d/\n",

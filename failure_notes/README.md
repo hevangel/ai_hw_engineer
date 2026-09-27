@@ -26,6 +26,10 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-09-27 - Busicom manual, decimal carry and board integration](2026-09-27-busicom-manual-regression.md)
+  Manual replay and independent MAME semantics exposed TCS/DAA errors shared by
+  the CPU models, plus incomplete keyboard polarity and printer index integration.
+
 - [2026-09-02 — intel_4004 FIN program-counter advance](2026-09-02-intel4004-fin-pc-advance.md)
   Escaped per-instruction sim + formal because the ISS and the formal
   golden model shared the RTL's wrong FIN PC rule. Caught by running the

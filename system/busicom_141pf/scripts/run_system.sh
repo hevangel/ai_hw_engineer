@@ -1,5 +1,5 @@
 #!/bin/sh
-# Run the BUSICOM 141-PF virtual platform: xezim simulation + panel bridge
+# Run the BUSICOM 141-PF virtual platform: RTL simulation + panel bridge
 # + web front panel in one process.
 #
 #   sh scripts/run_system.sh
@@ -9,19 +9,19 @@
 #
 # Environment:
 #   BUSICOM_PORT  web panel port (default 8080)
+#   BUSICOM_BACKEND  xezim (default) or verilator
+#   BUSICOM_SPIN  machine cycles per drum half-spin (default 1481)
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 SYSTEM_DIR=$(dirname "$SCRIPT_DIR")
 DESIGN_DIR="$SYSTEM_DIR/../../design"
-WORK_DIR="$SYSTEM_DIR/work/system"
-LOG_FILE="$WORK_DIR/busicom_141pf.log"
-
+BACKEND="${BUSICOM_BACKEND:-xezim}"
 PORT="${BUSICOM_PORT:-8080}"
-# spin=740: the firmware's key-dispatch cadence is coupled to the drum
-# rate, and at the authentic 1481 the host key presses register garbled
-# (see report known issues). 740 is the E2E-verified configuration.
-SPIN="${BUSICOM_SPIN:-740}"
+WORK_DIR="$SYSTEM_DIR/work/system-$BACKEND-$PORT"
+LOG_FILE="$WORK_DIR/busicom_141pf.log"
+# The recovered emulator uses 1481 machine cycles per drum half-spin.
+SPIN="${BUSICOM_SPIN:-1481}"
 
 mkdir -p "$WORK_DIR"
 # $readmemh paths in the board resolve against the simulator's working
@@ -36,10 +36,24 @@ cc -O2 -shared -fPIC -pthread \
     -o "$WORK_DIR/panel_bridge.so"
 
 echo "=== BUSICOM 141-PF virtual platform (web panel: http://0.0.0.0:$PORT/) ==="
-# NOTE: deliberately NOT using XEZIM_JIT/AOT - those backends miscompile
-# this board (E2E prints wrong results with them enabled; interpreter is
-# correct). Revisit only after an upstream xezim fix.
-xezim --simulate --sv2017 --error-exit \
+if [ "$BACKEND" = verilator ]; then
+    verilator --binary --timing -Wno-fatal --top-module tb_top \
+        -DSYSTEM_DPI --Mdir "$WORK_DIR/obj_dir" -j 4 \
+        -LDFLAGS "$WORK_DIR/panel_bridge.so -Wl,-rpath,$WORK_DIR -pthread" \
+        "$DESIGN_DIR/intel_4004/src/intel_4004.sv" \
+        "$DESIGN_DIR/intel_4001/src/intel_4001.sv" \
+        "$DESIGN_DIR/intel_4002/src/intel_4002.sv" \
+        "$DESIGN_DIR/intel_4003/src/intel_4003.sv" \
+        "$SYSTEM_DIR/src/busicom_141pf.sv" "$SYSTEM_DIR/tb/tb_top.sv"
+    exec "$WORK_DIR/obj_dir/Vtb_top" "+spin=$SPIN"
+fi
+if [ "$BACKEND" != xezim ]; then
+    echo "Unknown BUSICOM_BACKEND: $BACKEND" >&2
+    exit 2
+fi
+# XEZIM_JIT / XEZIM_AOT may be supplied by the caller. The old claimed
+# miscompile was retracted (upstream #153); record the mode in test reports.
+exec xezim --simulate --sv2017 --error-exit \
     -s tb_top \
     -D SYSTEM_DPI \
     ${BUSICOM_DEBUG:+-D DEBUG_TRACE} \

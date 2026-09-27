@@ -60,74 +60,46 @@ All 4004 verification passes with the corrected semantics.
   contract: port nibble aliasing (SRC nibble mod 5), RAM strapping (both
   4002s on CM-RAM line 0, P0 straps 0/1), sector/index printer timing.
 
-## Known issues / refinements
+## Current status (2026-09-27)
 
-- **Startup**: the panel reports `ready: 0` and disables keys for the first
-  2000 simulation ticks. Early HTTP key requests are held until ready.
-  At idle, the simulation parks; a key press wakes it. The drum window
-  shows the rotating print characters, while calculations print on the tape.
-- **Historical timing observations below** predate the 2026-09-26 fixes.
-  The supported regression configuration remains `spin=740`; do not infer
-  current correctness for other simulator options from old runs.
+The earlier five-case results above are historical. The full 42-example manual
+regression, updated toolchain, and independently confirmed differences are in
+[manual_regression.md](manual_regression.md). The manual is now available as
+[readable Markdown](../spec/reference/Unicom_141P_manual.md) and
+[replay JSON](../spec/reference/Unicom_141P_examples.json).
 
-- **Web panel busy indicator fixed (2026-09-26)**: drum cells now live in a
-  table row. Previously, each status update threw when accessing the missing
-  row, leaving the controls disabled after a click even when the bridge was
-  idle. Verified in the running browser: a digit press enters busy, then clears
-  the spinner and re-enables controls. See the
-  [failure note](../../../failure_notes/2026-09-26-busicom-panel-busy.md).
+The follow-up found remaining keyboard polarity, printer index/phase, TCS and
+DAA defects. These are corrected; see the
+[failure note](../../../failure_notes/2026-09-27-busicom-manual-regression.md).
+The authentic `spin=1481` now reproduces the recovered ROM's results across all
+42 examples on Verilator 5.052. The earlier claim that this rate necessarily
+corrupts keyboard input is superseded by that evidence. `run_system.sh` defaults
+to 1481 and supports `BUSICOM_BACKEND=xezim` or `verilator`.
 
-- **Firmware key dispatch is drum-coupled (spin is NOT transparent)**:
-  at the authentic `+spin=1481` the firmware's main-loop key dispatcher
-  registers host key presses as garbage or misses them; at
-  `+spin=740` presses register exactly (E2E-verified). The earlier
-  assumption "all drum timings scale together, so firmware behaviour is
-  unchanged" is false for the keyboard path — `run_system.sh` therefore
-  defaults to spin=740. Beware: xezim 0.10.3 silently DROPS a `+plusarg`
-  placed after `--dpi-lib` on its command line; keep plusargs before it
-  (this bit us: the launch script looked like spin=740 but ran 1481).
-- **xezim JIT/AOT on this board (retracted)**: an earlier note claimed
-  `XEZIM_JIT=1 XEZIM_AOT=1` miscompiled this board (wrong E2E results).
-  That report was withdrawn (xezim issue #153, closed 2026-09-05): with a
-  deterministic stub bridge the interpreter and JIT produce byte-identical
-  results. The wrong-results symptom was a wall-clock harness artifact
-  (the pacing removed on 2026-09-25), not a simulator bug. JIT is safe to
-  try; note the prebuilt binary must be compiled with `--features jit`
-  (it is not in the default feature set).
-- **Only ONE testbench process may call into the DPI bridge**: driving
-  `dpi_panel_keys()` from a second, faster `#delay` process garbles the
-  machine's view of key presses (lost presses, ghost keys). All bridge
-  traffic rides the single drum-tick loop in `tb_top.sv`.
-- **Print content under accelerated drums**: multi-character lines can
-  smear across paper rows at 2× drum speed; single results print
-  exactly (E2E asserts them).
-- **Decimal-point switch**: the front-panel precision switch passes its
-  value to the firmware, and printed decimal rendering at non-zero
-  settings has been verified: the drum table emits "." at spins 10/11
-  (matching the reference emulator), the precision path
-  (/switches → dpi_panel_ctrl[3:0] → precision_i → firmware) is correct,
-  and empirical testing with precision=2 confirmed "." prints on paper.
-  (Default 0 prints integers.)
-- Wall-time behaviour at the default settings: the interpreter simulates
-  ~3.5k machine cycles/s on the reference host, ~14× slower than the
-  16 ms/tick pacing target, so key echo takes ~1-3 s and a printed
-  result ~10-20 s — faithful machine behaviour, slowed by simulation
-  throughput, not by pacing.
-- **Wall-clock pacing removed**: the `BUSICOM_PACE` option (sleeping
-  ~16 ms inside every `dpi_panel_ctrl` call) correlated with dropped or
-  garbled key registrations, and was pointless on the reference host
-  anyway — the interpreter runs ~14x slower than real time with or
-  without it. The pacing logic has been removed from `panel_bridge.c`.
-- z3 remains the jammy apt version (4.8.12); SBY runs it fine.
+### Operational limits
 
-## Tool notes for the next agent
+- Startup retains a 2000-tick firmware initialization interval. Keys are disabled
+  until `ready` becomes true. Wall time depends on simulator throughput.
+- The simulation currently continues running while idle; the bridge's optional
+  parking functions are not called by this testbench.
+- Only one testbench process may advance the DPI key presenter. HTTP replay
+  clients must run one at a time for a given panel.
+- Drum characters rotate independently of the printed tape. For addition, use
+  `5 + 6 + =`; the second plus enters the second amount in the accumulator.
+- The manual's buffer/capacity prose is transcribed, but input-buffer timing and
+  physical paper/ribbon procedures are outside the numbered-example regression.
+- Five scan/ROM differences are explicit profiles, not changes to the original
+  printed expectations. See the current regression report before interpreting
+  a strict-manual failure.
 
-- xezim 0.10.3: DPI calls cost ~0.2 ms wall each — never call per clock;
-  keep testbench processes time-driven (`#delay`), never `@(posedge clk)`
-  once a DPI import is in the build, and keep exactly one DPI-calling
-  process (see known issues above).
-- xezim 0.10.3 rejects `import "DPI-C" function void f(...)` (parse error
-  at the `)`): return `int` and ignore it.
-- `$display` output (TB and RTL) lands in the `-l` log file, and is
-  block-buffered while the sim runs; stdout carries only the launcher's
-  own prints.
+### Simulator notes
+
+The old xezim JIT/AOT miscompile allegation was retracted (upstream issue #153).
+The Docker build enables the `jit` feature. Set `XEZIM_JIT=1 XEZIM_AOT=1` when
+launching xezim to use native compilation. The current build is xezim 0.11.0.
+The simulator time limit is explicit in the launch script. Keep plusargs before
+`--dpi-lib` for compatibility with older xezim launchers. `$display` output is in
+the simulator log, which may be buffered while it runs.
+
+Tool pins, source links and update exceptions are recorded in
+[toolchain-releases.md](../../../docs/toolchain-releases.md).

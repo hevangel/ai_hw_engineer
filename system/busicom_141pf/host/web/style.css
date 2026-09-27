@@ -4,6 +4,8 @@ body {
   margin: 0;
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
+  padding: 24px 12px;
   align-items: center;
   justify-content: center;
   background: #23272b;
@@ -163,3 +165,6 @@ table {
   font: 11px/16px sans-serif;
   color: #7c8894;
 }
+.manual-replay { max-width: 760px; margin: 24px auto; font: 14px/1.5 sans-serif; }
+.manual-replay button, .manual-replay select, .manual-replay label { margin: 4px; }
+#manual_status { white-space: pre-wrap; max-height: 320px; overflow: auto; }

@@ -18,6 +18,7 @@ module busicom_141pf (
     input  logic        rst_n,
     input  logic        clr_n,        // historical CL: clears 4001 I/O latches
     input  logic        test_i,       // printer drum timing -> CPU TEST pin
+    input  logic        drum_idx_i,   // index sensor -> ROM2 bit 0
     input  logic        panel_tick_i, // host bridge tick (level toggles)
     // front panel -> board (quasi-static, host provided)
     input  logic [31:0] keys_mask_i,  // bit i = scancode 129+i pressed
@@ -32,7 +33,7 @@ module busicom_141pf (
     output logic [2:0]  lamps_o,      // {negative, overflow, memory}
     input  logic [3:0]  drum_pos_i,   // current drum character position 0..12
     output logic        key_seen_o,   // one-shot: firmware sampled the key
-    output logic [9:0]  kb_scan_o     // keyboard scan one-hot (4003 #0)
+    output logic [9:0]  kb_scan_o     // keyboard scan one-low (4003 #0)
 );
 
     // ------------------------------------------------------------------------
@@ -169,7 +170,6 @@ module busicom_141pf (
     );
 
     // ROM2 port pins: bit3 = paper button, bit0 = drum index pulse
-    logic drum_idx;
 
     intel_4001 #(
         .CHIP_NO  (4'h2),
@@ -179,7 +179,7 @@ module busicom_141pf (
         .clk(clk), .rst_n(rst_n), .clr_n(clr_n),
         .data_i(data_chips), .data_o(rom_data_o[2]), .data_oe(rom_data_oe[2]),
         .sync(sync), .cm_rom(cm_rom),
-        .port_i({paper_btn_i, 2'b00, drum_idx}), .port_o(), .port_oe()
+        .port_i({paper_btn_i, 2'b00, drum_idx_i}), .port_o(), .port_oe()
     );
     intel_4001 #(
         .CHIP_NO  (4'h3),
@@ -225,10 +225,9 @@ module busicom_141pf (
 
     // ------------------------------------------------------------------------
     // 4003 shift registers, clocked from the ROM0 port lines (spec 3.1).
-    // The ROM port drives an active-low pulse; the 4003 shifts on the
-    // rising edge of cp_i, which is the falling edge of the firmware's
-    // active-low pulse. Serial data is ~bit1 into the keyboard shifter and
-    // bit1 into the printer chain (as on the real board). Printer shifter
+    // Kintli $064-$069 clocks shared ROM0 bit1 data into the shifters.
+    // Keyboard selection is active low ($0bc-$0bd inserts one zero).
+    // Data has the same polarity for keyboard and printer. Printer shifter
     // #2 takes #1's serial out (MSB before the shift) - a 20-bit chain.
     // ------------------------------------------------------------------------
     logic sh1_so;
@@ -253,13 +252,13 @@ module busicom_141pf (
     // ------------------------------------------------------------------------
     // Front panel: keyboard matrix decode
     // ------------------------------------------------------------------------
-    // The firmware scans by shifting a one-hot through 4003 #0. Rows 0-7
+    // The firmware scans by shifting a single zero through 4003 #0. Rows 0-7
     // are key rows (4 columns each, scancode 129+4r+c layout per spec 4.1);
     // rows 8/9 are the decimal-point and rounding selector switches read
     // through the same matrix. Written as a flat case: xezim re-evaluates
     // always_comb blocks on every clock edge, so this stays cheap.
     always_comb begin
-        case (kb_scan_o)
+        case (~kb_scan_o)
             10'b0000000001:
                 kb_col = {keys_mask_i[3], keys_mask_i[2], keys_mask_i[1],
                           keys_mask_i[0]};
@@ -331,11 +330,9 @@ module busicom_141pf (
             end
             if (hammer_edge) begin
                 hammer_evt_o  <= 1'b1;
-                // the sector pulse closes the character's print window, so
-                // the character under the hammers is the previous position
-                hammer_data_o <= {(drum_pos_i == 4'd0 ? 4'd12
-                                                      : drum_pos_i - 4'd1),
-                                  sh2_q, sh1_q};
+                // Kintli section 3.3: index identifies character zero;
+                // capture the character at the instant the hammer fires.
+                hammer_data_o <= {drum_pos_i, sh2_q, sh1_q};
             end
             if (advance_edge)
                 advance_evt_o <= 1'b1;
