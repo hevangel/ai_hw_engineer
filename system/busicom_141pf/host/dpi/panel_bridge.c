@@ -108,6 +108,7 @@ static int advance_ticks; /* remaining ticks the paper-advance button is down */
  * input and show a spinner while the machine is working. */
 static int busy;
 static int quiet_ticks;
+static int ready; /* set by the simulation after the firmware boot interval */
 
 static int lamp_memory, lamp_overflow, lamp_negative;
 static int red_latch;
@@ -249,6 +250,10 @@ int dpi_panel_keys(void)
     int mask = 0;
 
     pthread_mutex_lock(&g_lock);
+    if (!ready) {
+        pthread_mutex_unlock(&g_lock);
+        return 0; /* retain queued presses until firmware can read them */
+    }
     /* release countdown, then present the next queued press */
     if (present_state == 2) { /* release countdown */
         if (--present_release <= 0) {
@@ -271,6 +276,14 @@ int dpi_panel_keys(void)
     }
     pthread_mutex_unlock(&g_lock);
     return mask;
+}
+
+int dpi_panel_ready(void)
+{
+    pthread_mutex_lock(&g_lock);
+    ready = 1;
+    pthread_mutex_unlock(&g_lock);
+    return 0;
 }
 
 int dpi_panel_ctrl(int evflags, int hammer24, int lamps)
@@ -454,9 +467,9 @@ static void respond_state(int fd)
     pthread_mutex_lock(&g_lock);
     appendf(&p, &left,
             "{\"lamps\":{\"memory\":%d,\"overflow\":%d,\"negative\":%d},"
-            "\"precision\":%d,\"rounding\":%d,\"busy\":%d,\"drumRow\":[",
+            "\"precision\":%d,\"rounding\":%d,\"busy\":%d,\"ready\":%d,\"drumRow\":[",
             lamp_memory, lamp_overflow, lamp_negative, precision, rounding,
-            busy);
+            busy || !ready, ready);
     for (int c = 0; c < PAPER_COLS; c++)
         appendf(&p, &left, "%s\"%s\"", c ? "," : "", drum_row[c]);
     appendf(&p, &left, "],\"paper\":[");

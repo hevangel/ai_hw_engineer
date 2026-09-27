@@ -17,10 +17,11 @@ for (let r = 0; r < PAPER_ROWS; r++) {
   }
   paperTable.appendChild(tr);
 }
+const drumRow = drumTable.insertRow();
 for (let c = 0; c < PAPER_COLS; c++) {
   const td = document.createElement("td");
   td.textContent = " ";
-  drumTable.appendChild(td);
+  drumRow.appendChild(td);
 }
 
 function post(path, body) {
@@ -48,6 +49,7 @@ function setBusy(b) {
   advanceBtn.disabled = b;
   document.body.classList.toggle("is-busy", b);
 }
+setBusy(true); // wait for the first successful status response
 
 /* ---- front panel inputs ---- */
 keyBtns.forEach((btn) => {
@@ -130,6 +132,8 @@ async function poll() {
     setLed("led_negative", s.lamps.negative, "negative");
 
     /* the bridge clears busy when the 4004 is idle again */
+    busyEl.querySelector(".busy-label").textContent = s.ready === 0
+      ? "Starting 4004…" : "4004 working…";
     setBusy(!!s.busy);
 
     if (parseInt(digitsSlider.value, 10) !== s.precision) {

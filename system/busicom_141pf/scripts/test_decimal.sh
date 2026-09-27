@@ -36,45 +36,4 @@ xezim --simulate --sv2017 --error-exit \
 SIM_PID=$!
 trap 'kill "$SIM_PID" 2>/dev/null || true' EXIT INT TERM
 
-i=0
-while [ "$i" -lt 100 ]; do
-    if curl -sf "http://localhost:$PORT/state.json" > /dev/null 2>&1; then
-        break
-    fi
-    i=$((i + 1))
-    sleep 0.2
-done
-if [ "$i" -ge 100 ]; then
-    echo "FAIL: panel bridge did not come up"
-    exit 1
-fi
-
-press() {
-    curl -sf -X POST -d "{\"code\":$1}" "http://localhost:$PORT/press" > /dev/null
-    sleep 1
-}
-
-paper_text() {
-    curl -sf "http://localhost:$PORT/state.json" | python3 -c '
-import json, sys
-s = json.load(sys.stdin)
-for r in s["paper"]:
-    print("".join(r[:18]).rstrip())
-'
-}
-
-echo "=== Setting precision=2 ==="
-curl -sf -X POST -d '{"precision":2}' "http://localhost:$PORT/switches" > /dev/null
-
-echo "=== Test: 1 + 2 = (expect decimal point) ==="
-press 160        # C
-press 155        # 1
-press 142        # +
-press 151        # 2
-press 140        # =
-sleep 60
-paper_text > "$WORK_DIR/paper.txt"
-cat "$WORK_DIR/paper.txt"
-grep -F "." "$WORK_DIR/paper.txt" || { echo "FAIL: decimal point not printed"; exit 1; }
-
-echo "=== Decimal test passed ==="
+python3 "$SCRIPT_DIR/check_panel.py" "http://localhost:$PORT" --decimal
