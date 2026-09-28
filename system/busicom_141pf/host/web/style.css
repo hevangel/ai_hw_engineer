@@ -62,6 +62,12 @@ table {
   opacity: 0.85;
   border-right: 1px solid rgba(0, 0, 0, 0.25);
 }
+/* The two symbol columns can contain two-character legends (M+, Ex). */
+#drum td:nth-child(n + 17) {
+  font-size: 13px;
+  letter-spacing: -1px;
+  overflow: hidden;
+}
 .drum-label {
   text-align: right;
   font: 10px/14px sans-serif;
@@ -185,6 +191,7 @@ table {
   .paperwell { max-width: 100%; padding: 8px 4px; overflow: auto; }
   .paperwell table { width: 100%; }
   #paper td, #drum td { width: auto; font-size: clamp(12px, 3.5vw, 22px); }
+  #drum td:nth-child(n + 17) { font-size: clamp(9px, 2.5vw, 13px); }
 }
 .manual-replay { max-width: 760px; margin: 24px auto; font: 14px/1.5 sans-serif; }
 .manual-replay button, .manual-replay select, .manual-replay label { margin: 4px; }
