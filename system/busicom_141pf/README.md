@@ -27,8 +27,10 @@ The control rail places decimal and rounding selectors beside the OVF, NEG,
 and M lamps, following the manual's horizontal arrangement. **Help** opens
 the operating instructions and keyboard shortcuts.
 
-Open **Waveform** to the right of the calculator for the self-hosted Surfer
-viewer. The Verilator run writes an FST at
+The calculator, manual examples, and waveform each have a minimize icon.
+Click the icon again to restore that panel; the choice persists on reload.
+The waveform opens beside the calculator in the self-hosted Surfer viewer.
+The Verilator run writes an FST at
 `work/system-verilator-8080/waveform.fst`. Tracing starts when the 4004 begins
 processing a key or paper advance and closes when the bridge declares the
 operation idle. Each operation replaces the previous FST, so Surfer always

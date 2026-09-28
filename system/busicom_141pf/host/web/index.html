@@ -4,12 +4,14 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>BUSICOM 141-PF — virtual platform</title>
-<link rel="stylesheet" href="style.css?v=20260928-surfer-wide2" />
+<link rel="stylesheet" href="style.css?v=20260928-panel-minimize3" />
 </head>
 <body>
 <div class="app-layout">
 <main class="app-main">
-<div class="machine">
+<div class="machine" id="calculator_panel">
+  <button class="panel-minimize" type="button" data-panel="calculator" aria-label="Minimize calculator" aria-expanded="true" title="Minimize calculator">−</button>
+  <span class="panel-minimized-label" aria-hidden="true">Calculator</span>
   <div class="brand">BUSICOM <span>141-PF</span></div>
 
   <div class="paperwell">
@@ -103,7 +105,9 @@
   <p>Open Printer mechanism to inspect the rotating drum. Its phase comes from the simulator's 4004 clock and printer-sector signals. A raised, glowing hammer shows a real print strike through the black or red ribbon. The highlight stays visible for two seconds, and the last-strike readout remains.</p>
   <form method="dialog"><button autofocus>Close</button></form>
 </dialog>
-<section class="manual-replay" aria-label="Manual examples">
+<section class="manual-replay" id="manual_panel" aria-label="Manual examples">
+  <button class="panel-minimize" type="button" data-panel="manual" aria-label="Minimize manual examples" aria-expanded="true" title="Minimize manual examples">−</button>
+  <span class="panel-minimized-label" aria-hidden="true">Manual</span>
   <div class="replay-heading">
     <span class="replay-eyebrow">UNICOM 141-P MANUAL</span>
     <h2>Replay manual examples</h2>
@@ -132,8 +136,8 @@
   </div>
 </section>
 </main>
-<details id="waveform_panel" class="waveform-panel">
-  <summary>Waveform <span>FST · Surfer</span></summary>
+<details id="waveform_panel" class="waveform-panel" open>
+  <summary><span class="waveform-toggle-icon" aria-hidden="true">−</span> Waveform <span>FST · Surfer</span></summary>
   <div class="waveform-content">
     <p>Surfer shows the latest completed key or paper advance, captured from the 4004 simulation as FST.</p>
     <div class="waveform-actions">
@@ -148,5 +152,6 @@
 <script src="app.js?v=20260927-clock2"></script>
 <script src="replay.js?v=20260927-replay-highlights"></script>
 <script src="waveform.js?v=20260928-surfer-relative"></script>
+<script src="view.js?v=20260928-panel-minimize"></script>
 </body>
 </html>

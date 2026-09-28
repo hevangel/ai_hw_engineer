@@ -709,6 +709,8 @@ static void handle_client(int fd)
             respond_file(fd, "replay.js", CT_JS);
         } else if (plen == 12 && strncmp(path, "/waveform.js", plen) == 0) {
             respond_file(fd, "waveform.js", CT_JS);
+        } else if (plen == 8 && strncmp(path, "/view.js", plen) == 0) {
+            respond_file(fd, "view.js", CT_JS);
         } else if (plen == 21 && strncmp(path, "/manual-examples.json", plen) == 0) {
             respond_file(fd, "../../spec/reference/Unicom_141P_examples.json", CT_JSON);
         } else if (plen >= 5 && strncmp(path, "/style.css", plen) == 0) {

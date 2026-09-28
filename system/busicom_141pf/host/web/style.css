@@ -7,7 +7,7 @@ body {
   flex-direction: column;
   padding: 24px 12px;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   background: #23272b;
   font-family: Georgia, "Times New Roman", serif;
   color: #ddd;
@@ -352,3 +352,43 @@ table {
 #help_dialog button { padding: 7px 18px; cursor: pointer; }
 @media (max-width: 600px) { .controls { gap: 10px; } .decimal-selector { width: 140px; } }
 @media (prefers-reduced-motion: reduce) { .hammer { transition: none; } }
+
+/* Independent minimize controls for calculator, manual, and waveform. */
+.app-main:has(.machine.minimized):has(.manual-replay.minimized) { width: 42px; flex-basis: 42px; }
+.machine > .panel-minimize { right: 52px; }
+.manual-replay { position: relative; }
+.panel-minimize {
+  position: absolute; top: 14px; right: 14px; z-index: 3;
+  width: 30px; height: 30px; padding: 0;
+  border: 1px solid #8494a0; border-radius: 5px;
+  background: #202a31; color: #f4e5c3;
+  font: 21px/1 sans-serif; cursor: pointer;
+}
+.panel-minimize:hover, .waveform-panel > summary:hover .waveform-toggle-icon { background: #465867; }
+.panel-minimize:focus-visible { outline: 3px solid #87caff; outline-offset: 2px; }
+.panel-minimized-label { display: none; }
+.machine.minimized, .manual-replay.minimized {
+  width: 42px; height: 160px; padding: 8px 4px; overflow: hidden;
+}
+.machine.minimized { margin: 0 auto; }
+.manual-replay.minimized { margin: 22px auto 0; }
+.machine.minimized > :not(.panel-minimize):not(.panel-minimized-label),
+.manual-replay.minimized > :not(.panel-minimize):not(.panel-minimized-label) { display: none !important; }
+.machine.minimized > .panel-minimize, .manual-replay.minimized > .panel-minimize {
+  position: static; display: block; margin: 0 auto;
+}
+.machine.minimized > .panel-minimized-label, .manual-replay.minimized > .panel-minimized-label {
+  display: block; margin: 10px auto 0; width: fit-content;
+  writing-mode: vertical-rl; color: #e9d19c; font: bold 13px/1.2 sans-serif;
+}
+.waveform-panel > summary { list-style: none; }
+.waveform-panel > summary::-webkit-details-marker { display: none; }
+.waveform-panel > summary .waveform-toggle-icon {
+  display: inline-grid; place-items: center;
+  width: 22px; height: 22px; border: 1px solid #8494a0;
+  border-radius: 5px; background: #202a31; color: #f4e5c3;
+  font: 18px/1 sans-serif;
+}
+@media (max-width: 1170px) {
+  .app-main:has(.machine.minimized):has(.manual-replay.minimized) { width: 42px; }
+}
