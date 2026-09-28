@@ -12,6 +12,54 @@ body {
   font-family: Georgia, "Times New Roman", serif;
   color: #ddd;
 }
+.app-layout {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 18px;
+  max-width: 100%;
+}
+.app-main { width: min(640px, 100%); flex: 0 1 640px; }
+.waveform-panel {
+  flex: 0 0 42px;
+  border: 1px solid #566470;
+  border-radius: 8px;
+  background: #2b343c;
+  color: #e3e7e8;
+  font: 13px/1.4 sans-serif;
+  box-shadow: 0 14px 30px #0005;
+}
+.waveform-panel[open] { flex-basis: min(520px, 42vw); }
+.waveform-panel > summary {
+  cursor: pointer;
+  padding: 14px 10px;
+  color: #e9d19c;
+  font-weight: bold;
+  list-style-position: inside;
+}
+.waveform-panel:not([open]) > summary {
+  writing-mode: vertical-rl;
+  min-height: 160px;
+  text-orientation: mixed;
+}
+.waveform-panel > summary span { color: #a9bac6; font-size: 10px; font-weight: normal; }
+.waveform-panel > summary:focus-visible { outline: 3px solid #87caff; }
+.waveform-content { padding: 0 12px 12px; }
+.waveform-content p { margin: 0 0 10px; color: #b9c6ce; font-size: 12px; }
+.waveform-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.waveform-actions button, .waveform-actions a {
+  border: 1px solid #798996; border-radius: 4px; padding: 7px 9px;
+  background: #3c4c59; color: #f2f2ed; font: 12px/1.2 sans-serif;
+  text-decoration: none; cursor: pointer;
+}
+#waveform_status { min-height: 32px; padding: 9px 0; color: #b9c6ce; font-size: 11px; }
+#surfer_frame { display: block; width: 100%; height: 650px; border: 1px solid #697985; border-radius: 4px; background: #151b20; }
+@media (max-width: 1170px) {
+  .app-layout { width: min(100%, 640px); flex-direction: column; }
+  .app-main { flex: none; width: 100%; }
+  .waveform-panel, .waveform-panel[open] { width: 100%; flex: none; }
+  .waveform-panel:not([open]) > summary { writing-mode: initial; min-height: 0; }
+}
 .machine {
   position: relative;
   background: linear-gradient(180deg, #3a4046, #2b3036);

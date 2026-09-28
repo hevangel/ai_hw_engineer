@@ -4,9 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>BUSICOM 141-PF — virtual platform</title>
-<link rel="stylesheet" href="style.css?v=20260927-replay-highlights" />
+<link rel="stylesheet" href="style.css?v=20260928-surfer" />
 </head>
 <body>
+<div class="app-layout">
+<main class="app-main">
 <div class="machine">
   <div class="brand">BUSICOM <span>141-PF</span></div>
 
@@ -129,7 +131,22 @@
     <pre id="manual_status" aria-live="polite">Loading included examples…</pre>
   </div>
 </section>
+</main>
+<details id="waveform_panel" class="waveform-panel">
+  <summary>Waveform <span>FST · Surfer</span></summary>
+  <div class="waveform-content">
+    <p>Surfer shows the latest completed key or paper advance, captured from the 4004 simulation as FST.</p>
+    <div class="waveform-actions">
+      <button id="waveform_refresh" type="button">Refresh waveform</button>
+      <a href="/waveform.fst" download="busicom-141pf.fst">Download FST</a>
+    </div>
+    <div id="waveform_status" role="status">Open the panel to load Surfer.</div>
+    <iframe id="surfer_frame" title="Surfer FST waveform viewer" loading="lazy"></iframe>
+  </div>
+</details>
+</div>
 <script src="app.js?v=20260927-clock2"></script>
 <script src="replay.js?v=20260927-replay-highlights"></script>
+<script src="waveform.js?v=20260928-surfer-relative"></script>
 </body>
 </html>

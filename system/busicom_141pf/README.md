@@ -8,7 +8,8 @@ The browser provides physical keys, switches, printer drum and paper tape.
 From the repository root, using the rebuilt tool image:
 
 ```sh
-docker run --rm -p 127.0.0.1:8081:8080 -v "$PWD:/workspace" \
+docker run --rm -p 127.0.0.1:8081:8080 -p 127.0.0.1:18080:18080 \
+  -v "$PWD:/workspace" \
   -e BUSICOM_BACKEND=verilator -e BUSICOM_REALTIME=1 ai-hw-engineer:latest \
   sh /workspace/system/busicom_141pf/scripts/run_system.sh
 ```
@@ -25,6 +26,17 @@ full names.
 The control rail places decimal and rounding selectors beside the OVF, NEG,
 and M lamps, following the manual's horizontal arrangement. **Help** opens
 the operating instructions and keyboard shortcuts.
+
+Open **Waveform** to the right of the calculator for the self-hosted Surfer
+viewer. The Verilator run writes an FST at
+`work/system-verilator-8080/waveform.fst`. Tracing starts when the 4004 begins
+processing a key or paper advance and closes when the bridge declares the
+operation idle. Each operation replaces the previous FST, so Surfer always
+reads a complete file. The browser fetches the FST from the local panel
+server. Surfer refreshes after a completed operation, or use **Refresh
+waveform**. **Download FST** saves the latest capture. Set
+`BUSICOM_WAVEFORM=0` to disable recording. The second Docker port serves
+Surfer's WebAssembly UI locally; rebuilding the image includes those assets.
 
 The printer mechanism is collapsed by default. Open it to inspect the drum
 phase, two-colour ribbon and hammer bank. The bridge publishes the latest
