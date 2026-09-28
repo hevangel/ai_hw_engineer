@@ -11,6 +11,8 @@
 #   BUSICOM_PORT  web panel port (default 8080)
 #   BUSICOM_BACKEND  xezim (default) or verilator
 #   BUSICOM_SPIN  machine cycles per drum half-spin (default 1481)
+#   BUSICOM_REALTIME  1 paces interactive drum ticks to the 4004 clock;
+#                     default 0 keeps batch regressions unpaced
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -22,6 +24,7 @@ WORK_DIR="$SYSTEM_DIR/work/system-$BACKEND-$PORT"
 LOG_FILE="$WORK_DIR/busicom_141pf.log"
 # The recovered emulator uses 1481 machine cycles per drum half-spin.
 SPIN="${BUSICOM_SPIN:-1481}"
+export BUSICOM_SPIN="$SPIN"
 
 mkdir -p "$WORK_DIR"
 # $readmemh paths in the board resolve against the simulator's working

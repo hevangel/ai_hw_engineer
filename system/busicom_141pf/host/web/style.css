@@ -63,6 +63,11 @@ table {
   opacity: 0.85;
   border-right: 1px solid rgba(0, 0, 0, 0.25);
 }
+#printer_mechanism { margin-top: 8px; }
+#printer_mechanism summary { cursor: pointer; padding: 5px 0; font: 11px/1.4 sans-serif; color: #c8d1d7; }
+#printer_mechanism summary:hover { color: #fff; }
+#printer_mechanism summary:focus-visible { outline: 2px solid #87caff; }
+#drum_clock { float: right; color: #93a9b7; font-variant-numeric: tabular-nums; }
 /* The two symbol columns can contain two-character legends (M+, Ex). */
 #paper td:nth-child(n + 17), #drum td:nth-child(n + 17) {
   font-size: 13px;

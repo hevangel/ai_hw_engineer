@@ -134,6 +134,11 @@ decimal point and sign.
 * Pacing (virtual drum): one drum half-spin per 1481 machine cycles
   (≈16 ms at the authentic 92.5 kHz machine-cycle rate); index pulse every
   26 half-spins.
+* Interactive `BUSICOM_REALTIME=1` gates simulator half-spin ticks to that
+  modeled 740 kHz clock in wall time. The browser displays the position
+  reported by the simulator, not an independently animated drum. If the
+  simulator is slower than the real clock, observed rotation slows too;
+  `paceLagTicks` records missed pacing deadlines.
 
 ## 5. Virtual platform architecture
 

@@ -50,6 +50,7 @@
 #define PAPER_ROWS 7
 #define PAPER_COLS 18
 #define NUM_COLS 15 /* numeric drum columns (hammer bits 3..17) */
+#define CLOCK_HZ 740000U /* physical 4004 phase clock */
 #define KEY_COUNT 32
 #define KEY_BASE 129
 #define HOLD_MS 250 /* front-panel key press hold time */
@@ -122,6 +123,42 @@ static char paper[PAPER_ROWS][PAPER_COLS][5]; /* utf-8 char cells */
 static int paper_red[PAPER_ROWS];
 static unsigned long paper_sequence; /* advances; gives visible rows stable IDs */
 static char drum_row[PAPER_COLS][5]; /* drum window rendering */
+static int drum_position;
+static unsigned long drum_tick; /* one bridge sample per TEST half-spin */
+static unsigned long pace_lag_ticks;
+
+/* Interactive pacing is applied to the simulator, not synthesized in the
+ * browser. Batch regressions leave BUSICOM_REALTIME unset and run freely. */
+static void pace_drum_tick(void)
+{
+    static int initialized, enabled;
+    static uint64_t period_ns, next_ns;
+    if (!initialized) {
+        const char *value = getenv("BUSICOM_REALTIME");
+        const char *spin_text = getenv("BUSICOM_SPIN");
+        unsigned long spin = spin_text ? strtoul(spin_text, NULL, 10) : 1481UL;
+        enabled = value && !strcmp(value, "1") && spin > 0;
+        period_ns = (uint64_t)spin * 8U * 1000000000U / CLOCK_HZ;
+        initialized = 1;
+    }
+    if (!enabled) return;
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    uint64_t now_ns = (uint64_t)now.tv_sec * 1000000000U + now.tv_nsec;
+    if (!next_ns || now_ns > next_ns + period_ns) {
+        if (next_ns) {
+            pthread_mutex_lock(&g_lock);
+            pace_lag_ticks++;
+            pthread_mutex_unlock(&g_lock);
+        }
+        next_ns = now_ns;
+    }
+    next_ns += period_ns;
+    uint64_t delay = next_ns - now_ns;
+    struct timespec sleep_for = { (time_t)(delay / 1000000000U),
+                                  (long)(delay % 1000000000U) };
+    nanosleep(&sleep_for, NULL);
+}
 
 /* ------------------------------------------------------------------ */
 
@@ -312,6 +349,8 @@ int dpi_panel_ctrl(int evflags, int hammer24, int lamps)
     pthread_mutex_lock(&g_lock);
 
     render_drum_row_at(drum_pos);
+    drum_position = drum_pos;
+    drum_tick++;
 
     if (evflags & 0x1) /* hammer event: {drum pos, hammer word} latched */
         hit_hammer_at((hammer24 >> 20) & 0xF, hammer24 & 0xFFFFF);
@@ -341,7 +380,9 @@ int dpi_panel_ctrl(int evflags, int hammer24, int lamps)
         quiet_ticks = 0;
     }
 
+    int live = ready;
     pthread_mutex_unlock(&g_lock);
+    if (live) pace_drum_tick();
     return (paper_btn << 8) | ((rounding & 0xF) << 4) | (precision & 0xF);
 }
 
@@ -495,9 +536,10 @@ static void respond_state(int fd)
     pthread_mutex_lock(&g_lock);
     appendf(&p, &left,
             "{\"lamps\":{\"memory\":%d,\"overflow\":%d,\"negative\":%d},"
-            "\"precision\":%d,\"rounding\":%d,\"busy\":%d,\"ready\":%d,\"drumRow\":[",
+            "\"precision\":%d,\"rounding\":%d,\"busy\":%d,\"ready\":%d,"
+            "\"drumTick\":%lu,\"drumPos\":%d,\"clockHz\":%u,\"paceLagTicks\":%lu,\"drumRow\":[",
             lamp_memory, lamp_overflow, lamp_negative, precision, rounding,
-            busy || !ready, ready);
+            busy || !ready, ready, drum_tick, drum_position, CLOCK_HZ, pace_lag_ticks);
     for (int c = 0; c < PAPER_COLS; c++)
         appendf(&p, &left, "%s\"%s\"", c ? "," : "", drum_row[c]);
     appendf(&p, &left, "],\"paper_sequence\":%lu,\"paper\":[", paper_sequence);

@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>BUSICOM 141-PF — virtual platform</title>
-<link rel="stylesheet" href="style.css?v=20260927-tape" />
+<link rel="stylesheet" href="style.css?v=20260927-clock" />
 </head>
 <body>
 <div class="machine">
@@ -12,11 +12,14 @@
 
   <div class="paperwell">
     <table id="paper"></table>
-    <div class="drum-label">rotating printer drum (not the result)</div>
-    <table id="drum" aria-label="Rotating type drum"></table>
-    <div id="ribbon" class="ribbon" aria-label="Black and red ink ribbon"><span>BLACK</span><span>RED</span></div>
-    <div id="hammers" class="hammers" aria-label="Print hammers"></div>
-    <div class="printer-status"><span id="strike_status" aria-live="polite">Waiting for a print strike</span><span id="strike_count">0 strikes observed</span></div>
+    <details id="printer_mechanism">
+      <summary>Printer mechanism <span id="drum_clock">4004 clock</span></summary>
+      <div class="drum-label">drum phase from simulated hardware</div>
+      <table id="drum" aria-label="Rotating type drum"></table>
+      <div id="ribbon" class="ribbon" aria-label="Black and red ink ribbon"><span>BLACK</span><span>RED</span></div>
+      <div id="hammers" class="hammers" aria-label="Print hammers"></div>
+      <div class="printer-status"><span id="strike_status" aria-live="polite">Waiting for a print strike</span><span id="strike_count">0 strikes observed</span></div>
+    </details>
   </div>
 
   <div class="controls">
@@ -94,7 +97,7 @@
   <p>Type with the keyboard too: digits, + - * / = . % and # for &#9671;. Enter also totals.</p>
   <p>Decimal point selects 0, 1, 2, 3, 4, 5, 6 or 8 places. Round off: TRUNC truncates, FL floats the decimal, and 5/4 rounds.</p>
   <p>The lamps indicate overflow (OVF), a negative result (NEG), and stored memory (M).</p>
-  <p>The drum rotates continuously. A raised, glowing hammer shows a real print strike through the black or red ribbon. The highlight stays visible for two seconds, and the last-strike readout remains. This is a slowed visual indication, not real-time mechanical motion.</p>
+  <p>Open Printer mechanism to inspect the rotating drum. Its phase comes from the simulator's 4004 clock and printer-sector signals. A raised, glowing hammer shows a real print strike through the black or red ribbon. The highlight stays visible for two seconds, and the last-strike readout remains.</p>
   <form method="dialog"><button autofocus>Close</button></form>
 </dialog>
 <section class="manual-replay" aria-label="Manual examples">
@@ -111,7 +114,7 @@
   <button id="manual_download" disabled>Save results</button>
   <pre id="manual_status" aria-live="polite">Load Unicom_141P_examples.json to begin.</pre>
 </section>
-<script src="app.js?v=20260927-strike"></script>
+<script src="app.js?v=20260927-clock2"></script>
 <script src="replay.js?v=20260927"></script>
 </body>
 </html>
