@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=0.9" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>BUSICOM 141-PF — virtual platform</title>
-<link rel="stylesheet" href="style.css?v=20260927" />
+<link rel="stylesheet" href="style.css?v=20260927-strike" />
 </head>
 <body>
 <div class="machine">
@@ -13,85 +13,90 @@
   <div class="paperwell">
     <table id="paper"></table>
     <div class="drum-label">rotating printer drum (not the result)</div>
-    <table id="drum"></table>
+    <table id="drum" aria-label="Rotating type drum"></table>
+    <div id="ribbon" class="ribbon" aria-label="Black and red ink ribbon"><span>BLACK</span><span>RED</span></div>
+    <div id="hammers" class="hammers" aria-label="Print hammers"></div>
+    <div class="printer-status"><span id="strike_status" aria-live="polite">Waiting for a print strike</span><span id="strike_count">0 strikes observed</span></div>
   </div>
 
   <div class="controls">
-    <button id="advance" title="Advance paper">Move<br/>Up</button>
-    <div id="busy" class="busy" hidden>
-      <span class="spinner"></span><span class="busy-label">4004 working&hellip;</span>
+    <button id="advance" title="Advance paper" aria-label="Advance paper">&#8593;</button>
+    <div class="switch-block decimal-selector">
+      <label class="slider-label" for="digits">Decimal point <span id="digits_label">0</span></label>
+      <input type="range" id="digits" min="0" max="7" value="0" aria-label="Decimal point" />
+      <div class="selector-ticks" aria-hidden="true"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>8</span></div>
     </div>
-    <div class="switch-block">
-      <label class="slider-label"><span id="digits_label">0</span> decimal points</label>
-      <input type="range" id="digits" min="0" max="7" value="0" title="Positions 0,1,2,3,4,5,6,8 (no 7 on the real machine)" />
-    </div>
-    <div class="switch-block radios">
-      <label><input type="radio" name="rounding" id="round_truncate" value="8" /> Truncate</label>
-      <label><input type="radio" name="rounding" id="round_float" value="0" checked /> Float</label>
-      <label><input type="radio" name="rounding" id="round_round" value="1" /> Round</label>
-    </div>
+    <fieldset class="switch-block rounding-selector">
+      <legend>Round off</legend>
+      <div class="rounding-options">
+        <label title="Truncate"><input type="radio" name="rounding" id="round_truncate" value="8" aria-label="Truncate" /><span>TRUNC</span></label>
+        <label title="Floating decimal"><input type="radio" name="rounding" id="round_float" value="0" aria-label="Float" checked /><span>FL</span></label>
+        <label title="Round to nearest"><input type="radio" name="rounding" id="round_round" value="1" aria-label="Round" /><span>5/4</span></label>
+      </div>
+    </fieldset>
     <div class="lamps">
-      <div class="led" id="led_overflow">Overflow</div>
-      <div class="led" id="led_negative">Negative</div>
-      <div class="led" id="led_memory">Memory</div>
+      <div class="led" id="led_overflow" title="Overflow" aria-label="Overflow lamp">OVF</div>
+      <div class="led" id="led_negative" title="Negative" aria-label="Negative lamp">NEG</div>
+      <div class="led" id="led_memory" title="Memory" aria-label="Memory lamp">M</div>
+    </div>
+  </div>
+  <div class="panel-status">
+    <div id="busy" class="busy" hidden><span class="spinner"></span><span class="busy-label">4004 working&hellip;</span></div>
+    <button id="help_open" aria-haspopup="dialog">Help</button>
+  </div>
+
+  <div id="keyboard" role="group" aria-label="Calculator keyboard">
+    <div class="key-group functions">
+      <button class="key red fn" code="157" id="sign" title="Change sign">Sign</button>
+      <button class="key fn" code="158" title="Exchange">EX</button>
+      <button class="key fn" code="160" title="Clear">C</button>
+      <button class="key fn" code="159" title="Clear entry">CE</button>
+    </div>
+    <div class="key-group numerals">
+      <button class="key" code="153">7</button>
+      <button class="key" code="149">8</button>
+      <button class="key" code="145">9</button>
+      <button class="key" code="154">4</button>
+      <button class="key" code="150">5</button>
+      <button class="key" code="146">6</button>
+      <button class="key" code="155">1</button>
+      <button class="key" code="151">2</button>
+      <button class="key" code="147">3</button>
+      <button class="key" code="156">0</button>
+      <button class="key" code="152">00</button>
+      <button class="key" code="148">.</button>
+    </div>
+    <div class="key-group operations">
+      <button class="key op" code="141">&minus;</button>
+      <button class="key op" code="137" title="Subtotal">&#9671;</button>
+      <button class="key op tall" code="142">+</button>
+      <button class="key op" code="138">&divide;</button>
+      <button class="key op" code="139">&times;</button>
+      <button class="key op wide" code="140">=</button>
+    </div>
+    <div class="key-group memory">
+      <button class="key fn" code="133" title="Square root">&radic;</button>
+      <button class="key mem" code="129" title="Clear memory">CM</button>
+      <button class="key fn" code="134">%</button>
+      <button class="key mem" code="130" title="Recall memory">RM</button>
+      <button class="key mem red memory-equals" code="135" aria-label="M equals minus" title="Memory equals subtraction"><span>M</span><span>=&minus;</span></button>
+      <button class="key mem red" code="131" title="Memory subtraction">M&minus;</button>
+      <button class="key mem memory-equals" code="136" aria-label="M equals plus" title="Memory equals addition"><span>M</span><span>=+</span></button>
+      <button class="key mem" code="132" title="Memory addition">M+</button>
     </div>
   </div>
 
-  <table id="keyboard">
-    <tr>
-      <td><button class="key red fn" code="157" id="sign">Sign</button></td>
-      <td><button class="key" code="153">7</button></td>
-      <td><button class="key" code="149">8</button></td>
-      <td><button class="key" code="145">9</button></td>
-      <td class="gap"></td>
-      <td><button class="key op" code="141">&minus;</button></td>
-      <td><button class="key op" code="137">&#9671;</button></td>
-      <td class="gap"></td>
-      <td><button class="key fn" code="133">&radic;</button></td>
-      <td><button class="key mem" code="129">CM</button></td>
-    </tr>
-    <tr>
-      <td><button class="key fn small" code="158">Ex&#8202;change</button></td>
-      <td><button class="key" code="154">4</button></td>
-      <td><button class="key" code="150">5</button></td>
-      <td><button class="key" code="146">6</button></td>
-      <td class="gap"></td>
-      <td rowspan="2"><button class="key op tall" code="142">+</button></td>
-      <td><button class="key op" code="138">&divide;</button></td>
-      <td class="gap"></td>
-      <td><button class="key fn" code="134">%</button></td>
-      <td><button class="key mem" code="130">RM</button></td>
-    </tr>
-    <tr>
-      <td><button class="key fn" code="159">CE</button></td>
-      <td><button class="key" code="155">1</button></td>
-      <td><button class="key" code="151">2</button></td>
-      <td><button class="key" code="147">3</button></td>
-      <td class="gap"></td>
-      <td><button class="key op" code="139">&times;</button></td>
-      <td class="gap"></td>
-      <td><button class="key mem red" code="135">M&#8791;</button></td>
-      <td><button class="key mem red" code="131">M&minus;</button></td>
-    </tr>
-    <tr>
-      <td><button class="key fn" code="160">C</button></td>
-      <td><button class="key" code="156">0</button></td>
-      <td><button class="key" code="152">00</button></td>
-      <td><button class="key" code="144">000</button></td>
-      <td><button class="key" code="148">.</button></td>
-      <td class="gap"></td>
-      <td colspan="2"><button class="key op wide" code="140">=</button></td>
-      <td class="gap"></td>
-      <td><button class="key mem" code="136">M&#10876;</button></td>
-      <td><button class="key mem" code="132">M+</button></td>
-    </tr>
-  </table>
-
-  <div class="hint">Addition: press 5 + 6 + = to print 11. Press + after each
-    entry, then = for the total. Multiplication: 9 &times; 3 = prints 27.
-    Results appear on the paper tape above.</div>
-  <div class="hint">Type with the keyboard too: digits, + - * / = . % and # for &#9671;.</div>
 </div>
+<dialog id="help_dialog" aria-labelledby="help_title">
+  <h2 id="help_title">Using the 141-PF</h2>
+  <p>Addition: press <strong>5 + 6 + =</strong> to print 11. Press + after each entry, then = for the total.</p>
+  <p>Multiplication: <strong>9 &times; 3 =</strong> prints 27. Results appear on the paper tape above.</p>
+  <p>Type with the keyboard too: digits, + - * / = . % and # for &#9671;. Enter also totals.</p>
+  <p>Decimal point selects 0, 1, 2, 3, 4, 5, 6 or 8 places. Round off: TRUNC truncates, FL floats the decimal, and 5/4 rounds.</p>
+  <p>The lamps indicate overflow (OVF), a negative result (NEG), and stored memory (M).</p>
+  <p>The drum rotates continuously. A raised, glowing hammer shows a real print strike through the black or red ribbon. The highlight stays visible for two seconds, and the last-strike readout remains. This is a slowed visual indication, not real-time mechanical motion.</p>
+  <form method="dialog"><button autofocus>Close</button></form>
+</dialog>
 <section class="manual-replay" aria-label="Manual examples">
   <h2>Replay manual examples</h2>
   <button id="manual_load">Load included examples</button>
@@ -106,7 +111,7 @@
   <button id="manual_download" disabled>Save results</button>
   <pre id="manual_status" aria-live="polite">Load Unicom_141P_examples.json to begin.</pre>
 </section>
-<script src="app.js?v=20260927"></script>
+<script src="app.js?v=20260927-strike"></script>
 <script src="replay.js?v=20260927"></script>
 </body>
 </html>

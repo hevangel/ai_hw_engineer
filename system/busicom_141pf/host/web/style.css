@@ -17,6 +17,7 @@ body {
   border: 1px solid #14171a;
   border-radius: 10px;
   padding: 22px 28px 18px;
+  width: min(100%, 640px);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
 }
 .brand {
@@ -109,7 +110,7 @@ table {
   animation: busy-spin 0.8s linear infinite;
 }
 @keyframes busy-spin { to { transform: rotate(360deg); } }
-.switch-block { font: 13px/1.4px sans-serif; color: #b8c0c8; }
+.switch-block { font: 13px/1.4 sans-serif; color: #b8c0c8; }
 .slider-label { display: block; text-align: center; margin-bottom: 4px; }
 .radios label { display: block; margin: 2px 0; }
 .lamps { display: flex; flex-direction: column; gap: 6px; }
@@ -127,17 +128,30 @@ table {
 .led.on-negative { background: #9fe0a8; color: #10330f; }
 
 /* ---- keyboard ---- */
-#keyboard { margin: 0 auto; width: auto; }
-#keyboard td { padding: 4px; }
-#keyboard td.gap { width: 10px; }
+#keyboard {
+  --key-size: 52px;
+  display: grid;
+  grid-template-columns: 1fr 3fr 2fr 2fr;
+  gap: 12px;
+  width: fit-content;
+  margin: 0 auto;
+}
+.key-group { display: grid; gap: 8px; grid-auto-rows: var(--key-size); }
+.functions { grid-template-columns: var(--key-size); }
+.numerals { grid-template-columns: repeat(3, var(--key-size)); }
+.operations, .memory { grid-template-columns: repeat(2, var(--key-size)); }
 .key {
-  width: 52px;
-  height: 52px;
+  width: var(--key-size);
+  height: var(--key-size);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 26px;
   border: 1px solid #14171a;
   background: linear-gradient(180deg, #efe9da, #d8d0bd);
   color: #26221c;
-  font: 20px/52px Georgia, serif;
+  font: 20px/1 Georgia, serif;
   text-align: center;
   cursor: pointer;
   box-shadow: 0 4px 0 #191c1f, 0 6px 10px rgba(0, 0, 0, 0.35);
@@ -156,15 +170,61 @@ table {
 .key.op { background: linear-gradient(180deg, #f4ede0, #d9cdb4); }
 .key.mem { background: linear-gradient(180deg, #cdd6de, #a7b4bf); }
 .key.red { color: #8c1f18; }
-.key.small { font-size: 12px; line-height: 16px; }
-.key.tall { height: 112px; line-height: 112px; border-radius: 28px; }
-.key.wide { width: 112px; border-radius: 28px; }
-.hint {
-  margin-top: 12px;
-  text-align: center;
-  font: 11px/16px sans-serif;
-  color: #7c8894;
+.key.tall { grid-row: span 2; height: 100%; border-radius: 28px; }
+.key.wide { grid-column: span 2; width: 100%; border-radius: 28px; }
+.key.memory-equals { flex-direction: column; gap: 1px; font-size: 18px; }
+.key:focus-visible { outline: 3px solid #87caff; outline-offset: 3px; }
+@media (max-width: 600px) {
+  body { padding: 12px 6px; }
+  .machine { padding: 18px 10px; }
+  #keyboard { --key-size: clamp(30px, 7.4vw, 44px); gap: 8px; }
+  .key-group { gap: 5px; }
+  .key { font-size: 16px; }
+  .key.memory-equals { font-size: 14px; }
+  .controls { flex-wrap: wrap; gap: 12px; }
+  .paperwell { max-width: 100%; padding: 8px 4px; overflow: auto; }
+  .paperwell table { width: 100%; }
+  #paper td, #drum td { width: auto; font-size: clamp(12px, 3.5vw, 22px); }
 }
 .manual-replay { max-width: 760px; margin: 24px auto; font: 14px/1.5 sans-serif; }
 .manual-replay button, .manual-replay select, .manual-replay label { margin: 4px; }
 #manual_status { white-space: pre-wrap; max-height: 320px; overflow: auto; }
+
+/* Horizontal selector rail, following the manual's keyboard diagram. */
+.controls { gap: 16px; margin: 20px auto 0; }
+#advance { width: 32px; height: 32px; border-radius: 50%; font-size: 22px; }
+.decimal-selector { width: 160px; }
+.slider-label, .rounding-selector legend { font: 10px/1.4 sans-serif; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+#digits { appearance: none; width: 100%; margin: 0; height: 7px; background: #111619; border: 1px solid #687078; border-radius: 0; }
+#digits::-webkit-slider-thumb { appearance: none; width: 17px; height: 15px; background: #ddd8c8; border: 2px solid #88887e; border-radius: 2px; cursor: pointer; }
+#digits::-moz-range-thumb { width: 13px; height: 11px; background: #ddd8c8; border: 2px solid #88887e; border-radius: 2px; }
+.selector-ticks { display: flex; justify-content: space-between; font: 11px/20px sans-serif; }
+.rounding-selector { border: 0; padding: 0; margin: 0; min-width: 0; }
+.rounding-options { display: flex; gap: 0; background: #15191d; border: 1px solid #687078; }
+.rounding-options label { position: relative; cursor: pointer; }
+.rounding-options input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; }
+.rounding-options span { display: block; padding: 5px 6px; font: 10px/14px sans-serif; }
+.rounding-options input:checked + span { background: #ddd8c8; color: #202020; box-shadow: inset 0 0 0 2px #88887e; }
+.rounding-options input:focus-visible + span { outline: 2px solid #87caff; }
+.lamps { flex-direction: row; gap: 5px; }
+.led { width: 34px; height: 34px; padding: 0; border-radius: 9px 9px 5px 5px; text-align: center; font: 10px/32px sans-serif; color: #93998f; box-shadow: inset 0 2px 5px #000; }
+.panel-status { display: flex; min-height: 38px; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+#help_open { margin-left: auto; color: #c5d0da; background: transparent; border: 1px solid #687078; border-radius: 4px; padding: 4px 10px; cursor: pointer; }
+.ribbon { margin-top: 8px; border: 1px solid #888; }
+.ribbon span { display: block; height: 13px; text-align: left; padding-left: 5px; font: 8px/13px sans-serif; letter-spacing: 2px; background: #111; color: #ddd; }
+.ribbon span + span { background: #9d2424; color: #ffe9e4; }
+.hammers { display: grid; grid-template-columns: repeat(18, minmax(0, 1fr)); height: 28px; gap: 1px; align-items: end; }
+.hammer { height: 20px; border: 1px solid #76838c; border-radius: 3px 3px 0 0; background: linear-gradient(#65727d, #28313a); color: #ddd; font: 12px/18px monospace; text-align: center; transition: transform 80ms; }
+.hammer.striking { transform: translateY(-14px); background: #eee5d3; color: #161616; box-shadow: 0 0 12px 4px #f7e5b5; border-color: #fff1ce; font-weight: bold; }
+.hammer.striking.red { background: #e8aaa5; color: #8a1212; box-shadow: 0 0 8px #ff6565; border-color: #ffb1a8; }
+.hammer.spacer { visibility: hidden; }
+.ribbon.active-black span:first-child { outline: 3px solid #f5dfa8; outline-offset: -3px; }
+.ribbon.active-red span:last-child { outline: 3px solid #ffbbb1; outline-offset: -3px; }
+.printer-status #strike_status { color: #f5dfa8; font-weight: bold; }
+.printer-status { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px; font: 9px/14px sans-serif; color: #aebac4; }
+#help_dialog { max-width: min(520px, 90vw); background: #ebe7dc; color: #24282c; border: 1px solid #777; border-radius: 8px; padding: 24px; font: 15px/1.5 sans-serif; }
+#help_dialog::backdrop { background: #000a; }
+#help_dialog h2 { margin-top: 0; }
+#help_dialog button { padding: 7px 18px; cursor: pointer; }
+@media (max-width: 600px) { .controls { gap: 10px; } .decimal-selector { width: 140px; } }
+@media (prefers-reduced-motion: reduce) { .hammer { transition: none; } }

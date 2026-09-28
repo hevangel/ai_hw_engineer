@@ -113,6 +113,11 @@ static int ready; /* set by the simulation after the firmware boot interval */
 
 static int lamp_memory, lamp_overflow, lamp_negative;
 static int red_latch;
+/* Retain each column's latest physical strike across HTTP polling intervals. */
+static unsigned long strike_sequence;
+static unsigned long strike_ids[PAPER_COLS];
+static int strike_red[PAPER_COLS];
+static char strike_chars[PAPER_COLS][5];
 static char paper[PAPER_ROWS][PAPER_COLS][5]; /* utf-8 char cells */
 static int paper_red[PAPER_ROWS];
 static unsigned long paper_sequence; /* advances; gives visible rows stable IDs */
@@ -185,16 +190,24 @@ static void render_drum_row_at(int pos)
     set_drum_char(NUM_COLS + 2, sym_b_char(pos));
 }
 
+static void record_strike(int col, const char *ch)
+{
+    strike_ids[col] = ++strike_sequence;
+    strike_red[col] = red_latch;
+    snprintf(strike_chars[col], sizeof(strike_chars[col]), "%s", ch);
+    set_cell(PAPER_ROWS - 1, col, ch);
+}
+
 static void hit_hammer_at(int pos, int bits20)
 {
     int row = PAPER_ROWS - 1;
     for (int i = 0; i < NUM_COLS; i++)
         if ((bits20 >> (3 + i)) & 1)
-            set_cell(row, i, digit_char(pos));
+            record_strike(i, digit_char(pos));
     if (bits20 & 1)
-        set_cell(row, NUM_COLS + 1, sym_a_char(pos));
+        record_strike(NUM_COLS + 1, sym_a_char(pos));
     if ((bits20 >> 1) & 1)
-        set_cell(row, NUM_COLS + 2, sym_b_char(pos));
+        record_strike(NUM_COLS + 2, sym_b_char(pos));
     paper_red[row] = paper_red[row] || red_latch;
 }
 
@@ -494,6 +507,10 @@ static void respond_state(int fd)
             appendf(&p, &left, "%s\"%s\"", c ? "," : "", paper[r][c]);
         appendf(&p, &left, ",%d]", paper_red[r]);
     }
+    appendf(&p, &left, "],\"strikes\":[");
+    for (int c = 0; c < PAPER_COLS; c++)
+        appendf(&p, &left, "%s{\"id\":%lu,\"red\":%d,\"char\":\"%s\"}",
+                c ? "," : "", strike_ids[c], strike_red[c], strike_chars[c]);
     appendf(&p, &left, "]}");
     pthread_mutex_unlock(&g_lock);
 

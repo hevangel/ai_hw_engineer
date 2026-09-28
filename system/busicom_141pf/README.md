@@ -16,6 +16,24 @@ docker run --rm -p 127.0.0.1:8081:8080 -v "$PWD:/workspace" \
 Open <http://localhost:8081/>. For addition, enter `5 + 6 + =` to print `11`.
 The drum shows rotating type; the answer is on the tape.
 
+The keypad follows the keyboard diagram on printed page 4 of the manual:
+four aligned rows, C above CE, a tall addition key, and a wide equals key.
+The memory equals keys are labelled `M =−` and `M =+`. Square root occupies
+the top-left position in the memory group. Hover over function keys for their
+full names.
+
+The control rail places decimal and rounding selectors beside the OVF, NEG,
+and M lamps, following the manual's horizontal arrangement. **Help** opens
+the operating instructions and keyboard shortcuts.
+
+Below the rotating drum, the two-colour ribbon and hammer bank show actual
+printer activity. The bridge publishes the latest strike ID, character, and
+ribbon colour for each column in `state.json` (`strikes`). The browser holds
+each observed strike for two seconds to make it visible. The last-strike
+readout remains until another strike occurs. Several strikes in one
+column between polls are represented by the latest strike; this display is
+not a cycle-accurate animation. The paper tape remains the complete output.
+
 `BUSICOM_BACKEND=xezim` is the script default. Native compilation can be enabled
 with `XEZIM_JIT=1 XEZIM_AOT=1`. Verilator provides a faster interactive panel.
 `BUSICOM_PORT` selects the internal HTTP port; `BUSICOM_SPIN` defaults to 1481.
