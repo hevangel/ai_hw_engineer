@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>BUSICOM 141-PF — virtual platform</title>
-<link rel="stylesheet" href="style.css?v=20260927-clock" />
+<link rel="stylesheet" href="style.css?v=20260927-replay-panel" />
 </head>
 <body>
 <div class="machine">
@@ -101,20 +101,34 @@
   <form method="dialog"><button autofocus>Close</button></form>
 </dialog>
 <section class="manual-replay" aria-label="Manual examples">
-  <h2>Replay manual examples</h2>
-  <button id="manual_load">Load included examples</button>
-  <label>Examples JSON <input id="manual_file" type="file" accept=".json,application/json"></label>
-  <select id="manual_profile" aria-label="Expected results">
-    <option value="manual">As printed in manual</option>
-    <option value="recovered-rom">Recovered ROM (5 documented differences)</option>
-  </select>
-  <select id="manual_example" aria-label="Example"><option value="">All examples</option></select>
-  <button id="manual_run" disabled>Run</button>
-  <button id="manual_stop" disabled>Stop after current key</button>
-  <button id="manual_download" disabled>Save results</button>
-  <pre id="manual_status" aria-live="polite">Load Unicom_141P_examples.json to begin.</pre>
+  <div class="replay-heading">
+    <span class="replay-eyebrow">UNICOM 141-P MANUAL</span>
+    <h2>Replay manual examples</h2>
+    <p>The 42 included examples run on the original calculator firmware.</p>
+  </div>
+  <div class="replay-fields">
+    <label>Example
+      <select id="manual_example"><option value="">Loading examples…</option></select>
+    </label>
+    <label>Compare printed tape with
+      <select id="manual_profile" aria-label="Expected results">
+        <option value="recovered-rom">Recovered firmware output</option>
+        <option value="manual">Scanned manual output</option>
+      </select>
+    </label>
+  </div>
+  <p id="manual_profile_note" class="replay-note">The recovered ROM is the original calculator program. It differs from five results in this manual scan. One is a clear arithmetic typo; the causes of the others are uncertain.</p>
+  <div class="replay-actions">
+    <button id="manual_run" class="replay-primary" disabled>Run examples</button>
+    <button id="manual_stop" disabled>Stop after current key</button>
+    <button id="manual_download" disabled>Save results</button>
+  </div>
+  <div class="replay-results">
+    <div class="replay-results-heading">Run status</div>
+    <pre id="manual_status" aria-live="polite">Loading included examples…</pre>
+  </div>
 </section>
 <script src="app.js?v=20260927-clock2"></script>
-<script src="replay.js?v=20260927"></script>
+<script src="replay.js?v=20260927-replay-panel"></script>
 </body>
 </html>

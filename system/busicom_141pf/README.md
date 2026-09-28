@@ -60,8 +60,10 @@ Build outputs are separated by backend and port. Wait for startup to finish.
 - [Specification](spec/spec.md), [implementation plan](plans/implementation_plan.md)
 - [Historical report](report/final_report.md)
 
-In the panel, select **Load included examples**, choose an example and expected
-results profile, then **Run**. You can also load an edited JSON file.
+The panel loads the 42 included examples automatically. Choose one or all,
+select **Recovered firmware output** (default) or **Scanned manual output**,
+then **Run examples**. The web panel has no file-upload control; headless
+replay still accepts a JSON path for research and automation.
 
 Headless replay against an already running app, from this system directory:
 

@@ -1,16 +1,19 @@
 /* JSON replay uses the same physical-key HTTP API as the manual panel. */
 "use strict";
 (() => {
-  const file = document.getElementById("manual_file");
-  const load = document.getElementById("manual_load");
   const profile = document.getElementById("manual_profile");
+  const profileNote = document.getElementById("manual_profile_note");
   const select = document.getElementById("manual_example");
   const run = document.getElementById("manual_run");
   const stop = document.getElementById("manual_stop");
   const download = document.getElementById("manual_download");
   const status = document.getElementById("manual_status");
-  status.textContent = "Choose the included examples or load your JSON file.";
-  let doc, results = [], stopped = false, resultProfile = 'manual';
+  let doc, results = [], stopped = false, resultProfile = 'recovered-rom';
+  profile.addEventListener("change", () => {
+    profileNote.textContent = profile.value === "manual"
+      ? "The manual scan differs from the original firmware in five examples. The 11-1 square-root value is an arithmetic typo; the other differences may reflect a manual or firmware revision."
+      : "The recovered ROM is the original calculator program. It differs from five results in this manual scan. One is a clear arithmetic typo; the causes of the others are uncertain.";
+  });
   const rows = new Map();
   const decode = cells => {
     let value = cells.slice(0,15).join("").trim();
@@ -56,29 +59,33 @@
     try { await request("/press",{code}); return await idle(); }
     finally { button?.classList.remove("pressed"); }
   }
-  async function loadDocument(read) {
+  async function loadDocument() {
     run.disabled = true;
     download.disabled = true;
-    status.textContent = "Loading examples…";
+    status.textContent = "Loading included examples…";
+    status.dataset.state = "loading";
     try {
-      doc = await read();
+      doc = await request("/manual-examples.json");
       if (doc.schema_version!==1 || !Array.isArray(doc.examples) || !doc.key_codes)
         throw new Error("Unsupported examples JSON");
       select.replaceChildren(new Option("All examples", ""));
       for (const e of doc.examples) select.add(new Option(`${e.id}: ${e.title}`,e.id));
-      status.textContent = `Loaded ${doc.examples.length} examples.`;
+      status.textContent = `${doc.examples.length} examples ready. Select one or run all.`;
+      status.dataset.state = "ready";
       run.disabled = false;
-    } catch (e) { status.textContent = e.message; }
+    } catch (e) {
+      status.textContent = `Could not load the included examples: ${e.message}. Refresh the page to retry.`;
+      status.dataset.state = "error";
+    }
   }
-  file.addEventListener("change",()=>loadDocument(async()=>JSON.parse(await file.files[0].text())));
-  load.addEventListener("click",()=>loadDocument(()=>request("/manual-examples.json")));
   stop.addEventListener("click",()=>{stopped=true;});
   run.addEventListener("click",async () => {
     window.manualReplayActive = true;
     setBusy(true);
     stopped=false; results=[]; rows.clear(); resultProfile=profile.value;
     download.disabled=true;
-    run.disabled=file.disabled=select.disabled=load.disabled=profile.disabled=true; stop.disabled=false;
+    run.disabled=select.disabled=profile.disabled=true; stop.disabled=false;
+    status.dataset.state = "running";
     document.querySelectorAll('#digits,input[name="rounding"]').forEach(el=>el.disabled=true);
     try {
       for (const e of doc.examples.filter(e=>!select.value || e.id===select.value)) {
@@ -104,13 +111,18 @@
         }
         results.push({id:e.id,status:checkpoints.some(c=>c.errors.length)?"FAIL":"PASS",checkpoints,tape:since(start)});
       }
-      status.textContent=results.map(r=>`${r.status} ${r.id}`).join("\n");
-    } catch (e) { results.push({status:"ERROR",error:e.message}); status.textContent=e.message; }
+      const passed = results.filter(r => r.status === "PASS").length;
+      status.textContent=`${passed}/${results.length} examples passed\n${results.map(r=>`${r.status} ${r.id}`).join("\n")}`;
+      status.dataset.state = passed === results.length ? "pass" : "fail";
+    } catch (e) {
+      results.push({status:"ERROR",error:e.message});
+      status.textContent=e.message;
+      status.dataset.state = "error";
+    }
     finally {
       window.manualReplayActive=false;
-      run.disabled=file.disabled=select.disabled=load.disabled=profile.disabled=false; stop.disabled=true; download.disabled=false;
+      run.disabled=select.disabled=profile.disabled=false; stop.disabled=true; download.disabled=false;
       document.querySelectorAll('#digits,input[name="rounding"]').forEach(el=>el.disabled=false);
-      poll();
     }
   });
   download.addEventListener("click",()=>{
@@ -118,5 +130,5 @@
     const url=URL.createObjectURL(blob), a=document.createElement("a");
     a.href=url; a.download="manual-results.json"; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
   });
-  status.textContent = "Ready to load the manual examples.";
+  loadDocument();
 })();
