@@ -300,13 +300,16 @@ module intel_4004_props (
                 {g_cy, g_acc} <= g_acc + 4'hf;
               end
               4'h9: begin  // TCS
-                g_acc <= g_cy ? 4'h9 : 4'ha;
+                // Oracle: MAME mcs40.cpp TCS (9 + carry).
+                g_acc <= g_cy ? 4'ha : 4'h9;
                 g_cy  <= 1'b0;
               end
               4'ha: g_cy <= 1'b1;  // STC
               4'hb: begin  // DAA
                 if (g_cy || g_acc > 4'd9) begin
-                  {g_cy, g_acc} <= g_acc + 4'd6;
+                  // Oracle: MAME DAA never clears an incoming carry.
+                  g_acc <= g_acc + 4'd6;
+                  g_cy <= g_cy || g_acc > 4'd9;
                 end
               end
               4'hc: g_acc <= g_kbp(g_acc);  // KBP

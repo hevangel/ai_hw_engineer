@@ -52,7 +52,7 @@ driver at a time), `sync`, `cm_rom`; the 4002s sit on separate CM-RAM lines.
 | ROM port | Direction (IO_DIR) | Signal |
 |---|---|---|
 | ROM0 bit 0 | output | 4003 #0 and #1/#2 shift clock (active low pulse) |
-| ROM0 bit 1 | output | serial data: ~bit for 4003 #0 (keyboard), bit for 4003 #1 (printer) |
+| ROM0 bit 1 | output | serial data: bit for both 4003 #0 (keyboard) and 4003 #1 (printer) |
 | ROM0 bit 2 | output | shift clock for 4003 #1 and #2 (printer chain, active low) |
 | ROM1 bits 3:0 | input | keyboard matrix column nibble |
 | ROM2 bit 0 | input | printer drum index (one pulse per drum revolution) |
@@ -134,6 +134,11 @@ decimal point and sign.
 * Pacing (virtual drum): one drum half-spin per 1481 machine cycles
   (≈16 ms at the authentic 92.5 kHz machine-cycle rate); index pulse every
   26 half-spins.
+* Interactive `BUSICOM_REALTIME=1` gates simulator half-spin ticks to that
+  modeled 740 kHz clock in wall time. The browser displays the position
+  reported by the simulator, not an independently animated drum. If the
+  simulator is slower than the real clock, observed rotation slows too;
+  `paceLagTicks` records missed pacing deadlines.
 
 ## 5. Virtual platform architecture
 

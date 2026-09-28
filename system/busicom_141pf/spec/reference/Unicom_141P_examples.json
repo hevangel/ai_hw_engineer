@@ -1,0 +1,4104 @@
+{
+  "schema_version": 1,
+  "source": {
+    "title": "Unicom 141 Series Calculator Operating Instructions",
+    "pdf": "Unicom_141P_manual_text.pdf",
+    "sha256": "05d8d3dcccf3efe4e0c8ab4d81678909a8d082af4a6b6cd8a093345284751640",
+    "url": "https://archive.org/details/Unicom141PManual",
+    "extraction": "Operation tables visually checked against the scanned PDF; decimal strings preserve printed precision."
+  },
+  "key_codes": {
+    "0": 156,
+    "1": 155,
+    "2": 151,
+    "3": 147,
+    "4": 154,
+    "5": 150,
+    "6": 146,
+    "7": 153,
+    "8": 149,
+    "9": 145,
+    ".": 148,
+    "00": 152,
+    "+": 142,
+    "-": 141,
+    "*": 139,
+    "/": 138,
+    "=": 140,
+    "%": 134,
+    "ST": 137,
+    "EX": 158,
+    "CE": 159,
+    "C": 160,
+    "CM": 129,
+    "RM": 130,
+    "M-": 131,
+    "M+": 132,
+    "M=-": 135,
+    "M=+": 136,
+    "SIGN": 157,
+    "SQRT": 133
+  },
+  "symbols": {
+    "*": "total",
+    "*op": "multiply",
+    "/": "divide",
+    "ST": "subtotal",
+    "EX": "exchange",
+    "SQRT": "square root",
+    "overflow": "dotted overflow line"
+  },
+  "defaults": {
+    "wait_after_each_key": true,
+    "timeout_seconds": 300
+  },
+  "coverage_notes": [
+    "All 42 numbered operation examples are included.",
+    "Sections 12 and 13 state buffer and entry capacity but provide no numbered operation example.",
+    "Setup keys are harness isolation, separate from the printed manual steps.",
+    "Expected tape entries are an ordered suffix of the newly printed rows at each checkpoint; not every intermediate row is asserted.",
+    "FL examples without a specified DP use DP=2 (or 0 for integers) as an explicit harness choice.",
+    "Square-root examples require the feature present in this recovered five-ROM image; other firmware variants must not claim full coverage."
+  ],
+  "examples": [
+    {
+      "id": "1-1",
+      "title": "Addition, subtraction and repeated addition",
+      "manual_page": 10,
+      "pdf_page": 11,
+      "switches": {
+        "precision": 3,
+        "rounding": 8
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "1",
+            "2",
+            ".",
+            "3",
+            "4",
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "12.340",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "3",
+            "4",
+            ".",
+            "5",
+            "6",
+            "-"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "34.560",
+                "symbol": "-",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "5",
+            "6",
+            ".",
+            "7",
+            "8",
+            "9",
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "56.789",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "56.789",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            ".",
+            "1",
+            "2",
+            "3",
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "0.123",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "91.481",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "1-2",
+      "title": "Change decimal selector before totaling",
+      "manual_page": 11,
+      "pdf_page": 12,
+      "switches": {
+        "precision": 2,
+        "rounding": 1
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "1",
+            ".",
+            "2",
+            "3",
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "1.23",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "4",
+            ".",
+            "5",
+            "6",
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "4.56",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "switches": {
+            "precision": 1
+          }
+        },
+        {
+          "keys": [
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "5.8",
+                "symbol": "*",
+                "red": false,
+                "rounded": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "1-3",
+      "title": "Credit balance printed in red",
+      "manual_page": 11,
+      "pdf_page": 12,
+      "switches": {
+        "precision": 3,
+        "rounding": 8
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "1",
+            "5",
+            ".",
+            "3",
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "15.300",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "5",
+            "6",
+            ".",
+            "7",
+            "8",
+            "9",
+            "-"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "56.789",
+                "symbol": "-",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "3",
+            ".",
+            "4",
+            "5",
+            "6",
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "3.456",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "38.033",
+                "symbol": "*",
+                "red": true,
+                "rounded": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "1-4",
+      "title": "Subtotals, grand total and non-add printing",
+      "manual_page": 12,
+      "pdf_page": 13,
+      "switches": {
+        "precision": 2,
+        "rounding": 8
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "1",
+            "ST"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "1",
+                "symbol": "#",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "1",
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "1.00",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "2",
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "2.00",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "3",
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "3.00",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "ST"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "6.00",
+                "symbol": "ST",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "2",
+            "ST"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "2",
+                "symbol": "#",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "4",
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "4.00",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "5",
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "5.00",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "6",
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "6.00",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "ST"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "15.00",
+                "symbol": "ST",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "3",
+            "ST"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "3",
+                "symbol": "#",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "7",
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "7.00",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "8",
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "8.00",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "9",
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "9.00",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "ST"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "24.00",
+                "symbol": "ST",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "45.00",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "2-1",
+      "title": "Multiplication: FL",
+      "manual_page": 13,
+      "pdf_page": 14,
+      "switches": {
+        "precision": 2,
+        "rounding": 0
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "1",
+            "2",
+            ".",
+            "3",
+            "*"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "12.3",
+                "symbol": "*op",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "4",
+            ".",
+            "5",
+            "6",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "4.56",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "56.088",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "2-2",
+      "title": "Multiplication: 5/4",
+      "manual_page": 13,
+      "pdf_page": 14,
+      "switches": {
+        "precision": 2,
+        "rounding": 1
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "1",
+            "2",
+            ".",
+            "3",
+            "*"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "12.3",
+                "symbol": "*op",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "4",
+            ".",
+            "5",
+            "6",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "4.56",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "56.09",
+                "symbol": "*",
+                "red": false,
+                "rounded": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "2-3",
+      "title": "Multiplication: IN",
+      "manual_page": 13,
+      "pdf_page": 14,
+      "switches": {
+        "precision": 2,
+        "rounding": 8
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "1",
+            "2",
+            ".",
+            "3",
+            "*"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "12.3",
+                "symbol": "*op",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "4",
+            ".",
+            "5",
+            "6",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "4.56",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "56.08",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "2-4",
+      "title": "Chain multiplication and intermediate print",
+      "manual_page": 13,
+      "pdf_page": 14,
+      "switches": {
+        "precision": 2,
+        "rounding": 0
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "1",
+            "2",
+            ".",
+            "3",
+            "*"
+          ]
+        },
+        {
+          "keys": [
+            "4",
+            ".",
+            "5",
+            "6",
+            "*"
+          ]
+        },
+        {
+          "keys": [
+            "ST"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "56.088",
+                "symbol": "ST",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            ".",
+            "7",
+            "8",
+            "9",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "0.789",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "44.253432",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "2-5",
+      "title": "Constant multiplicand",
+      "manual_page": 14,
+      "pdf_page": 15,
+      "switches": {
+        "precision": 2,
+        "rounding": 0
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "3",
+            "6",
+            "1",
+            ".",
+            "5",
+            "2",
+            "*"
+          ]
+        },
+        {
+          "keys": [
+            "1",
+            "2",
+            "0",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "120",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "43382.40",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "1",
+            "1",
+            "8",
+            ".",
+            "6",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "118.6",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "42876.272",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "9",
+            "8",
+            ".",
+            "4",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "98.4",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "35573.568",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "2-6",
+      "title": "Constant multiplier using exchange",
+      "manual_page": 14,
+      "pdf_page": 15,
+      "switches": {
+        "precision": 2,
+        "rounding": 0
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "1",
+            ".",
+            "2",
+            "5",
+            "*"
+          ]
+        },
+        {
+          "keys": [
+            "1",
+            "2",
+            "EX"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "12",
+                "symbol": "EX",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "1.25",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "15.00",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "3",
+            ".",
+            "5",
+            "0",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "3.50",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "42.00",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "1",
+            ".",
+            "9",
+            "9",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "1.99",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "23.88",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "2-7",
+      "title": "Raising five to the fourth power",
+      "manual_page": 15,
+      "pdf_page": 16,
+      "switches": {
+        "precision": 0,
+        "rounding": 0
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "5",
+            "*"
+          ]
+        },
+        {
+          "keys": [
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "5",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "25",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "25",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "125",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "125",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "625",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "2-8",
+      "title": "Correct function order",
+      "manual_page": 15,
+      "pdf_page": 16,
+      "switches": {
+        "precision": 2,
+        "rounding": 0
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "1",
+            "2",
+            ".",
+            "3",
+            "/",
+            "*",
+            "/",
+            "*"
+          ]
+        },
+        {
+          "keys": [
+            "4",
+            ".",
+            "5",
+            "6",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "4.56",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "56.088",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "3-1",
+      "title": "Division: FL",
+      "manual_page": 16,
+      "pdf_page": 17,
+      "switches": {
+        "precision": 2,
+        "rounding": 0
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "4",
+            "0",
+            "/"
+          ]
+        },
+        {
+          "keys": [
+            "6",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "6",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "6.6666666666666",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          },
+          "expect_profiles": {
+            "recovered-rom": {
+              "tape": [
+                {
+                  "value": "6",
+                  "symbol": "=",
+                  "red": false,
+                  "rounded": false
+                },
+                {
+                  "value": "6.666666666666",
+                  "symbol": "*",
+                  "red": false,
+                  "rounded": false
+                }
+              ]
+            }
+          },
+          "profile_note": "The scan prints one additional fractional digit; independent recovered-ROM execution prints 6.666666666666."
+        }
+      ]
+    },
+    {
+      "id": "3-2",
+      "title": "Division: 5/4",
+      "manual_page": 16,
+      "pdf_page": 17,
+      "switches": {
+        "precision": 2,
+        "rounding": 1
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "4",
+            "0",
+            "/"
+          ]
+        },
+        {
+          "keys": [
+            "6",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "6",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "6.67",
+                "symbol": "*",
+                "red": false,
+                "rounded": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "3-3",
+      "title": "Division: IN",
+      "manual_page": 16,
+      "pdf_page": 17,
+      "switches": {
+        "precision": 2,
+        "rounding": 8
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "4",
+            "0",
+            "/"
+          ]
+        },
+        {
+          "keys": [
+            "6",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "6",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "6.66",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "3-4",
+      "title": "Chain division",
+      "manual_page": 16,
+      "pdf_page": 17,
+      "switches": {
+        "precision": 2,
+        "rounding": 0
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "/",
+            "6",
+            "/"
+          ]
+        },
+        {
+          "keys": [
+            ".",
+            "7",
+            "8",
+            "9",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "0.789",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "25.98225602027",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "3-5",
+      "title": "Constant divisor",
+      "manual_page": 17,
+      "pdf_page": 18,
+      "switches": {
+        "precision": 2,
+        "rounding": 1
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "4",
+            "5",
+            "7",
+            "8",
+            "/"
+          ]
+        },
+        {
+          "keys": [
+            "3",
+            "6",
+            "0",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "360",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "12.72",
+                "symbol": "*",
+                "red": false,
+                "rounded": true
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "2",
+            "9",
+            "0",
+            "2",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "2902",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "8.06",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "8",
+            "7",
+            "1",
+            "6",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "8716",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "24.21",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "3-6",
+      "title": "Constant dividend using memory",
+      "manual_page": 17,
+      "pdf_page": 18,
+      "switches": {
+        "precision": 2,
+        "rounding": 1
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "1",
+            "2",
+            "3",
+            ".",
+            "4",
+            "5",
+            "M+"
+          ],
+          "expect": {
+            "lamps": {
+              "memory": true
+            }
+          }
+        },
+        {
+          "keys": [
+            "/"
+          ]
+        },
+        {
+          "keys": [
+            "3",
+            "6",
+            ".",
+            "9",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "36.9",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "3.35",
+                "symbol": "*",
+                "red": false,
+                "rounded": true
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "RM"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "123.45",
+                "symbol": "RM",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "/"
+          ]
+        },
+        {
+          "keys": [
+            "2",
+            "8",
+            ".",
+            "4",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "28.4",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "4.35",
+                "symbol": "*",
+                "red": false,
+                "rounded": true
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "RM"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "123.45",
+                "symbol": "RM",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "/"
+          ]
+        },
+        {
+          "keys": [
+            "3",
+            "1",
+            ".",
+            "5",
+            "5",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "31.55",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "3.91",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "4-1",
+      "title": "Percentage multiplication",
+      "manual_page": 18,
+      "pdf_page": 19,
+      "switches": {
+        "precision": 2,
+        "rounding": 0
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "*"
+          ]
+        },
+        {
+          "keys": [
+            "2",
+            "%"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "2",
+                "symbol": "%",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "246.90",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "4-2",
+      "title": "Percentage division",
+      "manual_page": 18,
+      "pdf_page": 19,
+      "switches": {
+        "precision": 2,
+        "rounding": 0
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "2",
+            "/"
+          ]
+        },
+        {
+          "keys": [
+            "3",
+            "%"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "3",
+                "symbol": "%",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "66.66666666666",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "5-1",
+      "title": "Mixed calculation with separately formed denominator",
+      "manual_page": 19,
+      "pdf_page": 20,
+      "switches": {
+        "precision": 2,
+        "rounding": 1
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "C",
+            "1",
+            ".",
+            "5",
+            "+",
+            "1",
+            "2",
+            "9",
+            ".",
+            "0",
+            "5",
+            "+",
+            "1",
+            "1",
+            ".",
+            "0",
+            "8",
+            "-",
+            "*"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "119.47",
+                "symbol": "*op",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "1",
+            "2",
+            ".",
+            "4",
+            "/",
+            ".",
+            "5",
+            "5",
+            "/",
+            "1",
+            "2",
+            ".",
+            "9",
+            "6",
+            "+",
+            "3",
+            ".",
+            "5",
+            "6",
+            "-"
+          ]
+        },
+        {
+          "keys": [
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "9.40",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "/",
+            "0",
+            ".",
+            "8",
+            "7",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "0.87",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "329.36",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          },
+          "expect_profiles": {
+            "recovered-rom": {
+              "tape": [
+                {
+                  "value": "0.87",
+                  "symbol": "=",
+                  "red": false,
+                  "rounded": false
+                },
+                {
+                  "value": "329.36",
+                  "symbol": "*",
+                  "red": false,
+                  "rounded": true
+                }
+              ]
+            }
+          },
+          "profile_note": "The scan omits the rounding-up mark; the independent emulator prints it with 329.36."
+        }
+      ]
+    },
+    {
+      "id": "6-1",
+      "title": "Percentage distribution with 100 percent proof",
+      "manual_page": 20,
+      "pdf_page": 21,
+      "switches": {
+        "precision": 2,
+        "rounding": 1
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "C",
+            "1",
+            "2",
+            "3",
+            "/",
+            "1",
+            "2",
+            "3",
+            "+",
+            "4",
+            "5",
+            "6",
+            "+",
+            "7",
+            "8",
+            "9",
+            "+"
+          ]
+        },
+        {
+          "keys": [
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "1368.00",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "%"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "1368.00",
+                "symbol": "%",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "8.99",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "8.99",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "4",
+            "5",
+            "6",
+            "%"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "456",
+                "symbol": "%",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "33.33",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "33.33",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "7",
+            "8",
+            "9",
+            "%"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "789",
+                "symbol": "%",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "57.68",
+                "symbol": "*",
+                "red": false,
+                "rounded": true
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "57.68",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "100.00",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "6-2",
+      "title": "Reversed calculation",
+      "manual_page": 21,
+      "pdf_page": 22,
+      "switches": {
+        "precision": 2,
+        "rounding": 8
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "C",
+            "1",
+            ".",
+            "2",
+            "3",
+            "*",
+            "4",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "4",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "4.92",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "+",
+            "5",
+            ".",
+            "6",
+            "7",
+            "*",
+            "8",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "8",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "45.36",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "+",
+            "/"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "50.28",
+                "symbol": "/",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "3",
+            "EX"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "3",
+                "symbol": "EX",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "50.28",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "0.05",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "7-1",
+      "title": "Constant multiplication with memory accumulation",
+      "manual_page": 22,
+      "pdf_page": 23,
+      "switches": {
+        "precision": 2,
+        "rounding": 1
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "CM",
+            "1",
+            "2",
+            "3",
+            ".",
+            "4",
+            "5",
+            "*"
+          ]
+        },
+        {
+          "keys": [
+            "2",
+            "3",
+            ".",
+            "4",
+            "M=+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "23.4",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "2888.73",
+                "symbol": "M+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "4",
+            "2",
+            ".",
+            "6",
+            "M=-"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "42.6",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "5258.97",
+                "symbol": "M-",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "5",
+            "1",
+            "M=+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "51",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "6295.95",
+                "symbol": "M+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "CM"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "3925.71",
+                "symbol": "CM",
+                "red": false,
+                "rounded": false
+              }
+            ],
+            "lamps": {
+              "memory": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "7-2",
+      "title": "Constant division with memory accumulation",
+      "manual_page": 22,
+      "pdf_page": 23,
+      "switches": {
+        "precision": 2,
+        "rounding": 1
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "CM",
+            "4",
+            "5",
+            "7",
+            "8",
+            "/"
+          ]
+        },
+        {
+          "keys": [
+            "3",
+            "6",
+            "0",
+            "M=+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "360",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "12.72",
+                "symbol": "M+",
+                "red": false,
+                "rounded": true
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "2",
+            "9",
+            "0",
+            "2",
+            "M=+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "2902",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "8.06",
+                "symbol": "M+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "8",
+            "7",
+            "1",
+            "6",
+            "M=-"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "8716",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "24.21",
+                "symbol": "M-",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "CM"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "3.43",
+                "symbol": "CM",
+                "red": true,
+                "rounded": false
+              }
+            ],
+            "lamps": {
+              "memory": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "8-1",
+      "title": "Divide proration",
+      "manual_page": 23,
+      "pdf_page": 24,
+      "switches": {
+        "precision": 0,
+        "rounding": 1
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "CM",
+            "C",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "/",
+            "1",
+            "2",
+            "3",
+            "+",
+            "4",
+            "5",
+            "6",
+            "+",
+            "7",
+            "8",
+            "9",
+            "+"
+          ]
+        },
+        {
+          "keys": [
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "1368",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "*",
+            "1",
+            "2",
+            "3",
+            "M=+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "123",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "11100281",
+                "symbol": "M+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "4",
+            "5",
+            "6",
+            "M=+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "456",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "41152263",
+                "symbol": "M+",
+                "red": false,
+                "rounded": true
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "7",
+            "8",
+            "9",
+            "M=+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "789",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "71204245",
+                "symbol": "M+",
+                "red": false,
+                "rounded": true
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "CM"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "123456789",
+                "symbol": "CM",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "9-1",
+      "title": "Invoice, discount, sales tax and transport",
+      "manual_page": 24,
+      "pdf_page": 25,
+      "switches": {
+        "precision": 2,
+        "rounding": 1
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "CM",
+            "1",
+            "1",
+            "*",
+            "1",
+            ".",
+            "2",
+            "3",
+            "M=+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "1.23",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "13.53",
+                "symbol": "M+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "1",
+            "2",
+            "*",
+            "4",
+            ".",
+            "1",
+            "1",
+            "M=+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "4.11",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "49.32",
+                "symbol": "M+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "3",
+            "*",
+            "2",
+            ".",
+            "0",
+            "3",
+            "M=+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "2.03",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "6.09",
+                "symbol": "M+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "RM"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "68.94",
+                "symbol": "RM",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "*",
+            "1",
+            "0",
+            "%"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "10",
+                "symbol": "%",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "6.89",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "M-",
+            "RM"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "62.05",
+                "symbol": "RM",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "*",
+            "5",
+            "%"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "5",
+                "symbol": "%",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "3.10",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "M+",
+            "2",
+            ".",
+            "5",
+            "0",
+            "M+",
+            "CM"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "67.65",
+                "symbol": "CM",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "10-1",
+      "title": "Amount sold and average price",
+      "manual_page": 25,
+      "pdf_page": 26,
+      "switches": {
+        "precision": 2,
+        "rounding": 8
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "CM",
+            "C",
+            "1",
+            "0",
+            "M+",
+            "*",
+            "2",
+            ".",
+            "3",
+            "8",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "2.38",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "23.80",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "+",
+            "2",
+            "0",
+            "M+",
+            "*",
+            "1",
+            ".",
+            "3",
+            "8",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "1.38",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "27.60",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "+",
+            "1",
+            "5",
+            "M+",
+            "*",
+            "3",
+            ".",
+            "6",
+            "5",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "3.65",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "54.75",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "+",
+            "/"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "106.15",
+                "symbol": "/",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "CM"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "45.00",
+                "symbol": "CM",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "45.00",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "2.35",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "11-1",
+      "title": "Square root",
+      "manual_page": 26,
+      "pdf_page": 27,
+      "switches": {
+        "precision": 2,
+        "rounding": 0
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "1",
+            "5",
+            "2",
+            "4",
+            "1",
+            "7",
+            "5",
+            "4",
+            "3",
+            ".",
+            "0",
+            "6",
+            "2",
+            "5",
+            "SQRT"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "152417543.0625",
+                "symbol": "SQRT",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "12345.73",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          },
+          "expect_profiles": {
+            "recovered-rom": {
+              "tape": [
+                {
+                  "value": "152417543.0625",
+                  "symbol": "SQRT",
+                  "red": false,
+                  "rounded": false
+                },
+                {
+                  "value": "12345.750000000",
+                  "symbol": "SQRT",
+                  "red": false,
+                  "rounded": false
+                }
+              ]
+            }
+          },
+          "profile_note": "The scan prints 12345.73 with a total star. The exact square root is 12345.75; both independent emulator and RTL print 12345.750000000 with the square-root symbol."
+        }
+      ],
+      "requires": [
+        "square_root"
+      ]
+    },
+    {
+      "id": "11-2",
+      "title": "Population standard deviation of 2,3,4,5,6",
+      "manual_page": 26,
+      "pdf_page": 27,
+      "switches": {
+        "precision": 6,
+        "rounding": 1
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "2",
+            "M+",
+            "*",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "2.000000",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "4.000000",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "+"
+          ]
+        },
+        {
+          "keys": [
+            "3",
+            "M+",
+            "*",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "3.000000",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "9.000000",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "+"
+          ]
+        },
+        {
+          "keys": [
+            "4",
+            "M+",
+            "*",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "4.000000",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "16.000000",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "+"
+          ]
+        },
+        {
+          "keys": [
+            "5",
+            "M+",
+            "*",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "5.000000",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "25.000000",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "+"
+          ]
+        },
+        {
+          "keys": [
+            "6",
+            "M+",
+            "*",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "6.000000",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "36.000000",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "+"
+          ]
+        },
+        {
+          "keys": [
+            "*",
+            "5",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "5",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "450.000000",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "+",
+            "CM",
+            "*",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "20.000000",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "400.000000",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "-",
+            "/",
+            "5",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "5",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "10.000000",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "10.000000",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "2.000000",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "SQRT"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "2.000000",
+                "symbol": "SQRT",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "1.414214",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          },
+          "expect_profiles": {
+            "recovered-rom": {
+              "tape": [
+                {
+                  "value": "2.000000",
+                  "symbol": "SQRT",
+                  "red": false,
+                  "rounded": false
+                },
+                {
+                  "value": "1.414214",
+                  "symbol": "SQRT",
+                  "red": false,
+                  "rounded": false
+                }
+              ]
+            }
+          },
+          "profile_note": "Independent recovered-ROM execution prints the square-root symbol on the answer instead of the scanned total star."
+        }
+      ],
+      "notes": "Continues on printed page 27 (PDF page 28).",
+      "requires": [
+        "square_root"
+      ]
+    },
+    {
+      "id": "11-3",
+      "title": "Pythagorean theorem: sides 12 and 8",
+      "manual_page": 28,
+      "pdf_page": 29,
+      "switches": {
+        "precision": 6,
+        "rounding": 1
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "C",
+            "CM",
+            "1",
+            "2",
+            "*",
+            "M=+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "144.000000",
+                "symbol": "M+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "8",
+            "*",
+            "M=+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "8",
+                "symbol": "=",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "64.000000",
+                "symbol": "M+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "CM"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "208.000000",
+                "symbol": "CM",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "SQRT"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "208.000000",
+                "symbol": "SQRT",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": "14.422205",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          },
+          "expect_profiles": {
+            "recovered-rom": {
+              "tape": [
+                {
+                  "value": "208.000000",
+                  "symbol": "SQRT",
+                  "red": false,
+                  "rounded": false
+                },
+                {
+                  "value": "14.422205",
+                  "symbol": "SQRT",
+                  "red": false,
+                  "rounded": false
+                }
+              ]
+            }
+          },
+          "profile_note": "Independent recovered-ROM execution prints the square-root symbol on the answer instead of the scanned total star."
+        }
+      ],
+      "requires": [
+        "square_root"
+      ]
+    },
+    {
+      "id": "14-1",
+      "title": "Fourteen digit addition capacity",
+      "manual_page": 30,
+      "pdf_page": 31,
+      "switches": {
+        "precision": 6,
+        "rounding": 8
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "12345678.000000",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              }
+            ],
+            "lamps": {
+              "overflow": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "14-2",
+      "title": "Entry alignment overflows addition capacity",
+      "manual_page": 30,
+      "pdf_page": 31,
+      "switches": {
+        "precision": 6,
+        "rounding": 8
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": null,
+                "symbol": "overflow",
+                "red": false,
+                "rounded": false
+              }
+            ],
+            "lamps": {
+              "overflow": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "14-3",
+      "title": "Addition overflow and recovery",
+      "manual_page": 30,
+      "pdf_page": 31,
+      "switches": {
+        "precision": 8,
+        "rounding": 8
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "9",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "900000.00000000",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        },
+        {
+          "keys": [
+            "1",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "100000.00000000",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              },
+              {
+                "value": null,
+                "symbol": "overflow",
+                "red": false,
+                "rounded": false
+              }
+            ],
+            "lamps": {
+              "overflow": true
+            }
+          }
+        },
+        {
+          "keys": [
+            "CE",
+            "+"
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "0.00000000",
+                "symbol": "+",
+                "red": false,
+                "rounded": false
+              }
+            ],
+            "lamps": {
+              "overflow": false
+            }
+          }
+        },
+        {
+          "keys": [
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "900000.00000000",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "15-1",
+      "title": "Capacity: within limit",
+      "manual_page": 31,
+      "pdf_page": 32,
+      "switches": {
+        "precision": 0,
+        "rounding": 0
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "*",
+            "1",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "12345678900000",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ],
+            "lamps": {
+              "overflow": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "15-2",
+      "title": "Capacity: overflow",
+      "manual_page": 31,
+      "pdf_page": 32,
+      "switches": {
+        "precision": 0,
+        "rounding": 0
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "*",
+            "1",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": null,
+                "symbol": "overflow",
+                "red": false,
+                "rounded": false
+              }
+            ],
+            "lamps": {
+              "overflow": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "15-3",
+      "title": "Capacity: within limit",
+      "manual_page": 31,
+      "pdf_page": 32,
+      "switches": {
+        "precision": 8,
+        "rounding": 1
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "*",
+            "1",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "123456.00000000",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ],
+            "lamps": {
+              "overflow": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "15-4",
+      "title": "Capacity: overflow",
+      "manual_page": 31,
+      "pdf_page": 32,
+      "switches": {
+        "precision": 8,
+        "rounding": 1
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "*",
+            "1",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": null,
+                "symbol": "overflow",
+                "red": false,
+                "rounded": false
+              }
+            ],
+            "lamps": {
+              "overflow": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "16-1",
+      "title": "Capacity: within limit",
+      "manual_page": 32,
+      "pdf_page": 33,
+      "switches": {
+        "precision": 0,
+        "rounding": 0
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "4",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "/",
+            "0",
+            ".",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "3",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "13333333333333",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ],
+            "lamps": {
+              "overflow": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "16-2",
+      "title": "Capacity: overflow",
+      "manual_page": 32,
+      "pdf_page": 33,
+      "switches": {
+        "precision": 0,
+        "rounding": 0
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "4",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "/",
+            "0",
+            ".",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "3",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": null,
+                "symbol": "overflow",
+                "red": false,
+                "rounded": false
+              }
+            ],
+            "lamps": {
+              "overflow": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "16-3",
+      "title": "Capacity: within limit",
+      "manual_page": 32,
+      "pdf_page": 33,
+      "switches": {
+        "precision": 8,
+        "rounding": 8
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "4",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "/",
+            "3",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": "133333.33333333",
+                "symbol": "*",
+                "red": false,
+                "rounded": false
+              }
+            ],
+            "lamps": {
+              "overflow": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "16-4",
+      "title": "Capacity: overflow",
+      "manual_page": 32,
+      "pdf_page": 33,
+      "switches": {
+        "precision": 8,
+        "rounding": 8
+      },
+      "setup_keys": [
+        "CE",
+        "C",
+        "CM",
+        "C"
+      ],
+      "steps": [
+        {
+          "keys": [
+            "4",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "/",
+            "3",
+            "="
+          ],
+          "expect": {
+            "tape": [
+              {
+                "value": null,
+                "symbol": "overflow",
+                "red": false,
+                "rounded": false
+              }
+            ],
+            "lamps": {
+              "overflow": true
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "profiles": {
+    "manual": {
+      "description": "Exact scan expectations, including apparent errors."
+    },
+    "recovered-rom": {
+      "description": "Five differences confirmed by the independent V. Ilmer chips emulator with the same 1280-byte ROM. All other expectations unchanged.",
+      "rom_sha256": "c6af325d64b0895a8c6f7298e5443bbf5814783fabd6a1bcd2df08a9bec2ceb7",
+      "oracle": "https://github.com/veniamin-ilmer/chips/tree/1bc3d5781474ef9d7e7305af91071a723797f222",
+      "board_reference": "https://github.com/veniamin-ilmer/busicom/tree/dea0745b10032ebf632f0431b26728717920e17f",
+      "evidence": "../../report/manual_regression.md"
+    }
+  }
+}

@@ -1,0 +1,2747 @@
+{
+  "date": "2026-09-27",
+  "source": {
+    "title": "Unicom 141 Series Calculator Operating Instructions",
+    "pdf": "Unicom_141P_manual_text.pdf",
+    "sha256": "05d8d3dcccf3efe4e0c8ab4d81678909a8d082af4a6b6cd8a093345284751640",
+    "url": "https://archive.org/details/Unicom141PManual",
+    "extraction": "Operation tables visually checked against the scanned PDF; decimal strings preserve printed precision."
+  },
+  "rom": {
+    "description": "Five differences confirmed by the independent V. Ilmer chips emulator with the same 1280-byte ROM. All other expectations unchanged.",
+    "rom_sha256": "c6af325d64b0895a8c6f7298e5443bbf5814783fabd6a1bcd2df08a9bec2ceb7",
+    "oracle": "https://github.com/veniamin-ilmer/chips/tree/1bc3d5781474ef9d7e7305af91071a723797f222",
+    "board_reference": "https://github.com/veniamin-ilmer/busicom/tree/dea0745b10032ebf632f0431b26728717920e17f",
+    "evidence": "../../report/manual_regression.md"
+  },
+  "runs": {
+    "verilator": {
+      "version": "5.052",
+      "spin": 1481,
+      "cases": 42
+    },
+    "xezim": {
+      "version": "0.11.0",
+      "spin": 740,
+      "jit": true,
+      "aot": true,
+      "cases": 42,
+      "partitions": [
+        "1-1 through 10-1",
+        "11-1 through 11-3",
+        "14-1 through 16-4"
+      ]
+    },
+    "xezim_default_timing": {
+      "spin": 1481,
+      "cases": [
+        "2-1"
+      ],
+      "status": "PASS"
+    },
+    "independent_reference": {
+      "revision": "1bc3d5781474ef9d7e7305af91071a723797f222",
+      "spin": 1481,
+      "cases": 42
+    }
+  },
+  "method": "Strict manual expectations retained. Five explicit ROM overrides independently verified, then replayed on Verilator. Complete tapes are equal across Verilator, xezim and the external CPU emulator for all 42 examples.",
+  "summary": {
+    "examples": 42,
+    "checkpoints": 135,
+    "strict_manual_passes": 37,
+    "documented_differences": 5,
+    "rom_matches": 42,
+    "complete_tape_matches": 42
+  },
+  "cases": [
+    {
+      "id": "1-1",
+      "title": "Addition, subtraction and repeated addition",
+      "manual_page": 10,
+      "step_count": 6,
+      "checkpoint_count": 6,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "12.340",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "34.560",
+          "symbol": "-",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "56.789",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "56.789",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "0.123",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "91.481",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "1-2",
+      "title": "Change decimal selector before totaling",
+      "manual_page": 11,
+      "step_count": 4,
+      "checkpoint_count": 3,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "1.23",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "4.56",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "5.8",
+          "symbol": "*",
+          "red": false,
+          "rounded": true
+        }
+      ]
+    },
+    {
+      "id": "1-3",
+      "title": "Credit balance printed in red",
+      "manual_page": 11,
+      "step_count": 4,
+      "checkpoint_count": 4,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "15.300",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "56.789",
+          "symbol": "-",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "3.456",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "38.033",
+          "symbol": "*",
+          "red": true,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "1-4",
+      "title": "Subtotals, grand total and non-add printing",
+      "manual_page": 12,
+      "step_count": 16,
+      "checkpoint_count": 16,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "1",
+          "symbol": "#",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "1.00",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "2.00",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "3.00",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "6.00",
+          "symbol": "ST",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "2",
+          "symbol": "#",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "4.00",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "5.00",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "6.00",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "15.00",
+          "symbol": "ST",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "3",
+          "symbol": "#",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "7.00",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "8.00",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "9.00",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "24.00",
+          "symbol": "ST",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "45.00",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "2-1",
+      "title": "Multiplication: FL",
+      "manual_page": 13,
+      "step_count": 2,
+      "checkpoint_count": 2,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "12.3",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "4.56",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "56.088",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "2-2",
+      "title": "Multiplication: 5/4",
+      "manual_page": 13,
+      "step_count": 2,
+      "checkpoint_count": 2,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "12.3",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "4.56",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "56.09",
+          "symbol": "*",
+          "red": false,
+          "rounded": true
+        }
+      ]
+    },
+    {
+      "id": "2-3",
+      "title": "Multiplication: IN",
+      "manual_page": 13,
+      "step_count": 2,
+      "checkpoint_count": 2,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "12.3",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "4.56",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "56.08",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "2-4",
+      "title": "Chain multiplication and intermediate print",
+      "manual_page": 13,
+      "step_count": 4,
+      "checkpoint_count": 2,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "12.3",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "4.56",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "56.088",
+          "symbol": "ST",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "0.789",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "44.253432",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "2-5",
+      "title": "Constant multiplicand",
+      "manual_page": 14,
+      "step_count": 4,
+      "checkpoint_count": 3,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "361.52",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "120",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "43382.40",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "118.6",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "42876.272",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "98.4",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "35573.568",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "2-6",
+      "title": "Constant multiplier using exchange",
+      "manual_page": 14,
+      "step_count": 5,
+      "checkpoint_count": 4,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "1.25",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "12",
+          "symbol": "EX",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "1.25",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "15.00",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "3.50",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "42.00",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "1.99",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "23.88",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "2-7",
+      "title": "Raising five to the fourth power",
+      "manual_page": 15,
+      "step_count": 4,
+      "checkpoint_count": 3,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "5",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "5",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "25",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "25",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "125",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "125",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "625",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "2-8",
+      "title": "Correct function order",
+      "manual_page": 15,
+      "step_count": 2,
+      "checkpoint_count": 1,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "12.3",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "4.56",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "56.088",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "3-1",
+      "title": "Division: FL",
+      "manual_page": 16,
+      "step_count": 2,
+      "checkpoint_count": 1,
+      "verilator_manual": "FAIL",
+      "xezim_manual": "FAIL",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [
+        {
+          "step": 2,
+          "errors": [
+            {
+              "expected_tape": [
+                {
+                  "value": "6",
+                  "symbol": "=",
+                  "red": false,
+                  "rounded": false
+                },
+                {
+                  "value": "6.6666666666666",
+                  "symbol": "*",
+                  "red": false,
+                  "rounded": false
+                }
+              ],
+              "actual_tape": [
+                {
+                  "value": "6",
+                  "symbol": "=",
+                  "red": false,
+                  "rounded": false
+                },
+                {
+                  "value": "6.666666666666",
+                  "symbol": "*",
+                  "red": false,
+                  "rounded": false
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "observed_tape": [
+        {
+          "value": "40",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "6",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "6.666666666666",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "3-2",
+      "title": "Division: 5/4",
+      "manual_page": 16,
+      "step_count": 2,
+      "checkpoint_count": 1,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "40",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "6",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "6.67",
+          "symbol": "*",
+          "red": false,
+          "rounded": true
+        }
+      ]
+    },
+    {
+      "id": "3-3",
+      "title": "Division: IN",
+      "manual_page": 16,
+      "step_count": 2,
+      "checkpoint_count": 1,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "40",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "6",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "6.66",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "3-4",
+      "title": "Chain division",
+      "manual_page": 16,
+      "step_count": 2,
+      "checkpoint_count": 1,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "123",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "6",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "0.789",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "25.98225602027",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "3-5",
+      "title": "Constant divisor",
+      "manual_page": 17,
+      "step_count": 4,
+      "checkpoint_count": 3,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "4578",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "360",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "12.72",
+          "symbol": "*",
+          "red": false,
+          "rounded": true
+        },
+        {
+          "value": "2902",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "8.06",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "8716",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "24.21",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "3-6",
+      "title": "Constant dividend using memory",
+      "manual_page": 17,
+      "step_count": 9,
+      "checkpoint_count": 6,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "123.45",
+          "symbol": "M+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "123.45",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "36.9",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "3.35",
+          "symbol": "*",
+          "red": false,
+          "rounded": true
+        },
+        {
+          "value": "123.45",
+          "symbol": "RM",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "123.45",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "28.4",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "4.35",
+          "symbol": "*",
+          "red": false,
+          "rounded": true
+        },
+        {
+          "value": "123.45",
+          "symbol": "RM",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "123.45",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "31.55",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "3.91",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "4-1",
+      "title": "Percentage multiplication",
+      "manual_page": 18,
+      "step_count": 2,
+      "checkpoint_count": 1,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "12345",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "2",
+          "symbol": "%",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "246.90",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "4-2",
+      "title": "Percentage division",
+      "manual_page": 18,
+      "step_count": 2,
+      "checkpoint_count": 1,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "2",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "3",
+          "symbol": "%",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "66.66666666666",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "5-1",
+      "title": "Mixed calculation with separately formed denominator",
+      "manual_page": 19,
+      "step_count": 4,
+      "checkpoint_count": 3,
+      "verilator_manual": "FAIL",
+      "xezim_manual": "FAIL",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [
+        {
+          "step": 4,
+          "errors": [
+            {
+              "expected_tape": [
+                {
+                  "value": "0.87",
+                  "symbol": "=",
+                  "red": false,
+                  "rounded": false
+                },
+                {
+                  "value": "329.36",
+                  "symbol": "*",
+                  "red": false,
+                  "rounded": false
+                }
+              ],
+              "actual_tape": [
+                {
+                  "value": "9.40",
+                  "symbol": "/",
+                  "red": false,
+                  "rounded": false
+                },
+                {
+                  "value": "0.87",
+                  "symbol": "=",
+                  "red": false,
+                  "rounded": false
+                },
+                {
+                  "value": "329.36",
+                  "symbol": "*",
+                  "red": false,
+                  "rounded": true
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "observed_tape": [
+        {
+          "value": "0",
+          "symbol": "C",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "1.50",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "129.05",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "11.08",
+          "symbol": "-",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "119.47",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "12.4",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "0.55",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "12.96",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "3.56",
+          "symbol": "-",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "9.40",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "9.40",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "0.87",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "329.36",
+          "symbol": "*",
+          "red": false,
+          "rounded": true
+        }
+      ]
+    },
+    {
+      "id": "6-1",
+      "title": "Percentage distribution with 100 percent proof",
+      "manual_page": 20,
+      "step_count": 9,
+      "checkpoint_count": 8,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "0",
+          "symbol": "C",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "123",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "123.00",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "456.00",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "789.00",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "1368.00",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "1368.00",
+          "symbol": "%",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "8.99",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "8.99",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "456",
+          "symbol": "%",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "33.33",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "33.33",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "789",
+          "symbol": "%",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "57.68",
+          "symbol": "*",
+          "red": false,
+          "rounded": true
+        },
+        {
+          "value": "57.68",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "100.00",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "6-2",
+      "title": "Reversed calculation",
+      "manual_page": 21,
+      "step_count": 5,
+      "checkpoint_count": 5,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "0",
+          "symbol": "C",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "1.23",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "4",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "4.92",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "4.92",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "5.67",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "8",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "45.36",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "45.36",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "50.28",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "3",
+          "symbol": "EX",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "50.28",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "0.05",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "7-1",
+      "title": "Constant multiplication with memory accumulation",
+      "manual_page": 22,
+      "step_count": 5,
+      "checkpoint_count": 4,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "0",
+          "symbol": "CM",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "123.45",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "23.4",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "2888.73",
+          "symbol": "M+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "42.6",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "5258.97",
+          "symbol": "M-",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "51",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "6295.95",
+          "symbol": "M+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "3925.71",
+          "symbol": "CM",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "7-2",
+      "title": "Constant division with memory accumulation",
+      "manual_page": 22,
+      "step_count": 5,
+      "checkpoint_count": 4,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "0",
+          "symbol": "CM",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "4578",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "360",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "12.72",
+          "symbol": "M+",
+          "red": false,
+          "rounded": true
+        },
+        {
+          "value": "2902",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "8.06",
+          "symbol": "M+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "8716",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "24.21",
+          "symbol": "M-",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "3.43",
+          "symbol": "CM",
+          "red": true,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "8-1",
+      "title": "Divide proration",
+      "manual_page": 23,
+      "step_count": 6,
+      "checkpoint_count": 5,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "0",
+          "symbol": "CM",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "0",
+          "symbol": "C",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "123456789",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "123",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "456",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "789",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "1368",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "1368",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "123",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "11100281",
+          "symbol": "M+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "456",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "41152263",
+          "symbol": "M+",
+          "red": false,
+          "rounded": true
+        },
+        {
+          "value": "789",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "71204245",
+          "symbol": "M+",
+          "red": false,
+          "rounded": true
+        },
+        {
+          "value": "123456789",
+          "symbol": "CM",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "9-1",
+      "title": "Invoice, discount, sales tax and transport",
+      "manual_page": 24,
+      "step_count": 8,
+      "checkpoint_count": 8,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "0",
+          "symbol": "CM",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "11",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "1.23",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "13.53",
+          "symbol": "M+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "12",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "4.11",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "49.32",
+          "symbol": "M+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "3",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "2.03",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "6.09",
+          "symbol": "M+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "68.94",
+          "symbol": "RM",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "68.94",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "10",
+          "symbol": "%",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "6.89",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "6.89",
+          "symbol": "M-",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "62.05",
+          "symbol": "RM",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "62.05",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "5",
+          "symbol": "%",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "3.10",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "3.10",
+          "symbol": "M+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "2.50",
+          "symbol": "M+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "67.65",
+          "symbol": "CM",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "10-1",
+      "title": "Amount sold and average price",
+      "manual_page": 25,
+      "step_count": 6,
+      "checkpoint_count": 6,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "0",
+          "symbol": "CM",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "0",
+          "symbol": "C",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "10.00",
+          "symbol": "M+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "10.00",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "2.38",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "23.80",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "23.80",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "20.00",
+          "symbol": "M+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "20.00",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "1.38",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "27.60",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "27.60",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "15.00",
+          "symbol": "M+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "15.00",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "3.65",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "54.75",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "54.75",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "106.15",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "45.00",
+          "symbol": "CM",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "45.00",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "2.35",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "11-1",
+      "title": "Square root",
+      "manual_page": 26,
+      "step_count": 1,
+      "checkpoint_count": 1,
+      "verilator_manual": "FAIL",
+      "xezim_manual": "FAIL",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [
+        {
+          "step": 1,
+          "errors": [
+            {
+              "expected_tape": [
+                {
+                  "value": "152417543.0625",
+                  "symbol": "SQRT",
+                  "red": false,
+                  "rounded": false
+                },
+                {
+                  "value": "12345.73",
+                  "symbol": "*",
+                  "red": false,
+                  "rounded": false
+                }
+              ],
+              "actual_tape": [
+                {
+                  "value": "152417543.0625",
+                  "symbol": "SQRT",
+                  "red": false,
+                  "rounded": false
+                },
+                {
+                  "value": "12345.750000000",
+                  "symbol": "SQRT",
+                  "red": false,
+                  "rounded": false
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "observed_tape": [
+        {
+          "value": "152417543.0625",
+          "symbol": "SQRT",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "12345.750000000",
+          "symbol": "SQRT",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "11-2",
+      "title": "Population standard deviation of 2,3,4,5,6",
+      "manual_page": 26,
+      "step_count": 15,
+      "checkpoint_count": 10,
+      "verilator_manual": "FAIL",
+      "xezim_manual": "FAIL",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [
+        {
+          "step": 15,
+          "errors": [
+            {
+              "expected_tape": [
+                {
+                  "value": "2.000000",
+                  "symbol": "SQRT",
+                  "red": false,
+                  "rounded": false
+                },
+                {
+                  "value": "1.414214",
+                  "symbol": "*",
+                  "red": false,
+                  "rounded": false
+                }
+              ],
+              "actual_tape": [
+                {
+                  "value": "2.000000",
+                  "symbol": "SQRT",
+                  "red": false,
+                  "rounded": false
+                },
+                {
+                  "value": "1.414214",
+                  "symbol": "SQRT",
+                  "red": false,
+                  "rounded": false
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "observed_tape": [
+        {
+          "value": "2.000000",
+          "symbol": "M+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "2.000000",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "2.000000",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "4.000000",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "4.000000",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "3.000000",
+          "symbol": "M+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "3.000000",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "3.000000",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "9.000000",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "9.000000",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "4.000000",
+          "symbol": "M+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "4.000000",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "4.000000",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "16.000000",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "16.000000",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "5.000000",
+          "symbol": "M+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "5.000000",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "5.000000",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "25.000000",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "25.000000",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "6.000000",
+          "symbol": "M+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "6.000000",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "6.000000",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "36.000000",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "36.000000",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "90.000000",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "5",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "450.000000",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "450.000000",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "20.000000",
+          "symbol": "CM",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "20.000000",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "20.000000",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "400.000000",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "400.000000",
+          "symbol": "-",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "50.000000",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "5",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "10.000000",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "10.000000",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "2.000000",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "2.000000",
+          "symbol": "SQRT",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "1.414214",
+          "symbol": "SQRT",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "11-3",
+      "title": "Pythagorean theorem: sides 12 and 8",
+      "manual_page": 28,
+      "step_count": 4,
+      "checkpoint_count": 4,
+      "verilator_manual": "FAIL",
+      "xezim_manual": "FAIL",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [
+        {
+          "step": 4,
+          "errors": [
+            {
+              "expected_tape": [
+                {
+                  "value": "208.000000",
+                  "symbol": "SQRT",
+                  "red": false,
+                  "rounded": false
+                },
+                {
+                  "value": "14.422205",
+                  "symbol": "*",
+                  "red": false,
+                  "rounded": false
+                }
+              ],
+              "actual_tape": [
+                {
+                  "value": "208.000000",
+                  "symbol": "SQRT",
+                  "red": false,
+                  "rounded": false
+                },
+                {
+                  "value": "14.422205",
+                  "symbol": "SQRT",
+                  "red": false,
+                  "rounded": false
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "observed_tape": [
+        {
+          "value": "0",
+          "symbol": "C",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "0",
+          "symbol": "CM",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "12",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "12",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "144.000000",
+          "symbol": "M+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "8",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "8",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "64.000000",
+          "symbol": "M+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "208.000000",
+          "symbol": "CM",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "208.000000",
+          "symbol": "SQRT",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "14.422205",
+          "symbol": "SQRT",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "14-1",
+      "title": "Fourteen digit addition capacity",
+      "manual_page": 30,
+      "step_count": 1,
+      "checkpoint_count": 1,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "12345678.000000",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "14-2",
+      "title": "Entry alignment overflows addition capacity",
+      "manual_page": 30,
+      "step_count": 1,
+      "checkpoint_count": 1,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": null,
+          "symbol": "overflow",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "14-3",
+      "title": "Addition overflow and recovery",
+      "manual_page": 30,
+      "step_count": 4,
+      "checkpoint_count": 4,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "900000.00000000",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "100000.00000000",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": null,
+          "symbol": "overflow",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "0.00000000",
+          "symbol": "+",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "900000.00000000",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "15-1",
+      "title": "Capacity: within limit",
+      "manual_page": 31,
+      "step_count": 1,
+      "checkpoint_count": 1,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "123456789",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "100000",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "12345678900000",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "15-2",
+      "title": "Capacity: overflow",
+      "manual_page": 31,
+      "step_count": 1,
+      "checkpoint_count": 1,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "123456789",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "1000000",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": null,
+          "symbol": "overflow",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "15-3",
+      "title": "Capacity: within limit",
+      "manual_page": 31,
+      "step_count": 1,
+      "checkpoint_count": 1,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "123456",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "1",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "123456.00000000",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "15-4",
+      "title": "Capacity: overflow",
+      "manual_page": 31,
+      "step_count": 1,
+      "checkpoint_count": 1,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "1234567",
+          "symbol": "*op",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "1",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": null,
+          "symbol": "overflow",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "16-1",
+      "title": "Capacity: within limit",
+      "manual_page": 32,
+      "step_count": 1,
+      "checkpoint_count": 1,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "4000000",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "0.0000003",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "13333333333333",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "16-2",
+      "title": "Capacity: overflow",
+      "manual_page": 32,
+      "step_count": 1,
+      "checkpoint_count": 1,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "40000000",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "0.0000003",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": null,
+          "symbol": "overflow",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "16-3",
+      "title": "Capacity: within limit",
+      "manual_page": 32,
+      "step_count": 1,
+      "checkpoint_count": 1,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "400000",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "3",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "133333.33333333",
+          "symbol": "*",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    },
+    {
+      "id": "16-4",
+      "title": "Capacity: overflow",
+      "manual_page": 32,
+      "step_count": 1,
+      "checkpoint_count": 1,
+      "verilator_manual": "PASS",
+      "xezim_manual": "PASS",
+      "recovered_rom": "PASS",
+      "independent_reference": "PASS",
+      "complete_tapes_identical": true,
+      "manual_differences": [],
+      "observed_tape": [
+        {
+          "value": "4000000",
+          "symbol": "/",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": "3",
+          "symbol": "=",
+          "red": false,
+          "rounded": false
+        },
+        {
+          "value": null,
+          "symbol": "overflow",
+          "red": false,
+          "rounded": false
+        }
+      ]
+    }
+  ]
+}

@@ -6,6 +6,8 @@ const PAPER_COLS = 18;
 
 const paperTable = document.getElementById("paper");
 const drumTable = document.getElementById("drum");
+const mechanism = document.getElementById("printer_mechanism");
+let lastDrumTick = -1;
 
 /* build the paper grid once: rows of cells + a red class on <tr> */
 for (let r = 0; r < PAPER_ROWS; r++) {
@@ -23,6 +25,56 @@ for (let c = 0; c < PAPER_COLS; c++) {
   td.textContent = " ";
   drumRow.appendChild(td);
 }
+
+/* A snapshot retains the latest real strike per column, even between polls.
+ * Hold each flash for two seconds; this is a visualization, not mechanical timing. */
+const hammerElements = [];
+const strikeIds = Array(PAPER_COLS).fill(0);
+const strikeTimers = [];
+let haveStrikeSnapshot = false;
+let strikeCount = 0;
+let ribbonTimer;
+for (let c = 0; c < PAPER_COLS; c++) {
+  const hammer = document.createElement("span");
+  hammer.className = c === 15 ? "hammer spacer" : "hammer";
+  hammer.title = `Print hammer ${c + 1}`;
+  document.getElementById("hammers").appendChild(hammer);
+  hammerElements.push(hammer);
+}
+function showStrikes(strikes) {
+  if (!Array.isArray(strikes)) return;
+  const newest = [];
+  strikes.forEach((strike, c) => {
+    if (c >= PAPER_COLS) return;
+    if (haveStrikeSnapshot && strike.id > strikeIds[c]) {
+      const hammer = hammerElements[c];
+      clearTimeout(strikeTimers[c]);
+      hammer.textContent = strike.char;
+      hammer.className = `hammer striking${strike.red ? " red" : ""}`;
+      hammer.title = `${strike.red ? "Red" : "Black"} ribbon: ${strike.char}`;
+      newest.push({ ...strike, column: c + 1 });
+      strikeTimers[c] = setTimeout(() => {
+        hammer.className = "hammer";
+        hammer.textContent = "";
+      }, 2000);
+    }
+    strikeIds[c] = strike.id;
+  });
+  haveStrikeSnapshot = true;
+  if (newest.length) {
+    strikeCount += newest.length;
+    document.getElementById("strike_count").textContent = `${strikeCount} strikes observed`;
+    const status = document.getElementById("strike_status");
+    const last = newest.at(-1);
+    status.textContent = `Last strike: ${last.char} · column ${last.column} · ${last.red ? "red" : "black"} ribbon`;
+    const ribbon = document.getElementById("ribbon");
+    ribbon.className = `ribbon active-${last.red ? "red" : "black"}`;
+    clearTimeout(ribbonTimer);
+    ribbonTimer = setTimeout(() => { ribbon.className = "ribbon"; }, 2000);
+  }
+}
+const helpDialog = document.getElementById("help_dialog");
+document.getElementById("help_open").addEventListener("click", () => helpDialog.showModal());
 
 function post(path, body) {
   return fetch(path, {
@@ -42,6 +94,7 @@ const keyBtns = Array.from(document.querySelectorAll("#keyboard .key"));
 const advanceBtn = document.getElementById("advance");
 
 function setBusy(b) {
+  b = b || !!window.manualReplayActive;
   if (busy === b) return;
   busy = b;
   busyEl.hidden = !b;
@@ -92,6 +145,7 @@ const keymap = {
   "=": 140, Enter: 140, "%": 134, "#": 137,
 };
 document.addEventListener("keydown", (e) => {
+  if (helpDialog.open || e.target.closest('.manual-replay, input, select, textarea')) return;
   const code = keymap[e.key];
   if (code) {
     if (busy) return;
@@ -110,6 +164,7 @@ document.addEventListener("keydown", (e) => {
 function setLed(id, on, cls) {
   const el = document.getElementById(id);
   el.className = on ? `led on-${cls}` : "led";
+  el.setAttribute("aria-label", `${cls} lamp ${on ? "on" : "off"}`);
 }
 
 async function poll() {
@@ -127,11 +182,20 @@ async function poll() {
           cell.textContent = ch;
       }
     }
-    for (let c = 0; c < PAPER_COLS; c++) {
-      const cell = drumTable.rows[0].cells[c];
-      if (cell.textContent !== s.drumRow[c])
-        cell.textContent = s.drumRow[c];
+    if (mechanism.open && s.drumTick !== lastDrumTick) {
+      for (let c = 0; c < PAPER_COLS; c++) {
+        const cell = drumTable.rows[0].cells[c];
+        if (cell.textContent !== s.drumRow[c])
+          cell.textContent = s.drumRow[c];
+      }
+      lastDrumTick = s.drumTick;
+      document.getElementById("drum_clock").textContent =
+        `${(s.clockHz / 1000).toFixed(0)} kHz · sector ${s.drumPos + 1}/13`;
+    } else if (!mechanism.open && s.clockHz) {
+      document.getElementById("drum_clock").textContent =
+        `${(s.clockHz / 1000).toFixed(0)} kHz clock`;
     }
+    showStrikes(s.strikes);
     setLed("led_memory", s.lamps.memory, "memory");
     setLed("led_overflow", s.lamps.overflow, "overflow");
     setLed("led_negative", s.lamps.negative, "negative");
@@ -153,7 +217,9 @@ async function poll() {
     });
   } catch (err) {
     /* simulator not up yet - keep polling */
+  } finally {
+    setTimeout(poll, mechanism.open ? 16 : 80);
   }
 }
-setInterval(poll, 80);
+mechanism.addEventListener("toggle", () => { lastDrumTick = -1; });
 poll();

@@ -367,13 +367,16 @@ module intel_4004 (
                 {cy, acc} <= acc + 4'hf;
               end
               4'h9: begin  // TCS
-                acc <= cy ? 4'h9 : 4'ha;
+                // Independent oracle: MAME mcs40.cpp TCS, ACC = 9 + CY.
+                acc <= cy ? 4'ha : 4'h9;
                 cy  <= 1'b0;
               end
               4'ha: cy <= 1'b1;  // STC
               4'hb: begin  // DAA
                 if (cy || acc > 4'd9) begin
-                  {cy, acc} <= acc + 4'd6;
+                  // MAME DAA sets carry on overflow and otherwise retains it.
+                  acc <= acc + 4'd6;
+                  cy <= cy || acc > 4'd9;
                 end
               end
               4'hc: acc <= kbp_encode(acc);  // KBP

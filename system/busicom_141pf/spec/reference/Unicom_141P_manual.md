@@ -1,1016 +1,679 @@
-# Unicom 141 Series Calculator Operating Instructions
-
-> Source: `spec/reference/Unicom_141P_manual_text.pdf` — "Unicom 141 Series Calculator Operating Instructions"
-> (Unicom Systems, Inc., Cupertino, California). Covers the Unicom 141 series including the
-> Busicom 141-PF (Unicom was the US brand name for Busicom machines). Archived from
-> https://archive.org/details/Unicom141PManual.
->
-> Note: extracted from the PDF text layer (2026-05-20 Internet Archive OCR). Some symbols and
-> table cells are garbled in the source (e.g. print symbols in the operation examples). Section
-> headings and key-function descriptions are intact.
-
----
-
-1417 Series   Electronic    Operating
-              Printing      Instructions
-              Calculators     2
-
-
-
-
-UniCon
-
----
-
-CONTENTS
-
-1:      FOPEWOUG) «cis: scacrisgud.d: 8 eae   ae hs ina eee Banners “MRE gebeRa a 2
-2:      Specifications: s\2.n03.2 4-4 p estmatet b 4. SRG HS Bees ad uae     ee   3
-3       KReyboardichart®    sccr0.0.oscquiscd-s     etre aes weak do a pee & 4
-4.      Operatifig: Key: TURCHONS:    asus cciee aa accennere gw araraaeueve-e-e d)-syetane ew!    5
-5.      Changing recording paper roll   .. 2.2.2.0... 20000000  e ee eeee                          8
-6.      Changing print fibbON = secs       5s woke os eeatioe peemRexey                            9
-7,          Operation examples
-     SECTION     1.   Addition / subtraction ................-0.000.           10
-     SECTION     2.     MUltiplicationie« 2¢2-.ete       ta time a Ge Giads. 2 13
-     SECTION     3      DIVISION: «2.scnmecn dc rations Ve Rae aE MORES        16
-     SECTION     4.     Percentage calculation .............2.50000055 18
-     SECTION     5.     Mixed calculation      ©... 2... 6...  eee eee         19
-     SECTION     6      Percentage distribution       ..........-......0-- 20
-     SECTION     7.     Multiplication by constant with accumulation ....... 22
-     SECTION     8.     DiViGO: PORATION © 2.cseacienis ae:doi tudrssuynd myardeeamsapsuiahs
-                                                                                          ca 23
-     SECTION     9.     Invoice calculation 2. i 6.06 sede               cae          ans 24
-     SECTION    10.     Application of memory and accumulator               ......... 25
-     SECTION!   00:     ‘Square fOOT      cyo-< ob scesiidiey craysceuliere Hesaeenn die sie 26
-     SECTION    12.     Capacity of input buffer    ...¢..--.-.0.0        20 eeee                 29
-     SECTION    13.     Capacity of number entry       ..... e     Se ee ee ee                    29
-     SECTICGN   14.     Capacity in addition / subtraction ...............                        30
-     SECTION    15.     Capacity in multiplication     ................2..                        31
-     SECTION    16;     ‘CapacitVci dIVISION occ.c cece sstennas oc arevosore ee Sac              32
-
----
-
-FOREWORD
-
-UNICOMseries141 ElectronicPrinting Calculators are efficient,
-reliable, and easy to use. The highly versatile UNICOM
-  141    handles a wide range of applications at electronic
-speed, and provides a printed record with complete identifi-
-cation of each entry.
-It includes such features as: high speed printer, 14 digit
-Capacity, input buffer, sub total accumulator, main total
-accumulator, one memory, automatic constant calculation,
-automatic round-off, protective keyboard interlocks, and
-up to eight decimal places.
-The simplicity of operation enables anyone to master the
-UNICOM 141 in a few minutes. To add, subtract, multiply,
-or divide, you simply enter the amounts on the keyboard,
-and   depress    the,   function   keys   (+,   —,   x, +47)
-in the same sequence as in manual calculations. Be sure
-calculator is properly grounded.    Use an adapter   plug if
-needed. Air vents at the back of the machine should not
-be covered while the calculator is on.       UNICOM     141
-should not be placed in    intense direct sun light or near
-heating devices. When turned off, all figures are cleared,
-including   those    in memory.    UNICOM      141 Printing
-calculators are guaranteed forone full year.
+# Unicom 141 Series: Operating Instructions
+
+Source: [scanned manual](Unicom_141P_manual_text.pdf), Unicom Systems, Inc.,
+Cupertino, California 95014; [Internet Archive](https://archive.org/details/Unicom141PManual).
+
+This is a normalized Markdown extraction. The scan's operation tables have been
+visually checked; graphical keys have explicit names. The original text-layer
+extraction is preserved in [Unicom_141P_manual_ocr.md](Unicom_141P_manual_ocr.md),
+including all original prose and OCR errors. Photographs and their layout remain
+in the PDF. Printed page numbers are one less than PDF page numbers.
+
+All 42 numbered examples are machine-readable in
+[Unicom_141P_examples.json](Unicom_141P_examples.json). Expected values are decimal
+strings, preserving trailing zeros, print symbols, rounding marks and red ink.
+The tables below are regenerated from that file with `scripts/manual_markdown.py`.
+They are expected behavior from the manual, not a claim that the simulator passes.
+
+## Contents (printed page 1)
+
+| Topic | Printed page |
+|---|---:|
+| Foreword | 2 |
+| Specifications | 3 |
+| Keyboard | 4 |
+| Operating key functions | 5-7 |
+| Changing recording paper roll | 8 |
+| Changing print ribbon | 9 |
+| 1. Addition/subtraction | 10-12 |
+| 2. Multiplication | 13-15 |
+| 3. Division | 16-17 |
+| 4. Percentage calculation | 18 |
+| 5. Mixed calculation | 19 |
+| 6. Percentage distribution / reversed calculation | 20-21 |
+| 7. Constant calculation with accumulation | 22 |
+| 8. Divide proration | 23 |
+| 9. Invoice calculation | 24 |
+| 10. Application of memory and accumulator | 25 |
+| 11. Square root | 26-28 |
+| 12. Capacity of input buffer | 29 |
+| 13. Capacity of number entry | 29 |
+| 14. Capacity in addition/subtraction | 30 |
+| 15. Capacity in multiplication | 31 |
+| 16. Capacity in division | 32 |
+
+## Foreword (printed page 2)
+
+The 141 provides a printed record identifying each entry. Features include a
+high-speed printer, 14-digit capacity, an input buffer, subtotal and main-total
+accumulators, one memory, automatic constant calculation and rounding,
+keyboard interlocks, and up to eight decimal places. Square root is available
+only on the square-root model.
+
+The original manual instructs the operator to ground the machine, leave the rear
+vents uncovered, and avoid intense sunlight and nearby heaters. Switching power
+off clears all figures, including memory. It states a one-year guarantee.
+
+## Specifications (printed page 3)
+
+| Item | Specification |
+|---|---|
+| Readout | Printer; 14 digits plus decimal point and symbols |
+| Addition/subtraction | 0.45 seconds |
+| Multiplication | 1.1 seconds |
+| Division | 1.2 seconds |
+| Input buffer | 8 words |
+| Main element | MOS-LSI |
+| Guaranteed temperature | +32 F to +104 F |
+| Paper | 2-1/4 inches wide, 2-3/4 inches diameter |
+| Power | AC 115 V +/-10%, 20 W |
+| Dimensions | 8.3 inches W x 13.2 inches D x 5.1 inches H |
+| Weight | 13 pounds |
+
+Five working registers comprise one entry register, one subtotal register, one
+main-total register and two multiplication/division registers. There is also one
+memory. Multiplication/division produces its result in the entry register and
+does not affect either accumulator.
+
+## Keyboard and operating functions (printed pages 4-7)
+
+| Key / control | Function | Printed symbol |
+|---|---|---|
+| C | Clear working registers and overflow | C |
+| CE | Clear incorrect entry and overflow | none |
+| 0-9, 00 | Numeral entry | digits |
+| . | Decimal point | . |
+| SIGN | Enter negative factors | negative values print red |
+| - | Subtract from subtotal and main total | - |
+| + | Add to subtotal and main total | + |
+| / | Divide; chain division; keep second factor as constant divisor | divide |
+| * | Multiply; chain multiplication; keep first factor as constant multiplicand | multiply |
+| = | After + or -, print and clear main total; after multiply/divide, calculate and print result | = and/or total star |
+| ST (diamond) | Print and clear subtotal after + or -; print a reference/date after numeral entry; print intermediate chain results | diamond or # |
+| EX | Exchange multiplier/multiplicand or divisor/dividend | Ex |
+| % | Percentage calculation | % and total star |
+| CM | Print and clear memory | CM |
+| RM | Recall and print memory without clearing | RM |
+| M- | Subtract from memory | M- |
+| M+ | Add to memory | M+ |
+| M=- | Calculate product/quotient and subtract from memory | = then M- |
+| M=+ | Calculate product/quotient and add to memory | = then M+ |
+| SQRT | Square-root model only (examples 11-1 through 11-3) | root symbol |
+| Decimal selector | 0, 1, 2, 3, 4, 5, 6, 8 places; no 7 position | - |
+| Round switch | IN = truncate; FL = float; 5/4 = round | rounded-up arrow when applicable |
+| Overflow lamp | Result exceeds capacity | - |
+| Negative lamp | Entry/result is negative | - |
+| Memory lamp | Amount is registered in memory | - |
+| Paper feed | Advance paper tape | - |
+| Power switch | Power on/off | - |
+
+## Changing recording paper roll (printed page 8)
+
+A red section indicates a low paper supply. Use standard tape 2-1/4 inches wide
+and 2-3/4 inches in diameter.
+
+1. Lift the back of the printing-section cover and remove it (figure 1).
+2. Lift the paper guide; feed tape between the chrome plate and guide while pressing paper feed.
+3. Insert tape into the guide slit while pressing paper feed (figure 2).
+4. Press the guide until it clicks, tear off excess paper, and replace the cover (figure 3).
+
+## Changing print ribbon (printed page 9)
+
+Replace after 5-6 paper rolls. The specified nylon ribbon is 0.5 inches wide and
+24 inches long (as printed).
+
+1. Lift the back of the printing-section cover and remove it (figure 1).
+2. Press the check lever behind each spool and pull the spools up (figure 2).
+3. Insert supply and take-up spools, black half up, snapped onto the advance catches.
+   Spring tension should hold the check levers against the ribbon (figure 3).
+4. Replace the cover (figure 4).
+
+## Notes accompanying the examples
+
+- **Addition/subtraction (pages 10-12):** Set DP for the maximum entered decimal
+  places. Press + or - after each amount. Repeat an amount by pressing the same
+  operation key again. Addition/subtraction is independent of the round switch.
+  The total key prints the answer and clears both accumulators. Example 1-2
+  changes DP before totaling to round the result. Negative answers print red.
+  ST clears only the subtotal; ST after number entry prints a reference number.
+- **Multiplication (pages 13-15):** Fixed results use DP when rounding/truncating;
+  FL uses the arithmetic decimal position. Intermediate chain products/quotients
+  use floating precision. ST prints intermediate results. Multiplicands persist
+  for constant calculations; EX changes which operand is held. Repeated = raises
+  powers. Another multiply/divide key corrects the chosen operation.
+- **Division (pages 16-17):** Enter chain operations in order. The divisor persists
+  for repeated division. To retain a constant dividend, store it in memory and
+  use RM and / before each new divisor. CM clears memory.
+- **Percentage (page 18):** Multiplication by 2% acts as multiplication by .02.
+  Percentage division scales the quotient to a percentage.
+- **Mixed calculation (page 19):** Multiply/divide after addition/subtraction reads
+  and clears main total and starts the requested operation. The formula in 5-1
+  is `((1.5+129.05-11.08)*12.4/.55)/((12.96-3.56)*.87) = 329.36`.
+- **Distribution (pages 20-21):** Add percentage results to the accumulator to prove
+  100%. Products can also accumulate without using memory. Example 6-2 evaluates
+  `3/((1.23*4)+(5.67*8))`, truncated to .05.
+- **Constant accumulation (page 22):** M=+ and M=- accumulate products/quotients in
+  memory. The negative term printed in the 7-1 formula denotes subtraction from
+  memory; it does not mean entering a negative multiplier.
+- **Proration (page 23):** The intermediate quotient becomes the constant
+  multiplicand. M=+ accumulates the distributed amounts; CM checks their sum.
+- **Invoice (page 24):** Items total 68.94; 10% discount is 6.89; discounted amount
+  62.05; 5% tax 3.10; transport 2.50; final amount 67.65.
+- **Memory and accumulator (page 25):** Quantities 10,20,15 total 45; corresponding
+  products 23.80,27.60,54.75 total 106.15; average is 2.35 with truncation.
+- **Square root (pages 26-28):** Square-root model only. Population deviation is
+  `sqrt((n*sum(x*x)-sum(x)^2)/(n*n))`; values 2,3,4,5,6 give 1.414214.
+  Pythagoras with sides 12 and 8 gives `sqrt(208) = 14.422205`.
+
+## Capacity of input buffer and number entry (printed page 29, sections 12-13)
+
+The eight-word input buffer scans the keyboard 40 times per second while
+calculating or printing. Buffered functions execute sequentially when the prior
+calculation completes. Number entry allows 14 digits plus decimal point and sign.
+These sections contain no numbered worked example. Serial JSON replays exercise
+arithmetic examples; they do not by themselves verify the buffer's timing/capacity.
+
+## Capacity rules (printed pages 30-32, sections 14-16)
+
+Accumulators and memory allow 14 digits plus decimal point and sign. Addition
+and subtraction first align the entry to DP. On accumulator overflow, `CE + =`
+recovers the old figure, demonstrated in 14-3.
+
+Floating products and quotients, including intermediate fixed-mode calculations,
+cannot exceed 14 integer digits. The constant operand is retained. For final
+fixed-mode products/quotients, integer digits cannot exceed `14 - DP`. Overflow
+prints a dotted line. Expected overflow is a tested outcome, not a failed example.
+
+The scan appears to omit one zero from the formula for 15-3; its DP=8 tape table
+and 14-digit description agree on `123456.00000000`, used below. Some print glyphs
+are faint; explicit key names follow the control definitions and printed tape.
+
+## Memo and back cover (printed page 33 and unnumbered back cover)
+
+The memo page is blank. The back cover identifies Unicom Systems, Inc., Cupertino,
+California 95014.
+
+<!-- EXAMPLES: generated by scripts/manual_markdown.py -->
+
+## Operation examples (printed pages 10-32)
+
+Each table preserves the key order. Numeric entries are shown as individual keys.
+Expected output lists the checked suffix at that step; a dash means no checkpoint,
+not necessarily no printing. `*op` means multiplication, `*` means total,
+`ST` means diamond/subtotal, `EX` means exchange, and `SQRT` means square root.
+The JSON also contains independent setup keys (`CE C CM C`) to isolate replays.
+These setup keys are not part of the manual examples.
+
+### 1-1: Addition, subtraction and repeated addition
+
+Printed page 10; PDF page 11. DP=3; IN (truncate).
+
+| Operation | Expected printed output / lamps |
+|---|---|
+| `1 2 . 3 4 +` | 12.340 + |
+| `3 4 . 5 6 -` | 34.560 - |
+| `5 6 . 7 8 9 +` | 56.789 + |
+| `+` | 56.789 + |
+| `. 1 2 3 +` | 0.123 + |
+| `=` | 91.481 * |
+
+### 1-2: Change decimal selector before totaling
+
+Printed page 11; PDF page 12. DP=2; 5/4 (round).
+
+| Operation | Expected printed output / lamps |
+|---|---|
+| `1 . 2 3 +` | 1.23 + |
+| `4 . 5 6 +` | 4.56 + |
+| `Set precision=1` | - |
+| `=` | 5.8 * (rounded up mark) |
+
+### 1-3: Credit balance printed in red
+
+Printed page 11; PDF page 12. DP=3; IN (truncate).
+
+| Operation | Expected printed output / lamps |
+|---|---|
+| `1 5 . 3 +` | 15.300 + |
+| `5 6 . 7 8 9 -` | 56.789 - |
+| `3 . 4 5 6 +` | 3.456 + |
+| `=` | 38.033 * (red) |
+
+### 1-4: Subtotals, grand total and non-add printing
+
+Printed page 12; PDF page 13. DP=2; IN (truncate).
+
+| Operation | Expected printed output / lamps |
+|---|---|
+| `1 ST` | 1 # |
+| `1 +` | 1.00 + |
+| `2 +` | 2.00 + |
+| `3 +` | 3.00 + |
+| `ST` | 6.00 ST |
+| `2 ST` | 2 # |
+| `4 +` | 4.00 + |
+| `5 +` | 5.00 + |
+| `6 +` | 6.00 + |
+| `ST` | 15.00 ST |
+| `3 ST` | 3 # |
+| `7 +` | 7.00 + |
+| `8 +` | 8.00 + |
+| `9 +` | 9.00 + |
+| `ST` | 24.00 ST |
+| `=` | 45.00 * |
+
+### 2-1: Multiplication: FL
+
+Printed page 13; PDF page 14. DP=2; FL (floating).
+
+| Operation | Expected printed output / lamps |
+|---|---|
+| `1 2 . 3 *` | 12.3 *op |
+| `4 . 5 6 =` | 4.56 =; 56.088 * |
+
+### 2-2: Multiplication: 5/4
+
+Printed page 13; PDF page 14. DP=2; 5/4 (round).
+
+| Operation | Expected printed output / lamps |
+|---|---|
+| `1 2 . 3 *` | 12.3 *op |
+| `4 . 5 6 =` | 4.56 =; 56.09 * (rounded up mark) |
+
+### 2-3: Multiplication: IN
+
+Printed page 13; PDF page 14. DP=2; IN (truncate).
+
+| Operation | Expected printed output / lamps |
+|---|---|
+| `1 2 . 3 *` | 12.3 *op |
+| `4 . 5 6 =` | 4.56 =; 56.08 * |
+
+### 2-4: Chain multiplication and intermediate print
+
+Printed page 13; PDF page 14. DP=2; FL (floating).
+
+| Operation | Expected printed output / lamps |
+|---|---|
+| `1 2 . 3 *` | - |
+| `4 . 5 6 *` | - |
+| `ST` | 56.088 ST |
+| `. 7 8 9 =` | 0.789 =; 44.253432 * |
+
+### 2-5: Constant multiplicand
+
+Printed page 14; PDF page 15. DP=2; FL (floating).
+
+| Operation | Expected printed output / lamps |
+|---|---|
+| `3 6 1 . 5 2 *` | - |
+| `1 2 0 =` | 120 =; 43382.40 * |
+| `1 1 8 . 6 =` | 118.6 =; 42876.272 * |
+| `9 8 . 4 =` | 98.4 =; 35573.568 * |
+
+### 2-6: Constant multiplier using exchange
+
+Printed page 14; PDF page 15. DP=2; FL (floating).
+
+| Operation | Expected printed output / lamps |
+|---|---|
+| `1 . 2 5 *` | - |
+| `1 2 EX` | 12 EX |
+| `=` | 1.25 =; 15.00 * |
+| `3 . 5 0 =` | 3.50 =; 42.00 * |
+| `1 . 9 9 =` | 1.99 =; 23.88 * |
+
+### 2-7: Raising five to the fourth power
+
+Printed page 15; PDF page 16. DP=0; FL (floating).
+
+| Operation | Expected printed output / lamps |
+|---|---|
+| `5 *` | - |
+| `=` | 5 =; 25 * |
+| `=` | 25 =; 125 * |
+| `=` | 125 =; 625 * |
+
+### 2-8: Correct function order
+
+Printed page 15; PDF page 16. DP=2; FL (floating).
+
+| Operation | Expected printed output / lamps |
+|---|---|
+| `1 2 . 3 / * / *` | - |
+| `4 . 5 6 =` | 4.56 =; 56.088 * |
 
+### 3-1: Division: FL
 
-* Square root model only.
+Printed page 16; PDF page 17. DP=2; FL (floating).
 
----
+| Operation | Expected printed output / lamps |
+|---|---|
+| `4 0 /` | - |
+| `6 =` | 6 =; 6.6666666666666 * |
+
+**Editorial note (recovered ROM):** The scan prints one additional fractional digit; independent recovered-ROM execution prints 6.666666666666.
+
+### 3-2: Division: 5/4
+
+Printed page 16; PDF page 17. DP=2; 5/4 (round).
+
+| Operation | Expected printed output / lamps |
+|---|---|
+| `4 0 /` | - |
+| `6 =` | 6 =; 6.67 * (rounded up mark) |
+
+### 3-3: Division: IN
+
+Printed page 16; PDF page 17. DP=2; IN (truncate).
+
+| Operation | Expected printed output / lamps |
+|---|---|
+| `4 0 /` | - |
+| `6 =` | 6 =; 6.66 * |
+
+### 3-4: Chain division
+
+Printed page 16; PDF page 17. DP=2; FL (floating).
+
+| Operation | Expected printed output / lamps |
+|---|---|
+| `1 2 3 / 6 /` | - |
+| `. 7 8 9 =` | 0.789 =; 25.98225602027 * |
+
+### 3-5: Constant divisor
+
+Printed page 17; PDF page 18. DP=2; 5/4 (round).
+
+| Operation | Expected printed output / lamps |
+|---|---|
+| `4 5 7 8 /` | - |
+| `3 6 0 =` | 360 =; 12.72 * (rounded up mark) |
+| `2 9 0 2 =` | 2902 =; 8.06 * |
+| `8 7 1 6 =` | 8716 =; 24.21 * |
+
+### 3-6: Constant dividend using memory
+
+Printed page 17; PDF page 18. DP=2; 5/4 (round).
+
+| Operation | Expected printed output / lamps |
+|---|---|
+| `1 2 3 . 4 5 M+` | memory lamp: on |
+| `/` | - |
+| `3 6 . 9 =` | 36.9 =; 3.35 * (rounded up mark) |
+| `RM` | 123.45 RM |
+| `/` | - |
+| `2 8 . 4 =` | 28.4 =; 4.35 * (rounded up mark) |
+| `RM` | 123.45 RM |
+| `/` | - |
+| `3 1 . 5 5 =` | 31.55 =; 3.91 * |
+
+### 4-1: Percentage multiplication
+
+Printed page 18; PDF page 19. DP=2; FL (floating).
+
+| Operation | Expected printed output / lamps |
+|---|---|
+| `1 2 3 4 5 *` | - |
+| `2 %` | 2 %; 246.90 * |
+
+### 4-2: Percentage division
+
+Printed page 18; PDF page 19. DP=2; FL (floating).
+
+| Operation | Expected printed output / lamps |
+|---|---|
+| `2 /` | - |
+| `3 %` | 3 %; 66.66666666666 * |
+
+### 5-1: Mixed calculation with separately formed denominator
+
+Printed page 19; PDF page 20. DP=2; 5/4 (round).
+
+| Operation | Expected printed output / lamps |
+|---|---|
+| `C 1 . 5 + 1 2 9 . 0 5 + 1 1 . 0 8 - *` | 119.47 *op |
+| `1 2 . 4 / . 5 5 / 1 2 . 9 6 + 3 . 5 6 -` | - |
+| `=` | 9.40 * |
+| `/ 0 . 8 7 =` | 0.87 =; 329.36 * |
+
+**Editorial note (recovered ROM):** The scan omits the rounding-up mark; the independent emulator prints it with 329.36.
+
+### 6-1: Percentage distribution with 100 percent proof
+
+Printed page 20; PDF page 21. DP=2; 5/4 (round).
+
+| Operation | Expected printed output / lamps |
+|---|---|
+| `C 1 2 3 / 1 2 3 + 4 5 6 + 7 8 9 +` | - |
+| `=` | 1368.00 * |
+| `%` | 1368.00 %; 8.99 * |
+| `+` | 8.99 + |
+| `4 5 6 %` | 456 %; 33.33 * |
+| `+` | 33.33 + |
+| `7 8 9 %` | 789 %; 57.68 * (rounded up mark) |
+| `+` | 57.68 + |
+| `=` | 100.00 * |
 
-SPECIFICATIONS
-ee               a
-Read Out Printer
-                                           Capacity                           14 digits   plus decimal point and symbols
+### 6-2: Reversed calculation
 
-Operation speed                            Addition (Subtraction)              0.45 sec
-                                           Multiplication                      1.1 sec
-                                           Division                            1.2 sec
+Printed page 21; PDF page 22. DP=2; IN (truncate).
 
-Capacity of Input Buffer                                                       8 words
-Main Element                               MOS-—LSI
-Operating Temperature Guaranteed       — (+32°F) to (+104°F)
-Paper                                      Width 2-1/4", Diameter 2-3/4”
-Power Source                               AC 115V +10%
-Power Requirement                          20 watt
-Dimension                                   8.3" (W) x 13.2” (D) x 5.1” (H)
-Weight                                      13 pounds
+| Operation | Expected printed output / lamps |
+|---|---|
+| `C 1 . 2 3 * 4 =` | 4 =; 4.92 * |
+| `+ 5 . 6 7 * 8 =` | 8 =; 45.36 * |
+| `+ /` | 50.28 / |
+| `3 EX` | 3 EX |
+| `=` | 50.28 =; 0.05 * |
+
+### 7-1: Constant multiplication with memory accumulation
+
+Printed page 22; PDF page 23. DP=2; 5/4 (round).
+
+| Operation | Expected printed output / lamps |
+|---|---|
+| `CM 1 2 3 . 4 5 *` | - |
+| `2 3 . 4 M=+` | 23.4 =; 2888.73 M+ |
+| `4 2 . 6 M=-` | 42.6 =; 5258.97 M- |
+| `5 1 M=+` | 51 =; 6295.95 M+ |
+| `CM` | 3925.71 CM; memory lamp: off |
 
-UNICOM      141   contains   5   working    registers   and   1
-memory.
-       5 working registers;
-          1 Entry register.
-          1 Sub total register.
-          1 Main total register.
-          2 Multiplication—division registers.
- In multiplication     (also division), the product (also
- quotient) is produced in the entry register and the both
- accumulators are unaffected.
+### 7-2: Constant division with memory accumulation
+
+Printed page 22; PDF page 23. DP=2; 5/4 (round).
+
+| Operation | Expected printed output / lamps |
+|---|---|
+| `CM 4 5 7 8 /` | - |
+| `3 6 0 M=+` | 360 =; 12.72 M+ (rounded up mark) |
+| `2 9 0 2 M=+` | 2902 =; 8.06 M+ |
+| `8 7 1 6 M=-` | 8716 =; 24.21 M- |
+| `CM` | 3.43 CM (red); memory lamp: off |
 
----
+### 8-1: Divide proration
 
-KEYBOARD
+Printed page 23; PDF page 24. DP=0; 5/4 (round).
 
-                  Paper feed button                      Overflow lamp
-                             Round off switch            Negative lamp
-                 i Decimal
-                    =             selector               a        =
+| Operation | Expected printed output / lamps |
+|---|---|
+| `CM C 1 2 3 4 5 6 7 8 9 / 1 2 3 + 4 5 6 + 7 8 9 +` | - |
+| `=` | 1368 * |
+| `* 1 2 3 M=+` | 123 =; 11100281 M+ |
+| `4 5 6 M=+` | 456 =; 41152263 M+ (rounded up mark) |
+| `7 8 9 M=+` | 789 =; 71204245 M+ (rounded up mark) |
+| `CM` | 123456789 CM |
 
+### 9-1: Invoice, discount, sales tax and transport
 
-                o      01234568               INFLS4   a       2                 Power switch
+Printed page 24; PDF page 25. DP=2; 5/4 (round).
 
+| Operation | Expected printed output / lamps |
+|---|---|
+| `CM 1 1 * 1 . 2 3 M=+` | 1.23 =; 13.53 M+ |
+| `1 2 * 4 . 1 1 M=+` | 4.11 =; 49.32 M+ |
+| `3 * 2 . 0 3 M=+` | 2.03 =; 6.09 M+ |
+| `RM` | 68.94 RM |
+| `* 1 0 %` | 10 %; 6.89 * |
+| `M- RM` | 62.05 RM |
+| `* 5 %` | 5 %; 3.10 * |
+| `M+ 2 . 5 0 M+ CM` | 67.65 CM |
 
+### 10-1: Amount sold and average price
 
-                                                                             +——Clear memory key
-                                                                             +—— Percentage key
-                                                                                 Recall memory key
-                                                                             +——-Memory equals subtraction key
-                                                                             t——Memory subtraction key
-                                                                                 Memory equals addition key
-                                                                             t—— Memory   addition key,
+Printed page 25; PDF page 26. DP=2; IN (truncate).
 
+| Operation | Expected printed output / lamps |
+|---|---|
+| `CM C 1 0 M+ * 2 . 3 8 =` | 2.38 =; 23.80 * |
+| `+ 2 0 M+ * 1 . 3 8 =` | 1.38 =; 27.60 * |
+| `+ 1 5 M+ * 3 . 6 5 =` | 3.65 =; 54.75 * |
+| `+ /` | 106.15 / |
+| `CM` | 45.00 CM |
+| `=` | 45.00 =; 2.35 * |
 
+### 11-1: Square root
 
+Printed page 26; PDF page 27. DP=2; FL (floating).
 
-                    Numeral       Decimal                ‘Sub total key
-                    keys          point key                Division key
-                Clear entry key                        ‘Multiplication key
-                Clear key                                  Equals key
-            "—— Exchange key                               Addition key
-           ——— Minus sign key                              Subtraction key
+Square-root model only.
 
----
+| Operation | Expected printed output / lamps |
+|---|---|
+| `1 5 2 4 1 7 5 4 3 . 0 6 2 5 SQRT` | 152417543.0625 SQRT; 12345.73 * |
 
-OPERATING          KEY    FUNCTIONS
+**Editorial note (recovered ROM):** The scan prints 12345.73 with a total star. The exact square root is 12345.75; both independent emulator and RTL print 12345.750000000 with the square-root symbol.
 
-               i                                                                                                                  Fi
-     Key                  Name                                             Explanation                                          Print Symbol
-     @             Clear key            For clearing out working registers and overflow.                                               c
-                   Clearentry key       For clearing out incorrect entry and overflow.
+### 11-2: Population standard deviation of 2,3,4,5,6
 
- (0) ~ (9)69       Numeral keys
+Printed page 26; PDF page 27. DP=6; 5/4 (round).
 
-     ic            Decimal point key
+Square-root model only.
 
-     ie)           Minus sign key       For entering negative factors.
+Continues on printed page 27 (PDF page 28).
 
-     |             Subtraction key      To subtract from sub/main total accumulators.                                                  7
+| Operation | Expected printed output / lamps |
+|---|---|
+| `2 M+ * =` | 2.000000 =; 4.000000 * |
+| `+` | - |
+| `3 M+ * =` | 3.000000 =; 9.000000 * |
+| `+` | - |
+| `4 M+ * =` | 4.000000 =; 16.000000 * |
+| `+` | - |
+| `5 M+ * =` | 5.000000 =; 25.000000 * |
+| `+` | - |
+| `6 M+ * =` | 6.000000 =; 36.000000 * |
+| `+` | - |
+| `* 5 =` | 5 =; 450.000000 * |
+| `+ CM * =` | 20.000000 =; 400.000000 * |
+| `- / 5 =` | 5 =; 10.000000 * |
+| `=` | 10.000000 =; 2.000000 * |
+| `SQRT` | 2.000000 SQRT; 1.414214 * |
 
-     (ca           Addition key         To add to sub/main total accumulators.                                                         Si
+**Editorial note (recovered ROM):** Independent recovered-ROM execution prints the square-root symbol on the answer instead of the scanned total star.
 
-     8             Division key         To set divide  mode,perform        chain division    and   establish   2nd factor              =
-                                        as constant divisor.
-                   Multiplication key   To set multiply mode, perform chain              multiplication     and   establish            as
-                                        Ist factor as constant multiplicand.
-     8             Equals key           For printing and clearing main total accumulator            after the touch        of          =
-                                        addition   or subtraction   key.                                                                    *
+### 11-3: Pythagorean theorem: sides 12 and 8
 
-                                        For calculating and printing       product or quotient      in    multiplication
-                                        or division.
+Printed page 28; PDF page 29. DP=6; 5/4 (round).
 
----
+Square-root model only.
 
-Key         Name                                               Explanation                                       Print Symbol
+| Operation | Expected printed output / lamps |
+|---|---|
+| `C CM 1 2 * M=+` | 144.000000 M+ |
+| `8 * M=+` | 8 =; 64.000000 M+ |
+| `CM` | 208.000000 CM |
+| `SQRT` | 208.000000 SQRT; 14.422205 * |
 
-      Sub total key         For printing and clearing sub total accumulator            after the touch   of           °
-                            addition    or subtraction key.
-                            For printing dates or reference numbers after the touch of numeral key.                        #
-                            For printing intermediate results in chain calculations.                                  o
+**Editorial note (recovered ROM):** Independent recovered-ROM execution prints the square-root symbol on the answer instead of the scanned total star.
 
-&)    Exchange key          For   exchanging    contents     of multiplier and multiplicand      (divisor and              Ex
-                            dividend)
+### 14-1: Fourteen digit addition capacity
 
-@     Percentage key        For percentage calculations.                                                              %
-                                                                                                                           *
-a)    Clear memory key      For printing    and clearing memory.                                                     CM
+Printed page 30; PDF page 31. DP=6; IN (truncate).
 
-fa    Recall memory key     To recall   and print     (but not clear) memory.                                         RM
+| Operation | Expected printed output / lamps |
+|---|---|
+| `1 2 3 4 5 6 7 8 +` | 12345678.000000 +; overflow lamp: off |
 
-te]   Memory subtraction    To subtract from memory.                                                                  M
-      key
+### 14-2: Entry alignment overflows addition capacity
 
-                      eas                                                                                             M
-®)    Memory addition       To add to memory.                                                                         a
-      key
+Printed page 30; PDF page 31. DP=6; IN (truncate).
 
-®     Memory equals         For   calculating   and     printing   product   or   quotient   and automatically         =
-      subtraction key       subtracting from memory.                                                                       M
+| Operation | Expected printed output / lamps |
+|---|---|
+| `1 2 3 4 5 6 7 8 9 +` | dotted overflow line; overflow lamp: on |
 
----
+### 14-3: Addition overflow and recovery
 
-Key          Name                                               Explanation                                         [PrineSymbol
-      -——
-w       Memory equals            For calculating   and   printing   product   or   quotient   and   automatically         =
-       addition key              adding to memory.                                                                            Mm
+Printed page 30; PDF page 31. DP=8; IN (truncate).
 
+| Operation | Expected printed output / lamps |
+|---|---|
+| `9 0 0 0 0 0 +` | 900000.00000000 + |
+| `1 0 0 0 0 0 +` | 100000.00000000 +; dotted overflow line; overflow lamp: on |
+| `CE +` | 0.00000000 +; overflow lamp: off |
+| `=` | 900000.00000000 * |
 
-       Decimal point selector: For setting position of decimal point (0, 1, 2, 3, 4, 5, 6, 8)
-       Round switch           : For-floating, rounding or truncating.
-       Overflow lamp          : Turns on when the results exceed the capacity.
-       Negative lamp          : Turns on when the entry or result is negative.
-       Memory lamp            : Turns on when amount is registered in memory.
-       Paper feed button      : For advancing the paper tape.
-       Power switch           : For power on/off.
+### 15-1: Capacity: within limit
 
----
+Printed page 31; PDF page 32. DP=0; FL (floating).
 
-CHANGING RECORDING PAPER ROLL
+| Operation | Expected printed output / lamps |
+|---|---|
+| `1 2 3 4 5 6 7 8 9 * 1 0 0 0 0 0 =` | 12345678900000 *; overflow lamp: off |
 
-Appearance of a red paper section indicates the paper supply is running short. Standard   tape   2-1/4”
-in width (2-3/4” in diameter) should be used as replacement.
-Method of changing :
+### 15-2: Capacity: overflow
 
- 1:    Remove the printing section cover by lifting the back of the cover. (Fig. 1)
- 2.    Lift paper guide and feed paper tape between chrome plate and paper guide, depressing the paper feed
-       button.
-       Insert paper into the paper guide slit, depressing the paper feed button. (Fig. 2)
- 4.    Press down on paper guide until it clicks into place, tear off excess paper, and replace printing section
-       cover. (Fig. 3)
+Printed page 31; PDF page 32. DP=0; FL (floating).
 
----
+| Operation | Expected printed output / lamps |
+|---|---|
+| `1 2 3 4 5 6 7 8 9 * 1 0 0 0 0 0 0 =` | dotted overflow line; overflow lamp: on |
 
-CHANGING       PRINT RIBBON
-The ribbon should be replaced after use of 5 ~ 6 rolls of tape. We recommend   the following nylon ribbon.
-                Width   0,5”   ,    length   24”
+### 15-3: Capacity: within limit
 
-Changing the ribbon is performed as follows,
+Printed page 31; PDF page 32. DP=8; 5/4 (round).
 
- 1)    Remove the printing section cover by lifting the back of the cover. (Fig.1)
- 2)    Press tha check lever on the back side of each spool, and pull the spools upwards. (Fig.2)
- 3)    Insert new ribbon supply and take-up spools with black half up, making sure both spools are snapped
-       onto advance mechanism catches. Check levers should be held against ribbon by spring tension. (Fig. 3)
- 4)    Replace the cover. (Fig. 4)
+| Operation | Expected printed output / lamps |
+|---|---|
+| `1 2 3 4 5 6 * 1 =` | 123456.00000000 *; overflow lamp: off |
 
-                                   -—
+### 15-4: Capacity: overflow
 
+Printed page 31; PDF page 32. DP=8; 5/4 (round).
 
+| Operation | Expected printed output / lamps |
+|---|---|
+| `1 2 3 4 5 6 7 * 1 =` | dotted overflow line; overflow lamp: on |
 
+### 16-1: Capacity: within limit
 
-                                                                                                                Fig. 4
+Printed page 32; PDF page 33. DP=0; FL (floating).
 
----
+| Operation | Expected printed output / lamps |
+|---|---|
+| `4 0 0 0 0 0 0 / 0 . 0 0 0 0 0 0 3 =` | 13333333333333 *; overflow lamp: off |
 
-OPERATION       EXAMPLES
-1. ADDITION      / SUBTRACTION
+### 16-2: Capacity: overflow
 
-I-11
-                                                                Operation           Printed tape
-  12.34— 34.56 +56.789+56.789+0.                123
-                                                              DP=3      iN
- =91.   481
-                                                                      12.34   ®          12.340     +
-  Determine the maximum number of decimals to be
-  entered and set decimal point selector to that position.            34.56   8             -560    —
-                                                                     56.789             56.789      +
-  To add, enter the amount on the keyboard and press
-                                                                              cs)            789    +
-  the      key. The adjustment of the decimal point is
-  automatically processed according to D.P. Selector. Addi-            123    @               123   +
-  tion and Subtraction are independent from          Round                    8         91.481
-  off switch.
+Printed page 32; PDF page 33. DP=0; FL (floating).
 
-  To subtract ,enter the amount on the key board and press
-  the   key.
+| Operation | Expected printed output / lamps |
+|---|---|
+| `4 0 0 0 0 0 0 0 / 0 . 0 0 0 0 0 0 3 =` | dotted overflow line; overflow lamp: on |
 
-To repeat, simply depress the previous key without      re-
- entering it on the keyboard.
+### 16-3: Capacity: within limit
 
+Printed page 32; PDF page 33. DP=8; IN (truncate).
 
-  When the problem is completed, press the &) key to
-  print answer on the tape. Pressing &) key clears the
-  sub/main total accumulators.
+| Operation | Expected printed output / lamps |
+|---|---|
+| `4 0 0 0 0 0 / 3 =` | 133333.33333333 *; overflow lamp: off |
 
+### 16-4: Capacity: overflow
 
+Printed page 32; PDF page 33. DP=8; IN (truncate).
 
-
-                                                                                                        10
-
----
-
-en
-I-2
-                                                                                 Operation        Printed tape
-     1.23+4.56=5.79
-                                                                     (i=2   DP=2        54
-     When necessary to obtain a result            rounded    to 1
-     decimal , at first, set the decimal         point    selector                     1.23 @              1323   “F
-     at more   than   1 (for example DP=2). After the touch                           4.56   &)           4.56    +
-     of last subtraction or addition key, re-set the decimal                DP=!        aa
-     point selector to 1’ and depress the ©            key.
-                                                                            bs               8              5.8   7%
-
-%
-     When   the result is rounded   , the   following symbol will           OP=3        WN
-     be printed out: “7”.
-                                                                                       15.3 &          15.300     +
-Credit Balance                                                                     56.789    ©         56.789     —
-
-I-—3                                                                                 3.456               3.456    +
-    15.3—56. 789+3. 456=—38.033                                                              8         38.033          x   red
-    Negative answers print in red.
-
-
-
-
-mt
-
----
-
-Sub/main     total accumulator          and non-add        printing
-                                                                                   Operation             Printed tape
-\-4          pDP=2            WN
-                                                                              DP=2       N
-         1+2+3=           6
-                                                                              *                !                        |        #
-         4+5+6=15
-                                                                                               '@                L300)      “4
-         7+8+9=24
-                                                                                               26                2:00)      +b
-                         45
-                                                                                               38                3.00       +
-     The UNICOM 141 contains two accumulators.          The
-                                                                                                   8             6.00       ©
-     one is used as the sub total accumulator, the other is
-     used as the main total accumulator.                                      K                20a                      2        #
-                                                                                               4a               4.00        +
-     When    the problem           is completed,   press     the &) key to
-                                                                                               54                5.00       +
-     print   the   sub        total    accumulator    on        the   tape.
-     Pressing   the       ()       key clears   out the    sub -total                          6                6.00        +
-     accumulator.        The        main  total  accumulator is un-                                iS)         15.00        ©
-     affected.                                                                cg               38                       3        #
- *
-     Pressing the © key after the touch of numeral                      key
-                                                                                               7a               7.00        +
-     prints the dates or reference numbers on the                     tape.                    8a               8.00        +
-                                                                                               98                9.00       +
-                                                                                                               24.00        ©
-                                                                                                   =)          45.00             *
-
-
-
-
-                                                                                                                                     12
-
----
-
-2.        MULTIPLICATION
-
-2             Feb
-                                                                             Operation        Printed tape
-           12.34.56=56.088
-                                                                                    FL
-22            DP=2          54                                                    12.3 &              12.3   x
-           12.3x4.56=56.09
-                                                                                  4.568              4.56    =
-2-3           DP=2          IN                                                                     56.088         *
-           12.3x4.56=56.08
-     D.P. of product (also quotient) is set at the place                 DP=2       54
-     designated by D.P. Selector if Round Switch is 5/4                           12.3 &)             12.3   X
-     or IN, otherwise, D.P. is automatically set at the
-                                                                                  4.568               4.56   =
-     arithmetic position.
-                                                                                                    56.09    7x
-     When the product     quotient is rounded, the following
-     symbol will be printed: “7”.
-                                                                         op=2      WN
-Chain multiplication                                                              12.3%)              2.3    -X
-2=4,       FL                                                                     4.568              4.56    =
-            12.34.56
-               <0. 789=44. 253432                                                                   56.08
-     In    multiplication        (also division), D.P. of intermediate
-     product (also quotient) is automatically set when in float                      FL
-     position regardless   of the setting of D.P. selector.                       12.3 &              253!
-     In continuous multiplication, simply enter the problem
-                                                                                  4.56                4.56   x
-     as it is written.
-                                                                         %                       56.088      ©
- *The intermediate product (also quotient) can be printed
-   on the tape by depressing the key.
-                                                                                  -789    8       0.789      =
-                                                                                              44.253432           &
-
-
-13
-
----
-
-Multiplication with constant multiplicand
-                                                                                 Operation           Printed tape
-2-5                  FL
-                                                                                         FL
-            361.52        |120=43382.40                                            361.52                361.52     xX
-            361.52        118.6=42876.272                                               120 8               120     =
-            361.52         98.4=35573.568                                                             43382.40
-   After     completion         of     the   first    multiplication,      the
-  constant     multiplicand           (361.52)       is    retained   in   the       118.68               118.6     =
-   multiplication—division           register. Thereafter,      simply enter                         42876.272           x
-  the variable multipliers and depress the & key.
-                                                                                      98.48                 98.4    =
-Multiplication with constant multiplier                                                              35573.568
-2-6                       Fie
-               1.25*12=15.00                                                             FL
-                                                                                      1.25     &)            1.25   x
-               3.50       12=42.00
-                                                                                             12 &              12       Ex
-               1.99       12=23.88
-                                                                                                =)          1.25    =
-   Before     completion        of     the   first   multiplication,       the
-                                                                                                           15.00         x
-  multiplicand and          multiplier       must         be   exchanged   by
-  using the (& key.
-                                                                                      3.508                 3.50    =
-                                                                                                           42.00         *
-
-                                                                                      1.99 8                 1.99   =
-                                                                                                           23.88         *
-
-
-                                                                                                                             14
-
----
-
-Raising    to power
-                                                                             Operation   Printed tape
-
-2-7                         FL
-                       5*=625
-     Following   the entry , depress the 0) key. Then,      depress
-     the &) key once       and     the second   power   product   is
-     produced. The constant multiplicand (5) is still retained
-     in the multiplication — division   register. Thereafter,
-     depress the & key again and third power is produced,
-     and so forth.
-
-Correction of function order
-2-8                           FU
-                       12.3<4.56=56.088
-     After the touch of division (also multiplication) key, the        2-8
-     mode of operation can be corrected by depressing the
-      multiplication    (also division) key.
-
-
-
-
-                                                                                                 4.56
-                                                                                              56.088
-
-
-
-
-15
-
----
-
-3.     DIVISION
-eo
-3-1
-       Division with full floating decimal            quotient.                Operation              Printed   tape
-3-2
-                                                                                    FL
-       Division with quotient rounded          off.
-3-3                                                                                      40 8                     40
-       Division with quotient truncated.                                                  68                               =
-                                                                                                6.6666666666666
-
-                                                                            DP=2    54
-Chain division                                                                           40 8                     40
-3-4              FL
-                                                                                           68                       6      =
-          123+6+0.789=25.               98225602027                                                             6.67       7%
-      In continuous        division, simply   enter     the problem   the
-      same way        it is written.                                        DP=2   WN
-                                                                                         40 8                     40       >
-                                                                                           68                          é   =
-                                                                                                                6.66           *
-
-                                                                                   FL
-                                                                                        1238                     123       +
-                                                                                           68                      6+
-                                                                                    -789 8                0.789            =
-                                                                                                25.98225602027
-
-
-                                                                                                                                   16
-
----
-
-Division     by constant   divisor                                 Operation         Printed tape
-3-5                    DP=2           54
-                                                                DoP=2      sa
-              4578 +360=        12.72                                     4578 &             4578   +
-                                                                           360 &              360   =
-              2902+360=           8.06                                                      12.72   7%
-              8716+360=24.21
-                                                                          2902 &             2902   =
-     After    completion of the first division,   the divisor
-                                                                                             8.06       x
-     (360) is retained      in the multiplication — division
-     register. Thereafter, simply enter the variable dividend             8716   &          8716    =
-     and depress the &) key.                                                               24.21        *
-                                                                DP=2       4
-Division     by constant   dividend                                     123.45 &          123.45
-3-6                        DP=2       54                                       8          123.45    +
-                                                                          36.9 8            36.9    =
-               123.45+36.9=3.35                                                             3.35    7%
-               123.45+28.4=4.35
-               123.45+31.55=3.91
-                                                                                          123.45    RM
-                                                                              =           123.45    +
-     The constant is retained in the memory and is recalled               28.48             28.4    =
-     as a dividend by pressing the       and @ keys as                                      4.35    7%
-     indicated.
-                                                                                          123.45    RM
-     Note:     The memory indicator lights up when there are                  8           123.45    +
-               figures in the memory. To clear the memory,              31.558             31.55    =
-               press the G4 key.                                                            3.91        *
-
-
-17
-
----
-
-4.      PERCENTAGE              CALCULATION
-
-Percentage     multiplication
-                                                                     Operation         Printed tape
-4-1                 FL
-                                                                             FL
-           123452 (%) =246.90
-                                                                         12345    &W          12345        x
-     After completion of the multiplication, D.P. in product is
-     placed   as if .02 (2%)     had been entered.   The   (@% key               2@                   2%
-     speeds up entry of percentage factors.                                                 246.90             *
-
-Percentage division
-                                                                                 28                   2
-4-2                   Fils
-                                                                                 38                   3%
-              2+3=0.         6666666666666
-
-                                  g
-                     66.66666666666          %
-      After completion of the division, D.P. in quotient is placed
-      to be read as a percentage rather than a decimal.
-
-
-
-
-                                                                                                                   18
-
----
-
-5.      MIXED        CALCULATION
-
-5=
-                                                                          Operation          Printed    tape
-       (1.5+129.05—11.08) X12.4+0.55
-                                                  =329.36      5-1   DP=2        5a
-                 (12.96—3.56)    XO. 87
-     After completion of addition or subtraction, a touch of
-                                                                                       (C)                     oc
-     the (XJ (also ©) ) key reads and clears the main total                      1.58                   1.50        +
-     accumulator, at the same time, orders multiplication                                          129.05           +
-     or division .
-                                                                                                       11.08        —
-                                                                     *                             119.47           x
-                                                                               12.468                   2am         25
-                                                                                 -55   8               0.55         +
-                                                                              12.96    ®               12.96        +
-
-                                                                     KK        3.565                   3.56     —
-                                                                                       8               9.40
-
-                                                                                       S               9.40
-                                                                               0.878)                  0.87     =
-
-                                                                                                  329.36
-
-
-
-
-19
-
----
-
-6.      PERCENTAGE            DISTRIBUTION
-6-|             DP=2         5S@
-                                                                         Operation        Printed tape
-               123 = 8.99%
-                                                                     DP=2       Sa                         .
-               456 =33.33%                                                                               oc
-                                                                                     )
-               789 =57.68%                                                       12368              22:        =
-               1368    100.00%                                                  123           123.00           +
-                                                                                456 ®         456.00           +
- Ky     100%   proof   may    be obtained   by adding   individual              789 @         789.00           +
-     Percentage distributions into the accumulator without use                       —]      1368.00
-     of memory.
-                                                                                     @       1368.00       %
-                                                                                                  8.99             *«
-
-                                                                     *               @            8.99         +
-
-                                                                               456                 456     %
-                                                                                                33.33              *«
-
-                                                                     *               cs         33.33      +
-
-                                                                               789                 789     %
-                                                                                                57.68          /*
-
-
-                                                                     *               +)         57.68      +
-                                                                     *               S         100.00,
-
----
-
-REVERSED       CALCULATION
-
-6-2
-                                                             Operation              Printed tape
-              3
-                            =0.05                          pP=2     WN          |
-      (1.234)
-          +(5.678)
- Individual products may be accumulated to a grand total                  (c}                      oc
- in the accumulator without use of memory.                          23%)                     1.23       x
-                                                                         48                        4
-                                                                                            4.92                *
-
-
-                                                                          @                 4.92        +
-                                                                  5.67%)                    5.67        X
-                                                                         88                        By       =
-                                                                                          45.36                 *
-
-
-                                                                          Es)             45.36         +
-
-                                                                          8                50.28
-                                                                         3                         3            Ex
-                                                                          =)              50.28
-                                                                                            0.05                *
-
-
-
-
-21
-
----
-
-7.         MULTIPLICATION                 BY CONSTANT        WITH
-           ACCUMULATION
-
-iy
-eal |
-                                                                                 Operation            Printed tape
-           123.45        23.4=            2888.73
-                                                                         py
-                                                                         (|    DP=2      4
-           123.45X 42.6 =—5258.97                                                               aw                   o    cM
-           123.45x       51      = 6295.95                                            123.45    &          123.45         x
-                                 Sa                                                     23.4    ®)           23.4         =
-                                   3925.71                                                      -        2888.73               M
-     The    individual   products accumulate        in the memory   by
-     using the    (#) and @ keys.                                                      42.6     (¥)         42.6          =
-                      () : Memory equals addition key                                                    5258.97               M
-                      () : Memory equals subtraction key
-                                                                                           51   ®                St       -=
-                                                                                                                               M
-Division by constant with accumulation                                                                   6295.95               +
-
-7-2                                                                                             1)       3925.71          CM
-               4!578     aa +360 ==         P
-                                          lao72
-                                                                         t-2   DP=2      Sig
-                                                                                                @                    Oo   cM
-               2902 +360=                  8.06                                        4578 ©                 4578        =
-               8716      +360=—24.21                                                     360    ©)             360        a
-                                              ae                                                             l2.72        4M
-                                      —    3.43
-     The individual quotients accumulate in the memory.by                              2902     [¥)           2902        =
-     using the (¥) and [) keys.                                                                               8.06             bid
-
-                                                                                       8716                  B7li6        =
-                                                                                                            24.21              =
-
-                                                                                                              3.43        CM
-
----
-
-8.      DIVIDE    PRORATION
-8-l
-                                                                 Operation        Printed tape
-           123358789)        123       11100281             DP=O       5a
-         123+456+789
-                                                                             aw                  Oo CM
-           test  =
-         123+456+789
-                             <456=     41152263                            Co}              oc
-                                                                123456789 ©       123456789 +
-           Phe               <789=     71204245                        123 ®             123 +
-         123+456+789
-                                   123456789                          456 &             456 +
-This intermediate quotient is the constant multiplicand.                789 4)             789     +
- Thereafter, simply enter the variable multipliers and                      =]            1368
- depress the   [¥) ‘key.
-                                                            *               &)           1368      x
-     Pressing the (¥) key is used to compare the sum with
-                                                                        123 @)            i23      =
-     the initial value which is divided proportionately.
-                                                                                    I1loozs1           =
-
-                                                                        456 ©            456       =
-                                                                                   41152263        7
-
-                                                                        789 &            789       =
-                                                                                   71204245        7+
-
-                                                                             a)   123456789        CM
-
----
-
-9.    INVOICE CALCULATION
-
-9-!
-       Quantity        Unit Price    Price           Operation          Printed tape
-                                                   oP=2     54
-          ah              1.23      13.53                         @4                    Oo cm
-          12              4.11      49.32                    11   &                 Lh      ss
-                                                          1.23    @              1.23       =
-           3              2.03       6.09                                      13.53             ™
-                                    68.94                    12    &                   12   x
-                                                          4.11                  4.11        =
-        Discount    10%              6.89                                      a9.32
-                                    62.05
-                                                              38                    3       x
-        Sales Tax 5%                 3.10                 2.03 ©                2.03        =
-        Cost of Transportation       2.50                                       6.09             ™
-                                    67.65    x|+
-                                              +0                  fwd          68.94        RM
-                                                                   x)          68.94
-                                                             lo @                  10       %
-                                                                                6.89             x
-
-                                                                  ®             6.89        M
-                                                                               62.05        RM
-                                                                  es)          62.05        x
-                                                                 5@                 5       %
-                                                                                3.10             cad
-
-                                                                   ®)           3.10        M
-                                                          2.50    ®)            2.50
-                                                                               67.65        CM
-
----
-
-10.    APPLICATION OF MEMORY AND
-       ACCUMULATOR
-
-The amount sold and average price.                                     :                       A
-                                                                 Operation                   Printed    tape
-
-                                                     10-1   IfDP=2         iN
-1O—I   Quantity       Unit Price            Price                                                                 4
-                                                                                      (ae)
-         10            2.38                23.80
-         20                1.38            27.60                                Te)
-         15            3.65                54.75                                                               X+8
-                                                                                                               |
-                                                                                                               00
-                                                                      2.38 OS
-         45                             106.15                                                                   x
-
-
-                                  106.15                                                               N SECO
-          Average price:                     =2.35                          20                            DES
-                                                                                                           BMer
-                                   45
-                                                                                      O8S8                     X+8+
-                                                                                                               I)
-
-
-
-
-                                                                                                          8888
-                                                                                                          88888
-                                                                                                          888
-                                                                                                           oo X+8+
-                                                                                                              ll
-                                                                      3.65            0828
-
-
-
-
-                                                                                      O8Hs
-
-
-
-25
-
----
-
-11.    SQUARE      ROOT         Note:    SQUARE   ROOT   MODEL   ONLY
-
-i111       / 152417543.0625 =12345.73                                      Goeration                    Printed tape
-                                                                        DP=2           FL
-                                                                        152417543. 0625 7)         152417543.0625      /—
-                                                                                                          12345. 73      *
-                                                                        DP=6           54
-                                                                                        2
-
-STANDARD    DEVIATION                                                                       Oe                         x+8
-                                                                                                                       I
-11-2     DP=6          a
-
-
-            o em       hext)=     (ex?
-                                                                                            0Wee                       |x43+
-           VALUES OFX: 2.3.4.5.6
-
-           n=      5
-
-                                                                                            OWS8
-           oO      1.414214
-
-
-
-
-                                                                                            OXe8
-                                                                                                        N   QANTH
-                                                                                                            DADO
-                                                                                                            OYOVWYA
-                                                                                                            ANNN
-
----
-
-Operation          Printed tape
-                        25. 000000
-
-
-                 OSH
-
-
-                        Saao
-                        88
-                 Owes
-
-
-
-
-                          2. 000000
-                           1.414214
-
-
-
-
-27
-
----
-
-PYTHAGOREAN THEOREM
-                                           Operation          Printed tape
-11-3
-                                  11-3 | DP=6    5q
-                                                         ©                   Oo ¢
-                                                         @                   °
-                                                       128             12
-                                                         ®   144. 000000
-                      a=l2
-                                                       8m                    8
-
-
-
-                                                               64. 000000
-                  C=/ a2+b2
-                                                        &    208. 000000
-                  c=/ 208
-                                                        B    208.000000          /—
-                  C= 14, 422205
-                                                              Is sheeZ03
-
----
-
-12.       CAPACITY OF INPUT BUFFER                                 13.      CAPACITY OF NUMBER             ENTRY
-
-      The UNICOM 141 contains a powerful 8 word input                    The    number entry     capacity  of the UNICOM      141
-      buffer.    It scans the keyboard 40 times per second               electronic calculator   is 14 digits, plus decima! point
-      regardless of calculating or printing.                             and sign.
-      Therefore, the information on the keyboard, automati-
-      cally, can be read into the input buffer. After completion
-      of the preceding calculation, the function read in the
-      input buffer, sequentially, will be executed.
-
-
-
-
- 29
-
----
-
-14.         CAPACITY IN ADDITION/SUBTRACTION
-
-      The    capacity of accumulators         and memory         is 14 digits,
-      plus decimal      point and   sign.                                                 Operation                    Printed tape
-                                                                                 14-1   DP=6      iN
-14-1            DP=6   IN
-                                                                                          12345678       (+)     12345678 .COOO00O
-                   123456784)
-14-2            DP=6   IN
-                     1234567894                                                         DP=6      N
-      Before addition (also subtraction), the contents of entry                          (23456789       1G])|   sacccngve
-                                                                                                                       dans ais
-      register, automatically, is adjusted to the decimal places
-      designated by D.P. Selector.
-                                                                                        DP=8      W
-14-3            DP=8           IN
-                                                                                               900000    [+ | 900000. C0O000000
-            900000+ | COO0O0= | COO000. COOO0000
-                                                                                               | 00000   {+}     100000 .COOO0000
-                                         (15 digits overflow)
-      The    contents    of both     accumulators (also memory),
-      automatically,     can    be set   to   the   old   figures.                                @      &            0. 00000000
-      To get the previous figure, depress the                @       key, the                            § | 900000. 00000000
-      key and the& key in regular sequence.
-
----
-
-15.       CAPACITY IN MULTIPLICATION
-
-1s-I          FL
-                                                                                       Operation                     Printed tape
-              123456789             | OOO00 = | 2345678900000
-                                                                          (SI                  FL
-(s=2        iS
-         123456789 x | OOO000 = | 23456789000000                                      123456789         (x)           123456789
-                                             (15 digits overflow)                        100000         &)                | 00000
-      In FLOATING          mode (also intermediate product in                                                  12345678900000
-      FIXED mode),      the number of integers in the product
-      of a multiplication cannot exceed 14,
-                                                                                               FL
-                                                                                      123456789      [x)              123456789
-      The constant    multiplicand    is still retained   in the multi-
-      plication—division register.                                                      1000000      &}                  1000000
-                                                                                 rs                           ee              ey
-(5-3             DP=8s        Sia
-               123456x | = 123456.            0000000
-                                              (14 digits)                        DP=8         Sa
-                                                                                         123456                           123456
-15-4              DP=8s  54
-              1234567 < | = 1234567.00000000                                                        i!                              I
-                                       (15 digits overflow)                                                   123456 .O0OOOO0000,
-
-      In FIXED    mode,   the number of integers in the product
-      of a multiplication with the &) key cannot exceed the               15-4   DP=8         Si
-      difference of the DP setting and 14.                                              1234567      &)                  1234567
-                                                                                                    a                               1
-
-
-
-
-31
-
----
-
-16.    CAPACITY        IN DIVISION
-
-16-1       FL                                                             Operation                 Printed tape
-       4000000 +0. 0000003 = | 3333333333333                   16-1                FL
-                                      (14 digits)
-                                                                          4000000       —&)               4000000
-16-2        FL
-                                                                       O.0000003        &               ©. 0000003
-       40000000 0. 0000003 = | 33333333333333
-                                        (15 digits overflow)                                   13333333333333
-
-In FLOATING mode (also intermediate quotient), the
-number of integers in the quotient of division cannot                              FL
-exceed 14.                                                               40000000       &)               40000000
-                                                                        O.0000003       &               0. 0000003
-*The constant divisor is still retained    in the multipli-
- cation—division register.
-
-16-3        DP=8       WN
-                                                                      DP=8s8      WN
-       400000        +3 =133333.    33333333
-                                                                               400000   )                  400000
-                                    (14 digits)
-16-4        DP=8       IN                                                              38                            3
-       4000000 +3 = | 333333 .33333333                                                        133333.    33333333
-                            (15 digits overflow)
- In FIXED    mode,    the number of integers in the quotient          DP=8s8      WN
- of division with the &) key cannot exceed the difference                  4000000      &}                4000000
- of the DP setting and 14.                                                             386                           3
-
----
-
-MEMO
-
----
-
-Unicom Systems, Inc.
-Cupertino, California 95014
+| Operation | Expected printed output / lamps |
+|---|---|
+| `4 0 0 0 0 0 0 / 3 =` | dotted overflow line; overflow lamp: on |

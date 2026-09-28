@@ -1,5 +1,8 @@
 # Verilator Installation
 
+The Docker image pins published release 5.052. See
+[toolchain release pins](../toolchain-releases.md) for the complete build.
+
 Source: [veripool.org/guide/latest/install.html](https://veripool.org/guide/latest/install.html)
 
 ## Package Manager (Quick)
