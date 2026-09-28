@@ -13,6 +13,7 @@ body {
   color: #ddd;
 }
 .machine {
+  position: relative;
   background: linear-gradient(180deg, #3a4046, #2b3036);
   border: 1px solid #14171a;
   border-radius: 10px;
@@ -216,7 +217,9 @@ table {
 .lamps { flex-direction: row; gap: 5px; }
 .led { width: 34px; height: 34px; padding: 0; border-radius: 9px 9px 5px 5px; text-align: center; font: 10px/32px sans-serif; color: #93998f; box-shadow: inset 0 2px 5px #000; }
 .panel-status { display: flex; min-height: 38px; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-#help_open { margin-left: auto; color: #c5d0da; background: transparent; border: 1px solid #687078; border-radius: 4px; padding: 4px 10px; cursor: pointer; }
+#help_open { position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; color: #c5d0da; background: #20262c; border: 1px solid #687078; border-radius: 50%; font: bold 18px/1 sans-serif; cursor: pointer; }
+#help_open:hover { background: #3c4954; }
+#help_open:focus-visible { outline: 3px solid #87caff; outline-offset: 2px; }
 .ribbon { margin-top: 8px; border: 1px solid #888; }
 .ribbon span { display: block; height: 13px; text-align: left; padding-left: 5px; font: 8px/13px sans-serif; letter-spacing: 2px; background: #111; color: #ddd; }
 .ribbon span + span { background: #9d2424; color: #ffe9e4; }
