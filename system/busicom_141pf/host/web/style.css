@@ -178,6 +178,15 @@ table {
   cursor: default;
   transform: none;
 }
+.key.replay-active, .key.replay-active:disabled {
+  position: relative;
+  z-index: 1;
+  opacity: 1;
+  transform: translateY(3px);
+  background: #ffe39a;
+  color: #242016;
+  box-shadow: 0 0 0 4px #f6c858, 0 0 22px 7px #f6c858a8;
+}
 .key.fn { background: linear-gradient(180deg, #dfe5ea, #b9c4cd); }
 .key.op { background: linear-gradient(180deg, #f4ede0, #d9cdb4); }
 .key.mem { background: linear-gradient(180deg, #cdd6de, #a7b4bf); }
@@ -253,9 +262,26 @@ table {
 .rounding-options span { display: block; padding: 5px 6px; font: 10px/14px sans-serif; }
 .rounding-options input:checked + span { background: #ddd8c8; color: #202020; box-shadow: inset 0 0 0 2px #88887e; }
 .rounding-options input:focus-visible + span { outline: 2px solid #87caff; }
+.decimal-selector.replay-set #digits, .rounding-selector.replay-set .rounding-options { box-shadow: 0 0 0 2px #aa8952; }
+.decimal-selector.replay-set .slider-label, .rounding-selector.replay-set legend { color: #f0d49a; }
+.decimal-selector.replay-active #digits { box-shadow: 0 0 0 4px #f6c858, 0 0 18px 5px #f6c85891; }
+.decimal-selector.replay-active #digits::-webkit-slider-thumb { background: #ffe39a; border-color: #b57f17; }
+.decimal-selector.replay-active #digits::-moz-range-thumb { background: #ffe39a; border-color: #b57f17; }
+.rounding-selector.replay-active .rounding-options { box-shadow: 0 0 0 4px #f6c858, 0 0 18px 5px #f6c85891; }
+.rounding-selector.replay-active input:checked + span { background: #ffe39a; }
 .lamps { flex-direction: row; gap: 5px; }
 .led { width: 34px; height: 34px; padding: 0; border-radius: 9px 9px 5px 5px; text-align: center; font: 10px/32px sans-serif; color: #93998f; box-shadow: inset 0 2px 5px #000; }
 .panel-status { display: flex; min-height: 38px; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.replay-activity {
+  max-width: 75%;
+  padding: 5px 9px;
+  border: 1px solid #bd9445;
+  border-radius: 4px;
+  background: #2e2a20;
+  color: #ffe4a2;
+  font: 11px/1.3 sans-serif;
+}
+.replay-activity[hidden] { display: none; }
 #help_open { position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; color: #c5d0da; background: #20262c; border: 1px solid #687078; border-radius: 50%; font: bold 18px/1 sans-serif; cursor: pointer; }
 #help_open:hover { background: #3c4954; }
 #help_open:focus-visible { outline: 3px solid #87caff; outline-offset: 2px; }

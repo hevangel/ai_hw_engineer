@@ -63,7 +63,9 @@ Build outputs are separated by backend and port. Wait for startup to finish.
 The panel loads the 42 included examples automatically. Choose one or all,
 select **Recovered firmware output** (default) or **Scanned manual output**,
 then **Run examples**. The web panel has no file-upload control; headless
-replay still accepts a JSON path for research and automation.
+replay still accepts a JSON path for research and automation. During web replay,
+the current key glows on the keyboard, switch changes glow on their controls,
+and the activity strip shows the key and current decimal/rounding settings.
 
 Headless replay against an already running app, from this system directory:
 
