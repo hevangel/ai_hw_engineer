@@ -4,13 +4,13 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>BUSICOM 141-PF — virtual platform</title>
-<link rel="stylesheet" href="style.css?v=20260928-calculator-aligned" />
+<link rel="stylesheet" href="style.css?v=20260928-panel-spacing" />
 </head>
 <body>
 <div class="app-layout">
 <main class="app-main">
 <div class="machine" id="calculator_panel">
-  <button class="panel-minimize" type="button" data-panel="calculator" aria-label="Minimize calculator" aria-expanded="true" title="Minimize calculator">−</button>
+  <button class="panel-minimize" type="button" data-panel="calculator" aria-label="Minimize calculator" aria-expanded="true" title="Minimize calculator"><span class="panel-icon" aria-hidden="true">−</span></button>
   <div class="brand">BUSICOM <span>141-PF</span></div>
 
   <div class="paperwell">
@@ -105,7 +105,7 @@
   <form method="dialog"><button autofocus>Close</button></form>
 </dialog>
 <section class="manual-replay" id="manual_panel" aria-label="Manual examples">
-  <button class="panel-minimize" type="button" data-panel="manual" aria-label="Minimize manual examples" aria-expanded="true" title="Minimize manual examples">−</button>
+  <button class="panel-minimize" type="button" data-panel="manual" aria-label="Minimize manual examples" aria-expanded="true" title="Minimize manual examples"><span class="panel-icon" aria-hidden="true">−</span></button>
   <div class="replay-heading">
     <span class="replay-eyebrow">UNICOM 141-P MANUAL</span>
     <h2>Replay manual examples</h2>
@@ -150,6 +150,6 @@
 <script src="app.js?v=20260927-clock2"></script>
 <script src="replay.js?v=20260927-replay-highlights"></script>
 <script src="waveform.js?v=20260928-4004-pins"></script>
-<script src="view.js?v=20260928-pocket-calculator"></script>
+<script src="view.js?v=20260928-panel-spacing"></script>
 </body>
 </html>

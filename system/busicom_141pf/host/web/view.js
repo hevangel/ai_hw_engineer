@@ -18,7 +18,7 @@
     panel.element.classList.toggle("minimized", minimized);
     const button = panel.element.querySelector(".panel-minimize");
     const action = minimized ? "Restore" : "Minimize";
-    button.textContent = minimized ? panel.icon : "−";
+    button.querySelector(".panel-icon").textContent = minimized ? panel.icon : "−";
     button.setAttribute("aria-label", `${action} ${panel.label}`);
     button.setAttribute("aria-expanded", String(!minimized));
     button.title = `${action} ${panel.label}`;

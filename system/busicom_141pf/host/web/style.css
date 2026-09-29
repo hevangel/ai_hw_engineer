@@ -32,6 +32,7 @@ body {
 }
 .waveform-panel[open] { flex: 1 1 0; min-width: 0; }
 .waveform-panel > summary {
+  display: flex; align-items: center; gap: 8px;
   cursor: pointer;
   padding: 14px 10px;
   color: #e9d19c;
@@ -42,7 +43,7 @@ body {
   padding: 6px 5px;
   height: 44px;
 }
-.waveform-panel > summary .waveform-subtitle { color: #a9bac6; font-size: 10px; font-weight: normal; margin-left: 6px; }
+.waveform-panel > summary .waveform-subtitle { color: #a9bac6; font-size: 10px; font-weight: normal; }
 .waveform-panel:not([open]) > summary .waveform-title,
 .waveform-panel:not([open]) > summary .waveform-subtitle { display: none; }
 .waveform-panel > summary:focus-visible { outline: 3px solid #87caff; }
@@ -363,20 +364,22 @@ table {
   width: 30px; height: 30px; padding: 0;
   border: 1px solid #8494a0; border-radius: 5px;
   background: #202a31; color: #f4e5c3;
+  display: grid; place-items: center;
   font: 21px/1 sans-serif; cursor: pointer;
 }
+.panel-icon { display: block; }
 .panel-minimize:hover, .waveform-panel > summary:hover .waveform-toggle-icon { background: #465867; }
 .panel-minimize:focus-visible { outline: 3px solid #87caff; outline-offset: 2px; }
 .machine.minimized, .manual-replay.minimized {
   width: 42px; height: 44px; padding: 6px 5px; overflow: hidden;
 }
 .machine.minimized { margin: 0 auto; }
-.machine.minimized > .panel-minimize { display: grid; place-items: center; padding-bottom: 10px; font: 36px/.7 "Segoe UI Symbol", sans-serif; }
+.machine.minimized > .panel-minimize .panel-icon { font: 36px/1 "Segoe UI Symbol", sans-serif; transform: translateY(-5px); }
 .manual-replay.minimized { margin: 22px auto 0; }
 .machine.minimized > :not(.panel-minimize),
 .manual-replay.minimized > :not(.panel-minimize) { display: none !important; }
 .machine.minimized > .panel-minimize, .manual-replay.minimized > .panel-minimize {
-  position: static; display: block; margin: 0 auto;
+  position: static; display: grid; margin: 0 auto;
 }
 .waveform-panel > summary { list-style: none; }
 .waveform-panel > summary::-webkit-details-marker { display: none; }
