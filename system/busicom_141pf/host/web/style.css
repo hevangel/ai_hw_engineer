@@ -371,7 +371,7 @@ table {
   width: 42px; height: 44px; padding: 6px 5px; overflow: hidden;
 }
 .machine.minimized { margin: 0 auto; }
-.machine.minimized > .panel-minimize { font: 28px/1 "Segoe UI Symbol", sans-serif; }
+.machine.minimized > .panel-minimize { display: grid; place-items: center; padding-bottom: 10px; font: 36px/.7 "Segoe UI Symbol", sans-serif; }
 .manual-replay.minimized { margin: 22px auto 0; }
 .machine.minimized > :not(.panel-minimize),
 .manual-replay.minimized > :not(.panel-minimize) { display: none !important; }
