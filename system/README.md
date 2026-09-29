@@ -8,6 +8,7 @@ simulator, front panel as a web app, connected over DPI-C.
 
 | System | Year | Chips used | Folder |
 |---|---|---|---|
+| Apple II (in progress) | 1977 | MOS 6502 | [apple_ii/](apple_ii/) |
 | BUSICOM 141-PF printing calculator | 1971 | 4004, 5×4001, 2×4002, 3×4003 | [busicom_141pf/](busicom_141pf/) |
 
 Each `system/<name>/` folder follows the chip-design layout (`spec/`,
