@@ -1,0 +1,21 @@
+[tasks]
+prove
+cover
+
+[options]
+prove: mode prove
+prove: depth 20
+cover: mode cover
+cover: depth 12
+
+[engines]
+prove: abc pdr
+cover: smtbmc --unroll z3
+
+[script]
+prove: read -formal -D FORMAL ../src/intel_8008.sv
+cover: read -formal -D FORMAL -D FORMAL_COVER ../src/intel_8008.sv
+prep -top intel_8008
+
+[files]
+../src/intel_8008.sv

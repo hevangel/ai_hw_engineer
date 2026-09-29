@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Micral N | Virtual console</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="masthead">
+    <div class="brand"><span class="mark">r2e</span><span>MICRAL <strong>N</strong></span></div>
+    <div class="subtitle">1973 microcomputer · Intel 8008 virtual platform</div>
+    <div class="status"><span class="status-lamp" id="statusLamp"></span><span id="statusText">Connecting</span></div>
+  </header>
+  <main>
+    <section class="console" aria-label="Micral N front panel">
+      <div class="console-top"><span>VISUALIZATION CONSOLE</span><span>RÉALISATIONS ÉTUDES ÉLECTRONIQUES</span></div>
+      <div class="lamps">
+        <div class="lamp-group"><div class="section-label">ADDRESS · S13–S0</div><div id="addressLamps" class="bit-row"></div><div id="addressValue" class="hex-value">0000</div></div>
+        <div class="lamp-group"><div class="section-label">INPUT / DATA · D7–D0</div><div id="dataLamps" class="bit-row"></div><div id="dataValue" class="hex-value">00</div></div>
+      </div>
+      <div class="cycles" id="cycles"><span data-key="memoryRead">READ</span><span data-key="memoryWrite">WRITE</span><span data-key="ioRead">I/O IN</span><span data-key="ioWrite">I/O OUT</span><span data-key="halted">STOP</span></div>
+      <div class="control-grid">
+        <div class="control-block"><div class="section-label">PROCESSOR</div><div class="button-row"><button id="auto" class="primary">AUTO</button><button id="pause">P/P</button><button id="step">AV / STEP</button><button id="init">INIT</button></div><div class="radio-row"><label><input type="radio" name="stepMode" value="instruction" checked> INS</label><label><input type="radio" name="stepMode" value="cycle"> CYCLE</label></div></div>
+        <div class="control-block"><div class="section-label">ADDRESS TRAP</div><div class="inline"><input id="trapAddress" type="text" inputmode="text" value="0040" maxlength="4" aria-label="Trap address in hexadecimal"><button id="trap">TRAP OFF</button></div><p>Stops after the current instruction when the next PC matches.</p></div>
+        <div class="control-block"><div class="section-label">SUBSTITUTION · D7–D0</div><div id="dataSwitches" class="bit-row switches"></div><div class="inline"><button id="sub">SUB OFF</button><span id="switchValue" class="mono">00</span></div></div>
+        <div class="control-block"><div class="section-label">INPUT GROUP 5 · D7–D0</div><div id="inputSwitches" class="bit-row switches"></div><div class="inline"><span class="mono" id="inputValue">00</span><span class="hint">Set D7 to start the MO5 I/O demo</span></div></div>
+      </div>
+    </section>
+    <section class="readouts">
+      <div class="card"><h2>Processor</h2><div class="metrics"><div><span>PC</span><strong id="pc">0000</strong></div><div><span>ACC</span><strong id="a">00</strong></div><div><span>FLAGS · C Z S P</span><strong id="flags">0000</strong></div><div><span>INSTRUCTIONS</span><strong id="instructions">0</strong></div></div></div>
+      <div class="card"><h2>Last output</h2><div class="output-big"><span id="outputPort">—</span><strong id="outputData">00</strong></div><p>The 8008's 24 output channels are latched by the Micral coupler model.</p><div id="portGrid" class="ports"></div></div>
+      <div class="card"><h2>Memory at PC</h2><div id="memory" class="bytes mono"></div><h2 class="subhead">RAM · 1000–100F</h2><div id="ram" class="bytes mono"></div></div>
+      <div class="card notes"><h2>About this machine</h2><p>The panel follows R2E's January 1974 manual: AUTO, instruction or cycle step, trap, substitution switches, and address/data lamps. The processor and memory transactions are simulated by Verilator.</p><p>The default program is MO5's public Micral N I/O exercise. It waits for bit D7 on input group 5, then sends incrementing values to an output port. It is a demonstration image; the original MIC-01 ROM is not included.</p></div>
+    </section>
+    <div id="error" role="alert"></div>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

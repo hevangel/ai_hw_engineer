@@ -9,8 +9,11 @@ simulator, front panel as a web app, connected over DPI-C.
 | System | Year | Chips used | Folder |
 |---|---|---|---|
 | BUSICOM 141-PF printing calculator | 1971 | 4004, 5×4001, 2×4002, 3×4003 | [busicom_141pf/](busicom_141pf/) |
+| Micral N | 1973 | Intel 8008, 16 KiB memory, I/O bus | [micral_n/](micral_n/) |
 
 Each `system/<name>/` folder follows the chip-design layout (`spec/`,
 `plans/`, `src/`, `tb/`, `scripts/`, `report/`) plus `host/` (web app and
 DPI bridge). The `spec/` folder also stores downloaded reference material
 under `spec/reference/`.
+
+The Micral N year follows the [Computer History Museum catalog](https://www.computerhistory.org/revolution/artifact/297/1147). Its reconstruction and documented limits are in the [system overview](micral_n/README.md).
