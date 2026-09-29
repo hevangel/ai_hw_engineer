@@ -2,8 +2,8 @@
 "use strict";
 (() => {
   const panels = [
-    {name: "calculator", label: "calculator", element: document.getElementById("calculator_panel")},
-    {name: "manual", label: "manual examples", element: document.getElementById("manual_panel")}
+    {name: "calculator", label: "calculator", icon: "\u{1F5A9}", element: document.getElementById("calculator_panel")},
+    {name: "manual", label: "manual examples", icon: "\u{1F4D6}", element: document.getElementById("manual_panel")}
   ];
 
   function saved(key, fallback) {
@@ -18,7 +18,7 @@
     panel.element.classList.toggle("minimized", minimized);
     const button = panel.element.querySelector(".panel-minimize");
     const action = minimized ? "Restore" : "Minimize";
-    button.textContent = minimized ? "+" : "−";
+    button.textContent = minimized ? panel.icon : "−";
     button.setAttribute("aria-label", `${action} ${panel.label}`);
     button.setAttribute("aria-expanded", String(!minimized));
     button.title = `${action} ${panel.label}`;
@@ -33,8 +33,10 @@
   const waveform = document.getElementById("waveform_panel");
   const icon = waveform.querySelector(".waveform-toggle-icon");
   function syncWaveform() {
-    icon.textContent = waveform.open ? "−" : "+";
-    waveform.querySelector("summary").title = waveform.open ? "Minimize waveform" : "Restore waveform";
+    icon.textContent = waveform.open ? "−" : "\u3030";
+    const summary = waveform.querySelector("summary");
+    summary.title = waveform.open ? "Minimize waveform" : "Restore waveform";
+    summary.setAttribute("aria-label", summary.title);
     remember("busicom-waveform-open", String(waveform.open));
   }
   waveform.addEventListener("toggle", syncWaveform);

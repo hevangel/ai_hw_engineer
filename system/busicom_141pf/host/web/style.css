@@ -39,11 +39,12 @@ body {
   list-style-position: inside;
 }
 .waveform-panel:not([open]) > summary {
-  writing-mode: vertical-rl;
-  min-height: 160px;
-  text-orientation: mixed;
+  padding: 6px 5px;
+  height: 44px;
 }
-.waveform-panel > summary span { color: #a9bac6; font-size: 10px; font-weight: normal; }
+.waveform-panel > summary .waveform-subtitle { color: #a9bac6; font-size: 10px; font-weight: normal; margin-left: 6px; }
+.waveform-panel:not([open]) > summary .waveform-title,
+.waveform-panel:not([open]) > summary .waveform-subtitle { display: none; }
 .waveform-panel > summary:focus-visible { outline: 3px solid #87caff; }
 .waveform-content { padding: 0 12px 12px; }
 .waveform-content p { margin: 0 0 10px; color: #b9c6ce; font-size: 12px; }
@@ -331,7 +332,7 @@ table {
   font: 11px/1.3 sans-serif;
 }
 .replay-activity[hidden] { display: none; }
-#help_open { position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; color: #c5d0da; background: #20262c; border: 1px solid #687078; border-radius: 50%; font: bold 18px/1 sans-serif; cursor: pointer; }
+#help_open { position: absolute; top: 14px; left: 14px; width: 30px; height: 30px; color: #c5d0da; background: #20262c; border: 1px solid #687078; border-radius: 50%; font: bold 18px/1 sans-serif; cursor: pointer; }
 #help_open:hover { background: #3c4954; }
 #help_open:focus-visible { outline: 3px solid #87caff; outline-offset: 2px; }
 .ribbon { margin-top: 8px; border: 1px solid #888; }
@@ -355,7 +356,7 @@ table {
 
 /* Independent minimize controls for calculator, manual, and waveform. */
 .app-main:has(.machine.minimized):has(.manual-replay.minimized) { width: 42px; flex-basis: 42px; }
-.machine > .panel-minimize { right: 52px; }
+.machine > .panel-minimize { right: 14px; }
 .manual-replay { position: relative; }
 .panel-minimize {
   position: absolute; top: 14px; right: 14px; z-index: 3;
@@ -366,28 +367,25 @@ table {
 }
 .panel-minimize:hover, .waveform-panel > summary:hover .waveform-toggle-icon { background: #465867; }
 .panel-minimize:focus-visible { outline: 3px solid #87caff; outline-offset: 2px; }
-.panel-minimized-label { display: none; }
 .machine.minimized, .manual-replay.minimized {
-  width: 42px; height: 160px; padding: 8px 4px; overflow: hidden;
+  width: 42px; height: 44px; padding: 6px 5px; overflow: hidden;
 }
 .machine.minimized { margin: 0 auto; }
+.machine.minimized > .panel-minimize { font: 28px/1 "Segoe UI Symbol", sans-serif; }
 .manual-replay.minimized { margin: 22px auto 0; }
-.machine.minimized > :not(.panel-minimize):not(.panel-minimized-label),
-.manual-replay.minimized > :not(.panel-minimize):not(.panel-minimized-label) { display: none !important; }
+.machine.minimized > :not(.panel-minimize),
+.manual-replay.minimized > :not(.panel-minimize) { display: none !important; }
 .machine.minimized > .panel-minimize, .manual-replay.minimized > .panel-minimize {
   position: static; display: block; margin: 0 auto;
 }
-.machine.minimized > .panel-minimized-label, .manual-replay.minimized > .panel-minimized-label {
-  display: block; margin: 10px auto 0; width: fit-content;
-  writing-mode: vertical-rl; color: #e9d19c; font: bold 13px/1.2 sans-serif;
-}
 .waveform-panel > summary { list-style: none; }
 .waveform-panel > summary::-webkit-details-marker { display: none; }
+.waveform-panel:not([open]) > summary { padding: 6px 5px; }
 .waveform-panel > summary .waveform-toggle-icon {
   display: inline-grid; place-items: center;
-  width: 22px; height: 22px; border: 1px solid #8494a0;
+  width: 30px; height: 30px; border: 1px solid #8494a0;
   border-radius: 5px; background: #202a31; color: #f4e5c3;
-  font: 18px/1 sans-serif;
+  font: 21px/1 sans-serif;
 }
 @media (max-width: 1170px) {
   .app-main:has(.machine.minimized):has(.manual-replay.minimized) { width: 42px; }
