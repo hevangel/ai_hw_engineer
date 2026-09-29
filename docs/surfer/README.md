@@ -8,6 +8,7 @@ Surfer is a modern, open-source waveform viewer built in Rust using the egui fra
 - [Installation](installation.md) - Building and installing Surfer
 - [Usage Guide](usage.md) - Viewing waveforms, navigation, and features
 - [Integration](integration.md) - Using Surfer with simulators
+- [Self-hosted Web Viewer](self-hosted-web.md) - Run the browser UI and Surver locally in Docker
 
 ## Key Links
 
