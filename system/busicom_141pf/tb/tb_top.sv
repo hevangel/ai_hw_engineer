@@ -220,7 +220,7 @@ module tb_top;
             // TWO dpi-calling processes badly (lost/garbled host key
             // state), so only this process may call into the bridge
             dpi_keys  = dpi_panel_keys();
-            evflags   = {23'h0, key_seen, drum_pos, red, advance_evt,
+            evflags   = {24'h0, key_seen, drum_pos, red, advance_evt,
                          hammer_evt};
             dpi_ctrl = dpi_panel_ctrl(evflags, {8'h0, hammer_data},
                                       {29'h0, lamps});

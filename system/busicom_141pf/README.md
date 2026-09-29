@@ -8,7 +8,8 @@ The browser provides physical keys, switches, printer drum and paper tape.
 From the repository root, using the rebuilt tool image:
 
 ```sh
-docker run --rm -p 127.0.0.1:8081:8080 -v "$PWD:/workspace" \
+docker run --rm -p 127.0.0.1:8081:8080 -p 127.0.0.1:18080:18080 \
+  -v "$PWD:/workspace" \
   -e BUSICOM_BACKEND=verilator -e BUSICOM_REALTIME=1 ai-hw-engineer:latest \
   sh /workspace/system/busicom_141pf/scripts/run_system.sh
 ```
@@ -23,8 +24,24 @@ the top-left position in the memory group. Hover over function keys for their
 full names.
 
 The control rail places decimal and rounding selectors beside the OVF, NEG,
-and M lamps, following the manual's horizontal arrangement. **Help** opens
-the operating instructions and keyboard shortcuts.
+and M lamps, following the manual's horizontal arrangement. The **?** button
+at the calculator's upper left opens operating instructions and keyboard shortcuts.
+
+The calculator, manual examples, and waveform each have the same-sized minimize
+control. A minimized panel shows only its calculator, book, or waveform icon.
+Click the icon to restore the panel; the choice persists on reload.
+The waveform opens beside the calculator in the self-hosted Surfer viewer.
+The Verilator run writes an FST at
+`work/system-verilator-8080/waveform.fst`. Tracing starts when the 4004 begins
+processing a key or paper advance and closes when the bridge declares the
+operation idle. Each operation replaces the previous FST, so Surfer always
+reads a complete file. The browser fetches the FST from the local panel
+server. Surfer opens with the panel signals and all 4004 RTL interface ports
+(clock, reset, TEST, split D0–D3 input/output/enable, SYNC, CM-ROM, CM-RAM).
+Surfer refreshes after a completed operation, or use **Refresh
+waveform**. **Download FST** saves the latest capture. Set
+`BUSICOM_WAVEFORM=0` to disable recording. The second Docker port serves
+Surfer's WebAssembly UI locally; rebuilding the image includes those assets.
 
 The printer mechanism is collapsed by default. Open it to inspect the drum
 phase, two-colour ribbon and hammer bank. The bridge publishes the latest
@@ -60,8 +77,12 @@ Build outputs are separated by backend and port. Wait for startup to finish.
 - [Specification](spec/spec.md), [implementation plan](plans/implementation_plan.md)
 - [Historical report](report/final_report.md)
 
-In the panel, select **Load included examples**, choose an example and expected
-results profile, then **Run**. You can also load an edited JSON file.
+The panel loads the 42 included examples automatically. Choose one or all,
+select **Recovered firmware output** (default) or **Scanned manual output**,
+then **Run examples**. The web panel has no file-upload control; headless
+replay still accepts a JSON path for research and automation. During web replay,
+the current key glows on the keyboard, switch changes glow on their controls,
+and the activity strip shows the key and current decimal/rounding settings.
 
 Headless replay against an already running app, from this system directory:
 

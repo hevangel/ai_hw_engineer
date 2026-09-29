@@ -173,13 +173,23 @@ RUN git clone --filter=blob:none https://github.com/aionhw/xezim.git /opt/xezim-
 # ============================================================
 FROM base AS surfer-build
 ARG SURFER_REV=bd749b1f786c1c62cd67893ca71346cbe6983915
+ARG TRUNK_VERSION=0.21.14
 RUN git clone --filter=blob:none https://gitlab.com/surfer-project/surfer.git /opt/surfer-src && \
     git -C /opt/surfer-src checkout --detach "${SURFER_REV}" && \
     git -C /opt/surfer-src submodule update --init --recursive && \
     cd /opt/surfer-src && \
+    rustup target add wasm32-unknown-unknown && \
+    curl -fsSL "https://github.com/trunk-rs/trunk/releases/download/v${TRUNK_VERSION}/trunk-x86_64-unknown-linux-gnu.tar.gz" \
+        -o /tmp/trunk.tar.gz && \
+    tar -xzf /tmp/trunk.tar.gz -C /usr/local/bin trunk && \
+    rm /tmp/trunk.tar.gz && \
     cargo build --release --locked --bin surfer && \
-    mkdir -p /opt/surfer/bin && \
-    cp target/release/surfer /opt/surfer/bin/
+    RUSTFLAGS="--cfg=web_sys_unstable_apis" trunk build \
+        --config=surfer/Trunk.toml index.html --release --public-url /dist --features accesskit && \
+    mkdir -p /opt/surfer/bin /opt/surfer/webapp && \
+    cp target/release/surfer /opt/surfer/bin/ && \
+    cp -a surfer/dist/. /opt/surfer/webapp/ && \
+    sed -i 's|/dist/|./|g' /opt/surfer/webapp/index.html
 
 # ============================================================
 # Download pinned Verible pre-built binaries
@@ -248,6 +258,7 @@ RUN set -eux; \
     xezim --help >/dev/null; \
     test -x /opt/surfer/bin/surfer; \
     surfer --version; \
+    test -s /opt/surfer/webapp/index.html; \
     test -x /opt/verible/bin/verible-verilog-lint; \
     verible-verilog-lint --version; \
     test -f /opt/uvm/1.2/src/uvm_pkg.sv; \

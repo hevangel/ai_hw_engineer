@@ -43,18 +43,20 @@ sh scripts/run_manual_test.sh
 BUSICOM_BACKEND=verilator sh scripts/run_manual_test.sh
 ```
 
-In the web panel, use **Replay manual examples**, click **Load included examples**
-or load the JSON file, select an
-example or all examples, and click **Run**. **Save results** downloads a report.
+The web panel loads the included examples automatically. Select an example or
+all examples and click **Run examples**. The panel does not accept uploaded
+files. **Save results** downloads a report; the headless runner still accepts
+JSON files for research and automation.
 Both runners submit the same physical key/switch events to the DPI HTTP bridge;
 the Python runner does not require a browser. Use one runner at a time per panel.
 Neither runner computes answers in place of the historical firmware.
 
-The default **manual** profile preserves the scanned answers. Five examples
+The headless runner's default **manual** profile preserves the scanned answers;
+the web panel defaults to **Recovered firmware output**. Five examples
 disagree with this recovered ROM on precision, print marks, or a square-root
 answer. Each difference was reproduced with an independent emulator. For the
-documented ROM expectations, use `--profile recovered-rom` in Python or select
-**Recovered ROM** in the panel. `expect_profiles.recovered-rom` overrides only
+documented ROM expectations, use `--profile recovered-rom` in Python or the
+default **Recovered firmware output** option in the panel. `expect_profiles.recovered-rom` overrides only
 those checkpoints; `expect` always retains the scan. See the
 [results and differences](../../report/manual_regression.md). CPU `run_all.sh`
 uses the recovered-ROM profile so it catches new defects without treating the

@@ -32,6 +32,7 @@
 #include <netinet/in.h>
 #include <pthread.h>
 #include <stdarg.h>
+#include <stdatomic.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,6 +47,9 @@
 #endif
 #ifndef BUSICOM_PORT
 #define BUSICOM_PORT 8080
+#endif
+#ifndef BUSICOM_FST_PATH
+#define BUSICOM_FST_PATH "/workspace/system/busicom_141pf/work/system-verilator-8080/waveform.fst"
 #endif
 #define PAPER_ROWS 7
 #define PAPER_COLS 18
@@ -109,6 +113,7 @@ static int advance_ticks; /* remaining ticks the paper-advance button is down */
  * print it caused. The web UI reads `busy` from state.json to block
  * input and show a spinner while the machine is working. */
 static int busy;
+static atomic_int trace_active;
 static int quiet_ticks;
 static int ready; /* set by the simulation after the firmware boot interval */
 
@@ -374,16 +379,26 @@ int dpi_panel_ctrl(int evflags, int hammer24, int lamps)
     if (evflags & 0x3) {
         quiet_ticks = 0;
     } else if (busy && press_count == 0 && present_state == PS_IDLE) {
-        if (++quiet_ticks >= QUIET_TICKS)
+        if (++quiet_ticks >= QUIET_TICKS) {
             busy = 0;
+            atomic_store_explicit(&trace_active, 0, memory_order_relaxed);
+        }
     } else {
         quiet_ticks = 0;
     }
 
     int live = ready;
+    int controls = (paper_btn << 8) |
+                   ((rounding & 0xF) << 4) | (precision & 0xF);
     pthread_mutex_unlock(&g_lock);
     if (live) pace_drum_tick();
-    return (paper_btn << 8) | ((rounding & 0xF) << 4) | (precision & 0xF);
+    return controls;
+}
+
+/* The Verilator runner samples this flag to dump only active operations. */
+int dpi_trace_active(void)
+{
+    return atomic_load_explicit(&trace_active, memory_order_relaxed);
 }
 
 /* ------------------------------------------------------------------ */
@@ -522,6 +537,42 @@ static void respond_file(int fd, const char *name, enum ctype ct)
     free(body);
 }
 
+/* Surfer fetches the simulator's FST from its own browser origin. Stream the
+ * file rather than buffering it: even a focused capture can exceed the web
+ * panel's small static-file limit. The browser reloads it after a capture. */
+static void respond_waveform(int fd, int head_only)
+{
+    int f = open(BUSICOM_FST_PATH, O_RDONLY);
+    struct stat st;
+    if (f < 0 || fstat(f, &st) != 0 || !S_ISREG(st.st_mode)) {
+        if (f >= 0) close(f);
+        static const char missing[] = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+        http_write(fd, missing, sizeof(missing) - 1);
+        return;
+    }
+    char header[512];
+    int n = snprintf(header, sizeof(header),
+                     "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\n"
+                     "Content-Length: %lld\r\nX-Waveform-Version: %lld.%09ld\r\n"
+                     "Access-Control-Allow-Origin: *\r\n"
+                     "Cache-Control: no-store\r\nConnection: close\r\n\r\n",
+                     (long long)st.st_size, (long long)st.st_mtim.tv_sec,
+                     st.st_mtim.tv_nsec);
+    if (n > 0 && (size_t)n < sizeof(header) &&
+        http_write(fd, header, (size_t)n) == 0) {
+        if (head_only) { close(f); return; }
+        char chunk[65536];
+        off_t left = st.st_size;
+        while (left > 0) {
+            ssize_t got = read(f, chunk, left < (off_t)sizeof(chunk) ?
+                               (size_t)left : sizeof(chunk));
+            if (got <= 0 || http_write(fd, chunk, (size_t)got) != 0) break;
+            left -= got;
+        }
+    }
+    close(f);
+}
+
 /* state.json: paper rows are ["c0",..,"c17",red] arrays */
 static void respond_state(int fd)
 {
@@ -643,15 +694,23 @@ static void handle_client(int fd)
     const char *q = strchr(path, '?');
     size_t plen = q ? (size_t)(q - path) : strlen(path);
 
-    if (strcmp(method, "GET") == 0) {
+    if (strcmp(method, "GET") == 0 ||
+        (strcmp(method, "HEAD") == 0 && plen == 13 &&
+         strncmp(path, "/waveform.fst", plen) == 0)) {
         if (plen == 1 && path[0] == '/') {
             respond_file(fd, "index.html", CT_HTML);
         } else if (plen >= 5 && strncmp(path, "/state.json", plen) == 0) {
             respond_state(fd);
+        } else if (plen == 13 && strncmp(path, "/waveform.fst", plen) == 0) {
+            respond_waveform(fd, strcmp(method, "HEAD") == 0);
         } else if (plen >= 5 && strncmp(path, "/app.js", plen) == 0) {
             respond_file(fd, "app.js", CT_JS);
         } else if (plen == 10 && strncmp(path, "/replay.js", plen) == 0) {
             respond_file(fd, "replay.js", CT_JS);
+        } else if (plen == 12 && strncmp(path, "/waveform.js", plen) == 0) {
+            respond_file(fd, "waveform.js", CT_JS);
+        } else if (plen == 8 && strncmp(path, "/view.js", plen) == 0) {
+            respond_file(fd, "view.js", CT_JS);
         } else if (plen == 21 && strncmp(path, "/manual-examples.json", plen) == 0) {
             respond_file(fd, "../../spec/reference/Unicom_141P_examples.json", CT_JSON);
         } else if (plen >= 5 && strncmp(path, "/style.css", plen) == 0) {
@@ -677,6 +736,7 @@ static void handle_client(int fd)
                         press_count);
                 /* start a transaction for the UI busy indicator */
                 busy = 1;
+                atomic_store_explicit(&trace_active, 1, memory_order_relaxed);
                 quiet_ticks = 0;
                 /* wake a parked simulator thread */
                 pthread_cond_signal(&work_cond);
@@ -688,6 +748,7 @@ static void handle_client(int fd)
             pthread_mutex_lock(&g_lock);
             advance_ticks = ADVANCE_TICKS;
             busy = 1;
+            atomic_store_explicit(&trace_active, 1, memory_order_relaxed);
             quiet_ticks = 0;
             /* wake a parked simulator thread */
             pthread_cond_signal(&work_cond);

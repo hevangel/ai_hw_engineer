@@ -4,10 +4,13 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>BUSICOM 141-PF — virtual platform</title>
-<link rel="stylesheet" href="style.css?v=20260927-clock" />
+<link rel="stylesheet" href="style.css?v=20260928-panel-spacing" />
 </head>
 <body>
-<div class="machine">
+<div class="app-layout">
+<main class="app-main">
+<div class="machine" id="calculator_panel">
+  <button class="panel-minimize" type="button" data-panel="calculator" aria-label="Minimize calculator" aria-expanded="true" title="Minimize calculator"><span class="panel-icon" aria-hidden="true">−</span></button>
   <div class="brand">BUSICOM <span>141-PF</span></div>
 
   <div class="paperwell">
@@ -45,6 +48,7 @@
   </div>
   <div class="panel-status">
     <div id="busy" class="busy" hidden><span class="spinner"></span><span class="busy-label">4004 working&hellip;</span></div>
+    <div id="replay_activity" class="replay-activity" hidden></div>
     <button id="help_open" aria-haspopup="dialog" aria-label="Help" title="Help">?</button>
   </div>
 
@@ -100,21 +104,52 @@
   <p>Open Printer mechanism to inspect the rotating drum. Its phase comes from the simulator's 4004 clock and printer-sector signals. A raised, glowing hammer shows a real print strike through the black or red ribbon. The highlight stays visible for two seconds, and the last-strike readout remains.</p>
   <form method="dialog"><button autofocus>Close</button></form>
 </dialog>
-<section class="manual-replay" aria-label="Manual examples">
-  <h2>Replay manual examples</h2>
-  <button id="manual_load">Load included examples</button>
-  <label>Examples JSON <input id="manual_file" type="file" accept=".json,application/json"></label>
-  <select id="manual_profile" aria-label="Expected results">
-    <option value="manual">As printed in manual</option>
-    <option value="recovered-rom">Recovered ROM (5 documented differences)</option>
-  </select>
-  <select id="manual_example" aria-label="Example"><option value="">All examples</option></select>
-  <button id="manual_run" disabled>Run</button>
-  <button id="manual_stop" disabled>Stop after current key</button>
-  <button id="manual_download" disabled>Save results</button>
-  <pre id="manual_status" aria-live="polite">Load Unicom_141P_examples.json to begin.</pre>
+<section class="manual-replay" id="manual_panel" aria-label="Manual examples">
+  <button class="panel-minimize" type="button" data-panel="manual" aria-label="Minimize manual examples" aria-expanded="true" title="Minimize manual examples"><span class="panel-icon" aria-hidden="true">−</span></button>
+  <div class="replay-heading">
+    <span class="replay-eyebrow">UNICOM 141-P MANUAL</span>
+    <h2>Replay manual examples</h2>
+    <p>The 42 included examples run on the original calculator firmware.</p>
+  </div>
+  <div class="replay-fields">
+    <label>Example
+      <select id="manual_example"><option value="">Loading examples…</option></select>
+    </label>
+    <label>Compare printed tape with
+      <select id="manual_profile" aria-label="Expected results">
+        <option value="recovered-rom">Recovered firmware output</option>
+        <option value="manual">Scanned manual output</option>
+      </select>
+    </label>
+  </div>
+  <p id="manual_profile_note" class="replay-note">The recovered ROM is the original calculator program. It differs from five results in this manual scan. One is a clear arithmetic typo; the causes of the others are uncertain.</p>
+  <div class="replay-actions">
+    <button id="manual_run" class="replay-primary" disabled>Run examples</button>
+    <button id="manual_stop" disabled>Stop after current key</button>
+    <button id="manual_download" disabled>Save results</button>
+  </div>
+  <div class="replay-results">
+    <div class="replay-results-heading">Run status</div>
+    <pre id="manual_status" aria-live="polite">Loading included examples…</pre>
+  </div>
 </section>
+</main>
+<details id="waveform_panel" class="waveform-panel" open>
+  <summary aria-label="Minimize waveform"><span class="waveform-toggle-icon" aria-hidden="true">−</span><span class="waveform-title">Waveform</span><span class="waveform-subtitle">FST · Surfer</span></summary>
+  <div class="waveform-content">
+    <p>Surfer shows the latest completed key or paper advance, captured from the 4004 simulation as FST.</p>
+    <div class="waveform-actions">
+      <button id="waveform_refresh" type="button">Refresh waveform</button>
+      <a href="/waveform.fst" download="busicom-141pf.fst">Download FST</a>
+    </div>
+    <div id="waveform_status" role="status">Open the panel to load Surfer.</div>
+    <iframe id="surfer_frame" title="Surfer FST waveform viewer" loading="lazy"></iframe>
+  </div>
+</details>
+</div>
 <script src="app.js?v=20260927-clock2"></script>
-<script src="replay.js?v=20260927"></script>
+<script src="replay.js?v=20260927-replay-highlights"></script>
+<script src="waveform.js?v=20260928-4004-pins"></script>
+<script src="view.js?v=20260928-panel-spacing"></script>
 </body>
 </html>
