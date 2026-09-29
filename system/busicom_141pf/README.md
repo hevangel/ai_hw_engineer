@@ -35,7 +35,9 @@ The Verilator run writes an FST at
 processing a key or paper advance and closes when the bridge declares the
 operation idle. Each operation replaces the previous FST, so Surfer always
 reads a complete file. The browser fetches the FST from the local panel
-server. Surfer refreshes after a completed operation, or use **Refresh
+server. Surfer opens with the panel signals and all 4004 RTL interface ports
+(clock, reset, TEST, split D0–D3 input/output/enable, SYNC, CM-ROM, CM-RAM).
+Surfer refreshes after a completed operation, or use **Refresh
 waveform**. **Download FST** saves the latest capture. Set
 `BUSICOM_WAVEFORM=0` to disable recording. The second Docker port serves
 Surfer's WebAssembly UI locally; rebuilding the image includes those assets.

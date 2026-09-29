@@ -9,7 +9,13 @@
   const defaultSignals = [
     "tb_top.clk", "tb_top.test_i", "tb_top.drum_idx",
     "tb_top.drum_pos", "tb_top.keys_mask", "tb_top.key_seen",
-    "tb_top.hammer_evt", "tb_top.advance_evt", "tb_top.lamps"
+    "tb_top.hammer_evt", "tb_top.advance_evt", "tb_top.lamps",
+    // Intel 4004 interface pins; D0–D3 are split into input, output and enable.
+    "tb_top.dut.u_cpu.clk", "tb_top.dut.u_cpu.rst_n",
+    "tb_top.dut.u_cpu.test_i", "tb_top.dut.u_cpu.data_i",
+    "tb_top.dut.u_cpu.data_o", "tb_top.dut.u_cpu.data_oe",
+    "tb_top.dut.u_cpu.sync", "tb_top.dut.u_cpu.cm_rom",
+    "tb_top.dut.u_cpu.cm_ram"
   ];
   let timer, loadedVersion = "", loading = false;
 

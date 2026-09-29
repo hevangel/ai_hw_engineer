@@ -56,7 +56,7 @@ if [ "$BACKEND" = verilator ]; then
     BUILD_FLAGS="--binary"
     TRACE_MAIN=""
     if [ "$WAVEFORM" = 1 ]; then
-        BUILD_FLAGS="--cc --exe --build --trace-fst --trace-depth 2"
+        BUILD_FLAGS="--cc --exe --build --trace-fst --trace-depth 3"
         TRACE_MAIN="$SYSTEM_DIR/host/trace_main.cpp"
         export BUSICOM_FST_PATH="$WAVEFORM_FILE"
         echo "=== Recording active calculations to $WAVEFORM_FILE ==="

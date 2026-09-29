@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
         if (active && !recording) {
             capture_start = context->time();
             trace.reset(new VerilatedFstC);
-            top->trace(trace.get(), 2);
+            top->trace(trace.get(), 3);
             trace->open(path);
         }
         if (active) trace->dump(context->time() - capture_start);
