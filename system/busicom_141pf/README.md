@@ -3,6 +3,10 @@
 The original five-ROM firmware runs on the reconstructed Intel MCS-4 chips.
 The browser provides physical keys, switches, printer drum and paper tape.
 
+![Current Busicom 141-PF calculator, manual replay, and Surfer waveform](assets/web-app.jpg)
+
+Current web panel with a completed manual example and the 4004 FST signals.
+
 ## Run
 
 From the repository root, using the rebuilt tool image:
@@ -15,7 +19,7 @@ docker run --rm -p 127.0.0.1:8081:8080 -p 127.0.0.1:18080:18080 \
 ```
 
 Open <http://localhost:8081/>. For addition, enter `5 + 6 + =` to print `11`.
-The drum shows rotating type; the answer is on the tape.
+The answer is on the tape. Open **Printer mechanism** to inspect the rotating type.
 
 The keypad follows the keyboard diagram on printed page 4 of the manual:
 four aligned rows, C above CE, a tall addition key, and a wide equals key.

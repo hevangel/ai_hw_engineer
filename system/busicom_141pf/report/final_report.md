@@ -16,8 +16,8 @@ operand): `1 + 2 + =` → **3**, `5 + 6 + =` → **11**, `9 × 3 =` → **27**,
 The 2026-09-26 repairs connect the missing drum-index signal, capture the
 current drum character, fix stale ROM hierarchy references, and correct the
 4004's DAA/TCS semantics against an external oracle. CPU lint, ISA simulation,
-formal BMC/prove/cover, and synthesis pass. See the
-[failure note](../../../failure_notes/2026-09-26-busicom-printer-decimal-carry.md).
+formal BMC/prove/cover, and synthesis pass. See the [FIN failure note](../../../failure_notes/2026-09-02-intel4004-fin-pc-advance.md)
+and [manual-regression failure note](../../../failure_notes/2026-09-27-busicom-manual-regression.md).
 
 ## What was verified
 
@@ -75,6 +75,16 @@ The authentic `spin=1481` now reproduces the recovered ROM's results across all
 42 examples on Verilator 5.052. The earlier claim that this rate necessarily
 corrupts keyboard input is superseded by that evidence. `run_system.sh` defaults
 to 1481 and supports `BUSICOM_BACKEND=xezim` or `verilator`.
+
+### Web panel (2026-09-29)
+
+The current panel shows the calculator, built-in manual replay and a collapsible
+Surfer waveform view. Each panel has an independent minimize control; the
+calculator help button is at the upper left. Verilator captures each key or
+paper-advance operation as FST with the 4004 interface ports in the default
+Surfer signal list. See the [system README](../README.md) and its current
+[screenshot](../assets/web-app.jpg). This UI update does not change the
+historical regression results above.
 
 ### Operational limits
 

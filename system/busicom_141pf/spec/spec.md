@@ -2,12 +2,12 @@
 
 A virtual-platform reconstruction of the **Busicom 141-PF** (1971), the first
 commercial calculator built around a microprocessor (Intel 4004 / MCS-4
-chip set). The hardware runs as RTL in the xezim simulator using the chip
+chip set). The hardware runs as RTL in xezim or Verilator using the chip
 designs from `design/intel_400{1,2,3,4}`, executes the **original 1280-byte
 calculator firmware**, and talks to a web-app front panel over DPI-C.
 
-Status: **working draft** — see `plans/implementation_plan.md` for build-out
-sequence and `report/` for verification results.
+Status: **implemented** — see `plans/implementation_plan.md` for the build-out
+sequence and `report/manual_regression.md` for the 42-example verification results.
 
 ## 1. Historical machine
 
@@ -18,7 +18,7 @@ sequence and `report/` for verification results.
 | Significance | First commercial product powered by a microprocessor (Intel 4004) |
 | CPU clock | ~740 kHz two-phase; 8 clocks per machine cycle (~10.8 µs/instruction) |
 | Output | Shinshu Seiki (Epson) Model-102 impact drum printer — **no tube display** |
-| Input | 32-key keyboard, decimal-point selector (0, 1, 2, 3, 4, 5, 6, 8 — no 7), rounding selector |
+| Input | 30 populated calculator keys (including `00`, without `000`), decimal-point selector (0, 1, 2, 3, 4, 5, 6, 8 — no 7), rounding selector |
 | Capacity | 14 digits, plus decimal point and sign (user manual §13–16) |
 | Operation speed | addition/subtraction 0.45 s, multiplication 1.1 s, division 1.2 s |
 | Input buffer | 8 words; keyboard scanned 40 times/s regardless of calculating/printing |
@@ -36,7 +36,7 @@ an operator or `=` key forces a print.
 |---|---|---|
 | intel_4004 | 1 | CPU (`design/intel_4004`) |
 | intel_4001 | 5 | Mask ROM, 256 bytes each, CHIP_NO 0–4 (`design/intel_4001`) |
-| intel_4002 | 2 | RAM, variant -1; RAM0 on CM-RAM line 0, RAM1 on line 1 (`design/intel_4002`) |
+| intel_4002 | 2 | RAM, variant -1; both on CM-RAM line 0, selected by P0 straps 0/1 (`design/intel_4002`) |
 | intel_4003 | 3 | 10-bit shift registers (keyboard scan, printer ×2 cascaded) (`design/intel_4003`) |
 
 Firmware: the original calculator mask contents, 5 × 256 bytes
@@ -45,7 +45,8 @@ Firmware: the original calculator mask contents, 5 × 256 bytes
 ## 3. Board wiring (per peripheral bus)
 
 All chips share the 4-bit data bus (open-drain style: exactly one `data_oe`
-driver at a time), `sync`, `cm_rom`; the 4002s sit on separate CM-RAM lines.
+driver at a time), `sync`, `cm_rom`; both 4002s share CM-RAM line 0
+and use distinct P0 straps.
 
 ### 3.1 ROM port I/O
 
@@ -66,10 +67,10 @@ driver at a time), `sync`, `cm_rom`; the 4002s sit on separate CM-RAM lines.
 
 | RAM port | Bit | Signal |
 |---|---|---|
-| RAM0 (CM-RAM0) | 0 | print in **red** (per line, latch until line advance) |
+| RAM0 (CM-RAM0, P0=0) | 0 | print in **red** (per line, latch until line advance) |
 | RAM0 | 1 | fire hammer (edge) |
 | RAM0 | 3 | advance paper (edge) |
-| RAM1 (CM-RAM1) | 0 | **Memory** lamp |
+| RAM1 (CM-RAM0, P0=1) | 0 | **Memory** lamp |
 | RAM1 | 1 | **Overflow** lamp |
 | RAM1 | 2 | **Negative** lamp |
 
@@ -79,11 +80,12 @@ The printer drum rotation is timed by the CPU `TEST` input: it toggles every
 drum half-spin, and the drum-index pulse (ROM2 bit 0) fires once per full
 revolution. The firmware busy-waits on TEST (JTN/JNT) to sequence printing.
 
-## 4. Front panel (modelled exactly)
+## 4. Front panel
 
 ### 4.1 Keyboard matrix
 
-The firmware scans by shifting a one-hot through 4003 #0 (Q0…Q9 = rows).
+The firmware scans by shifting a single active-low bit through 4003 #0
+(Q0…Q9 = rows).
 A pressed key ties its column bit into the ROM1 port nibble. Rows 8/9 are
 not keys but the two selector switches, read through the same matrix:
 
@@ -92,7 +94,7 @@ not keys but the two selector switches, read through the same matrix:
 | Q0 | CM, RM, M−, M+ |
 | Q1 | √, %, M=−, M=+ |
 | Q2 | ◇, ÷, ×, = |
-| Q3 | −, +, (unused), 000 |
+| Q3 | −, +, (unused), (unused) — no `000` key |
 | Q4 | 9, 6, 3, . |
 | Q5 | 8, 5, 2, 00 |
 | Q6 | 7, 4, 1, 0 |
@@ -144,7 +146,7 @@ decimal point and sign.
 
 ```
 web app (browser)  ←— HTTP/JSON —→  panel bridge (C, pthread HTTP server
-     ▲                               loaded into xezim via --dpi-lib)
+     ▲                               loaded by xezim or Verilator)
      │ keys, switches                     ▲  keys/drum state      │ lamps,
      └────────────────────────────────────┘                       │ paper,
                                                                   ▼
@@ -154,12 +156,15 @@ DPI-C calls ←— tb_top.sv (clock/reset, machine-cycle pacing, TEST pin)
 ```
 
 * The **hardware** (chips, bus, matrix, shift registers, edge detectors)
-  is RTL under `src/`, simulated by xezim (`tb/tb_top.sv`).
+  is RTL under `src/`, simulated by xezim or Verilator (`tb/tb_top.sv`).
 * The **panel bridge** (`host/dpi/panel_bridge.c`) is a DPI-C shared
   library that also serves the web app: key state, selector switches,
-  lamps, paper rows, drum window. One process, no external daemons.
-* The **web app** (`host/web/`) replicates the real front panel: paper
-  tape, drum window, keyboard, switches, lamps, Move Up button.
+  lamps, paper rows, drum window. The panel HTTP server runs in the
+  simulator process; Surfer's bundled web UI uses a second local server.
+* The **web app** (`host/web/`) presents the paper tape, collapsible drum
+  window, keyboard, switches, lamps, Move Up button, manual replay, and a
+  collapsible Surfer FST viewer. Verilator records the latest key or paper
+  advance with trace depth 3, including all 4004 RTL interface ports.
 
 ### 5.1 Known deviations from the real machine
 
@@ -175,17 +180,17 @@ DPI-C calls ←— tb_top.sv (clock/reset, machine-cycle pacing, TEST pin)
 * **Printer analog timing** is not modelled (already a non-goal in
   §6); the drum is a virtual half-spin timer driving the TEST pin.
 
-## 6. Verification plan
+## 6. Verification
 
-1. **Board smoke (headless)**: run the firmware without keys; assert the
-   keyboard-scan shift register cycles and the drum index is consumed
-   (firmware alive).
-2. **End-to-end**: drive keys over HTTP (`1`, `+`, `2`, `=`) and assert the
-   printed paper line contains `3.`-style output; repeat for `÷`, `%`,
-   memory and rounding operations.
-3. **Feature sweep**: all 32 keys produce a scanned code; each selector
-   value is readable; lamps track overflow/memory/negative operations.
-4. Non-goals: cycle-accurate printer hammer analog timing; key rollover.
+The board smoke check confirms firmware boot and all ten keyboard scan rows.
+The HTTP system check verifies exact printed totals. The manual regression
+replays all 42 numbered examples with 135 checkpoints, checking exact tape
+rows, symbols, ink color, rounding marks, and specified lamps. The recovered-ROM
+profile passes on Verilator and xezim and agrees with an independent CPU
+implementation; five scan/ROM differences are documented in
+[manual_regression.md](../report/manual_regression.md). The two unpopulated
+matrix positions have no front-panel keys. Cycle-accurate analog hammer timing
+and key rollover remain outside the model.
 
 ## 7. Sources and attribution
 
@@ -203,7 +208,7 @@ DPI-C calls ←— tb_top.sv (clock/reset, machine-cycle pacing, TEST pin)
   `spec/reference/rom_141pf_combined.bin`.
 * Board wiring / printer / keyboard protocol reference (facts only, no code
   reused): V. Ilmer's Busicom 141-PF emulator —
-  `spec/reference/{busicom,boards,chips}/` (GitHub: veniamin-ilmer),
+  separate upstream checkouts outside this repository (GitHub: veniamin-ilmer),
   <https://veniamin-ilmer.github.io/emu/busicom/>.
 * Machine history: IPSJ Computer Museum,
   <https://museum.ipsj.or.jp/en/heritage/Busicom_141-PF.html>; Vintage
