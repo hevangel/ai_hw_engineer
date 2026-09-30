@@ -1,6 +1,6 @@
 # MOS Technology 6502
 
-The 6502 was introduced in **1975** and became the CPU of the Apple II. This directory starts an original, synthesizable implementation. The present RTL supports only six opcodes and cannot boot Apple firmware.
+The 6502 was introduced in **1975** and became the CPU of the Apple II. This directory contains an original, synthesizable implementation in progress. The present RTL supports 29 opcodes, including memory loads, BIT, branches and flag controls. An integrated keyboard echo test runs on the Apple II wrapper; full Apple firmware boot is still pending.
 
 Read the [specification](spec/spec.md), [implementation plan](plans/implementation_plan.md), and [current verification report](report/final_report.md).
 

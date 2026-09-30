@@ -12,14 +12,26 @@ module mos_6502 (
     output logic [7:0]  x_o,
     output logic [7:0]  y_o
 );
-    typedef enum logic [2:0] {
-        RESET_LO, RESET_HI, FETCH, IMM, ABS_LO, ABS_HI, WRITE, FAULT
+    typedef enum logic [3:0] {
+        RESET_LO, RESET_HI, FETCH, IMM, ABS_LO, ABS_HI, WRITE, FAULT,
+        ZP, READ, REL
     } state_t;
     state_t state;
     logic [15:0] pc;
     logic [15:0] target;
     logic [7:0] a, x, y, p, opcode;
     logic [7:0] low_byte;
+    logic branch_taken;
+
+    always_comb begin
+        case (opcode[7:6])
+            2'b00: branch_taken = p[7] == opcode[5];
+            2'b01: branch_taken = p[6] == opcode[5];
+            2'b10: branch_taken = p[0] == opcode[5];
+            2'b11: branch_taken = p[1] == opcode[5];
+            default: branch_taken = 1'b0;
+        endcase
+    end
 
     assign pc_o = pc;
     assign status_o = p;
@@ -34,7 +46,7 @@ module mos_6502 (
         case (state)
             RESET_LO: bus_addr = 16'hfffc;
             RESET_HI: bus_addr = 16'hfffd;
-            WRITE:    bus_addr = target;
+            WRITE, READ: bus_addr = target;
             default:  bus_addr = pc;
         endcase
     end
@@ -73,23 +85,49 @@ module mos_6502 (
                             pc <= pc + 16'd1;
                             state <= IMM;
                         end
-                        8'h8d, 8'h4c: begin // STA abs / JMP abs
+                        8'h8d, 8'h4c, 8'had, 8'hae, 8'hac, 8'h2c: begin
                             pc <= pc + 16'd1;
                             state <= ABS_LO;
+                        end
+                        8'ha5, 8'ha6, 8'ha4, 8'h24: begin
+                            pc <= pc + 16'd1;
+                            state <= ZP;
+                        end
+                        8'h10, 8'h30, 8'h50, 8'h70,
+                        8'h90, 8'hb0, 8'hd0, 8'hf0: begin
+                            pc <= pc + 16'd1;
+                            state <= REL;
+                        end
+                        8'h18, 8'h38, 8'h58, 8'h78, 8'hb8,
+                        8'hd8, 8'hf8: begin
+                            pc <= pc + 16'd1;
+                            case (bus_data_i)
+                                8'h18: p[0] <= 1'b0;
+                                8'h38: p[0] <= 1'b1;
+                                8'h58: p[2] <= 1'b0;
+                                8'h78: p[2] <= 1'b1;
+                                8'hb8: p[6] <= 1'b0;
+                                8'hd8: p[3] <= 1'b0;
+                                8'hf8: p[3] <= 1'b1;
+                                default: begin end
+                            endcase
                         end
                         default: state <= FAULT;
                     endcase
                 end
-                IMM: begin
+                IMM, READ: begin
                     case (opcode)
-                        8'ha9: a <= bus_data_i;
-                        8'ha2: x <= bus_data_i;
-                        8'ha0: y <= bus_data_i;
+                        8'ha9, 8'ha5, 8'had: a <= bus_data_i;
+                        8'ha2, 8'ha6, 8'hae: x <= bus_data_i;
+                        8'ha0, 8'ha4, 8'hac: y <= bus_data_i;
+                        8'h24, 8'h2c: p[6] <= bus_data_i[6];
                         default: state <= FAULT;
                     endcase
-                    p[1] <= (bus_data_i == 8'h00); // Z
+                    p[1] <= (opcode == 8'h24 || opcode == 8'h2c)
+                            ? ((a & bus_data_i) == 8'h00)
+                            : (bus_data_i == 8'h00);
                     p[7] <= bus_data_i[7];         // N
-                    pc <= pc + 16'd1;
+                    if (state == IMM) pc <= pc + 16'd1;
                     state <= FETCH;
                 end
                 ABS_LO: begin
@@ -104,8 +142,18 @@ module mos_6502 (
                     end else begin
                         target <= {bus_data_i, low_byte};
                         pc <= pc + 16'd1;
-                        state <= WRITE;
+                        state <= (opcode == 8'h8d) ? WRITE : READ;
                     end
+                end
+                ZP: begin
+                    target <= {8'h00, bus_data_i};
+                    pc <= pc + 16'd1;
+                    state <= READ;
+                end
+                REL: begin
+                    pc <= pc + 16'd1 + (branch_taken
+                        ? {{8{bus_data_i[7]}}, bus_data_i} : 16'd0);
+                    state <= FETCH;
                 end
                 WRITE: state <= FETCH;
                 FAULT: state <= FAULT;
