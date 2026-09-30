@@ -19,6 +19,7 @@ distribution's supported packages, not separately compiled upstream releases.
 | Yices | 2.7.0, `85cf17e44eac76b5d14b297c09fc9bfecf47ef65` | [release](https://github.com/SRI-CSL/yices2/releases/tag/yices-2.7.0) |
 | Z3 | 5.1.0, official x64 glibc-2.39 archive | [release](https://github.com/Z3Prover/z3/releases/tag/z3-5.1.0) |
 | Surfer | v0.7.0, `bd749b1f786c1c62cd67893ca71346cbe6983915` | [release](https://gitlab.com/surfer-project/surfer/-/releases/v0.7.0) |
+| Trunk | 0.21.14 (Surfer WebAssembly build) | [release](https://github.com/trunk-rs/trunk/releases/tag/v0.21.14) |
 | Verible | v0.0-4296-g0f262651, static x86_64 archive | [release](https://github.com/chipsalliance/verible/releases/tag/v0.0-4296-g0f262651) |
 | CMake | 4.4.3, PyPI package in a dedicated virtual environment | [package](https://pypi.org/project/cmake/4.4.3/) |
 | UVM bundle | `65a3ded36f7f752356de62669fd84e01f4cb0121` (unchanged upstream HEAD) | [repository](https://github.com/nitronis/UVM) |
@@ -34,6 +35,7 @@ its upstream revision was already current. Verilator 5.052 replaces the previous
 - Ubuntu 26.04 provides the C++20 compiler required by Yosys. CMake is installed
   in `/opt/cmake` using a virtual environment, respecting system Python isolation.
 - Surfer 0.7.0 requires its `f128` and other Git submodules; initialize recursively.
+- The Surfer WebAssembly UI follows the v0.7.0 upstream CI build using Trunk 0.21.14.
 - Z3 uses the verified official release archive instead of the older Ubuntu package.
 - `BUILD_JOBS` defaults to four per compiler stage. Docker can run stages in parallel.
 - Rustup, Z3 and Verible downloads are checked against SHA-256 digests in Dockerfile.

@@ -69,6 +69,12 @@ Note: For GUI display in Docker, you'll need X11 forwarding:
 docker run -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix ...
 ```
 
+## Self-hosted web viewer
+
+The Docker image also builds Surfer's WebAssembly UI and the `surver` remote
+waveform server. To serve a mounted FST locally without using the hosted web
+app, see the [self-hosted web viewer guide](self-hosted-web.md).
+
 ## Verification
 
 ```bash

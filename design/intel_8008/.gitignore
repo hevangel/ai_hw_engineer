@@ -1,0 +1,4 @@
+build/
+formal/intel_8008_prove/
+formal/intel_8008_cover/
+formal/intel_8008/

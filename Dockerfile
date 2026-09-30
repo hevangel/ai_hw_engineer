@@ -183,11 +183,11 @@ RUN git clone --filter=blob:none https://gitlab.com/surfer-project/surfer.git /o
         -o /tmp/trunk.tar.gz && \
     tar -xzf /tmp/trunk.tar.gz -C /usr/local/bin trunk && \
     rm /tmp/trunk.tar.gz && \
-    cargo build --release --locked --bin surfer && \
+    cargo build --release --locked --features accesskit --bin surfer --bin surver && \
     RUSTFLAGS="--cfg=web_sys_unstable_apis" trunk build \
         --config=surfer/Trunk.toml index.html --release --public-url /dist --features accesskit && \
     mkdir -p /opt/surfer/bin /opt/surfer/webapp && \
-    cp target/release/surfer /opt/surfer/bin/ && \
+    cp target/release/surfer target/release/surver /opt/surfer/bin/ && \
     cp -a surfer/dist/. /opt/surfer/webapp/ && \
     sed -i 's|/dist/|./|g' /opt/surfer/webapp/index.html
 
@@ -240,6 +240,10 @@ ENV UVM_HOME_12=/opt/uvm/1.2
 ENV UVM_HOME_2017=/opt/uvm/1800.2-2017
 ENV UVM_HOME_2020=/opt/uvm/1800.2-2020
 
+COPY scripts/serve_surfer_web.sh /opt/surfer/serve_web.sh
+COPY scripts/serve_surfer_web.py /opt/surfer/serve_web.py
+RUN chmod 0755 /opt/surfer/serve_web.sh
+
 WORKDIR /workspace
 
 # Fail the build if any required command is missing or cannot start.
@@ -258,7 +262,11 @@ RUN set -eux; \
     xezim --help >/dev/null; \
     test -x /opt/surfer/bin/surfer; \
     surfer --version; \
+    test -x /opt/surfer/bin/surver; \
+    surver --help >/dev/null; \
     test -s /opt/surfer/webapp/index.html; \
+    test -x /opt/surfer/serve_web.sh; \
+    python3 -m py_compile /opt/surfer/serve_web.py; \
     test -x /opt/verible/bin/verible-verilog-lint; \
     verible-verilog-lint --version; \
     test -f /opt/uvm/1.2/src/uvm_pkg.sv; \
