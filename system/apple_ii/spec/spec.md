@@ -41,7 +41,7 @@ and the reference solver/netlist's different licenses.
 
 Analog reductions and integration steps are documented in
 [analog.md](analog.md). Exact electrical fidelity, full schematic audit,
-visible video/cassette validation, and the authored 6502 remain acceptance
+composite-video voltage/color and cassette validation, and the authored 6502 remain acceptance
 requirements. The full suite runs historical software and returns nonzero
 while those requirements remain outstanding.
 
@@ -61,3 +61,50 @@ poll: LDA $C000
 `tb/tb_echo.sv` checks each opcode-fetch PC, injects A and Z, verifies the
 high-bit text codes in page 1, and confirms that CPU reads acknowledge the
 keyboard strobe. It neither renders video nor exercises authentic firmware.
+
+## Digital video acceptance contract
+
+A socket bus master initializes display bytes through the same DRAM write
+path as the CPU and selects modes through the real C050-C057 soft switches.
+The test observes numbered scan-counter pins and the B10 pin-5 video output;
+no behavioral video renderer is substituted for the motherboard.
+
+The independent oracle uses the original manual's text row address layout
+and Figure S-11 serial glyph/polarity wiring, plus the pinned AppleWin
+[scanner timing reference](https://github.com/AppleWin/AppleWin/blob/736a12b0a2d59d122ec3d7257497d4ff1fc5c029/source/Video.cpp)
+and [pixel expansion reference](https://github.com/AppleWin/AppleWin/blob/736a12b0a2d59d122ec3d7257497d4ff1fc5c029/source/NTSC.cpp),
+with revision-0 differences taken from the original schematic and source below.
+It expects 65 character clocks per line, 262 lines per NTSC frame, and
+40 by 24 text cells (seven monochrome pixels per cell). The original board's
+five glyph columns have two spacer columns; the source glyph content still
+requires comparison against an original 2513 dump.
+
+ASSUMPTION: a diagnostic image initializes known screen bytes before capture;
+unused/uninitialized memory is not required to produce known video. Output
+is sampled after package propagation delay. Digital video validation does
+not validate Q3's voltage, color filtering, or the external 75-ohm load.
+
+The high-resolution oracle deliberately ignores DL7 on revision 0. The
+later-board half-dot delay is absent: see Winston Gayler, *The Apple II
+Circuit Description*, Appendix B, printed p.153
+([source](https://mirrors.apple2.org.za/Apple%20II%20Documentation%20Project/Books/W.%20Gayler%20-%20The%20Apple%20II%20Circuit%20Description.pdf)).
+The revision-0 scan has 912 master-clock samples per line: 64 ordinary
+14-clock characters plus the extended 16-clock repeated H=0 state. Sync
+comparison follows Figure S-11's physical gate inputs; it does not substitute
+later-board or ideal NTSC pulse widths. B10 output trails visible scan addresses
+by one character, so the last visible cell spills into the initial H=0 state.
+
+Historical display regression: type ESC then @ ($40, physical Shift-P on the
+original keyboard) through the keyboard pins to
+invoke the Monitor's original screen-clear routine, then deposit/examine.
+Track actual CPU text-page writes in the test oracle, capture a stable full
+frame during the next keyboard wait, and compare every displayed pixel to
+those bytes and the externally sourced glyphs. Reject unknown visible bytes,
+unknown pixels, screen changes during capture, and malformed scan timing.
+
+The keyboard boundary accepts the actual seven data bits, not modern key labels.
+Original Shift-P's code is $40, not $50. The original Monitor listing at FC2C
+(`EOR #$C0`, then `BEQ HOME`) establishes the high-bit-strobed value $C0.
+The display checker must assert the untouched rows are $A0 spaces after HOME;
+scrolling uninitialized RAM can otherwise turn unknown bytes into known $FF
+question marks at the reference boundary and falsely appear initialized.

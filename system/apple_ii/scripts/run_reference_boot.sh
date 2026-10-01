@@ -12,3 +12,4 @@ iverilog -g2012 -s tb_rev0_boot -o work/boot.vvp \
 vvp -Mwork -mcpu_reference work/boot.vvp >work/boot.log 2>&1 || { cat work/boot.log; exit 1; }
 cat work/boot.log
 grep -q 'PASS historical Monitor' work/boot.log
+python3 scripts/check_monitor_video.py
