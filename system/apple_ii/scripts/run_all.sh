@@ -1,6 +1,13 @@
 #!/bin/sh
-set -e
+set -eu
 cd "$(dirname "$0")/.."
-./scripts/run_sim.sh
-echo "Apple II firmware boot regression is pending; system sign-off is incomplete."
+sh scripts/run_sim.sh
+sh ../../design/apple_ii_chips/scripts/run_all.sh
+sh ../../design/apple_ii_chips/scripts/run_synth.sh
+sh scripts/run_lint.sh
+SIMULATOR=iverilog sh scripts/run_board_sim.sh
+sh scripts/run_peripheral_sim.sh
+# Mandatory historical software gate: run actual original Monitor commands.
+sh scripts/run_reference_boot.sh
+echo 'Regressions passed; exact analog reconstruction and authored CPU sign-off remain incomplete.'
 exit 1

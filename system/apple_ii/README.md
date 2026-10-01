@@ -1,10 +1,49 @@
-# Apple II system (in progress)
+# Apple II revision-0 reconstruction
 
-The original Apple II was introduced in **1977**. This system now connects the early MOS 6502 core to a 48 KiB RAM, ROM, and keyboard memory block. A text-page read port is available for later video timing. The core cannot yet boot Apple firmware.
+The Apple II first shipped in **1977**, as recorded by the
+[Computer History Museum](https://www.computerhistory.org/tdih/june/10/).
+This system reconstructs the revision-0 motherboard's IC package functions
+and numbered pin connections. The
+[Apple II Reference Manual](https://apple2history.org/dl/Apple_II_Redbook.pdf)
+anchors the circuit and memory-selection wiring.
 
-The [Computer History Museum](https://www.computerhistory.org/tdih/june/10/) records its 1977 shipment. The [Apple II Reference Manual](https://apple2history.org/dl/Apple_II_Redbook.pdf) is the primary system architecture source. See the [system specification](spec/spec.md) and [plan](plans/implementation_plan.md).
+The reference system instantiates **83 IC packages**: 24 individual 4116s,
+six ROM sockets, a 2513 character generator, TTL/bus-interface packages,
+555 and NE558 timers, a 741 amplifier, and a simulation-only NMOS 6502
+transistor reference. All digital shared-memory transactions pass through
+the wired buffers, address multiplexers, strobes, and data latches.
 
-The [supporting chip inventory](spec/chip_inventory.md) maps the motherboard's
-RAM, ROM, character generator, TTL logic, and analog support parts. A synthetic
-ROM regression now exercises CPU keyboard polling, text-RAM writes and strobe
-acknowledgement end to end; authentic Monitor boot remains pending.
+The original Monitor boots and accepts `300:A5 5A`, then `300.301`; the
+regression checks the deposited bytes and their readback on the CPU bus.
+The project's authored [6502 core](../../design/mos_6502/) is still partial;
+the board uses an independent external transistor model for this regression.
+
+## Run
+
+```sh
+# From repository root, after building the main tools image:
+docker build -f system/apple_ii/Dockerfile -t ai-hw-engineer-apple-ii .
+docker run --rm -v "$PWD:/work" -w /work/system/apple_ii \
+    ai-hw-engineer-apple-ii sh scripts/run_all.sh
+```
+
+The optional CPU/ROM artifacts are fetched to ignored `work/` with pinned
+revisions and SHA-256 checks. See [dependency ownership and licenses](board/DEPENDENCIES.md)
+before using the external reference. The solver is MIT; its transistor
+netlist is CC BY-NC-SA 3.0. The historical ROM is not relicensed by this project.
+
+`run_all.sh` runs actual firmware, then deliberately reports incomplete
+system sign-off: exact analog reconstruction, original-dump font comparison,
+and the authored CPU remain outstanding. Individual regressions have separate
+passing scripts. The motherboard uses Icarus; package tests use Xezim.
+The retained Xezim board regression currently exposes a resolved-bus failure.
+
+## Documents
+
+- [System specification](spec/spec.md)
+- [Chip inventory](spec/chip_inventory.md)
+- [Analog boundary and assumptions](spec/analog.md)
+- [Connectivity provenance and corrections](board/README.md)
+- [Implementation plan](plans/implementation_plan.md)
+- [Verification evidence and remaining work](report/final_report.md)
+- [Supporting package library](../../design/apple_ii_chips/README.md)

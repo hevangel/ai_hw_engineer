@@ -7,6 +7,7 @@ This directory contains the historical chip designs recreated and verified by th
 | Chip | Description | First introduced | Design |
 |---|---|---:|---|
 | MOS Technology 6502 | 8-bit microprocessor; 29-opcode subset and Apple II keyboard echo | 1975 | [mos_6502](mos_6502/) |
+| Apple II support ICs | 32 physical-pin TTL, memory, bus-interface and analog models | Various; confirmed board use 1977* | [apple_ii_chips](apple_ii_chips/) |
 | Intel 4004 | 4-bit microprocessor (MCS-4); authentic Busicom manual regression | 1971 | [intel_4004](intel_4004/) |
 | 74181 / SN74LS181 | 4-bit TTL arithmetic logic unit and function generator | 1970 | [alu_74181](alu_74181/) |
 | Intel 4001 | 2048-bit mask-programmable ROM + 4-bit I/O port chip (MCS-4) | 1971 | [intel_4001](intel_4001/) |
@@ -51,3 +52,5 @@ Source material is summarized and rephrased for licensing compliance.
 ## Design documentation
 
 Each chip folder contains its own historical overview, specification, implementation plans, RTL, verification environment, formal properties, scripts, and reports. Start with the chip folder's `README.md` for historical context and links to its Markdown documentation.
+
+*The Apple II support group contains devices introduced at different times. Individual variant introduction years have not yet been established; **1977** is a sourced board-use date from the [original reference manual](https://apple2history.org/dl/Apple_II_Redbook.pdf), not a common chip introduction year. See the [support package overview](apple_ii_chips/README.md) for this uncertainty and technical sources. The external NMOS CPU reference used for board firmware testing is described separately in the [system dependency notes](../system/apple_ii/board/DEPENDENCIES.md).

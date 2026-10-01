@@ -1,3 +1,6 @@
 # These shell entry points run inside Linux containers from Windows checkouts.
 design/intel_4004/scripts/*.sh text eol=lf
 system/busicom_141pf/scripts/*.sh text eol=lf
+design/mos_6502/scripts/*.sh text eol=lf
+design/apple_ii_chips/scripts/*.sh text eol=lf
+system/apple_ii/scripts/*.sh text eol=lf
