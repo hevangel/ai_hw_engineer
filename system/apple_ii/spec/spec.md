@@ -41,9 +41,11 @@ and the reference solver/netlist's different licenses.
 
 Analog reductions and integration steps are documented in
 [analog.md](analog.md). Exact electrical fidelity, full schematic audit,
-composite-video voltage/color, complete cassette command validation, and the authored 6502 remain acceptance
-requirements. The full suite runs historical software and returns nonzero
-while those requirements remain outstanding.
+composite-video voltage/color and complete cassette command validation remain
+acceptance requirements. The authored 6502 documented-instruction firmware
+gate passes using `apple_ii_rev0_authored` with the same package nets. The full
+suite runs historical software and returns nonzero while those requirements
+remain outstanding.
 
 ## Integrated bring-up regression
 

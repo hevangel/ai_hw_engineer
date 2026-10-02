@@ -1,45 +1,79 @@
-# MOS 6502 specification
+# Authored NMOS 6502 specification
 
-## Scope and sources
+Target: all 151 documented NMOS opcodes and all their addressing modes,
+decimal ADC/SBC including NMOS flags, stack, reset, IRQ/NMI, RDY, SO,
+page-cross and branch dummy accesses, RMW old/new writes, and JMP indirect
+page wrapping. Undocumented opcodes deliberately latch fault_o; they are
+outside the documented-instruction acceptance contract.
 
-Target: original NMOS 6502 instruction behavior, reset, interrupts, and externally visible bus cycles, for an Apple II system. Primary sources are the [MOS programming manual](https://www.bitsavers.org/components/mosTechnology/6500-50A_MCS6500pgmManJan76.pdf) and [MOS hardware manual](https://archive.6502.org/books/mcs6500_family_hardware_manual.pdf). This is a staged implementation; the current RTL is only the first subset.
+Sources: [MOS programming manual](https://www.bitsavers.org/components/mosTechnology/6500-50A_MCS6500pgmManJan76.pdf),
+[MOS hardware manual](https://archive.6502.org/books/mcs6500_family_hardware_manual.pdf),
+and independent [SingleStepTests NMOS vectors](https://github.com/SingleStepTests/65x02).
+Tests compare every address, read/write direction, written byte, final register,
+status and exact next opcode-fetch PC against the externally generated vectors.
+No ISS is derived from the RTL. Historical original Apple II Monitor execution
+is mandatory in run_all.sh. An independent Klaus functional test adds coverage.
 
-## Current interface
+## Interface and cycle contract
 
-`clk` and synchronous active-low `rst_n`; 16-bit `bus_addr`; 8-bit combinational `bus_data_i`; 8-bit `bus_data_o`; high `bus_we` during write; `fetch_o` while fetching an opcode; `pc_o`, `status_o`, `x_o`, and `y_o` for verification; `fault_o` after an unsupported opcode. Reads are combinational in the current test harness. All transfers advance on rising clock edges.
+One rising clk consumes the current bus transaction and presents the next.
+bus_we is high only for writes; fetch_o is high during opcode fetch, including
+the discarded fetch at interrupt entry. pc_o/status_o/a_o/x_o/y_o/sp_o expose
+architectural state. Synchronous rst_n is the project initialization reset;
+res_n is the separate physical warm-reset request. irq_n, nmi_n, so_n and
+rdy are sampled on clock edges. RDY holds reads, never writes. NMI falling
+edges are retained during RDY stalls. IRQ uses the penultimate-cycle pin sample and pre-update I flag, preserving
+CLI/SEI/PLP delay behavior. NMI edge requests pass through the same polling
+boundary. A taken same-page branch polls at its operand; a crossing branch
+retains that result and also polls at page correction. During a stalled
+branch/index correction cycle the address-high latch still corrects. Late
+NMI can hijack BRK/IRQ only before the status-push sampling boundary. These
+details are checked against the independently recovered transistor netlist
+listed in [reference ownership](../tb/REFERENCES.md).
+P's bit 5 is always one; bit 4 is a stack encoding, not a stored flag.
 
-## Current instruction subset
+## Assumption ledger
 
-| Opcode | Instruction | Effect |
-|---|---|---|
-| EA | NOP | Advance PC one byte |
-| A9/A2/A0 | LDA/LDX/LDY immediate | Load operand; set N and Z |
-| 8D | STA absolute | Write A to the 16-bit operand address |
-| 4C | JMP absolute | Load PC from the 16-bit operand |
-| A5/A6/A4, AD/AE/AC | LDA/LDX/LDY zero page and absolute | Load memory; set N and Z |
-| 24/2C | BIT zero page and absolute | Set N/V from memory and Z from A AND memory |
-| 10/30/50/70/90/B0/D0/F0 | BPL/BMI/BVC/BVS/BCC/BCS/BNE/BEQ | Signed relative conditional branch |
-| 18/38/58/78/B8/D8/F8 | CLC/SEC/CLI/SEI/CLV/CLD/SED | Change the selected status flag only |
+- ASSUMPTION: project rst_n chooses canonical startup A/X/Y=0, S=0, P=24.
+  Real silicon does not guarantee these power-up register values. Physical
+  res_n preserves A/X/Y and decimal state, sets I, and performs three stack
+  reads/decrements before the vector reads. The initial stack pointer becomes FD.
+- ASSUMPTION: external asynchronous pins meet the sampling clock's setup/hold;
+  metastability and sub-cycle electrical timing are not solved in this RTL.
+- ASSUMPTION: digital bus inputs are stable before the consuming edge.
+  The physical socket adapter samples before phi0 falls and changes pins after
+  that edge, allowing the motherboard's real propagation and shared DRAM path.
+- Undocumented/unstable NMOS opcodes fault rather than approximating analog
+  behavior. No compatibility claim is made for software using those opcodes.
 
-Reset loads PC from `$FFFC` (low byte) and `$FFFD` (high byte). Unsupported opcodes enter `fault_o`; this is a development diagnostic, not 6502 behavior.
+## Completion gates
 
-## ASSUMPTION ledger
+Require all documented-opcode external vectors, exact bus cycles, exhaustive
+decimal arithmetic against an external oracle, interrupt/reset/RDY/SO checks,
+Klaus functional software and original Apple II Monitor commands. Run lint,
+formal safety/progress with non-vacuity covers, simulation and synthesis.
+Tests must check exact next PC; no padding may absorb incorrect PC landings.
 
-- **ASSUMPTION: simplified read bus.** The first RTL uses a combinational read bus and omits NMOS dummy accesses. This must be replaced with manual-checked bus sequencing before hardware compatibility is claimed.
-- **ASSUMPTION: synchronous project reset.** The project reset is synchronous active-low, while the physical NMOS reset pin has different electrical and timing behavior. System integration must model the resulting vector fetch and cycle sequence.
+## Physical package adapter
 
-## Memory and branch milestone
+`a2_mos6502` maps the original 40 pins, resolves data only while writing,
+and consumes a read before phi0 falls. Its startup counter chooses canonical
+internal initialization for three clocks; the motherboard RES pin remains a
+warm reset. ASSUMPTION: phi1/phi2 outputs are ideal complementary levels;
+analog delay and clock non-overlap are not modeled. ASSUMPTION: unresolved
+read bits sample high and increment `unknown_read_samples`, matching the
+explicit external reference boundary. No electrical validity is inferred.
+NC pins 5, 35 and 36 are unused. Only `mos_6502`, not this resolved-pin
+simulation adapter, is covered by the synthesis gate.
 
-Add zero-page and absolute LDA/LDX/LDY, zero-page/absolute BIT, all eight
-conditional branches, and CLC/SEC/CLI/SEI/CLV/CLD/SED. Branch offsets are
-signed relative to the address after the operand, with 16-bit wrapping.
-BIT copies memory bits 7 and 6 to N/V and sets Z from A AND memory.
-These semantics follow sections 3, 4, and 7 of the
-[Synertek reprint of the MOS programming manual](https://syncopate.us/books/Synertek6502ProgrammingManual.html).
-The implementation remains functionally sequenced, not bus-cycle accurate.
-The integration acceptance test polls the Apple II keyboard through CPU
-instructions and writes two injected characters to text RAM.
+## Physical package adapter
 
-## Remaining completion gates
-
-Implement all documented opcodes and addressing modes, decimal arithmetic, stack and interrupt behavior, page-cross timing, and NMOS bus side effects. Validate against an independent oracle derived from external artifacts. Add an authentic Apple II ROM/software regression to `run_all.sh` and require exact post-instruction PC and next instruction. Run lint, formal BMC/prove/cover, simulation, and synthesis before a sign-off PR.
+`a2_mos6502` maps the original 40 pins, resolves data only while writing,
+and consumes a read before phi0 falls. Its startup counter chooses canonical
+internal initialization for three clocks; the motherboard RES pin remains a
+warm reset. ASSUMPTION: phi1/phi2 outputs are ideal complementary levels;
+analog delay and clock non-overlap are not modeled. ASSUMPTION: unresolved
+read bits sample high and increment `unknown_read_samples`, matching the
+explicit external reference boundary. No electrical validity is inferred.
+NC pins 5, 35 and 36 are unused. Only `mos_6502`, not this resolved-pin
+simulation adapter, is covered by the synthesis gate.

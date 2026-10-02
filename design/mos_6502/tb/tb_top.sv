@@ -8,18 +8,20 @@ module tb_top;
     logic [15:0] expected_pc [0:6];
     integer fetch_count;
     logic [7:0] status;
-    logic [7:0] x, y;
+    logic [7:0] x, y, a, sp;
 
-    always #5 clk = ~clk;
+    initial forever #5 clk = ~clk;
     assign bus_data_i = mem[bus_addr];
     mos_6502 dut (
-        .clk(clk), .rst_n(rst_n), .bus_addr(bus_addr),
+        .clk(clk), .rst_n(rst_n), .res_n(1'b1), .irq_n(1'b1),
+        .nmi_n(1'b1), .rdy(1'b1), .so_n(1'b1), .bus_addr(bus_addr),
         .bus_data_i(bus_data_i), .bus_data_o(bus_data_o),
         .bus_we(bus_we), .fetch_o(fetch), .fault_o(fault), .pc_o(pc),
-        .status_o(status), .x_o(x), .y_o(y)
+        .status_o(status), .x_o(x), .y_o(y), .a_o(a), .sp_o(sp)
     );
 
-    always @(posedge clk) begin
+    always_ff @(posedge clk) begin
+        if (!rst_n) fetch_count <= 0;
         if (rst_n && bus_we) mem[bus_addr] <= bus_data_o;
         if (rst_n && fetch) begin
             if (fetch_count > 6) $fatal(1, "unexpected fetch at %h", pc);
@@ -32,7 +34,6 @@ module tb_top;
     initial begin
         clk = 0;
         rst_n = 0;
-        fetch_count = 0;
         for (integer i = 0; i < 65536; i++) mem[i] = 8'h00;
         mem[16'hfffc] = 8'h00; mem[16'hfffd] = 8'h80;
         // LDA #$42; STA $0200; LDX #0; LDY #5; JMP $800c; NOP.
@@ -41,7 +42,7 @@ module tb_top;
         mem[16'h8005] = 8'ha2; mem[16'h8006] = 8'h00;
         mem[16'h8007] = 8'ha0; mem[16'h8008] = 8'h05;
         mem[16'h8009] = 8'h4c; mem[16'h800a] = 8'h0c; mem[16'h800b] = 8'h80;
-        mem[16'h800c] = 8'hea;
+        mem[16'h800c] = 8'hea; mem[16'h800d] = 8'h02;
         expected_pc[0] = 16'h8000; expected_pc[1] = 16'h8002;
         expected_pc[2] = 16'h8005; expected_pc[3] = 16'h8007;
         expected_pc[4] = 16'h8009; expected_pc[5] = 16'h800c;
@@ -51,7 +52,7 @@ module tb_top;
         wait (fault);
         if (fetch_count != 7) $fatal(1, "fetch count %0d", fetch_count);
         if (mem[16'h0200] !== 8'h42) $fatal(1, "STA failed");
-        if (bus_data_o !== 8'h42 || x !== 8'h00 || y !== 8'h05)
+        if (a !== 8'h42 || bus_data_o !== 8'h42 || sp !== 8'hfd || x !== 8'h00 || y !== 8'h05)
             $fatal(1, "register mismatch");
         if (status !== 8'h24)
             $fatal(1, "status mismatch");

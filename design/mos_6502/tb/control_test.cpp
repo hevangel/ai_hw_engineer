@@ -22,6 +22,7 @@ static void tick() {
 static void reset(uint16_t start) {
     mem.fill(0x02);
     mem[0xfffc] = start & 255; mem[0xfffd] = start >> 8;
+    cpu.res_n=cpu.irq_n=cpu.nmi_n=cpu.rdy=cpu.so_n=1;
     cpu.rst_n = 0; tick(); tick(); cpu.rst_n = 1;
     for (int i = 0; i < 8 && !cpu.fetch_o; ++i) tick();
     require(cpu.fetch_o && cpu.pc_o == start, "reset vector");

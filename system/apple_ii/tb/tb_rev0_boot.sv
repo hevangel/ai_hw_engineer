@@ -1,3 +1,6 @@
+`ifndef APPLE_II_CPU_MODULE
+`define APPLE_II_CPU_MODULE apple_ii_rev0_reference
+`endif
 `timescale 1ns/1ps
 module tb_rev0_boot;
     logic osc=0, reset_n=0;
@@ -15,7 +18,7 @@ module tb_rev0_boot;
     logic key_strobe=0;
     logic wrote_first=0, wrote_second=0, read_first=0, read_second=0;
     logic vector_low=0, vector_high=0, reset_fetch=0;
-    apple_ii_rev0_reference #(
+    `APPLE_II_CPU_MODULE #(
         .ROM_D0("work/rom_D0.hex"),.ROM_D8("work/rom_D8.hex"),
         .ROM_E0("work/rom_E0.hex"),.ROM_E8("work/rom_E8.hex"),
         .ROM_F0("work/rom_F0.hex"),.ROM_F8("work/rom_F8.hex"),.CHAR_ROM("work/char_2513.hex")

@@ -11,5 +11,7 @@ sh scripts/run_video_sim.sh
 # Mandatory historical software gate: run actual original Monitor commands.
 sh scripts/run_reference_boot.sh
 sh scripts/run_cassette_sim.sh
-echo 'Regressions passed; exact analog reconstruction and authored CPU sign-off remain incomplete.'
+sh scripts/run_authored_boot.sh
+sh scripts/run_authored_cassette.sh
+echo 'Regressions passed; exact analog reconstruction and original-dump font comparison remain incomplete.'
 exit 1

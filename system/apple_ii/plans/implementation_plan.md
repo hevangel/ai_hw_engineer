@@ -14,6 +14,8 @@
    actual Monitor screen clear, commands and readback.
 8. Run the original cassette byte routines in both polarities with exact
    cycle timing, physical DRAM readback and modeled R18/R19 jack attenuation.
+9. Complete the authored 151 documented-opcode NMOS core and run the same
+   historical Monitor/display/cassette gates through its physical H7 socket.
 
 ## Remaining requirements
 
@@ -25,9 +27,8 @@
 3. Replace ideal oscillator/output boundaries with validated mixed-signal
    models, and verify complete cassette commands, speaker, and composite-video waveforms.
 4. Validate timing, analog tolerances, power-up conditions, and unresolved reads.
-5. Complete the authored 6502 and run historical firmware using that design.
-6. Reduce the Xezim resolved-bus failure and establish a passing board backend.
-7. Add optional expansion cards after the motherboard acceptance gate passes.
+5. Reduce the Xezim resolved-bus failure and establish a passing board backend.
+6. Add optional expansion cards after the motherboard acceptance gate passes.
 
 ## Cassette byte validation work
 

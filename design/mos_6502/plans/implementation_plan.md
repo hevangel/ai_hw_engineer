@@ -1,9 +1,13 @@
-# 6502 implementation plan
+# 6502 completion plan
 
-1. **Bus and reset foundation (functional subset tested):** register state, vector fetch, diagnostic fault, 29 opcodes, exact-PC tests including every branch offset at four boundary locations, and integrated Apple II keyboard echo.
-2. **Core completion:** addressing modes, ALU and decimal flag, stack, branches, interrupts, read-modify-write cycles, undocumented behavior policy. Derive instruction expectations from the MOS manual and an external emulator or manufacturer trace, never from RTL.
-3. **Bus accuracy:** document every cycle, dummy read/write and page crossing from the MOS hardware manual; model Apple II soft-switch side effects correctly.
-4. **Verification:** independent oracle, formal invariants with reset assumptions and cover mode, opcode and cycle tests without landing padding, real historical software regression.
-5. **Apple II:** wire 48 KiB RAM, keyboard and display soft switches, text video, ROM, and later graphics/storage in `system/apple_ii/`. Start with original 1977 Apple II, then document any II+ behavior separately.
-
-Sign-off is blocked until actual Apple II firmware executes and its trace matches an independent reference. Current code is an implementation seed.
+1. Replace the subset decoder with all 151 documented NMOS opcode/mode pairs.
+2. Implement shared cycle states for addressing, dummy accesses, RMW, stack,
+   jumps, branches and interrupt/reset entry. Preserve the existing bus API.
+3. Implement NMOS decimal arithmetic and flags from external references.
+4. Add hash-pinned SingleStepTests vectors with every bus cycle and final state;
+   add Klaus functional software and externally grounded arithmetic tests.
+5. Verify physical interrupt/reset/RDY/SO behavior and formal invariants/covers.
+6. Replace H7's external CPU in an authored-CPU motherboard wrapper and execute
+   the unchanged historical Monitor keyboard/display and cassette regressions.
+7. Run lint, formal, simulation and synthesis; update chip index, README and
+   verification report. Retain explicit unsupported undocumented-opcode policy.

@@ -25,11 +25,11 @@ oscillator, RC networks, cassette amplification, speaker, and composite-video
 mixing need explicit mixed-signal models. A supplied digital clock or cassette
 logic level is an approximation, not a simulation of those circuits.
 
-The partial `mos_6502` design cannot boot this board. The integrated reference
-system now uses a physical-pin transistor model and passes original Monitor
-keyboard deposit/examine commands; [reference dependencies](DEPENDENCIES.md)
-identify the external code, data, and licenses. Authored CPU completion and
-electrical sign-off remain requirements.
+The authored `mos_6502` supports all 151 documented NMOS opcodes and boots
+this board through a physical-pin adapter. An independent transistor CPU
+remains available; [reference dependencies](DEPENDENCIES.md) identify its
+external code, data and licenses. Both execute original Monitor commands.
+Electrical sign-off remains outstanding.
 
 `apple_ii_rev0_peripherals.sv` models the three analog IC functions with real
 voltage inputs and reduced RC networks. See [analog assumptions](../spec/analog.md).

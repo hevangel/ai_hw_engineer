@@ -1,3 +1,6 @@
+`ifndef APPLE_II_CPU_MODULE
+`define APPLE_II_CPU_MODULE apple_ii_rev0_reference
+`endif
 `timescale 1ns/1ps
 module tb_rev0_cassette;
     logic osc=0, reset_n=0, key_strobe=0;
@@ -16,7 +19,7 @@ module tb_rev0_cassette;
     logic [7:0] expected [0:6];
     logic [15:0] recent_pc [0:31];
     logic [7:0] recent_opcode [0:31];
-    apple_ii_rev0_reference #(
+    `APPLE_II_CPU_MODULE #(
         .ROM_D0("work/cassette_D0.hex"),.ROM_D8("work/rom_D8.hex"),
         .ROM_E0("work/rom_E0.hex"),.ROM_E8("work/rom_E8.hex"),
         .ROM_F0("work/rom_F0.hex"),.ROM_F8("work/rom_F8.hex"),.CHAR_ROM("work/char_2513.hex")

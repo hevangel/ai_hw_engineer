@@ -55,10 +55,7 @@
 5. CPU reference reads convert unknown input bits to high and count them.
    The Monitor regression forbids unknown opcodes, but dummy/uninitialized
    data reads remain. Success does not certify those electrical read values.
-6. The authored synthesizable 6502 supports 29 opcodes and is not completed
-   by using an external transistor reference. Its own historical-software
-   acceptance gate remains failing.
-7. Xezim package tests pass; the complete resolved-bus board test loses driven
+6. Xezim package tests pass; the complete resolved-bus board test loses driven
    CPU data. Icarus passes the identical board test. The full reproducer is
    `SIMULATOR=xezim sh scripts/run_board_sim.sh`; scalar reductions passed,
    so the simulator defect is not yet reduced to an isolated minimal case.
@@ -125,3 +122,23 @@ The standard ten-second WRITE leader and complete READ command's acquisition,
 sync search, checksum/error handling, noise/speed tolerance and measured
 analog waveform agreement remain outstanding. The byte-routine regression
 does not claim those acceptance requirements are complete.
+
+## Authored 6502 completion
+
+The 151 documented-opcode authored NMOS core now replaces H7 in
+`apple_ii_rev0_authored`, retaining the other 82 package instances and actual
+motherboard nets. This option loads no CPU VPI module. Its own lint, formal,
+independent instructions/arithmetic/pin tests, synthesis and real-software
+gates are listed in the [CPU report](../../../design/mos_6502/report/final_report.md).
+
+The authored option passes Monitor keyboard clear/deposit/examine and the
+complete 107,520-pixel visible frame. Both cassette polarities also pass:
+seven received bytes/readbacks, 112 transitions and 111 exact cycle intervals
+each. The authored positive/negative runs observe 128,607/128,611 fetches
+and 7,719/7,720 unresolved reads, ending at 345.121639/345.134350 ms.
+Different canonical reset/dummy reads account for the reference count offset;
+unknown opcodes and unknown received/readback bytes remain forbidden.
+
+This completes the authored CPU's documented-instruction firmware gate.
+It does not close the independent motherboard analog, font-dump or imported
+connectivity audit requirements listed above.
