@@ -7,3 +7,4 @@ cd "$(dirname "$0")/.."
 verilator --lint-only --timing -Wall -Wno-UNUSEDSIGNAL -Wno-PINCONNECTEMPTY \
     -Wno-UNDRIVEN -Wno-UNOPTFLAT \
     --top-module apple_ii_rev0_digital ../../design/apple_ii_chips/src/*.sv src/apple_ii_rev0_digital.sv
+verilator --lint-only --timing -Wall --top-module apple_ii_cassette_output src/apple_ii_cassette_output.sv

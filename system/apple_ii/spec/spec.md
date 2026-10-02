@@ -41,7 +41,7 @@ and the reference solver/netlist's different licenses.
 
 Analog reductions and integration steps are documented in
 [analog.md](analog.md). Exact electrical fidelity, full schematic audit,
-composite-video voltage/color and cassette validation, and the authored 6502 remain acceptance
+composite-video voltage/color, complete cassette command validation, and the authored 6502 remain acceptance
 requirements. The full suite runs historical software and returns nonzero
 while those requirements remain outstanding.
 
@@ -108,3 +108,12 @@ Original Shift-P's code is $40, not $50. The original Monitor listing at FC2C
 The display checker must assert the untouched rows are $A0 spaces after HOME;
 scrolling uninitialized RAM can otherwise turn unknown bytes into known $FF
 question marks at the reference boundary and falsely appear initialized.
+
+## Cassette acceptance
+
+The [cassette byte-routine contract](cassette.md) defines historical WRITE
+body/RDBYTE execution, independent analog stimuli, exact cycle timing,
+physical DRAM readback and both polarities. R18/R19 output attenuation is
+modeled with explicit voltage/load assumptions in [analog.md](analog.md).
+Full leader/sync acquisition, READ checksum/error handling and measured
+analog waveform agreement remain requirements for sign-off.

@@ -2,7 +2,8 @@
 // See spec/analog.md and board/DEPENDENCIES.md for fidelity and license limits.
 `timescale 1ns/1ps
 module apple_ii_rev0_reference #(
-    parameter ROM_D0="", ROM_D8="", ROM_E0="", ROM_E8="", ROM_F0="", ROM_F8="", CHAR_ROM=""
+    parameter ROM_D0="", ROM_D8="", ROM_E0="", ROM_E8="", ROM_F0="", ROM_F8="", CHAR_ROM="",
+    parameter real CASSETTE_LOAD_OHMS=0.0
 ) (
     input logic master_oscillator, reset_n,
     input logic [6:0] keyboard_data,
@@ -15,13 +16,18 @@ module apple_ii_rev0_reference #(
     output tri cpu_rw, cpu_sync, cpu_phi0,
     output tri video_data, composite_sync, speaker, cassette_out,
     output tri [3:0] annunciators,
-    output integer unknown_read_samples
+    output integer unknown_read_samples,
+    output real cassette_jack_voltage,
+    output logic cassette_jack_valid
 );
     tri phi1, phi2, irq_n, nmi_n, rdy, cpu_reset_n;
     tri flash, paddle_trigger_n;
     logic [3:0] paddle_timer;
     logic cassette_in;
     wire real cassette_amplifier;
+    apple_ii_cassette_output output_divider(.drive_level(cassette_out),
+        .load_ohms(CASSETTE_LOAD_OHMS),.jack_voltage(cassette_jack_voltage),
+        .voltage_valid(cassette_jack_valid));
     apple_ii_rev0_peripherals analog_support(.paddle_trigger_n(paddle_trigger_n),
         .paddle0_ohms(paddle0_ohms),.paddle1_ohms(paddle1_ohms),
         .paddle2_ohms(paddle2_ohms),.paddle3_ohms(paddle3_ohms),.cassette_voltage(cassette_voltage),

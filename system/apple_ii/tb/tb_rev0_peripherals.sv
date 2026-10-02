@@ -9,6 +9,30 @@ module tb_rev0_peripherals;
         0.0,flash,timers,cassette,amplifier);
     realtime began, finish_time [0:3];
     logic [3:0] completed=0;
+    logic output_level=1'bx;
+    real output_load=0.0;
+    wire real output_voltage;
+    logic output_valid, output_checked=0;
+    apple_ii_cassette_output cassette_jack(.drive_level(output_level),
+        .load_ohms(output_load),.jack_voltage(output_voltage),.voltage_valid(output_valid));
+    initial begin
+        #100;
+        if(output_valid) $fatal(1,"Unknown cassette output cannot be valid");
+        output_level=0; #1;
+        if(!output_valid || output_voltage<0.001652891 || output_voltage>0.001652893)
+            $fatal(1,"Open cassette jack low voltage %f",output_voltage);
+        output_level=1; #1;
+        if(!output_valid || output_voltage<0.033057850 || output_voltage>0.033057852)
+            $fatal(1,"Open cassette jack high voltage %f",output_voltage);
+        output_load=1000.0; #1;
+        if(!output_valid || output_voltage<0.030075187 || output_voltage>0.030075189)
+            $fatal(1,"Loaded cassette jack voltage %f",output_voltage);
+        output_level=1'bz; #1;
+        if(output_valid) $fatal(1,"Floating cassette output cannot be valid");
+        output_level=1; output_load=-1.0; #1;
+        if(output_valid) $fatal(1,"Negative cassette load cannot be valid");
+        output_checked=1;
+    end
     initial begin
         #1000;
         if(timers!==0) $fatal(1,"paddles before trigger");
@@ -23,7 +47,9 @@ module tb_rev0_peripherals;
                 $fatal(1,"paddle channel %0d duration %f",i,finish_time[i]-began);
         end
         if(timers!==0) $fatal(1,"trigger low cannot retrigger");
-        $display("PASS revision-0 four paddle RC channels and routing"); $finish;
+        if(!output_checked) $fatal(1,"Cassette jack checks did not complete");
+        $display("PASS revision-0 four paddle RC channels and routing");
+        $display("PASS cassette jack open/load divider voltages and invalid-level rejection"); $finish;
     end
     initial begin
         wait(timers[0]===1'b1); @(negedge timers[0]); finish_time[0]=$realtime; completed[0]=1;

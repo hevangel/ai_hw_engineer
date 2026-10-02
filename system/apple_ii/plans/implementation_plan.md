@@ -12,6 +12,8 @@
 6. Run authentic Monitor reset, keyboard deposit, and examine commands.
 7. Verify serial video scan/blanking/sync and exact pixels for all modes and
    actual Monitor screen clear, commands and readback.
+8. Run the original cassette byte routines in both polarities with exact
+   cycle timing, physical DRAM readback and modeled R18/R19 jack attenuation.
 
 ## Remaining requirements
 
@@ -21,11 +23,25 @@
    floating-bus behavior, and audit package timing against vintage measurements.
    Digital graphics/text modes and visible historical Monitor output pass.
 3. Replace ideal oscillator/output boundaries with validated mixed-signal
-   models, and verify cassette, speaker, and composite-video waveforms.
+   models, and verify complete cassette commands, speaker, and composite-video waveforms.
 4. Validate timing, analog tolerances, power-up conditions, and unresolved reads.
 5. Complete the authored 6502 and run historical firmware using that design.
 6. Reduce the Xezim resolved-bus failure and establish a passing board backend.
 7. Add optional expansion cards after the motherboard acceptance gate passes.
+
+## Cassette byte validation work
+
+1. Define the independent format and scope in [cassette.md](../spec/cassette.md).
+2. Add a D0 exerciser entered through the original Monitor and keyboard pins;
+   call the unmodified F8 byte routines with real DRAM data and pointers.
+3. Capture physical J13 output edges and compare bit order, both half-cycle
+   durations, byte sequence and the original WRITE checksum.
+4. Drive an independent analog input pattern through Cap10/K13/H14 in both
+   polarities, requiring exact received CPU writes into DRAM.
+5. Retain the ten-second leader, full READ command and measured analog
+   cassette waveforms as explicit extended acceptance work.
+6. Add the physical R18/R19 output divider with explicit TTL voltage and load
+   assumptions; check open and loaded jack voltages, including invalid levels.
 
 ## Digital video validation work
 

@@ -46,6 +46,7 @@ The retained Xezim board regression currently exposes a resolved-bus failure.
 - [System specification](spec/spec.md)
 - [Chip inventory](spec/chip_inventory.md)
 - [Analog boundary and assumptions](spec/analog.md)
+- [Cassette byte-routine contract](spec/cassette.md)
 - [Connectivity provenance and corrections](board/README.md)
 - [Implementation plan](plans/implementation_plan.md)
 - [Verification evidence and remaining work](report/final_report.md)
@@ -66,3 +67,15 @@ delay. The [video specification](spec/spec.md#digital-video-acceptance-contract)
 identifies the original schematic and circuit-analysis sources for that behavior.
 The Monitor clear uses ESC then `$40` (`@`, physical Shift-P), rather than a
 modern uppercase P keycode.
+
+## Cassette evidence
+
+Run `sh scripts/run_cassette_sim.sh` for the original F8 WRITE body and
+RDBYTE routines, entered with `D000G` through the Monitor and keyboard pins.
+Only the D0 socket holds the project-authored exerciser. Both input polarities
+must produce the six test bytes and checksum, followed by actual DRAM readback.
+Physical J13 output edges must match exact firmware cycle counts and byte
+order. The cassette jack exposes R18/R19 divider voltage with explicit
+configurable TTL-level and recorder-load assumptions. Raw edge and input
+captures are retained in `work/`. The standard leader and full READ command,
+including sync acquisition and checksum/error handling, remain extended work.

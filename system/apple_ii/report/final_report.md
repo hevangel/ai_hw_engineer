@@ -43,7 +43,7 @@
    leakage, and parasitic effects are not solved.
 2. Analog package models use ideal comparator thresholds, reduced RC networks,
    typical amplifier parameters, and explicit initial conditions. No vintage
-   waveform comparison has been performed. Cassette firmware/audio validation
+   waveform comparison has been performed. Full cassette command/audio validation
    and composite-video voltage/color validation remain outstanding. Digital
    visible Monitor output and diagnostic modes are now validated as above.
 3. The imported revision-0 transcription requires comparison against every
@@ -81,3 +81,47 @@ pinned by the original Monitor's FC2C `EOR #$C0`/`BEQ HOME`. The new display
 assertions reject surviving startup question marks and verify exact output
 rows and untouched spaces. These corrections were made during regression
 bring-up before commit; no CPU or support-package RTL was changed.
+
+## Cassette implementation and validation
+
+The cassette regression replaces only the D0 socket with a 209-byte project
+exerciser. The original Monitor boots and enters it via physical keyboard
+`D000G`; F8 is the unchanged hash-pinned historical ROM. The exerciser stores
+`00 FF 55 AA A5 5A` through the physical DRAM path and calls the original
+WRITE body at FED2. The routine writes those bytes and XOR checksum `00`
+through C020 and J13. An independent 1.2 V peak-to-peak waveform exercises
+the original FCEC RDBYTE through Cap10, K13, H14 and the shared data path.
+Received bytes are stored in DRAM, then read back and copied to another range.
+
+The R18/R19 output divider now exposes a real jack voltage and a separate
+validity flag. Explicit assumed TTL levels of 0.2/4.0 V give 31.405 mV
+open-circuit swing; a configurable 1 kΩ load gives 28.571 mV. Unknown or
+floating driver levels and invalid negative loads cannot become valid voltage
+samples. The analog boundary regression checks both voltages and invalid
+states; motherboard/divider Verilator lint passes.
+
+Both polarities pass in the feature worktree: seven received bytes and seven
+physical DRAM readbacks each, 112 output transitions each, and 111 exact
+firmware cycle intervals each. Observed half-cycles span 244.028-492.945 µs.
+The positive/negative runs observe 128,607/128,611 post-vector instruction
+fetches and 7,720/7,721 unresolved read samples, ending at approximately
+345.124/345.136 ms. No unknown opcode is accepted after the completed reset
+vector, and received data/readback must be fully known. The unresolved-read
+count remains an explicit reference-boundary limit, not electrical sign-off.
+The existing Monitor screen-clear/deposit/examine and complete 107,520-pixel
+visible raster regression also passes with the added voltage observer.
+
+The timing oracle uses exact counts from the original Monitor listing:
+ordinary first/second halves take 253/250 CPU clocks for zero, with 250
+more clocks for one. Later data-byte first halves take 249 clocks, and the
+checksum first half takes 258 (plus 250 for one). This is stricter and more
+appropriate than treating the rounded 250/500 µs tape-format figures as
+exact intervals. The initial edge has no recorded preceding transition and
+is excluded from interval checks. The two polarities also select both
+possible initial states of J13's unresettable cassette flip-flop.
+
+Sources and the bounded acceptance contract are in [cassette.md](../spec/cassette.md).
+The standard ten-second WRITE leader and complete READ command's acquisition,
+sync search, checksum/error handling, noise/speed tolerance and measured
+analog waveform agreement remain outstanding. The byte-routine regression
+does not claim those acceptance requirements are complete.
