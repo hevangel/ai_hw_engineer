@@ -28,3 +28,10 @@ Do not substitute the separate Am3101A sheet starting on PDF 522.
 Am9102/Am9102A/Am9102B occupies printed pages 5-61 to 5-66 (PDF 498-503).
 PDF 501 specifies that output follows data during selected writes; PDF 502
 defines retained-data standby and its required deselection/recovery timing.
+
+The 319-page 1977 8080A/9080A handbook has functional description on PDF
+6-21, instruction semantics on PDF 22-83 and appendix summaries on PDF
+314-317. ANA/ANI on PDF 31-32 explicitly clears AC, unlike Intel 8080
+silicon. Detailed PUSH on PDF 63 decrements SP, correcting the reversed
+general prose on PDF 7. The actual ISR save/restore/EI/RET skeleton is
+on PDF 301 (printed 15-2), including Figure 15-3.

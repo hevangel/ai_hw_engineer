@@ -11,6 +11,7 @@ This directory contains the historical chip designs recreated and verified by th
 | AMD Am2505 | Four-by-two-bit Booth multiplier/partial-product slice; both logic polarities | 1971* | [amd_am2505](amd_am2505/) |
 | AMD Am3101 | 16x4 asynchronous bipolar RAM; inverted open-collector outputs | 1971* | [amd_am3101](amd_am3101/) |
 | AMD Am9102 / Am9102A / Am9102B | 1024x1 asynchronous NMOS RAM; tri-state output and retained-power standby | 1974* | [amd_am9102](amd_am9102/) |
+| AMD Am9080 / Am9080A | 8-bit processor; complete documented Am9080A instruction set and functional transaction bus | 1975* (Am9080A evidence) | [amd_am9080](amd_am9080/) |
 | MOS Technology 6502 | 8-bit microprocessor; 29-opcode subset and Apple II keyboard echo | 1975 | [mos_6502](mos_6502/) |
 | Intel 4004 | 4-bit microprocessor (MCS-4); authentic Busicom manual regression | 1971 | [intel_4004](intel_4004/) |
 | Intel 8008 | 8-bit microprocessor (MCS-8); SCELBAL software regression | 1972 | [intel_8008](intel_8008/) |

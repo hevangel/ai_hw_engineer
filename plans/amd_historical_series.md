@@ -32,7 +32,7 @@ refined from original catalogs before implementation.
 | 3 | Am2505 | Four-by-two-bit signed multiplier/partial-product building block | Verified: lint, formal BMC/prove/cover, 32,768 slice vectors and 40,960 actual array cases, synthesis ([report](../design/amd_am2505/report/final_report.md)) |
 | 4 | Am3101 | 16-word by four-bit bipolar RAM | Verified: lint, formal BMC/PDR/cover, exhaustive asynchronous memory and shared-bank simulation, synthesis ([report](../design/amd_am3101/report/final_report.md)) |
 | 5 | Am9102 | 1024-bit MOS static RAM | Verified: lint, formal BMC/PDR/cover, 8,192 pin cases, March/address/standby tests and two-chip bus simulation, synthesis ([report](../design/amd_am9102/report/final_report.md)) |
-| 6 | Am9080 / Am9080A | 8080-compatible CPU | Queued |
+| 6 | Am9080 / Am9080A | 8080-compatible CPU | Verified documented Am9080A functional core: all 244 opcodes, 16.8M external-oracle ALU checks, historical software/ISR, UVM, six formal tasks, clean lint and synthesis ([report](../design/amd_am9080/report/final_report.md)); original two-phase pin timing outside scope |
 | 7 | Am2901 | Four-bit ALU/register processor slice | Queued |
 | 8 | Am2902 | Carry look-ahead generator | Queued |
 | 9 | Am2909 | Four-bit microprogram sequencer | Queued |
