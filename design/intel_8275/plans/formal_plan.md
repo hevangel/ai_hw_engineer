@@ -1,0 +1,3 @@
+# Formal plan
+
+Use a reduced four-column instance, initial reset, unrestricted CPU programming and character enables. Prove safe array addresses, bounded timing/parameter counters, DRQ gating, output blanking, status encoding, held-strobe acceptance, and storage consistency at a symbolic row address (`anyconst`). BMC complements unbounded PDR. Cover mode uses an explicitly separate legal programming environment to reach row prefetch, buffer swap, graphics, cursor, light pen, IRQ, underrun and recovery. Cover setup never restricts the safety tasks. Larger memories and all legal geometries are exercised in simulation; reduced-capacity formal is not advertised as an exhaustive proof of an 80-column physical implementation.

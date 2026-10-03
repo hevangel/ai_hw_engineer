@@ -16,6 +16,7 @@ This directory contains the historical chip designs recreated and verified by th
 | Intel 8253 / 8254 | Three-channel programmable interval timers | 1975* / 1982* | [intel_8253_8254](intel_8253_8254/) |
 | Intel 8259 / 8259A | Eight-input programmable interrupt controller | 1976 | [intel_8259](intel_8259/) |
 | Intel 8279 / 8279-5 | Programmable keyboard/display interface | 1977* | [intel_8279](intel_8279/) |
+| Intel 8275 | DMA-fed programmable CRT controller; raster, attributes, cursor and light pen | 1977* | [intel_8275](intel_8275/) |
 | Intel 4002 | 320-bit RAM (256×4 main + 16×4 status) + 4-bit output port (MCS-4) | 1971 | [intel_4002](intel_4002/) |
 
 The Intel 8008 entry records **1972**, with Intel dating its introduction to April 1972 in its [8008 history](https://www.intel.com/content/www/us/en/history/virtual-vault/articles/the-8008.html). Technical behavior follows the downloaded [MCS-8 Users Manual](intel_8008/references/intel_mcs8_users_manual_nov1973.md) and is checked against SCELBAL and the independent SIMH model; see the [design overview](intel_8008/README.md).
@@ -54,5 +55,7 @@ and [historical overview](intel_4003/README.md).
 Source material is summarized and rephrased for licensing compliance.
 
 ## Design documentation
+
+The Intel 8275 entry records **1977*** for public introduction: the contemporary [May 26, 1977 Electronics report](https://www.worldradiohistory.com/Archive-Electronics/70s/77/Electronics-1977-05-26.pdf) describes the new controller and says sample quantities are forthcoming. This does not establish an exact first-shipment date. The design follows Intel's [8275 AFN-00224B datasheet scan](intel_8275/references/intel_8275.pdf); see the [overview](intel_8275/README.md) and [specification](intel_8275/spec/spec.md) for sources and implementation boundaries.
 
 Each chip folder contains its own historical overview, specification, implementation plans, RTL, verification environment, formal properties, scripts, and reports. Start with the chip folder's `README.md` for historical context and links to its Markdown documentation.
