@@ -46,3 +46,7 @@ Am2902A follows on PDF 34/35 (printed 2-26/2-27); physical P/G pins are
 active low, carry pins match active-high Am2901 carries, and only three
 individual carry outputs exist. The original logic diagram, not unbarred
 OCR alone, pins the digital equations.
+Am2909/Am2911 occupy PDF 82–95 (printed 2-74–2-87): Figure 2 / PDF 84
+shows separate register/direct inputs and Am2911's shared-data/no-OR variant;
+Figures 5/6 / PDF 86 specify selection and exact pre-edge-PC push; Figures
+7/8 / PDF 87 provide original pipelined and one-word nested subroutine traces.

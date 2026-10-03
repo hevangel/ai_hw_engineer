@@ -14,6 +14,7 @@ This directory contains the historical chip designs recreated and verified by th
 | AMD Am9080 / Am9080A | 8-bit processor; complete documented Am9080A instruction set and functional transaction bus | 1975* (Am9080A evidence) | [amd_am9080](amd_am9080/) |
 | AMD Am2901 | Four-bit ALU/register processor slice; documented Am2901A native clock phases and all 512 microinstructions | 1975 | [amd_am2901](amd_am2901/) |
 | AMD Am2902 | Four-group carry look-ahead generator; active-low P/G and hierarchical expansion | 1975* (announcement) | [amd_am2902](amd_am2902/) |
+| AMD Am2909 | Four-bit microprogram sequencer; four-word return stack, separate register/direct buses and OR branching | 1975* (marketing) | [amd_am2909](amd_am2909/) |
 | MOS Technology 6502 | 8-bit microprocessor; 29-opcode subset and Apple II keyboard echo | 1975 | [mos_6502](mos_6502/) |
 | Intel 4004 | 4-bit microprocessor (MCS-4); authentic Busicom manual regression | 1971 | [intel_4004](intel_4004/) |
 | Intel 8008 | 8-bit microprocessor (MCS-8); SCELBAL software regression | 1972 | [intel_8008](intel_8008/) |
