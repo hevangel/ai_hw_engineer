@@ -6,6 +6,7 @@ This directory contains the historical chip designs recreated and verified by th
 
 | Chip | Description | First introduced | Design |
 |---|---|---:|---|
+| MOS Technology 6502 | 8-bit microprocessor; 29-opcode subset and Apple II keyboard echo | 1975 | [mos_6502](mos_6502/) |
 | Intel 4004 | 4-bit microprocessor (MCS-4); authentic Busicom manual regression | 1971 | [intel_4004](intel_4004/) |
 | Intel 8008 | 8-bit microprocessor (MCS-8); SCELBAL software regression | 1972 | [intel_8008](intel_8008/) |
 | 74181 / SN74LS181 | 4-bit TTL arithmetic logic unit and function generator | 1970 | [alu_74181](alu_74181/) |
