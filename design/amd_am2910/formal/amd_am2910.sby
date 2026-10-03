@@ -1,0 +1,20 @@
+[tasks]
+bmc
+prove
+cover
+[options]
+bmc: mode bmc
+prove: mode prove
+cover: mode cover
+depth 16
+[engines]
+bmc: smtbmc z3
+prove: abc pdr
+cover: smtbmc z3
+[script]
+read -formal -sv -I . amd_am2910.sv
+prep -top amd_am2910
+[files]
+../src/amd_am2910.sv
+amd_am2910_props.sv
+table_oracle.svh

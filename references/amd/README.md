@@ -50,3 +50,8 @@ Am2909/Am2911 occupy PDF 82–95 (printed 2-74–2-87): Figure 2 / PDF 84
 shows separate register/direct inputs and Am2911's shared-data/no-OR variant;
 Figures 5/6 / PDF 86 specify selection and exact pre-edge-PC push; Figures
 7/8 / PDF 87 provide original pipelined and one-word nested subroutine traces.
+
+Am2910 occupies PDF96–108 (printed2-88–2-100). Table I/II PDF99 must be
+visually checked for active-low signals; Figure4 PDF103 and explanations
+PDF104–106 provide original microprogram examples. Unlike Am2909, Am2910
+stack depth saturates at zero/five and overflow replaces the full top word.
