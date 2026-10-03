@@ -1,0 +1,9 @@
+// license:BSD-3-Clause
+// copyright-holders:Curt Coder, AJR
+// Source: mamedev/mame ef548b3f1c29d1a128baeaac48c42e95155b2c2e, src/devices/video/i8275.cpp
+const int i8275_device::character_attribute[3][16] =
+{
+	{ 2, 2, 4, 4, 2, 4, 4, 4, 2, 4, 4, 0, 2, 0, 0, 0 },
+	{ 8, 0xc, 8, 0xc, 1, 0xc, 8, 1, 1, 4, 1, 0, 2, 0, 0, 0 },
+	{ 4, 4, 2, 2, 4, 4, 4, 2, 2, 4, 4, 0, 2, 0, 0, 0 }
+};
