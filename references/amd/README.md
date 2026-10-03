@@ -8,6 +8,7 @@ locations so the source remains reproducible without committing large books.
 |---|---|---|
 | `1974_AMD_Data_Book.pdf` | [Bitsavers mirror](https://bitsavers.trailing-edge.com/components/amd/_dataBooks/1974_AMD_Data_Book.pdf) | `9d1f5140c9c206b57145e22743c689610b25cd145a07e93a54a205e5f71efefc` |
 | `1977_AMD_8080A_9080A_MOS_Microprocessor_Handbook.pdf` | [AMD handbook scan](https://bitsavers.trailing-edge.com/components/amd/_dataBooks/1977_AMD_8080A_9080A_MOS_Microprocessor_Handbook.pdf) | `6bea9955f5784c009574cd7d18a83c790dc6f72f4e3de1c02bc69cdd2213ac74` |
+| `1978_The_Am2900_Family_Data_Book.pdf` | [AMD family book](https://bitsavers.trailing-edge.com/components/amd/bitslice/1978_The_Am2900_Family_Data_Book.pdf) | `823513eaf25d19e6ae992809afcd3116bf8cb27b4b0657256842d61c6a56c8fa` |
 
 The 1974 book has 765 PDF pages. Am9300 occupies printed pages 2-33 through
 2-38 (one-based PDF pages 54-59). In particular the serial-input truth table
@@ -35,3 +36,9 @@ The 319-page 1977 8080A/9080A handbook has functional description on PDF
 silicon. Detailed PUSH on PDF 63 decrements SP, correcting the reversed
 general prose on PDF 7. The actual ISR save/restore/EI/RET skeleton is
 on PDF 301 (printed 15-2), including Figure 15-3.
+
+The 402-page 1978 family book defines Am2901A on PDF 11–29, including native
+CP phases on PDF 12; source/function/destination on PDF 14; status Figure 8
+on PDF 16 (overbars must be visually inspected); and actual signed-multiply
+microcode dated August 5, 1975 / J.S. in Figure 21 on PDF 29. Its companion
+Figure 20 supplies cascade shift wiring and sign/overflow correction.

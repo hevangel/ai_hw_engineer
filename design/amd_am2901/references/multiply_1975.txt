@@ -1,0 +1,14 @@
+# Faithful numeric transcription of Figure 21, printed 2-21 / PDF 29.
+# Original title: 2's Comp. Multiply. Date: 8/5/75. Author: J.S.
+# AMD 1978 The Am2900 Family Data Book.
+# pc  A B dest func source Cn repeat
+0      0 0 0    3    4      0  1
+1      0 3 2    4    3      0  1
+2      1 3 4    0    1      0  n-1
+3      1 3 4    1    1      1  1
+4      0 2 2    3    2      0  1
+# x/don't-care fields choose zero; no data-dependent observable is assumed.
+# In words 2 and 3 only, source I1 = NOT(Q0), source is AB or ZB.
+# Shift: Q3 = whole-word RAM0; RAM3 = whole-word F3 XOR OVR.
+# Adjacent nibble shift pins connect as manufacturer Figure 20.
+# Inputs R0=multiplier, R1=multiplicand. Outputs R2=LSH, R3=MSH.

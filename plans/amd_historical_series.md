@@ -33,7 +33,7 @@ refined from original catalogs before implementation.
 | 4 | Am3101 | 16-word by four-bit bipolar RAM | Verified: lint, formal BMC/PDR/cover, exhaustive asynchronous memory and shared-bank simulation, synthesis ([report](../design/amd_am3101/report/final_report.md)) |
 | 5 | Am9102 | 1024-bit MOS static RAM | Verified: lint, formal BMC/PDR/cover, 8,192 pin cases, March/address/standby tests and two-chip bus simulation, synthesis ([report](../design/amd_am9102/report/final_report.md)) |
 | 6 | Am9080 / Am9080A | 8080-compatible CPU | Verified documented Am9080A functional core: all 244 opcodes, 16.8M external-oracle ALU checks, historical software/ISR, UVM, six formal tasks, clean lint and synthesis ([report](../design/amd_am9080/report/final_report.md)); original two-phase pin timing outside scope |
-| 7 | Am2901 | Four-bit ALU/register processor slice | Queued |
+| 7 | Am2901 | Four-bit ALU/register processor slice | Verified Am2901A digital slice: all 512 words, 98,304 external-oracle cases, native phases, actual 1975 microcode/69,732 signed products, six formal tasks and synthesis; local native-latch lint exceptions documented ([report](../design/amd_am2901/report/final_report.md)) |
 | 8 | Am2902 | Carry look-ahead generator | Queued |
 | 9 | Am2909 | Four-bit microprogram sequencer | Queued |
 | 10 | Am2911 | Microprogram sequencer | Queued |
