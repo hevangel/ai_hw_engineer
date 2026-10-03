@@ -6,18 +6,20 @@ This directory contains the historical chip designs recreated and verified by th
 
 | Chip | Description | First introduced | Design |
 |---|---|---:|---|
+| MOS Technology 6502 | 8-bit microprocessor; 29-opcode subset and Apple II keyboard echo | 1975 | [mos_6502](mos_6502/) |
 | Intel 4004 | 4-bit microprocessor (MCS-4); authentic Busicom manual regression | 1971 | [intel_4004](intel_4004/) |
 | Intel 8008 | 8-bit microprocessor (MCS-8); SCELBAL software regression | 1972 | [intel_8008](intel_8008/) |
 | 74181 / SN74LS181 | 4-bit TTL arithmetic logic unit and function generator | 1970 | [alu_74181](alu_74181/) |
 | Intel 4001 | 2048-bit mask-programmable ROM + 4-bit I/O port chip (MCS-4) | 1971 | [intel_4001](intel_4001/) |
+| Intel 4002 | 320-bit RAM (256×4 main + 16×4 status) + 4-bit output port (MCS-4) | 1971 | [intel_4002](intel_4002/) |
 | Intel 4003 | 10-bit serial-in/parallel-out shift-register I/O expander (MCS-4) | 1971 | [intel_4003](intel_4003/) |
 | Intel 8251 / 8251A | Programmable synchronous/asynchronous serial interface (USART) | 1975* | [intel_8251](intel_8251/) |
-| Intel 8255 / 8255A | 24-line programmable peripheral interface | 1975* | [intel_8255](intel_8255/) |
 | Intel 8253 / 8254 | Three-channel programmable interval timers | 1975* / 1982* | [intel_8253_8254](intel_8253_8254/) |
+| Intel 8255 / 8255A | 24-line programmable peripheral interface | 1975* | [intel_8255](intel_8255/) |
 | Intel 8259 / 8259A | Eight-input programmable interrupt controller | 1976 | [intel_8259](intel_8259/) |
-| Intel 8279 / 8279-5 | Programmable keyboard/display interface | 1977* | [intel_8279](intel_8279/) |
 | Intel 8275 | DMA-fed programmable CRT controller; raster, attributes, cursor and light pen | 1977* | [intel_8275](intel_8275/) |
-| Intel 4002 | 320-bit RAM (256×4 main + 16×4 status) + 4-bit output port (MCS-4) | 1971 | [intel_4002](intel_4002/) |
+| Intel 8279 / 8279-5 | Programmable keyboard/display interface | 1977* | [intel_8279](intel_8279/) |
+| Intel 8237 / 8237A | Four-channel programmable DMA controller; A-revision functional core | 1979* (family) | [intel_8237](intel_8237/) |
 
 The Intel 8008 entry records **1972**, with Intel dating its introduction to April 1972 in its [8008 history](https://www.intel.com/content/www/us/en/history/virtual-vault/articles/the-8008.html). Technical behavior follows the downloaded [MCS-8 Users Manual](intel_8008/references/intel_mcs8_users_manual_nov1973.md) and is checked against SCELBAL and the independent SIMH model; see the [design overview](intel_8008/README.md).
 
@@ -53,6 +55,8 @@ register; technical behavior is summarized in the design's [specification](intel
 and [historical overview](intel_4003/README.md).
 
 Source material is summarized and rephrased for licensing compliance.
+
+The Intel 8237/8237A entry records **1979*** for the original 8237 family: the [May 1979 Intel 8237/8237-2 datasheet](https://web.cecs.pdx.edu/~mpj/llp/references/Intel-8237-dma.pdf) is dated by the [technical specification index](https://wiki.osdev.org/Technical_Specifications), and the [family history](https://en.wikipedia.org/wiki/Intel_8237) cites an Intel *Preview* announcement in May/June 1979. The exact introduction date of the later 8237A revision is not established; the year is not an A-revision launch claim. The design follows the [Intel 8237A datasheet](https://www.pcjs.org/documents/datasheets/intel/INTEL_8237A_DMA.pdf); implementation scope and uncertainties are documented in the [chip overview](intel_8237/README.md).
 
 ## Design documentation
 
