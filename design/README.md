@@ -6,6 +6,7 @@ This directory contains the historical chip designs recreated and verified by th
 
 | Chip | Description | First introduced | Design |
 |---|---|---:|---|
+| AMD Am9300 | Four-bit parallel-load/JK serial shift register; asynchronous master clear | 1970* (commercial; silicon 1969) | [amd_am9300](amd_am9300/) |
 | MOS Technology 6502 | 8-bit microprocessor; 29-opcode subset and Apple II keyboard echo | 1975 | [mos_6502](mos_6502/) |
 | Intel 4004 | 4-bit microprocessor (MCS-4); authentic Busicom manual regression | 1971 | [intel_4004](intel_4004/) |
 | Intel 8008 | 8-bit microprocessor (MCS-8); SCELBAL software regression | 1972 | [intel_8008](intel_8008/) |
@@ -61,6 +62,13 @@ The Intel 8272/8272A entry uses **1980*** and **1982*** as the earliest located 
 The Intel 8237/8237A entry records **1979*** for the original 8237 family: the [May 1979 Intel 8237/8237-2 datasheet](https://web.cecs.pdx.edu/~mpj/llp/references/Intel-8237-dma.pdf) is dated by the [technical specification index](https://wiki.osdev.org/Technical_Specifications), and the [family history](https://en.wikipedia.org/wiki/Intel_8237) cites an Intel *Preview* announcement in May/June 1979. The exact introduction date of the later 8237A revision is not established; the year is not an A-revision launch claim. The design follows the [Intel 8237A datasheet](https://www.pcjs.org/documents/datasheets/intel/INTEL_8237A_DMA.pdf); implementation scope and uncertainties are documented in the [chip overview](intel_8237/README.md).
 
 ## Design documentation
+
+The AMD Am9300 entry uses **1970*** for commercial availability, separating
+it from first working silicon in **1969**. First-person and AMD-sourced
+accounts differ on the exact first-shipment milestone; see the
+[chip history and source discussion](amd_am9300/README.md). The ongoing
+[historical AMD series ledger](../plans/amd_historical_series.md) records
+the remaining requested designs and their actual completion state.
 
 The Intel 8275 entry records **1977*** for public introduction: the contemporary [May 26, 1977 Electronics report](https://www.worldradiohistory.com/Archive-Electronics/70s/77/Electronics-1977-05-26.pdf) describes the new controller and says sample quantities are forthcoming. This does not establish an exact first-shipment date. The design follows Intel's [8275 AFN-00224B datasheet scan](intel_8275/references/intel_8275.pdf); see the [overview](intel_8275/README.md) and [specification](intel_8275/spec/spec.md) for sources and implementation boundaries.
 
