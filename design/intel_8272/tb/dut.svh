@@ -1,0 +1,19 @@
+intel_8272 #(.RQM_DELAY_US(2),.MS_US(2)) dut (
+    .clk(clk),.rst_n(bus.rst_n),.us_tick(bus.us_tick),
+    .cs_n(bus.cs_n),.rd_n(bus.rd_n),.wr_n(bus.wr_n),.dack_n(bus.dack_n),
+    .a0(bus.a0),.tc(bus.tc),.db_in(bus.db_in),.db_out(bus.db_out),
+    .db_oe(bus.db_oe),.irq(bus.irq),.drq(bus.drq),
+    .ready(bus.ready),.write_protect(bus.write_protect),.track0(bus.track0),
+    .two_sided(bus.two_sided),.fault(bus.fault),.step(bus.step),.direction(bus.direction),
+    .unit(bus.unit),.head(bus.head),.mfm(bus.mfm),.head_load(bus.head_load),
+    .media_active(bus.media_active),.media_write(bus.media_write),.media_format(bus.media_format),
+    .index_pulse(bus.index_pulse),.header_valid(bus.header_valid),
+    .header_c(bus.header_c),.header_h(bus.header_h),.header_r(bus.header_r),.header_n(bus.header_n),
+    .header_deleted(bus.header_deleted),.header_missing_data(bus.header_missing_data),
+    .header_crc_error(bus.header_crc_error),.media_byte_valid(bus.media_byte_valid),
+    .media_byte(bus.media_byte),.media_end(bus.media_end),.media_crc_error(bus.media_crc_error),
+    .write_slot(bus.write_slot),.sector_begin(bus.sector_begin),.sector_end(bus.sector_end),
+    .tx_valid(bus.tx_valid),.tx_byte(bus.tx_byte),.sector_c(bus.sector_c),
+    .sector_h(bus.sector_h),.sector_r(bus.sector_r),.sector_n(bus.sector_n),
+    .sector_deleted(bus.sector_deleted)
+);
