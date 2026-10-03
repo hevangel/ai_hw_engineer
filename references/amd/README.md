@@ -13,3 +13,5 @@ The 1974 book has 765 PDF pages. Am9300 occupies printed pages 2-33 through
 is on printed page 2-37 / PDF page 58: K is an active-low input. The scanned
 symbol must be consulted alongside OCR because complement bars are lost in
 text extraction. Am2505 begins on printed page 2-9 / PDF page 30.
+Am2501 shares the Am9306 datasheet on printed pages 2-55 through 2-60
+(PDF pages 76-81); the two parts' state diagrams must not be confused.

@@ -1,0 +1,26 @@
+[tasks]
+bmc_6 bmc six
+prove_6 prove six
+cover_6 cover six
+bmc_2 bmc two
+prove_2 prove two
+cover_2 cover two
+
+[options]
+bmc: mode bmc
+prove: mode prove
+cover: mode cover
+depth 24
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal -sv amd_am2501.sv amd_am2501_props.sv
+six: chparam -set CE_INPUTS 6 amd_am2501_props
+two: chparam -set CE_INPUTS 2 amd_am2501_props
+prep -top amd_am2501_props
+
+[files]
+../src/amd_am2501.sv
+amd_am2501_props.sv

@@ -28,8 +28,8 @@ refined from original catalogs before implementation.
 | Order | Device | Function | Status |
 |---:|---|---|---|
 | 1 | Am9300 | Four-bit parallel-load/JK serial shift register | Verified: lint, formal BMC/prove/cover, exhaustive simulation, synthesis ([report](../design/amd_am9300/report/final_report.md)) |
-| 2 | Am2501 | Binary hexadecimal synchronous up/down counter | Primary specification located; next implementation |
-| 3 | Am2505 | Four-by-two-bit signed multiplier/partial-product building block | Queued |
+| 2 | Am2501 | Binary hexadecimal synchronous up/down counter | Verified: both packages, lint, six formal tasks, exhaustive simulation/cascade, synthesis ([report](../design/amd_am2501/report/final_report.md)) |
+| 3 | Am2505 | Four-by-two-bit signed multiplier/partial-product building block | Primary specification and Booth operation table located; next implementation |
 | 4 | Am3101 | 16-word by four-bit bipolar RAM | Queued |
 | 5 | Am9102 | 1024-bit MOS static RAM | Queued |
 | 6 | Am9080 / Am9080A | 8080-compatible CPU | Queued |
