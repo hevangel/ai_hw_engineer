@@ -2,6 +2,7 @@
 `timescale 1ns/1ps
 `default_nettype none
 module apple_ii_rev0_digital #(
+    parameter bit RETAIN_DATA_BUS=1,
     parameter ROM_D0="", ROM_D8="", ROM_E0="", ROM_E8="", ROM_F0="", ROM_F8="", CHAR_ROM=""
 ) (
     input logic master_oscillator, reset_n,
@@ -11,17 +12,17 @@ module apple_ii_rev0_digital #(
     input logic [3:0] paddle_timer,
     input logic [2:0] buttons,
     input logic [15:0] cpu_address,
-    inout tri [7:0] cpu_data,
+    inout tri [7:0] cpu_data, system_data_bus,
     input logic cpu_rw, cpu_phi1, cpu_phi2, cpu_sync,
     output tri cpu_phi0, cpu_reset_n, cpu_irq_n, cpu_nmi_n, cpu_rdy,
     output tri video_data, composite_sync, speaker, cassette_out, color_burst,
     output tri [3:0] annunciators,
     output tri paddle_trigger_n
 );
-    tri n000; // +12V
-    tri n001; // +5V
-    tri n002; // -12V
-    tri n003; // -5V
+    supply1 n000; // Ideal power-good token, not analog voltage.
+    supply1 n001; // Ideal power-good token, not analog voltage.
+    supply1 n002; // Ideal power-good token, not analog voltage.
+    supply1 n003; // Ideal power-good token, not analog voltage.
     tri n004; // /Address Decoder and Onboard IO/CASSETTE_IN
     tri n005; // /Address Decoder and Onboard IO/Cassette_Out
     tri n006; // /Address Decoder and Onboard IO/GamePort_ANN0
@@ -104,16 +105,8 @@ module apple_ii_rev0_digital #(
     tri n091; // C1-5
     tri n092; // C1-6
     tri n093; // COLOR_REF
-    tri n094; // D0
-    tri n095; // D1
-    tri n096; // D2
-    tri n097; // D3
-    tri n098; // D4
-    tri n099; // D5
-    tri n100; // D6
-    tri n101; // D7
     tri n102; // ERA6
-    tri n103; // GND
+    supply0 n103; // Ideal ground; no rail impedance/current model.
     tri n104; // H0
     tri n105; // H1
     tri n106; // H2
@@ -273,47 +266,47 @@ module apple_ii_rev0_digital #(
     tri n260; // RRW
     tri n261; // R~{W}
     tri n262; // SOFT5
-    tri n263; // SS-GR_~{TXT}
-    tri n264; // SS-HI_~{LORES}
-    tri n265; // SS-Mix_~{NoMix}
-    tri n266; // SS-PG2_~{PG1}
-    tri n267; // USER-1
-    tri n268; // V0
-    tri n269; // V1
-    tri n270; // V2
-    tri n271; // V3
-    tri n272; // V4
-    tri n273; // VA
-    tri n274; // VB
-    tri n275; // VC
-    tri n276; // unconnected-(A7-NC-Pad16)
-    tri n277; // unconnected-(A7-NC~{}-Pad14)
-    tri n278; // unconnected-(A7-NC~{}-Pad4)
-    tri n279; // unconnected-(A7-NC~{}-Pad9)
-    tri n280; // unconnected-(A9-~{Z}-Pad6)
-    tri n281; // unconnected-(B1-~{3Q}-Pad11)
-    tri n282; // unconnected-(B10A-~{Q}-Pad6)
-    tri n283; // unconnected-(B10B-D-Pad12)
-    tri n284; // unconnected-(B10B-~{Q}-Pad8)
-    tri n285; // unconnected-(B4-Q1-Pad14)
-    tri n286; // unconnected-(B4-Q3-Pad12)
-    tri n287; // unconnected-(B5-D5-Pad14)
-    tri n288; // unconnected-(B5-Q5-Pad15)
-    tri n289; // unconnected-(B9-Q1-Pad14)
-    tri n290; // unconnected-(B9-Q3-Pad12)
-    tri n291; // unconnected-(C14-Pad1)
-    tri n292; // unconnected-(C14-Pad2)
-    tri n293; // unconnected-(C14-Pad3)
-    tri n294; // unconnected-(CT3-Pad3)
-    tri n295; // unconnected-(D1-Pad11)
-    tri n296; // unconnected-(D11-Q3-Pad11)
-    tri n297; // unconnected-(E1-Pad11)
-    tri n298; // unconnected-(E14-C4-Pad9)
-    tri n299; // unconnected-(E2B-O3-Pad9)
-    tri n300; // unconnected-(F1-Pad11)
-    tri n301; // unconnected-(F2A-O3-Pad7)
-    tri n302; // unconnected-(F2B-O3-Pad9)
-    tri n303; // unconnected-(H14-~{Y}-Pad6)
+    tri n263; // SOFT5_A2_8
+    tri n264; // SS-GR_~{TXT}
+    tri n265; // SS-HI_~{LORES}
+    tri n266; // SS-Mix_~{NoMix}
+    tri n267; // SS-PG2_~{PG1}
+    tri n268; // USER-1
+    tri n269; // V0
+    tri n270; // V1
+    tri n271; // V2
+    tri n272; // V3
+    tri n273; // V4
+    tri n274; // VA
+    tri n275; // VB
+    tri n276; // VC
+    tri n277; // unconnected-(A7-NC-Pad16)
+    tri n278; // unconnected-(A7-NC~{}-Pad14)
+    tri n279; // unconnected-(A7-NC~{}-Pad4)
+    tri n280; // unconnected-(A7-NC~{}-Pad9)
+    tri n281; // unconnected-(A9-~{Z}-Pad6)
+    tri n282; // unconnected-(B1-~{3Q}-Pad11)
+    tri n283; // unconnected-(B10A-~{Q}-Pad6)
+    tri n284; // unconnected-(B10B-D-Pad12)
+    tri n285; // unconnected-(B10B-~{Q}-Pad8)
+    tri n286; // unconnected-(B4-Q1-Pad14)
+    tri n287; // unconnected-(B4-Q3-Pad12)
+    tri n288; // unconnected-(B5-D5-Pad14)
+    tri n289; // unconnected-(B5-Q5-Pad15)
+    tri n290; // unconnected-(B9-Q1-Pad14)
+    tri n291; // unconnected-(B9-Q3-Pad12)
+    tri n292; // unconnected-(C14-Pad1)
+    tri n293; // unconnected-(C14-Pad2)
+    tri n294; // unconnected-(C14-Pad3)
+    tri n295; // unconnected-(CT3-Pad3)
+    tri n296; // unconnected-(D1-Pad11)
+    tri n297; // unconnected-(D11-Q3-Pad11)
+    tri n298; // unconnected-(E1-Pad11)
+    tri n299; // unconnected-(E14-C4-Pad9)
+    tri n300; // unconnected-(E2B-O3-Pad9)
+    tri n301; // unconnected-(F1-Pad11)
+    tri n302; // unconnected-(F2A-O3-Pad7)
+    tri n303; // unconnected-(F2B-O3-Pad9)
     tri n304; // unconnected-(H3-I6-Pad14)
     tri n305; // unconnected-(H3-Y6-Pad13)
     tri n306; // unconnected-(H7-N.C.-Pad35)
@@ -373,11 +366,6 @@ module apple_ii_rev0_digital #(
     tri n360; // ~{RAM_SEL}
     tri n361; // ~{RAS}
     tri n362; // ~{RESET}
-    assign n001 = 1'b1;
-    assign n103 = 1'b0;
-    assign n000 = 1'b1; // Analog supply present, not a voltage model.
-    assign n002 = 1'b1; // Analog supply present, not a voltage model.
-    assign n003 = 1'b1; // Analog supply present, not a voltage model.
     assign n227 = master_oscillator;
     assign n153 = flash;
     assign n004 = cassette_in;
@@ -446,85 +434,98 @@ module apple_ii_rev0_digital #(
     pullup pull_RA02_6(n251);
     pullup pull_RA02_7(n246);
     pullup pull_RA02_8(n250);
-    pullup floating_B10_D(n283); // ASSUMPTION: open TTL input reads high.
-    a2_74ls257 #(.T_PD(5ns)) B6 (.p1(n357), .p2(n012), .p3(n116), .p4(n096), .p5(n013), .p6(n117), .p7(n097), .p8(n103), .p9(n094), .p10(n113), .p11(n010), .p12(n095), .p13(n114), .p14(n011), .p15(n360), .p16(n001));
-    a2_74ls257 #(.T_PD(5ns)) B7 (.p1(n357), .p2(n016), .p3(n120), .p4(n100), .p5(n112), .p6(n121), .p7(n101), .p8(n103), .p9(n098), .p10(n118), .p11(n014), .p12(n099), .p13(n119), .p14(n015), .p15(n360), .p16(n001));
-    a2_74ls08 #(.T_PD(5ns)) B11 (.p1(n345), .p2(n243), .p3(n211), .p4(n264), .p5(n089), .p6(n111), .p7(n103), .p8(n147), .p9(n271), .p10(n272), .p11(n146), .p12(n120), .p13(n153), .p14(n001));
-    a2_74ls04 #(.T_PD(5ns)) C11 (.p1(n266), .p2(n158), .p3(n269), .p4(n157), .p5(n109), .p6(n180), .p7(n103), .p8(n172), .p9(n171), .p10(), .p11(), .p12(n210), .p13(n345), .p14(n001));
-    a2_74ls32 #(.T_PD(5ns)) C14 (.p1(n291), .p2(n292), .p3(n293), .p4(n147), .p5(n110), .p6(n065), .p7(n103), .p8(n197), .p9(n261), .p10(n212), .p11(n260), .p12(n244), .p13(n261), .p14(n001));
+    pullup floating_B10_D(n284); // ASSUMPTION: open TTL input reads high.
+    if (RETAIN_DATA_BUS) begin : charge_bus
+        // ASSUMPTION: ideal bus charge retention; spec/analog.md.
+        /* verilator lint_off PROCASSINIT */
+        /* verilator lint_off NOLATCH */ // Two-state lint cannot represent Z.
+        logic [7:0] held_charge = 8'bz;
+        for (genvar bit_number=0; bit_number<8; bit_number++) begin : bit_charge
+            always_latch if (system_data_bus[bit_number] !== 1'bz)
+                held_charge[bit_number] = system_data_bus[bit_number];
+        end
+        assign (weak1, weak0) system_data_bus = held_charge;
+        /* verilator lint_on NOLATCH */
+        /* verilator lint_on PROCASSINIT */
+    end
+    a2_74ls257 #(.T_PD(5ns)) B6 (.p1(n357), .p2(n012), .p3(n116), .p4(system_data_bus[2]), .p5(n013), .p6(n117), .p7(system_data_bus[3]), .p8(n103), .p9(system_data_bus[0]), .p10(n113), .p11(n010), .p12(system_data_bus[1]), .p13(n114), .p14(n011), .p15(n360), .p16(n001));
+    a2_74ls257 #(.T_PD(5ns)) B7 (.p1(n357), .p2(n016), .p3(n120), .p4(system_data_bus[6]), .p5(n112), .p6(n121), .p7(system_data_bus[7]), .p8(n103), .p9(system_data_bus[4]), .p10(n118), .p11(n014), .p12(system_data_bus[5]), .p13(n119), .p14(n015), .p15(n360), .p16(n001));
+    a2_74ls08 #(.T_PD(5ns)) B11 (.p1(n345), .p2(n243), .p3(n211), .p4(n265), .p5(n089), .p6(n111), .p7(n103), .p8(n147), .p9(n272), .p10(n273), .p11(n146), .p12(n120), .p13(n153), .p14(n001));
+    a2_74ls04 #(.T_PD(5ns)) C11 (.p1(n267), .p2(n158), .p3(n270), .p4(n157), .p5(n109), .p6(n180), .p7(n103), .p8(n172), .p9(n171), .p10(), .p11(), .p12(n210), .p13(n345), .p14(n001));
+    a2_74ls32 #(.T_PD(5ns)) C14 (.p1(n292), .p2(n293), .p3(n294), .p4(n147), .p5(n110), .p6(n065), .p7(n103), .p8(n197), .p9(n261), .p10(n212), .p11(n260), .p12(n244), .p13(n261), .p14(n001));
     a2_8t97_appleii #(.T_PD(5ns)) H3 (.p1(n210), .p2(n039), .p3(n087), .p4(n038), .p5(n086), .p6(n037), .p7(n085), .p8(n103), .p9(n083), .p10(n035), .p11(n084), .p12(n036), .p13(n305), .p14(n304), .p15(n210), .p16(n001));
     a2_8t97_appleii #(.T_PD(5ns)) H4 (.p1(n210), .p2(n028), .p3(n076), .p4(n025), .p5(n073), .p6(n034), .p7(n082), .p8(n103), .p9(n074), .p10(n026), .p11(n075), .p12(n027), .p13(n079), .p14(n031), .p15(n210), .p16(n001));
     a2_8t97_appleii #(.T_PD(5ns)) H5 (.p1(n210), .p2(n029), .p3(n077), .p4(n048), .p5(n261), .p6(n032), .p7(n080), .p8(n103), .p9(n081), .p10(n033), .p11(n072), .p12(n024), .p13(n078), .p14(n030), .p15(n210), .p16(n001));
-    a2_8t28_appleii #(.T_PD(5ns)) H10 (.p1(n197), .p2(n095), .p3(cpu_data[1]), .p4(n095), .p5(n099), .p6(cpu_data[5]), .p7(n099), .p8(n103), .p9(n100), .p10(cpu_data[6]), .p11(n100), .p12(n096), .p13(cpu_data[2]), .p14(n096), .p15(n197), .p16(n001));
-    a2_8t28_appleii #(.T_PD(5ns)) H11 (.p1(n197), .p2(n094), .p3(cpu_data[0]), .p4(n094), .p5(n098), .p6(cpu_data[4]), .p7(n098), .p8(n103), .p9(n101), .p10(cpu_data[7]), .p11(n101), .p12(n097), .p13(cpu_data[3]), .p14(n097), .p15(n197), .p16(n001));
-    a2_74ls00 #(.T_PD(5ns)) A2 (.p1(n243), .p2(n129), .p3(n358), .p4(n261), .p5(n130), .p6(n360), .p7(n103), .p8(n262), .p9(n103), .p10(n103), .p11(n262), .p12(n103), .p13(n103), .p14(n001));
-    a2_74ls257 #(.T_PD(5ns)) C12 (.p1(n111), .p2(n158), .p3(n273), .p4(n159), .p5(n266), .p6(n274), .p7(n160), .p8(n103), .p9(n092), .p10(n158), .p11(n103), .p12(n091), .p13(n275), .p14(n110), .p15(n103), .p16(n001));
+    a2_8t28_appleii #(.T_PD(5ns)) H10 (.p1(n197), .p2(system_data_bus[1]), .p3(cpu_data[1]), .p4(system_data_bus[1]), .p5(system_data_bus[5]), .p6(cpu_data[5]), .p7(system_data_bus[5]), .p8(n103), .p9(system_data_bus[6]), .p10(cpu_data[6]), .p11(system_data_bus[6]), .p12(system_data_bus[2]), .p13(cpu_data[2]), .p14(system_data_bus[2]), .p15(n197), .p16(n001));
+    a2_8t28_appleii #(.T_PD(5ns)) H11 (.p1(n197), .p2(system_data_bus[0]), .p3(cpu_data[0]), .p4(system_data_bus[0]), .p5(system_data_bus[4]), .p6(cpu_data[4]), .p7(system_data_bus[4]), .p8(n103), .p9(system_data_bus[7]), .p10(cpu_data[7]), .p11(system_data_bus[7]), .p12(system_data_bus[3]), .p13(cpu_data[3]), .p14(system_data_bus[3]), .p15(n197), .p16(n001));
+    a2_74ls00 #(.T_PD(5ns)) A2 (.p1(n243), .p2(n129), .p3(n358), .p4(n261), .p5(n130), .p6(n360), .p7(n103), .p8(n263), .p9(n103), .p10(n103), .p11(n262), .p12(n103), .p13(n103), .p14(n001));
+    a2_74ls257 #(.T_PD(5ns)) C12 (.p1(n111), .p2(n158), .p3(n274), .p4(n159), .p5(n267), .p6(n275), .p7(n160), .p8(n103), .p9(n092), .p10(n158), .p11(n103), .p12(n091), .p13(n276), .p14(n110), .p15(n103), .p16(n001));
     a2_74ls20 #(.T_PD(5ns)) D2 (.p1(n151), .p2(n049), .p4(n129), .p5(n243), .p6(n161), .p7(n103), .p8(n130), .p9(n167), .p10(n168), .p12(n169), .p13(n357), .p14(n001));
-    a2_74ls139 #(.T_PD(5ns)) E2 (.p1(n169), .p2(n181), .p3(n182), .p4(n183), .p5(n184), .p6(n185), .p7(n186), .p8(n103), .p9(n299), .p10(n191), .p11(n190), .p12(n189), .p13(n187), .p14(n181), .p15(n188), .p16(n001));
-    a2_74ls153 #(.T_PD(5ns)) E11 (.p1(n103), .p2(n088), .p3(n085), .p4(n268), .p5(n074), .p6(n159), .p7(n246), .p8(n103), .p9(n250), .p10(n160), .p11(n075), .p12(n269), .p13(n086), .p14(n243), .p15(n103), .p16(n001));
-    a2_74ls153 #(.T_PD(5ns)) E12 (.p1(n103), .p2(n088), .p3(n080), .p4(n106), .p5(n082), .p6(n176), .p7(n248), .p8(n103), .p9(n251), .p10(n270), .p11(n087), .p12(n177), .p13(n081), .p14(n243), .p15(n103), .p16(n001));
+    a2_74ls139 #(.T_PD(5ns)) E2 (.p1(n169), .p2(n181), .p3(n182), .p4(n183), .p5(n184), .p6(n185), .p7(n186), .p8(n103), .p9(n300), .p10(n191), .p11(n190), .p12(n189), .p13(n187), .p14(n181), .p15(n188), .p16(n001));
+    a2_74ls153 #(.T_PD(5ns)) E11 (.p1(n103), .p2(n088), .p3(n085), .p4(n269), .p5(n074), .p6(n159), .p7(n246), .p8(n103), .p9(n250), .p10(n160), .p11(n075), .p12(n270), .p13(n086), .p14(n243), .p15(n103), .p16(n001));
+    a2_74ls153 #(.T_PD(5ns)) E12 (.p1(n103), .p2(n088), .p3(n080), .p4(n106), .p5(n082), .p6(n176), .p7(n248), .p8(n103), .p9(n251), .p10(n271), .p11(n087), .p12(n177), .p13(n081), .p14(n243), .p15(n103), .p16(n001));
     a2_74ls153 #(.T_PD(5ns)) E13 (.p1(n103), .p2(n088), .p3(n072), .p4(n104), .p5(n083), .p6(n178), .p7(n249), .p8(n103), .p9(n252), .p10(n179), .p11(n084), .p12(n105), .p13(n073), .p14(n243), .p15(n103), .p16(n001));
-    a2_74ls283 #(.T_PD(5ns)) E14 (.p1(n176), .p2(n272), .p3(n108), .p4(n177), .p5(n107), .p6(n262), .p7(n271), .p8(n103), .p9(n298), .p10(n179), .p11(n272), .p12(n180), .p13(n178), .p14(n271), .p15(n180), .p16(n001));
-    a2_74ls139 #(.T_PD(5ns)) F2 (.p1(n333), .p2(n196), .p3(n187), .p4(n334), .p5(n336), .p6(n346), .p7(n301), .p8(n103), .p9(n302), .p10(n167), .p11(n168), .p12(n169), .p13(n187), .p14(n196), .p15(n103), .p16(n001));
-    a2_74ls08 #(.T_PD(5ns)) H1 (.p1(n168), .p2(n167), .p3(n188), .p4(n078), .p5(n079), .p6(n192), .p7(n103), .p8(n214), .p9(n266), .p10(n111), .p11(n213), .p12(n111), .p13(n275), .p14(n001));
+    a2_74ls283 #(.T_PD(5ns)) E14 (.p1(n176), .p2(n273), .p3(n108), .p4(n177), .p5(n107), .p6(n262), .p7(n272), .p8(n103), .p9(n299), .p10(n179), .p11(n273), .p12(n180), .p13(n178), .p14(n272), .p15(n180), .p16(n001));
+    a2_74ls139 #(.T_PD(5ns)) F2 (.p1(n333), .p2(n196), .p3(n187), .p4(n334), .p5(n336), .p6(n346), .p7(n302), .p8(n103), .p9(n303), .p10(n167), .p11(n168), .p12(n169), .p13(n187), .p14(n196), .p15(n103), .p16(n001));
+    a2_74ls08 #(.T_PD(5ns)) H1 (.p1(n168), .p2(n167), .p3(n188), .p4(n078), .p5(n079), .p6(n192), .p7(n103), .p8(n214), .p9(n267), .p10(n111), .p11(n213), .p12(n111), .p13(n276), .p14(n001));
     a2_74ls257 #(.T_PD(5ns)) J1 (.p1(n243), .p2(n092), .p3(n077), .p4(n182), .p5(n213), .p6(n076), .p7(n181), .p8(n103), .p9(n196), .p10(n078), .p11(n214), .p12(n187), .p13(n079), .p14(n103), .p15(n103), .p16(n001));
-    a2_74ls175 #(.T_PD(5ns)) B1 (.p1(n262), .p2(n049), .p3(n093), .p4(n143), .p5(n144), .p6(n244), .p7(n243), .p8(n103), .p9(n070), .p10(n144), .p11(n281), .p12(n145), .p13(n331), .p14(n331), .p15(n071), .p16(n001));
-    a2_74ls86 #(.T_PD(5ns)) B2 (.p1(n071), .p2(n049), .p3(n143), .p4(n262), .p5(n175), .p6(n151), .p7(n103), .p8(n070), .p9(n103), .p10(n227), .p11(n068), .p12(n061), .p13(n136), .p14(n001));
-    a2_74ls11 #(.T_PD(5ns)) B12 (.p1(n148), .p2(n108), .p3(n270), .p4(n272), .p5(n265), .p6(n150), .p7(n103), .p8(n115), .p9(n331), .p10(n243), .p11(n129), .p12(n149), .p13(n110), .p14(n001));
-    a2_74ls02 #(.T_PD(5ns)) B13 (.p1(n148), .p2(n093), .p3(n106), .p4(n062), .p5(n146), .p6(n121), .p7(n103), .p8(n333), .p9(n088), .p10(n129), .p11(n150), .p12(n263), .p13(n090), .p14(n001));
+    a2_74ls175 #(.T_PD(5ns)) B1 (.p1(n263), .p2(n049), .p3(n093), .p4(n143), .p5(n144), .p6(n244), .p7(n243), .p8(n103), .p9(n070), .p10(n144), .p11(n282), .p12(n145), .p13(n331), .p14(n331), .p15(n071), .p16(n001));
+    a2_74ls86 #(.T_PD(5ns)) B2 (.p1(n071), .p2(n049), .p3(n143), .p4(n263), .p5(n175), .p6(n151), .p7(n103), .p8(n070), .p9(n103), .p10(n227), .p11(n068), .p12(n061), .p13(n136), .p14(n001));
+    a2_74ls11 #(.T_PD(5ns)) B12 (.p1(n148), .p2(n108), .p3(n271), .p4(n273), .p5(n266), .p6(n150), .p7(n103), .p8(n115), .p9(n331), .p10(n243), .p11(n129), .p12(n149), .p13(n110), .p14(n001));
+    a2_74ls02 #(.T_PD(5ns)) B13 (.p1(n148), .p2(n093), .p3(n106), .p4(n062), .p5(n146), .p6(n121), .p7(n103), .p8(n333), .p9(n088), .p10(n129), .p11(n150), .p12(n264), .p13(n090), .p14(n001));
     a2_74ls153 #(.T_PD(5ns)) C1 (.p1(n103), .p2(n243), .p3(n076), .p4(n077), .p5(n091), .p6(n092), .p7(n102), .p8(n103), .p9(n145), .p10(n144), .p11(n156), .p12(n144), .p13(n245), .p14(n088), .p15(n103), .p16(n001));
-    a2_74ls195 #(.T_PD(5ns)) C2 (.p1(n262), .p2(n103), .p3(n103), .p4(n088), .p5(n161), .p6(n088), .p7(n361), .p8(n103), .p9(n245), .p10(n070), .p11(n156), .p12(n245), .p13(n333), .p14(n088), .p15(n361), .p16(n001));
-    a2_74ls161 #(.T_PD(5ns)) D11 (.p1(n262), .p2(n358), .p3(n170), .p4(n170), .p5(n170), .p6(n103), .p7(n170), .p8(n103), .p9(n172), .p10(n170), .p11(n296), .p12(n272), .p13(n271), .p14(n270), .p15(n171), .p16(n001));
-    a2_74ls161 #(.T_PD(5ns)) D12 (.p1(n262), .p2(n358), .p3(n173), .p4(n103), .p5(n173), .p6(n173), .p7(n173), .p8(n103), .p9(n172), .p10(n173), .p11(n269), .p12(n268), .p13(n275), .p14(n274), .p15(n170), .p16(n001));
-    a2_74ls161 #(.T_PD(5ns)) D13 (.p1(n262), .p2(n358), .p3(n103), .p4(n103), .p5(n262), .p6(n273), .p7(n174), .p8(n103), .p9(n175), .p10(n174), .p11(n273), .p12(n175), .p13(n109), .p14(n108), .p15(n173), .p16(n001));
+    a2_74ls195 #(.T_PD(5ns)) C2 (.p1(n263), .p2(n103), .p3(n103), .p4(n088), .p5(n161), .p6(n088), .p7(n361), .p8(n103), .p9(n245), .p10(n070), .p11(n156), .p12(n245), .p13(n333), .p14(n088), .p15(n361), .p16(n001));
+    a2_74ls161 #(.T_PD(5ns)) D11 (.p1(n262), .p2(n358), .p3(n170), .p4(n170), .p5(n170), .p6(n103), .p7(n170), .p8(n103), .p9(n172), .p10(n170), .p11(n297), .p12(n273), .p13(n272), .p14(n271), .p15(n171), .p16(n001));
+    a2_74ls161 #(.T_PD(5ns)) D12 (.p1(n262), .p2(n358), .p3(n173), .p4(n103), .p5(n173), .p6(n173), .p7(n173), .p8(n103), .p9(n172), .p10(n173), .p11(n270), .p12(n269), .p13(n276), .p14(n275), .p15(n170), .p16(n001));
+    a2_74ls161 #(.T_PD(5ns)) D13 (.p1(n262), .p2(n358), .p3(n103), .p4(n103), .p5(n262), .p6(n274), .p7(n174), .p8(n103), .p9(n175), .p10(n174), .p11(n274), .p12(n175), .p13(n109), .p14(n108), .p15(n173), .p16(n001));
     a2_74ls161 #(.T_PD(5ns)) D14 (.p1(n262), .p2(n358), .p3(n103), .p4(n103), .p5(n103), .p6(n103), .p7(n262), .p8(n103), .p9(n175), .p10(n262), .p11(n107), .p12(n106), .p13(n105), .p14(n104), .p15(n174), .p16(n001));
-    a2_rom_chip #(.T_PD(5ns), .ROM_FILE(ROM_D0)) socket_ROM_D0 (.p1(n085), .p2(n084), .p3(n083), .p4(n082), .p5(n081), .p6(n080), .p7(n073), .p8(n072), .p9(n094), .p10(n095), .p11(n096), .p12(n103), .p13(n097), .p14(n098), .p15(n099), .p16(n100), .p17(n101), .p18(n347), .p19(n074), .p20(n254), .p21(n254), .p22(n087), .p23(n086), .p24(n001));
-    a2_rom_chip #(.T_PD(5ns), .ROM_FILE(ROM_D8)) socket_ROM_D8 (.p1(n085), .p2(n084), .p3(n083), .p4(n082), .p5(n081), .p6(n080), .p7(n073), .p8(n072), .p9(n094), .p10(n095), .p11(n096), .p12(n103), .p13(n097), .p14(n098), .p15(n099), .p16(n100), .p17(n101), .p18(n347), .p19(n074), .p20(n255), .p21(n255), .p22(n087), .p23(n086), .p24(n001));
-    a2_rom_chip #(.T_PD(5ns), .ROM_FILE(ROM_E0)) socket_ROM_E0 (.p1(n085), .p2(n084), .p3(n083), .p4(n082), .p5(n081), .p6(n080), .p7(n073), .p8(n072), .p9(n094), .p10(n095), .p11(n096), .p12(n103), .p13(n097), .p14(n098), .p15(n099), .p16(n100), .p17(n101), .p18(n347), .p19(n074), .p20(n256), .p21(n256), .p22(n087), .p23(n086), .p24(n001));
-    a2_rom_chip #(.T_PD(5ns), .ROM_FILE(ROM_E8)) socket_ROM_E8 (.p1(n085), .p2(n084), .p3(n083), .p4(n082), .p5(n081), .p6(n080), .p7(n073), .p8(n072), .p9(n094), .p10(n095), .p11(n096), .p12(n103), .p13(n097), .p14(n098), .p15(n099), .p16(n100), .p17(n101), .p18(n347), .p19(n074), .p20(n257), .p21(n257), .p22(n087), .p23(n086), .p24(n001));
-    a2_rom_chip #(.T_PD(5ns), .ROM_FILE(ROM_F0)) socket_ROM_F0 (.p1(n085), .p2(n084), .p3(n083), .p4(n082), .p5(n081), .p6(n080), .p7(n073), .p8(n072), .p9(n094), .p10(n095), .p11(n096), .p12(n103), .p13(n097), .p14(n098), .p15(n099), .p16(n100), .p17(n101), .p18(n347), .p19(n074), .p20(n258), .p21(n258), .p22(n087), .p23(n086), .p24(n001));
-    a2_rom_chip #(.T_PD(5ns), .ROM_FILE(ROM_F8)) socket_ROM_F8 (.p1(n085), .p2(n084), .p3(n083), .p4(n082), .p5(n081), .p6(n080), .p7(n073), .p8(n072), .p9(n094), .p10(n095), .p11(n096), .p12(n103), .p13(n097), .p14(n098), .p15(n099), .p16(n100), .p17(n101), .p18(n347), .p19(n074), .p20(n259), .p21(n259), .p22(n087), .p23(n086), .p24(n001));
-    a2_74ls174 #(.T_PD(5ns)) B5 (.p1(n262), .p2(n052), .p3(n090), .p4(n055), .p5(n116), .p6(n056), .p7(n117), .p8(n103), .p9(n361), .p10(n113), .p11(n053), .p12(n114), .p13(n054), .p14(n287), .p15(n288), .p16(n001));
+    a2_rom_chip #(.T_PD(5ns), .ROM_FILE(ROM_D0)) socket_ROM_D0 (.p1(n085), .p2(n084), .p3(n083), .p4(n082), .p5(n081), .p6(n080), .p7(n073), .p8(n072), .p9(system_data_bus[0]), .p10(system_data_bus[1]), .p11(system_data_bus[2]), .p12(n103), .p13(system_data_bus[3]), .p14(system_data_bus[4]), .p15(system_data_bus[5]), .p16(system_data_bus[6]), .p17(system_data_bus[7]), .p18(n347), .p19(n074), .p20(n254), .p21(n254), .p22(n087), .p23(n086), .p24(n001));
+    a2_rom_chip #(.T_PD(5ns), .ROM_FILE(ROM_D8)) socket_ROM_D8 (.p1(n085), .p2(n084), .p3(n083), .p4(n082), .p5(n081), .p6(n080), .p7(n073), .p8(n072), .p9(system_data_bus[0]), .p10(system_data_bus[1]), .p11(system_data_bus[2]), .p12(n103), .p13(system_data_bus[3]), .p14(system_data_bus[4]), .p15(system_data_bus[5]), .p16(system_data_bus[6]), .p17(system_data_bus[7]), .p18(n347), .p19(n074), .p20(n255), .p21(n255), .p22(n087), .p23(n086), .p24(n001));
+    a2_rom_chip #(.T_PD(5ns), .ROM_FILE(ROM_E0)) socket_ROM_E0 (.p1(n085), .p2(n084), .p3(n083), .p4(n082), .p5(n081), .p6(n080), .p7(n073), .p8(n072), .p9(system_data_bus[0]), .p10(system_data_bus[1]), .p11(system_data_bus[2]), .p12(n103), .p13(system_data_bus[3]), .p14(system_data_bus[4]), .p15(system_data_bus[5]), .p16(system_data_bus[6]), .p17(system_data_bus[7]), .p18(n347), .p19(n074), .p20(n256), .p21(n256), .p22(n087), .p23(n086), .p24(n001));
+    a2_rom_chip #(.T_PD(5ns), .ROM_FILE(ROM_E8)) socket_ROM_E8 (.p1(n085), .p2(n084), .p3(n083), .p4(n082), .p5(n081), .p6(n080), .p7(n073), .p8(n072), .p9(system_data_bus[0]), .p10(system_data_bus[1]), .p11(system_data_bus[2]), .p12(n103), .p13(system_data_bus[3]), .p14(system_data_bus[4]), .p15(system_data_bus[5]), .p16(system_data_bus[6]), .p17(system_data_bus[7]), .p18(n347), .p19(n074), .p20(n257), .p21(n257), .p22(n087), .p23(n086), .p24(n001));
+    a2_rom_chip #(.T_PD(5ns), .ROM_FILE(ROM_F0)) socket_ROM_F0 (.p1(n085), .p2(n084), .p3(n083), .p4(n082), .p5(n081), .p6(n080), .p7(n073), .p8(n072), .p9(system_data_bus[0]), .p10(system_data_bus[1]), .p11(system_data_bus[2]), .p12(n103), .p13(system_data_bus[3]), .p14(system_data_bus[4]), .p15(system_data_bus[5]), .p16(system_data_bus[6]), .p17(system_data_bus[7]), .p18(n347), .p19(n074), .p20(n258), .p21(n258), .p22(n087), .p23(n086), .p24(n001));
+    a2_rom_chip #(.T_PD(5ns), .ROM_FILE(ROM_F8)) socket_ROM_F8 (.p1(n085), .p2(n084), .p3(n083), .p4(n082), .p5(n081), .p6(n080), .p7(n073), .p8(n072), .p9(system_data_bus[0]), .p10(system_data_bus[1]), .p11(system_data_bus[2]), .p12(n103), .p13(system_data_bus[3]), .p14(system_data_bus[4]), .p15(system_data_bus[5]), .p16(system_data_bus[6]), .p17(system_data_bus[7]), .p18(n347), .p19(n074), .p20(n259), .p21(n259), .p22(n087), .p23(n086), .p24(n001));
+    a2_74ls174 #(.T_PD(5ns)) B5 (.p1(n263), .p2(n052), .p3(n090), .p4(n055), .p5(n116), .p6(n056), .p7(n117), .p8(n103), .p9(n361), .p10(n113), .p11(n053), .p12(n114), .p13(n054), .p14(n288), .p15(n289), .p16(n001));
     a2_74ls174 #(.T_PD(5ns)) B8 (.p1(n262), .p2(n089), .p3(n155), .p4(n059), .p5(n120), .p6(n060), .p7(n121), .p8(n103), .p9(n361), .p10(n118), .p11(n057), .p12(n119), .p13(n058), .p14(n052), .p15(n155), .p16(n001));
-    a2_4116 #(.T_PD(20ns)) C3 (.p1(n003), .p2(n094), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n053), .p15(n334), .p16(n103));
-    a2_4116 #(.T_PD(20ns)) C4 (.p1(n003), .p2(n095), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n054), .p15(n334), .p16(n103));
-    a2_4116 #(.T_PD(20ns)) C5 (.p1(n003), .p2(n096), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n055), .p15(n334), .p16(n103));
-    a2_4116 #(.T_PD(20ns)) C6 (.p1(n003), .p2(n097), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n056), .p15(n334), .p16(n103));
-    a2_4116 #(.T_PD(20ns)) C7 (.p1(n003), .p2(n098), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n057), .p15(n334), .p16(n103));
-    a2_4116 #(.T_PD(20ns)) C8 (.p1(n003), .p2(n099), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n058), .p15(n334), .p16(n103));
-    a2_4116 #(.T_PD(20ns)) C9 (.p1(n003), .p2(n100), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n059), .p15(n334), .p16(n103));
-    a2_4116 #(.T_PD(20ns)) C10 (.p1(n003), .p2(n101), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n060), .p15(n334), .p16(n103));
-    a2_4116 #(.T_PD(20ns)) D3 (.p1(n003), .p2(n094), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n053), .p15(n336), .p16(n103));
-    a2_4116 #(.T_PD(20ns)) D4 (.p1(n003), .p2(n095), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n054), .p15(n336), .p16(n103));
-    a2_4116 #(.T_PD(20ns)) D5 (.p1(n003), .p2(n096), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n055), .p15(n336), .p16(n103));
-    a2_4116 #(.T_PD(20ns)) D6 (.p1(n003), .p2(n097), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n056), .p15(n336), .p16(n103));
-    a2_4116 #(.T_PD(20ns)) D7 (.p1(n003), .p2(n098), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n057), .p15(n336), .p16(n103));
-    a2_4116 #(.T_PD(20ns)) D8 (.p1(n003), .p2(n099), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n058), .p15(n336), .p16(n103));
-    a2_4116 #(.T_PD(20ns)) D9 (.p1(n003), .p2(n100), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n059), .p15(n336), .p16(n103));
-    a2_4116 #(.T_PD(20ns)) D10 (.p1(n003), .p2(n101), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n060), .p15(n336), .p16(n103));
-    a2_4116 #(.T_PD(20ns)) E3 (.p1(n003), .p2(n094), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n053), .p15(n346), .p16(n103));
-    a2_4116 #(.T_PD(20ns)) E4 (.p1(n003), .p2(n095), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n054), .p15(n346), .p16(n103));
-    a2_4116 #(.T_PD(20ns)) E5 (.p1(n003), .p2(n096), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n055), .p15(n346), .p16(n103));
-    a2_4116 #(.T_PD(20ns)) E6 (.p1(n003), .p2(n097), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n056), .p15(n346), .p16(n103));
-    a2_4116 #(.T_PD(20ns)) E7 (.p1(n003), .p2(n098), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n057), .p15(n346), .p16(n103));
-    a2_4116 #(.T_PD(20ns)) E8 (.p1(n003), .p2(n099), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n058), .p15(n346), .p16(n103));
-    a2_4116 #(.T_PD(20ns)) E9 (.p1(n003), .p2(n100), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n059), .p15(n346), .p16(n103));
-    a2_4116 #(.T_PD(20ns)) E10 (.p1(n003), .p2(n101), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n060), .p15(n346), .p16(n103));
-    a2_74ls166 #(.T_PD(5ns)) A3 (.p1(n061), .p2(n062), .p3(n103), .p4(n131), .p5(n132), .p6(n071), .p7(n070), .p8(n103), .p9(n262), .p10(n133), .p11(n134), .p12(n135), .p13(n136), .p14(n103), .p15(n358), .p16(n001));
-    a2_2513 #(.T_PD(5ns), .ROM_FILE(CHAR_ROM)) A5 (.p1(n002), .p4(n131), .p5(n132), .p6(n133), .p7(n134), .p8(n135), .p10(n103), .p11(n103), .p12(n003), .p14(n273), .p15(n274), .p16(n275), .p17(n113), .p18(n114), .p19(n116), .p20(n117), .p21(n118), .p22(n119), .p24(n001));
-    a2_74ls257 #(.T_PD(5ns)) A8 (.p1(n264), .p2(n138), .p3(n063), .p4(n139), .p5(n275), .p6(n103), .p7(n124), .p8(n103), .p9(n140), .p10(n331), .p11(n262), .p12(n125), .p13(n103), .p14(n104), .p15(n103), .p16(n001));
-    a2_74ls151 #(.T_PD(5ns)) A9 (.p1(n068), .p2(n068), .p3(n068), .p4(n068), .p5(n142), .p6(n280), .p7(n128), .p8(n103), .p9(n089), .p10(n126), .p11(n127), .p12(n064), .p13(n063), .p14(n141), .p15(n138), .p16(n001));
+    a2_4116 #(.T_PD(20ns)) C3 (.p1(n003), .p2(system_data_bus[0]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n053), .p15(n334), .p16(n103));
+    a2_4116 #(.T_PD(20ns)) C4 (.p1(n003), .p2(system_data_bus[1]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n054), .p15(n334), .p16(n103));
+    a2_4116 #(.T_PD(20ns)) C5 (.p1(n003), .p2(system_data_bus[2]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n055), .p15(n334), .p16(n103));
+    a2_4116 #(.T_PD(20ns)) C6 (.p1(n003), .p2(system_data_bus[3]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n056), .p15(n334), .p16(n103));
+    a2_4116 #(.T_PD(20ns)) C7 (.p1(n003), .p2(system_data_bus[4]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n057), .p15(n334), .p16(n103));
+    a2_4116 #(.T_PD(20ns)) C8 (.p1(n003), .p2(system_data_bus[5]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n058), .p15(n334), .p16(n103));
+    a2_4116 #(.T_PD(20ns)) C9 (.p1(n003), .p2(system_data_bus[6]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n059), .p15(n334), .p16(n103));
+    a2_4116 #(.T_PD(20ns)) C10 (.p1(n003), .p2(system_data_bus[7]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n060), .p15(n334), .p16(n103));
+    a2_4116 #(.T_PD(20ns)) D3 (.p1(n003), .p2(system_data_bus[0]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n053), .p15(n336), .p16(n103));
+    a2_4116 #(.T_PD(20ns)) D4 (.p1(n003), .p2(system_data_bus[1]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n054), .p15(n336), .p16(n103));
+    a2_4116 #(.T_PD(20ns)) D5 (.p1(n003), .p2(system_data_bus[2]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n055), .p15(n336), .p16(n103));
+    a2_4116 #(.T_PD(20ns)) D6 (.p1(n003), .p2(system_data_bus[3]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n056), .p15(n336), .p16(n103));
+    a2_4116 #(.T_PD(20ns)) D7 (.p1(n003), .p2(system_data_bus[4]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n057), .p15(n336), .p16(n103));
+    a2_4116 #(.T_PD(20ns)) D8 (.p1(n003), .p2(system_data_bus[5]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n058), .p15(n336), .p16(n103));
+    a2_4116 #(.T_PD(20ns)) D9 (.p1(n003), .p2(system_data_bus[6]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n059), .p15(n336), .p16(n103));
+    a2_4116 #(.T_PD(20ns)) D10 (.p1(n003), .p2(system_data_bus[7]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n060), .p15(n336), .p16(n103));
+    a2_4116 #(.T_PD(20ns)) E3 (.p1(n003), .p2(system_data_bus[0]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n053), .p15(n346), .p16(n103));
+    a2_4116 #(.T_PD(20ns)) E4 (.p1(n003), .p2(system_data_bus[1]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n054), .p15(n346), .p16(n103));
+    a2_4116 #(.T_PD(20ns)) E5 (.p1(n003), .p2(system_data_bus[2]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n055), .p15(n346), .p16(n103));
+    a2_4116 #(.T_PD(20ns)) E6 (.p1(n003), .p2(system_data_bus[3]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n056), .p15(n346), .p16(n103));
+    a2_4116 #(.T_PD(20ns)) E7 (.p1(n003), .p2(system_data_bus[4]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n057), .p15(n346), .p16(n103));
+    a2_4116 #(.T_PD(20ns)) E8 (.p1(n003), .p2(system_data_bus[5]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n058), .p15(n346), .p16(n103));
+    a2_4116 #(.T_PD(20ns)) E9 (.p1(n003), .p2(system_data_bus[6]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n059), .p15(n346), .p16(n103));
+    a2_4116 #(.T_PD(20ns)) E10 (.p1(n003), .p2(system_data_bus[7]), .p3(n260), .p4(n361), .p5(n252), .p6(n251), .p7(n250), .p8(n000), .p9(n001), .p10(n246), .p11(n248), .p12(n249), .p13(n102), .p14(n060), .p15(n346), .p16(n103));
+    a2_74ls166 #(.T_PD(5ns)) A3 (.p1(n061), .p2(n062), .p3(n103), .p4(n131), .p5(n132), .p6(n071), .p7(n070), .p8(n103), .p9(n263), .p10(n133), .p11(n134), .p12(n135), .p13(n136), .p14(n103), .p15(n358), .p16(n001));
+    a2_2513 #(.T_PD(5ns), .ROM_FILE(CHAR_ROM)) A5 (.p1(n002), .p4(n131), .p5(n132), .p6(n133), .p7(n134), .p8(n135), .p10(n103), .p11(n103), .p12(n003), .p14(n274), .p15(n275), .p16(n276), .p17(n113), .p18(n114), .p19(n116), .p20(n117), .p21(n118), .p22(n119), .p24(n001));
+    a2_74ls257 #(.T_PD(5ns)) A8 (.p1(n265), .p2(n138), .p3(n063), .p4(n139), .p5(n276), .p6(n103), .p7(n124), .p8(n103), .p9(n140), .p10(n331), .p11(n262), .p12(n125), .p13(n103), .p14(n104), .p15(n103), .p16(n001));
+    a2_74ls151 #(.T_PD(5ns)) A9 (.p1(n068), .p2(n068), .p3(n068), .p4(n068), .p5(n142), .p6(n281), .p7(n128), .p8(n103), .p9(n089), .p10(n126), .p11(n127), .p12(n064), .p13(n063), .p14(n141), .p15(n138), .p16(n001));
     a2_74ls194 #(.T_PD(5ns)) A10 (.p1(n262), .p2(n262), .p3(n124), .p4(n125), .p5(n065), .p6(n062), .p7(n262), .p8(n103), .p9(n115), .p10(n115), .p11(n070), .p12(n061), .p13(n128), .p14(n127), .p15(n126), .p16(n001));
-    a2_74ls194 #(.T_PD(5ns)) B4 (.p1(n262), .p2(n262), .p3(n113), .p4(n114), .p5(n116), .p6(n117), .p7(n139), .p8(n103), .p9(n115), .p10(n140), .p11(n070), .p12(n286), .p13(n141), .p14(n285), .p15(n138), .p16(n001));
-    a2_74ls194 #(.T_PD(5ns)) B9 (.p1(n262), .p2(n262), .p3(n118), .p4(n119), .p5(n120), .p6(n121), .p7(n063), .p8(n103), .p9(n115), .p10(n140), .p11(n070), .p12(n290), .p13(n064), .p14(n289), .p15(n063), .p16(n001));
-    a2_74ls74 #(.T_PD(5ns)) B10 (.p1(n262), .p2(n142), .p3(n070), .p4(n262), .p5(n069), .p6(n282), .p7(n103), .p8(n284), .p9(n112), .p10(n262), .p11(n137), .p12(n283), .p13(n335), .p14(n001));
-    a2_74ls51 #(.T_PD(5ns)) C13 (.p1(n157), .p2(n108), .p3(n107), .p4(n109), .p5(n109), .p6(n110), .p7(n103), .p8(n067), .p9(n110), .p10(n107), .p11(n107), .p12(n270), .p13(n147), .p14(n001));
+    a2_74ls194 #(.T_PD(5ns)) B4 (.p1(n263), .p2(n263), .p3(n113), .p4(n114), .p5(n116), .p6(n117), .p7(n139), .p8(n103), .p9(n115), .p10(n140), .p11(n070), .p12(n287), .p13(n141), .p14(n286), .p15(n138), .p16(n001));
+    a2_74ls194 #(.T_PD(5ns)) B9 (.p1(n262), .p2(n262), .p3(n118), .p4(n119), .p5(n120), .p6(n121), .p7(n063), .p8(n103), .p9(n115), .p10(n140), .p11(n070), .p12(n291), .p13(n064), .p14(n290), .p15(n063), .p16(n001));
+    a2_74ls74 #(.T_PD(5ns)) B10 (.p1(n262), .p2(n142), .p3(n070), .p4(n262), .p5(n069), .p6(n283), .p7(n103), .p8(n285), .p9(n112), .p10(n262), .p11(n137), .p12(n284), .p13(n335), .p14(n001));
+    a2_74ls51 #(.T_PD(5ns)) C13 (.p1(n157), .p2(n108), .p3(n107), .p4(n109), .p5(n109), .p6(n110), .p7(n103), .p8(n067), .p9(n110), .p10(n107), .p11(n107), .p12(n271), .p13(n147), .p14(n001));
     a2_74ls138 #(.T_PD(5ns)) F12 (.p1(n075), .p2(n076), .p3(n077), .p4(n244), .p5(n244), .p6(n192), .p7(n259), .p8(n103), .p9(n258), .p10(n257), .p11(n256), .p12(n255), .p13(n254), .p14(n355), .p15(n332), .p16(n001));
     a2_74ls138 #(.T_PD(5ns)) F13 (.p1(n082), .p2(n083), .p3(n084), .p4(n085), .p5(n022), .p6(n243), .p7(n195), .p8(n103), .p9(n194), .p10(n193), .p11(n023), .p12(n021), .p13(n005), .p14(n335), .p15(n357), .p16(n001));
-    a2_74ls259 #(.T_PD(5ns)) F14 (.p1(n073), .p2(n080), .p3(n081), .p4(n263), .p5(n265), .p6(n266), .p7(n264), .p8(n103), .p9(n006), .p10(n007), .p11(n008), .p12(n009), .p13(n072), .p14(n193), .p15(n262), .p16(n001));
+    a2_74ls259 #(.T_PD(5ns)) F14 (.p1(n073), .p2(n080), .p3(n081), .p4(n264), .p5(n266), .p6(n267), .p7(n265), .p8(n103), .p9(n006), .p10(n007), .p11(n008), .p12(n009), .p13(n072), .p14(n193), .p15(n262), .p16(n001));
     a2_74ls138 #(.T_PD(5ns)) H2 (.p1(n082), .p2(n083), .p3(n084), .p4(n022), .p5(n244), .p6(n085), .p7(n344), .p8(n103), .p9(n343), .p10(n342), .p11(n341), .p12(n340), .p13(n339), .p14(n338), .p15(n337), .p16(n001));
     a2_74ls138 #(.T_PD(5ns)) H12 (.p1(n086), .p2(n087), .p3(n074), .p4(n332), .p5(n332), .p6(n247), .p7(n354), .p8(n103), .p9(n353), .p10(n352), .p11(n351), .p12(n350), .p13(n349), .p14(n348), .p15(n022), .p16(n001));
-    a2_74ls251 #(.T_PD(5ns)) H14 (.p1(n209), .p2(n208), .p3(n207), .p4(n004), .p5(n101), .p6(n303), .p7(n194), .p8(n103), .p9(n080), .p10(n073), .p11(n072), .p12(n200), .p13(n201), .p14(n202), .p15(n199), .p16(n001));
+    a2_74ls251 #(.T_PD(5ns)) H14 (.p1(n209), .p2(n208), .p3(n207), .p4(n004), .p5(system_data_bus[7]), .p6(n103), .p7(n194), .p8(n103), .p9(n080), .p10(n073), .p11(n072), .p12(n200), .p13(n201), .p14(n202), .p15(n199), .p16(n001));
     a2_74ls74 #(.T_PD(5ns)) J13 (.p1(n262), .p2(n215), .p3(n021), .p4(n262), .p5(n216), .p6(n215), .p7(n103), .p8(n217), .p9(n312), .p10(n262), .p11(n005), .p12(n217), .p13(n262), .p14(n001));
 endmodule
 `default_nettype wire

@@ -84,8 +84,11 @@ captures are retained in `work/`. The full WRITE/READ commands now pass nine cas
 harness, including the unmodified leader, sync acquisition, page crossing,
 checksum errors, input polarity and speed variation. Run
 `sh scripts/run_cassette_command_firmware.sh`. That harness uses behavioral
-memory/I/O for speed; full-command physical-board integration is running via
-`run_full_write_board.sh` and `run_full_read_board.sh` and has not yet passed.
+memory/I/O for speed. Full-command physical-board integration also passes:
+`run_full_write_board.sh` checks all 16,499 transitions and 16,498 intervals;
+`run_full_read_board.sh` checks six received bytes/DRAM readbacks and correct
+ERR behavior for both input polarities and good/bad checksums. These tests
+use every original firmware byte and the complete original delays.
 
 ## Front panel and output circuits
 
@@ -125,3 +128,20 @@ The same motherboard, physical RAM path, analog support and test stimuli are
 used. These runs do not load the external CPU VPI module. `run_all.sh` includes
 both authored and reference firmware options; whole-system analog sign-off
 remains incomplete as described in the report.
+
+## Copper and floating bus verification
+
+`python3 scripts/check_copper_ic_wiring.py` compares every IC pad against a
+separate reconstruction traced from real revision-0 copper: 83 packages and
+1,368 pads, including eight unconnected pads omitted by imported symbols.
+It rejects both split nets and shorted nets regardless of source net labels.
+The provenance and two newly corrected differences are in [board ledger](board/README.md).
+This covers IC net membership; non-IC components still require the bounded
+schematic checks and additional analog validation.
+
+`sh scripts/run_floating_bus_sim.sh` checks retained video data on actual
+system data nets. It covers undriven I/O, D7-only cassette/button/paddle reads,
+strong slot drives, contention, warm reset and recovery. Its negative control
+must fail when the charge model is disabled. The generator exposes the real
+slot data nets through `system_data_bus`, so external devices can drive the
+same resolved bus. Charge/leakage assumptions are explicit in [analog.md](spec/analog.md).

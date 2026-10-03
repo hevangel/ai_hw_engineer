@@ -12,7 +12,7 @@
   open-collector/tri-state release, and DRAM row/column/write behavior.
 - Physical CPU socket transactions wrote and read all three DRAM banks in
   Icarus without a behavioral RAM block or behavioral motherboard decoder.
-- Four-channel paddle RC test passed, including Bâ†’paddle 3 and Dâ†’paddle 1.
+- Four-channel paddle RC test passed, including B→paddle 3 and D→paddle 1.
 - Authentic Monitor regression passed through the integrated reference system:
   exact reset vector reads and FF59 opcode fetch; typed deposit `300:A5 5A`;
   typed examine `300.301`; CPU readback A5/5A at 0300/0301.
@@ -43,16 +43,17 @@
    decoupling, device tolerances, leakage and parasitics remain unsolved.
 2. Analog package models use ideal comparator thresholds, reduced RC networks,
    typical amplifier parameters, and explicit initial conditions. No vintage
-   waveform comparison has been performed. Full cassette command/audio validation
-   and composite-video voltage/color validation remain outstanding. Digital
+   waveform comparison has been performed. Full cassette commands pass at both firmware and physical-board layers.
+   Measured audio and composite-video voltage/color agreement remain outstanding. Digital
    visible Monitor output and diagnostic modes are now validated as above.
-3. The imported revision-0 transcription requires comparison against every
-   original schematic sheet. Corrections are recorded separately; netlist
-   generation cannot prove that upstream connectivity facts are correct.
+3. All 83 ICs and 1,368 pads now agree with an independently traced copper
+   source. Non-IC components still require a complete schematic/copper audit.
+   Corrections and source hashes are recorded in the board ledger.
 4. The character font is a conversion from a pinned AppleWin EPROM
    representation. Its physical package pin/address mapping is tested, but
    the converted glyph contents have not been compared to an original 2513 dump.
-5. CPU reference reads convert unknown input bits to high and count them.
+5. Passive system-bus charge now preserves the preceding video byte.
+   CPU reference reads still convert genuinely unknown input bits to high and count them.
    The Monitor regression forbids unknown opcodes, but dummy/uninitialized
    data reads remain. Success does not certify those electrical read values.
 6. Xezim package tests pass; the complete resolved-bus board test loses driven
@@ -118,10 +119,10 @@ is excluded from interval checks. The two polarities also select both
 possible initial states of J13's unresettable cassette flip-flop.
 
 Sources and the bounded acceptance contract are in [cassette.md](../spec/cassette.md).
-The standard ten-second WRITE leader and complete READ command's acquisition,
-sync search, checksum/error handling, noise/speed tolerance and measured
-analog waveform agreement remain outstanding. The byte-routine regression
-does not claim those acceptance requirements are complete.
+The complete original WRITE/READ commands now pass as recorded below.
+Speed variation is tested in the firmware harness. Physical noise/speed margins
+and measured analog waveform agreement remain outstanding; the byte-routine
+regression alone does not certify those requirements.
 
 ## Authored 6502 completion
 
@@ -157,7 +158,8 @@ command. The leader has 16,385 long half-cycles: ordinary 652-cycle intervals,
 656 cycles at block boundaries, then 195/250-cycle sync halves. Data intervals
 match the original instruction listing, including four additional cycles on
 NXTA1 low-byte wrap. Both bad-checksum cases print ERR; all cases ring the bell.
-Full historical-command execution on the resolved physical board is still open.
+Full historical-command execution on the resolved physical board also passes
+as recorded below.
 
 Q3/R5-R11/L1/Cap2/CT3 and Q4/Cap11/R24/CR1/R25/Cap12/speaker networks are now
 wired to actual B12/B10/C13/J13 signals in both CPU wrappers. The bounded copper
@@ -204,9 +206,61 @@ keyboard pins and the original Monitor parser. It leaves every firmware byte
 unchanged, selects an explicit initial J13 state and observes real J13 edges,
 R18/R19 voltage and generated CPU timing. The independent listing oracle
 requires 16,499 transitions and all 16,498 intervals, including full leader,
-sync, page carry and checksum. This long integration test is running; no pass
-is claimed until the simulator and checker both finish. `run_full_read_board.sh` is also executing the full original READ command
-through Cap10/K13/H14, with an independent 12000-half-cycle leader and standard
-sync/data waveform. Four cases cover both polarities and good/bad checksum;
-all six received bytes require actual DRAM readback and ERR must occur only
-for bad checksum. The acceptance gate remains open until all cases finish.
+sync, page carry and checksum. The original integration gate finished successfully before the charge/copper
+changes: WRITE completed at 10.782144314017 seconds with 16,499 transitions,
+all 16,498 intervals and real output-divider voltages matching the oracle.
+It counted 21,243 unresolved non-opcode read samples.
+
+`run_full_read_board.sh` likewise passed all four physical original READ
+commands through Cap10/K13/H14 with an independent 12,000-half-cycle leader
+and standard sync/data waveform. Each case received all six bytes, verified
+six actual DRAM readbacks and printed ERR if and only if the checksum was bad.
+
+| Polarity | Checksum | Completion (simulated seconds) | Unresolved reads |
+|---|---|---:|---:|
+| +1 | good | 8.120533580441 | 331,606 |
+| +1 | bad | 8.121259657873 | 331,645 |
+| -1 | good | 8.120536513805 | 331,659 |
+| -1 | bad | 8.121262591237 | 331,698 |
+
+Both simulator jobs and every independent checker exited zero. These numbers
+are retained as the pre-charge baseline, not measured electrical fidelity.
+The final charge/copper full-command reruns are executing; no final rerun
+pass is claimed until all simulator/checker jobs finish.
+
+## Independent IC wiring and retained bus
+
+The independently traced Willegal copper fixture covers every physical pad
+of all 83 ICs: 1,368 pads / 322 nets and open nodes. The audit compares net
+partitions by pin membership, rejecting split or shorted connections. Eight
+source-open pads omitted by imported symbols are accounted for explicitly.
+Extraction is reproducible from the SHA-pinned Osmond file. It exposed a
+short between the two separate A2 soft-5 outputs and an omitted H14.6 ground
+connection. Both are corrected in the manifest and regenerated RTL.
+
+The physical data bus now retains passive charge through weak resolved
+feedback, preserving the preceding video byte on undriven I/O reads. The
+regression checks 5,632 known reads (5,599 nontrivial video values), D7-only
+cassette/button/paddle inputs, strong expansion writes, X from contention,
+known-drive recovery, RES preservation, CPU writes and actual RAM readback.
+The same regression with retention disabled fails at C020, as required by
+its negative control. No video/RAM/decoder shortcut is inserted.
+
+The first retention firmware rerun passed the original Monitor and its full
+107,520-pixel visible raster, Integer BASIC, and both original cassette-byte
+polarities. BASIC also now isolates its PEEK(-16336) access from the boot bell
+and requires exactly one known physical J13 speaker transition. Its result
+remains SUM=55, lores color 9 and Monitor 0300- 37 09, with 292,559 fetches and
+11,751 unresolved reads. The final corrected-board short suite also exited zero: independent copper
+and published-correction checks, strict lint, three DRAM banks, floating bus
+plus negative control, all nine diagnostic frames (967,680 visible samples),
+original Monitor (107,520 visible samples), and Integer BASIC with isolated
+speaker toggle. Together its ten complete frames compare 1,075,200 visible
+samples exactly. Final Monitor/BASIC counts are unchanged from the first
+retention rerun. The full physical-command reruns remain in progress.
+
+Charge leakage/analog drive current remain assumptions; uninitialized DRAM
+can still yield genuine unknown reads. Verilator two-state lint cannot model
+Z-dependent retention: the initialization and latch warning exceptions are
+local and explained. Icarus four-state regressions verify actual strengths.
+No synthesis or formal proof is claimed for the passive charge model.

@@ -83,3 +83,39 @@ unknown drive invalidates stored energy until explicitly reinitialized. ASSUMPTI
 A wrapper parameter enables output sampling explicitly; disabled outputs have
 false validity and zero placeholders. This allows long digital regressions
 without hundreds of millions of additional analog time steps.
+
+## Floating data bus contract
+
+Gayler's *Apple II Circuit Description*, pp.47 and 81, describes B6/B7
+releasing the system data bus during an I/O read, after driving video data
+in the preceding phase. Don Lancaster's *Enhancing Your Apple II and IIe*,
+Vol.2, Enhancement 13, pp.196–198, identifies stray bus capacitance as the
+sample-and-hold that preserves that video byte for reads of C020, C030 and
+other undriven I/O locations. This behavior is required by historical
+Vaporlock software. Source: [Lancaster scan](https://dokumen.pub/enhancing-your-apple-ii-and-iie-volume-2-1st-ed-9780672224256-0672224259.html).
+
+Model charge retention on the eight actual system data nets D0..D7 using
+weak resolved feedback. No address decoder, video fetch or RAM shortcut is
+added. Every strong package driver can replace retained charge. A strong X
+or opposing strong drivers invalidates the retained bit; another known drive
+restores it. Uncharged bits start Z. CPU RES does not clear board charge.
+Partial I/O reads replace only the driven bits (e.g. D7 for C060..C067).
+
+ASSUMPTION: negligible leakage during a CPU half-cycle, zero charging delay,
+and no decay between drives. Weak digital strength represents passive charge,
+not a physical pull-up or a new chip. This is a functional sample-and-hold,
+not a calibrated capacitance/leakage model. `RETAIN_DATA_BUS=0` provides the
+previous ideal-Z boundary for diagnostic comparison. Validate against real
+video cycles, partial game reads, CPU writes, contention, and original ROM.
+
+## Copper power and unused output contract
+
+The independently traced Osmond layout includes H14 pin 6 (unused inverted
+74LS251 output) on its ground signal and drawn ground trace. Preserve that
+connection, although the imported KiCad transcription marks it unconnected.
+ASSUMPTION: ideal zero-impedance rails dominate package output drive via
+SystemVerilog supply strength. The redundant output's short-circuit current,
+device heating and rail perturbation are not represented. Do not turn that
+physical connection into an all-board digital X due to equal-strength rails.
+The two A2 grounded-input NAND outputs are separate physical soft-5 nets,
+even though both have the same steady-state logical high.

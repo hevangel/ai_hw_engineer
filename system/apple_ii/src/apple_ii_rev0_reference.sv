@@ -62,7 +62,7 @@ module apple_ii_rev0_reference #(
         .ROM_E8(ROM_E8),.ROM_F0(ROM_F0),.ROM_F8(ROM_F8),.CHAR_ROM(CHAR_ROM)) board (
         .master_oscillator(master_oscillator),.reset_n(reset_n),.keyboard_data(keyboard_data),
         .keyboard_strobe(keyboard_strobe),.flash(flash),.cassette_in(cassette_in),
-        .paddle_timer(paddle_timer),.buttons(buttons),.cpu_address(cpu_address),.cpu_data(cpu_data),
+        .paddle_timer(paddle_timer),.buttons(buttons),.cpu_address(cpu_address),.cpu_data(cpu_data),.system_data_bus(),
         .cpu_rw(cpu_rw),.cpu_phi1(phi1),.cpu_phi2(phi2),.cpu_sync(cpu_sync),.cpu_phi0(cpu_phi0),
         .cpu_reset_n(cpu_reset_n),.cpu_irq_n(irq_n),.cpu_nmi_n(nmi_n),.cpu_rdy(rdy),
         .video_data(video_data),.composite_sync(composite_sync),.speaker(speaker),.cassette_out(cassette_out),

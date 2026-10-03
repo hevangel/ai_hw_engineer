@@ -33,6 +33,8 @@ module tb_rev0_basic;
         dut.board.D11.q=0; dut.board.D12.q=0; dut.board.D13.q=0; dut.board.D14.q=0;
         // Keyboard strobe latch has no power-on reset; emulate a cleared latch.
         dut.board.B10.q1=0; dut.board.B10.n1=1;
+        // Select a known state for the unresettable speaker flip-flop.
+        dut.board.J13.q0=0; dut.board.J13.n0=1;
         #20000; reset_n=1;
         #3000000000;
         $fatal(1,"BASIC timeout PC=%h bus=%h polls=%d strobe=%b",dut.H7.core.pc_o,address,polls,dut.board.B10.q1);
@@ -48,7 +50,9 @@ module tb_rev0_basic;
     endtask
     int printed_file;
     initial printed_file=$fopen("work/basic_output.txt","w");
-    int sound_accesses=0;
+    int sound_accesses=0, speaker_edges=0, sound_before, edges_before;
+    logic previous_speaker;
+    always_ff @(dut.board.J13.p5) if(reset_n && !$isunknown(dut.board.J13.p5)) speaker_edges++;
     logic sum_written=0, pixel_written=0, sum_read=0, pixel_read=0;
     task automatic line(input string value);
         for(int i=0;i<value.len();i++) key(value[i]);
@@ -72,7 +76,13 @@ module tb_rev0_basic;
         line("PLOT 3,4");
         line("POKE 769,SCRN(3,4)");
         wait(pixel_written);
+        sound_before=sound_accesses; edges_before=speaker_edges;
+        previous_speaker=dut.board.J13.p5;
+        if($isunknown(previous_speaker)) $fatal(1,"Speaker latch is unresolved before BASIC PEEK");
         line("Z=PEEK(-16336)");
+        if(sound_accesses!=sound_before+1 || speaker_edges!=edges_before+1 ||
+           dut.board.J13.p5!==~previous_speaker)
+            $fatal(1,"BASIC PEEK must cause exactly one real J13 speaker toggle");
         line("TEXT");
         line("CALL -151");
         line("300.301");
@@ -80,7 +90,7 @@ module tb_rev0_basic;
         if(sound_accesses<1) $fatal(1,"BASIC PEEK speaker access missing");
         if(!reset_fetch) $fatal(1,"Exact reset vector/fetch missing");
         $fclose(printed_file);
-        $display("PASS original Integer BASIC physical keyboard/program FOR-NEXT, arithmetic, POKE, PRINT, lores PLOT/SCRN, speaker and Monitor readback; instructions=%0d unknown reads=%0d",instructions,unknown_reads);
+        $display("PASS original Integer BASIC physical keyboard/program FOR-NEXT, arithmetic, POKE, PRINT, lores PLOT/SCRN, one isolated speaker toggle and Monitor readback; instructions=%0d unknown reads=%0d",instructions,unknown_reads);
         $finish;
     end
     always_ff @(negedge phi0) begin

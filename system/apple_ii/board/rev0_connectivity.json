@@ -4,7 +4,7 @@
     "url": "https://github.com/reifsnyderb/Apple-II-R0",
     "commit": "db72624ab23c02f782235bb4420d91695dc17d4e",
     "file": "AppleII.xml",
-    "note": "Connectivity transcription, not yet independently certified against original sheets."
+    "note": "Imported connectivity with recorded corrections; all 1368 IC pads cross-checked against independently traced Willegal copper. Non-IC audit remains bounded."
   },
   "corrections": [
     {
@@ -63,6 +63,78 @@
       "new": "input/RDY",
       "reason": "NMOS 6502 RDY is an active-high input; board net unchanged.",
       "source": "https://www.princeton.edu/~mae412/HANDOUTS/Datasheets/6502.pdf"
+    },
+    {
+      "ref": "A2",
+      "pin": "8",
+      "old": "SOFT5",
+      "new": "SOFT5_A2_8",
+      "source": "https://www.willegal.net/appleii/A2rev0.zip",
+      "reason": "Copper Signal A2-8 soft 5 is distinct from soft 5(a2-11); identical DC logic does not justify a physical short."
+    },
+    {
+      "ref": "A3",
+      "pin": "9",
+      "old": "SOFT5",
+      "new": "SOFT5_A2_8",
+      "source": "https://www.willegal.net/appleii/A2rev0.zip",
+      "reason": "Copper Signal A2-8 soft 5 is distinct from soft 5(a2-11); identical DC logic does not justify a physical short."
+    },
+    {
+      "ref": "B1",
+      "pin": "1",
+      "old": "SOFT5",
+      "new": "SOFT5_A2_8",
+      "source": "https://www.willegal.net/appleii/A2rev0.zip",
+      "reason": "Copper Signal A2-8 soft 5 is distinct from soft 5(a2-11); identical DC logic does not justify a physical short."
+    },
+    {
+      "ref": "B2",
+      "pin": "4",
+      "old": "SOFT5",
+      "new": "SOFT5_A2_8",
+      "source": "https://www.willegal.net/appleii/A2rev0.zip",
+      "reason": "Copper Signal A2-8 soft 5 is distinct from soft 5(a2-11); identical DC logic does not justify a physical short."
+    },
+    {
+      "ref": "B4",
+      "pin": "1",
+      "old": "SOFT5",
+      "new": "SOFT5_A2_8",
+      "source": "https://www.willegal.net/appleii/A2rev0.zip",
+      "reason": "Copper Signal A2-8 soft 5 is distinct from soft 5(a2-11); identical DC logic does not justify a physical short."
+    },
+    {
+      "ref": "B4",
+      "pin": "2",
+      "old": "SOFT5",
+      "new": "SOFT5_A2_8",
+      "source": "https://www.willegal.net/appleii/A2rev0.zip",
+      "reason": "Copper Signal A2-8 soft 5 is distinct from soft 5(a2-11); identical DC logic does not justify a physical short."
+    },
+    {
+      "ref": "B5",
+      "pin": "1",
+      "old": "SOFT5",
+      "new": "SOFT5_A2_8",
+      "source": "https://www.willegal.net/appleii/A2rev0.zip",
+      "reason": "Copper Signal A2-8 soft 5 is distinct from soft 5(a2-11); identical DC logic does not justify a physical short."
+    },
+    {
+      "ref": "C2",
+      "pin": "1",
+      "old": "SOFT5",
+      "new": "SOFT5_A2_8",
+      "source": "https://www.willegal.net/appleii/A2rev0.zip",
+      "reason": "Copper Signal A2-8 soft 5 is distinct from soft 5(a2-11); identical DC logic does not justify a physical short."
+    },
+    {
+      "ref": "H14",
+      "pin": "6",
+      "old": "unconnected-(H14-~{Y}-Pad6)",
+      "new": "GND",
+      "source": "https://www.willegal.net/appleii/A2rev0.zip",
+      "reason": "Osmond GND signal and ground trace explicitly include H-14-6; unused complementary output grounded on this copper replica."
     }
   ],
   "components": {
@@ -1206,7 +1278,7 @@
         "8": {
           "name": "",
           "kind": "output",
-          "net": "SOFT5"
+          "net": "SOFT5_A2_8"
         },
         "9": {
           "name": "",
@@ -2461,7 +2533,7 @@
         "1": {
           "name": "~{CLR}",
           "kind": "input",
-          "net": "SOFT5"
+          "net": "SOFT5_A2_8"
         },
         "2": {
           "name": "1Q",
@@ -2562,7 +2634,7 @@
         "4": {
           "name": "",
           "kind": "input",
-          "net": "SOFT5"
+          "net": "SOFT5_A2_8"
         },
         "5": {
           "name": "",
@@ -2861,7 +2933,7 @@
         "1": {
           "name": "~{MR}",
           "kind": "input",
-          "net": "SOFT5"
+          "net": "SOFT5_A2_8"
         },
         "2": {
           "name": "J",
@@ -4281,7 +4353,7 @@
         "1": {
           "name": "~{Mr}",
           "kind": "input",
-          "net": "SOFT5"
+          "net": "SOFT5_A2_8"
         },
         "2": {
           "name": "Q0",
@@ -8977,7 +9049,7 @@
         "9": {
           "name": "Clr",
           "kind": "input",
-          "net": "SOFT5"
+          "net": "SOFT5_A2_8"
         },
         "10": {
           "name": "E",
@@ -9423,12 +9495,12 @@
         "1": {
           "name": "Mr",
           "kind": "input",
-          "net": "SOFT5"
+          "net": "SOFT5_A2_8"
         },
         "2": {
           "name": "Dsr",
           "kind": "input",
-          "net": "SOFT5"
+          "net": "SOFT5_A2_8"
         },
         "3": {
           "name": "P0",
@@ -10900,7 +10972,7 @@
         "6": {
           "name": "~{Y}",
           "kind": "tri_state",
-          "net": "unconnected-(H14-~{Y}-Pad6)"
+          "net": "GND"
         },
         "7": {
           "name": "~{OE}",

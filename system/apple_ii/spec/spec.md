@@ -119,3 +119,25 @@ physical DRAM readback and both polarities. R18/R19 output attenuation is
 modeled with explicit voltage/load assumptions in [analog.md](analog.md).
 Full leader/sync acquisition, READ checksum/error handling and measured
 analog waveform agreement remain requirements for sign-off.
+
+## Additional reconstruction acceptance
+
+All physical IC pad memberships must agree with the independently traced
+Willegal Osmond source, not merely the upstream KiCad export used to generate
+RTL. The checker compares all 83 packages / 1,368 pads, accounting for eight
+open pads omitted by source symbols. Keep its fixture extraction reproducible
+and source SHA-pinned. Published original-schematic corrections, slot pinouts
+and output-network values have a separate bounded check.
+
+Undriven I/O reads must preserve the preceding video byte, with actively driven
+I/O bits replacing only their respective retained bits. ASSUMPTION: ideal
+zero-delay bus charging and negligible half-cycle leakage; a weak resolved
+functional model represents passive capacitance, with no calibrated decay.
+Strong contention remains X. Warm CPU RES does not discharge board charge.
+The disabled-retention negative control must fail the same read assertion.
+
+ASSUMPTION: ideal rail voltage dominates device drive where real copper grounds
+unused H14.6. Device short-circuit current is outside the functional model.
+Do not connect the separate A2.8/A2.11 soft-5 branches merely because both are
+logically high. See the [copper ledger](../board/README.md) and
+[analog contract](analog.md) for external sources and remaining limits.

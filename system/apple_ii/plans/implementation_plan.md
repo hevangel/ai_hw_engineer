@@ -63,3 +63,15 @@ Full cassette commands now pass the separate firmware layer. Reduced Q3/Q4
 networks and the local physical-board front panel are implemented and exercised;
 full physical cassette commands, exact font/analog provenance, complete copper
 audit and analog color/audio presentation remain open.
+
+## Independent copper and bus completion
+
+- Extract all IC pad/net memberships from the SHA-pinned independently traced
+  Osmond copper source; compare net partitions against the KiCad facts.
+- Correct separate soft-5 branches and the grounded unused H14 output, recording
+  each source conflict and ideal-rail/current limit.
+- Add passive charge retention on actual slot data nets and test preceding video,
+  D7-only inputs, strong drive, contention, recovery and warm reset. Require the
+  no-retention negative control to fail.
+- Re-run original Monitor, BASIC, video and physical cassette commands. Record
+  genuinely unresolved reads and electrical calibration separately.
