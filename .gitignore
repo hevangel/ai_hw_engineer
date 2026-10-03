@@ -46,3 +46,5 @@ __pycache__/
 *.dll
 
 .mimosa
+
+system/*/work/

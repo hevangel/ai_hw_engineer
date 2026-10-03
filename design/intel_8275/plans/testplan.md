@@ -1,0 +1,5 @@
+# Verification plan
+
+Pin-level tests check reset, all eight commands, parameter arity/direction, status clear-on-read, held strobes, cursor and light pen. Raster checks sweep widths, rows, retrace, lines, offset and spaced-row modes. DMA checks burst sizes/spaces, late acknowledgement, row-full burst truncation, invisible final-cell replacement, FIFO overflow, stop-code dummy handling and missed deadlines/recovery. Attribute checks cover all eleven graphics across above/on/below underline using Intel/MAME independent vectors, every field bit, inheritance across rows, FIFO replacement, cursor formats and frame blink periods. Directed tests use exact output positions/counts; seeded tests vary legal screen geometry and DMA stalls. UVM checks CPU responses and independently calculated raster observations, with functional coverage in a collector.
+
+Both Verilator and Xezim run the same directed/seeded suite. Xezim runs UVM and reports code coverage. A watchdog fails stalled flows. No test relies on internal DUT counters to predict position or to absorb timing uncertainty.
