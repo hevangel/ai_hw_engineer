@@ -23,7 +23,7 @@ Verified October 3, 2026 with Verilator 5.052, Yosys 0.69, SBY/ABC/Z3 in
   pointer and output/carry properties.
 - Yosys synthesis and `check -assert` pass: 104 cells. Architectural
   storage is the four-bit PC, four-bit address register, two-bit pointer
-  and sixteen-bit stack. The synthesized pointer is optimized by the tool.
+  and sixteen-bit stack.
   No electrical write waveform is asserted by this edge-based digital model.
 
 No RTL semantic counterexample was found by the independent table or original

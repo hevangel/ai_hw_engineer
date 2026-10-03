@@ -20,7 +20,11 @@
     cover(past_valid && !fe_n_i && push_i && sp==3 && upc!=y_o);
     cover(past_valid && !fe_n_i && !push_i && sp==0);
     cover(past_valid && !cn_i && select_i==0 && zero_n_i && or_i==0);
+`ifdef AMD_AM2911_FORMAL
+    cover(past_valid && !zero_n_i && or_i==0 && !oe_n_i && y_o==0);
+`else
     cover(past_valid && !zero_n_i && or_i==15 && !oe_n_i && y_o==0);
+`endif
     cover(past_valid && cn4_o && oe_n_i);
   end
 `endif

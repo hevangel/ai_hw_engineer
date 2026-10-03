@@ -36,7 +36,7 @@ refined from original catalogs before implementation.
 | 7 | Am2901 | Four-bit ALU/register processor slice | Verified Am2901A digital slice: all 512 words, 98,304 external-oracle cases, native phases, actual 1975 microcode/69,732 signed products, six formal tasks and synthesis; local native-latch lint exceptions documented ([report](../design/amd_am2901/report/final_report.md)) |
 | 8 | Am2902 | Carry look-ahead generator | Verified: all 512 pin vectors, actual Am2901 16-bit arithmetic, five-chip 64-bit hierarchy, BMC/prove/cover, clean lint/synthesis ([report](../design/amd_am2902/report/final_report.md)) |
 | 9 | Am2909 | Four-bit microprogram sequencer | Verified: 131,072 external-table transitions, original nested subroutine microcode/exact PCs, three-slice cascade, BMC/PDR/cover, clean lint and synthesis ([report](../design/amd_am2909/report/final_report.md)) |
-| 10 | Am2911 | Microprogram sequencer | Queued |
+| 10 | Am2911 | Microprogram sequencer | Verified actual shared-D/no-OR variant: 131,072 external-table transitions, original microcode/exact PCs, held/live bus checks, three-slice cascade, BMC/PDR/cover and clean lint/synthesis ([report](../design/amd_am2911/report/final_report.md)) |
 | 11 | Am2910 | Microprogram controller | Queued |
 | 12 | Am2903 | Enhanced processor slice | Queued |
 | 13 | Am2904 | Status and shift control | Queued |

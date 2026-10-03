@@ -1,0 +1,20 @@
+[tasks]
+bmc
+prove
+cover
+[options]
+bmc: mode bmc
+prove: mode prove
+cover: mode cover
+depth 16
+[engines]
+bmc: smtbmc z3
+prove: abc pdr
+cover: smtbmc z3
+[script]
+read -formal -sv -D AMD_AM2911_FORMAL -I . amd_am2909.sv amd_am2911.sv
+prep -top amd_am2911
+[files]
+../../amd_am2909/src/amd_am2909.sv
+../../amd_am2909/formal/amd_am2909_props.sv
+../src/amd_am2911.sv
