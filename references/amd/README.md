@@ -42,3 +42,7 @@ CP phases on PDF 12; source/function/destination on PDF 14; status Figure 8
 on PDF 16 (overbars must be visually inspected); and actual signed-multiply
 microcode dated August 5, 1975 / J.S. in Figure 21 on PDF 29. Its companion
 Figure 20 supplies cascade shift wiring and sign/overflow correction.
+Am2902A follows on PDF 34/35 (printed 2-26/2-27); physical P/G pins are
+active low, carry pins match active-high Am2901 carries, and only three
+individual carry outputs exist. The original logic diagram, not unbarred
+OCR alone, pins the digital equations.

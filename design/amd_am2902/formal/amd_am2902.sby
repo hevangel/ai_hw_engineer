@@ -1,0 +1,17 @@
+[tasks]
+bmc
+prove
+cover
+[options]
+bmc: mode bmc
+prove: mode prove
+cover: mode cover
+depth 2
+[engines]
+smtbmc z3
+[script]
+read -formal -sv amd_am2902.sv amd_am2902_props.sv
+prep -top amd_am2902_props
+[files]
+../src/amd_am2902.sv
+amd_am2902_props.sv
