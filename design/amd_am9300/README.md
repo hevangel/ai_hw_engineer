@@ -8,6 +8,10 @@ its microprocessor business.
 
 **First introduced: 1970 (commercial availability); first working silicon
 is generally dated to November 1969.** These are different milestones.
+AMD's own June 3, 1974 prefatory letter in the [1974 Data Book](https://bitsavers.trailing-edge.com/components/amd/_dataBooks/1974_AMD_Data_Book.pdf)
+(PDF page 4) dates its original 18-device product-line introduction to
+April 1970. This directly supports the commercial year while distinguishing
+the broader line launch from first working silicon or individual shipments.
 [Thomas Skornia's first-person AMD history](https://archive.computerhistory.org/resources/access/text/2019/01/102721657-05-01-acc.pdf),
 chapter VI, describes initial product shipments in March 1970, whereas
 the [AMD-sourced timeline reproduced in Strategic Management](https://library.uniq.edu.iq/storage/books/file/Strategic%20A.%20Hitt/166678277829.pdf)

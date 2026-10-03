@@ -15,3 +15,8 @@ symbol must be consulted alongside OCR because complement bars are lost in
 text extraction. Am2505 begins on printed page 2-9 / PDF page 30.
 Am2501 shares the Am9306 datasheet on printed pages 2-55 through 2-60
 (PDF pages 76-81); the two parts' state diagrams must not be confused.
+The multiplier application note is printed pages 8-84 to 8-107 (PDF
+pages 719-742); its circuit and pin discussion explicitly applies to
+Am2505 as well as Am25L05 and Am25S05. The book's prefatory letter on
+PDF page 4, signed by Jerry Sanders on June 3, 1974, dates the original
+18-device product-line introduction to April 1970.

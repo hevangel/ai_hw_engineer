@@ -8,6 +8,7 @@ This directory contains the historical chip designs recreated and verified by th
 |---|---|---:|---|
 | AMD Am9300 | Four-bit parallel-load/JK serial shift register; asynchronous master clear | 1970* (commercial; silicon 1969) | [amd_am9300](amd_am9300/) |
 | AMD Am2501 | Four-bit binary synchronous up/down counter with preset and carry look-ahead | 1970* | [amd_am2501](amd_am2501/) |
+| AMD Am2505 | Four-by-two-bit Booth multiplier/partial-product slice; both logic polarities | 1971* | [amd_am2505](amd_am2505/) |
 | MOS Technology 6502 | 8-bit microprocessor; 29-opcode subset and Apple II keyboard echo | 1975 | [mos_6502](mos_6502/) |
 | Intel 4004 | 4-bit microprocessor (MCS-4); authentic Busicom manual regression | 1971 | [intel_4004](intel_4004/) |
 | Intel 8008 | 8-bit microprocessor (MCS-8); SCELBAL software regression | 1972 | [intel_8008](intel_8008/) |
