@@ -1,3 +1,3 @@
-*.java text eol=lf
-LICENSE text eol=lf
+*.java -text whitespace=cr-at-eol,-blank-at-eol
+LICENSE -text whitespace=cr-at-eol,-blank-at-eol
 SHA256SUMS text eol=lf
