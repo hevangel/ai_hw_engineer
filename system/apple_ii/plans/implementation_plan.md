@@ -55,3 +55,11 @@
 5. Extend the actual Monitor regression with its ESC/@ (physical Shift-P) screen clear and a
    complete observed video frame; compare the raster against independently
    tracked CPU screen writes, and inspect the rendered Monitor output.
+
+## Further completion work
+
+Follow [the completion contract](../spec/completion.md) and [front panel contract](../spec/host.md).
+Full cassette commands now pass the separate firmware layer. Reduced Q3/Q4
+networks and the local physical-board front panel are implemented and exercised;
+full physical cassette commands, exact font/analog provenance, complete copper
+audit and analog color/audio presentation remain open.

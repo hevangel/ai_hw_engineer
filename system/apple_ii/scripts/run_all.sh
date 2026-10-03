@@ -7,11 +7,16 @@ sh ../../design/apple_ii_chips/scripts/run_synth.sh
 sh scripts/run_lint.sh
 SIMULATOR=iverilog sh scripts/run_board_sim.sh
 sh scripts/run_peripheral_sim.sh
+sh scripts/run_output_sim.sh
 sh scripts/run_video_sim.sh
 # Mandatory historical software gate: run actual original Monitor commands.
 sh scripts/run_reference_boot.sh
 sh scripts/run_cassette_sim.sh
+sh scripts/run_host_test.sh
+sh scripts/run_basic_sim.sh
 sh scripts/run_authored_boot.sh
 sh scripts/run_authored_cassette.sh
+sh scripts/run_cassette_command_firmware.sh
+sh scripts/run_full_write_board.sh
 echo 'Regressions passed; exact analog reconstruction and original-dump font comparison remain incomplete.'
 exit 1

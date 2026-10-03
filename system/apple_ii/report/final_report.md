@@ -38,9 +38,9 @@
 ## Limits that prevent sign-off
 
 1. This is a functional physical-package simulation, not an exact electrical
-   replica. The crystal oscillator is an ideal clock input. Q3/Q4 output
-   transistor stages, output loads, supply ramp/decoupling, device tolerances,
-   leakage, and parasitic effects are not solved.
+   replica. The crystal oscillator is an ideal clock input. Q3/Q4 output networks
+   and configurable loads now have reduced numerical models; supply ramp,
+   decoupling, device tolerances, leakage and parasitics remain unsolved.
 2. Analog package models use ideal comparator thresholds, reduced RC networks,
    typical amplifier parameters, and explicit initial conditions. No vintage
    waveform comparison has been performed. Full cassette command/audio validation
@@ -142,3 +142,68 @@ unknown opcodes and unknown received/readback bytes remain forbidden.
 This completes the authored CPU's documented-instruction firmware gate.
 It does not close the independent motherboard analog, font-dump or imported
 connectivity audit requirements listed above.
+
+## Completion work: cassette commands and output networks
+
+`run_cassette_command_firmware.sh` executes the unchanged original Monitor
+through its real command parser on the authored RTL CPU. This is explicitly
+a **firmware harness with behavioral memory/I/O**, not the resolved motherboard.
+Nine cases pass: full WRITE, six good READs (both polarities at .92/1/1.08 tape
+period scales), and bad-checksum READs in both polarities. The inclusive range
+02FD..0302 crosses a page; all six bytes and XOR checksum agree.
+
+WRITE emits 16,499 transitions with the complete approximately 10.79-second
+command. The leader has 16,385 long half-cycles: ordinary 652-cycle intervals,
+656 cycles at block boundaries, then 195/250-cycle sync halves. Data intervals
+match the original instruction listing, including four additional cycles on
+NXTA1 low-byte wrap. Both bad-checksum cases print ERR; all cases ring the bell.
+Full historical-command execution on the resolved physical board is still open.
+
+Q3/R5-R11/L1/Cap2/CT3 and Q4/Cap11/R24/CR1/R25/Cap12/speaker networks are now
+wired to actual B12/B10/C13/J13 signals in both CPU wrappers. The bounded copper
+check includes published Red Book corrections and every output network endpoint
+and component value used by these models. It does not certify every imported
+connection. Models use configurable reduced transistor/diode/load parameters
+and explicit zero-energy initialization, with unknown-state validity preserved.
+
+Strict Verilator lint passes for the motherboard and three output-network
+modules. Icarus DC/load/pot, speaker pulse/energy decay, AC blocking, unknown
+state and reinitialization tests pass. An independent complex-impedance/Fourier
+oracle gives tank RMS error .028965 V (including 2 ns stimulus quantization).
+The independent speaker winding-law residual is at most .001926 V; halving
+the integration step changes observed speaker voltage by at most .000163 V.
+These are numerical/circuit checks, not a comparison with vintage measurements.
+No synthesis or SBY claims apply to these real-valued simulation networks.
+
+## Local front panel
+
+The new Icarus VPI bridge transports keyboard bytes and actual serialized
+frames. It contains no CPU/RAM/video emulation. Transport tests pass for key
+order, an independent Reset channel, EOF recovery after appended input, all 107,520 frame
+pixels, orientation and X/Z preservation. The local HTTP server serves the
+canvas and rejects malformed/non-ASCII input. The live physical board accepted
+ESC/@, `300:A5 5A` and `300.301`; observed command/readback glyph pixels agreed
+with the external font. A screenshot was visually checked in the in-app browser.
+The frontend is monochrome and runs at simulator speed; analog color/audio
+presentation and measured fidelity are not claimed.
+
+The Integer BASIC physical program regression was added. During bring-up,
+the original ROM rejected a combined immediate `COLOR=9:PLOT 3,4` command in
+both the fast CPU harness and the physical board. Separate immediate commands
+succeed. The initial one-second watchdog also expired during legitimate ROM
+processing at FC8E, so the final test allows three seconds and first performs
+the original screen clear. The rerun passes at 893.476743 ms: 292,559 instruction fetches and 11,847
+counted unresolved non-opcode reads. The program prints SUM=55, stores 55 and
+lores color 9 through physical DRAM, and returns to the Monitor, which prints
+0300- 37 09. This does not characterize uninitialized/dummy/floating bus reads.
+
+## Long physical cassette gate
+
+`run_full_write_board.sh` types the payload and `2FD.302W` through physical
+keyboard pins and the original Monitor parser. It leaves every firmware byte
+unchanged, selects an explicit initial J13 state and observes real J13 edges,
+R18/R19 voltage and generated CPU timing. The independent listing oracle
+requires 16,499 transitions and all 16,498 intervals, including full leader,
+sync, page carry and checksum. This long integration test is running; no pass
+is claimed until the simulator and checker both finish. Physical full READ
+acquisition/error integration is still open.

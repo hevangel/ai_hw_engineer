@@ -80,8 +80,41 @@ must produce the six test bytes and checksum, followed by actual DRAM readback.
 Physical J13 output edges must match exact firmware cycle counts and byte
 order. The cassette jack exposes R18/R19 divider voltage with explicit
 configurable TTL-level and recorder-load assumptions. Raw edge and input
-captures are retained in `work/`. The standard leader and full READ command,
-including sync acquisition and checksum/error handling, remain extended work.
+captures are retained in `work/`. The full WRITE/READ commands now pass nine cases in a compiled CPU/firmware
+harness, including the unmodified leader, sync acquisition, page crossing,
+checksum errors, input polarity and speed variation. Run
+`sh scripts/run_cassette_command_firmware.sh`. That harness uses behavioral
+memory/I/O for speed; full-command physical-board integration remains required.
+
+## Front panel and output circuits
+
+Run `sh scripts/run_host.sh` inside the tools container to serve the live
+monochrome front panel. With Docker, publish only a local port:
+
+```sh
+docker run --rm -p 127.0.0.1:18080:8080 -v "$PWD:/work" \
+    -w /work/system/apple_ii ai-hw-engineer-apple-ii \
+    sh scripts/run_host.sh --bind 0.0.0.0
+```
+
+Open `http://127.0.0.1:18080`. Keyboard input, Reset, Integer BASIC and screen
+clear operate the actual board pins. Video comes from observed B10 serial
+output, with unknown pixels preserved. The simulator runs slower than real
+hardware; queued commands take simulated time to execute. See [host contract](spec/host.md).
+`run_host_test.sh` checks transport ordering, appended input and frame encoding.
+
+Run `sh scripts/run_output_sim.sh` for Q3's loaded composite-video network and
+Q4's AC-coupled speaker driver. It checks the actual LC tank/component nets,
+independent impedance response, DC levels, speaker current/energy decay and
+integration convergence. Both CPU wrappers connect these models with
+`ENABLE_ANALOG_OUTPUTS=1`; observable real voltages have separate validity flags.
+The front panel currently shows monochrome digital pixels, not decoded analog
+color or acoustic output. See [device assumptions](spec/analog.md).
+
+The original Integer BASIC physical regression is `run_basic_sim.sh`:
+keyboard-entered FOR/NEXT arithmetic, POKE/PRINT, GR/PLOT/SCRN, speaker PEEK,
+and Monitor readback. Its script is part of the complete acceptance suite.
+[Completion work](spec/completion.md) lists the remaining requirements.
 
 ## Authored CPU option
 

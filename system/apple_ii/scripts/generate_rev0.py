@@ -55,7 +55,7 @@ def generate():
         '    inout tri [7:0] cpu_data,',
         '    input logic cpu_rw, cpu_phi1, cpu_phi2, cpu_sync,',
         '    output tri cpu_phi0, cpu_reset_n, cpu_irq_n, cpu_nmi_n, cpu_rdy,',
-        '    output tri video_data, composite_sync, speaker, cassette_out,',
+        '    output tri video_data, composite_sync, speaker, cassette_out, color_burst,',
         '    output tri [3:0] annunciators,',
         '    output tri paddle_trigger_n',
         ');']
@@ -79,7 +79,7 @@ def generate():
     for p,signal in [(34,'cpu_rw'),(3,'cpu_phi1'),(39,'cpu_phi2'),(7,'cpu_sync')]:assign_to('H7',p,signal)
     for signal,p in [('cpu_phi0',37),('cpu_reset_n',40),('cpu_irq_n',4),('cpu_nmi_n',6),('cpu_rdy',2)]:
         lines.append(f'    assign {signal} = {net("H7",p)};')
-    for signal,ref,p in [('video_data','B10',5),('composite_sync','C13',8),('speaker','J13',5),('cassette_out','J13',8),('paddle_trigger_n','H13',3)]:
+    for signal,ref,p in [('color_burst','B12',12),('video_data','B10',5),('composite_sync','C13',8),('speaker','J13',5),('cassette_out','J13',8),('paddle_trigger_n','H13',3)]:
         # Validate all references exist; semantic signal taps are audited below.
         lines.append(f'    assign {signal} = {net(ref,p)};')
     for i,p in enumerate([15,14,13,12]):lines.append(f'    assign annunciators[{i}] = {net("J14",p)};')

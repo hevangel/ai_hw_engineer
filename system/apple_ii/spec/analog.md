@@ -28,8 +28,9 @@ ASSUMPTION: the NE558's otherwise unresettable latches start inactive; that
 chosen state is explicit and does not introduce a reset wire on H13 pin 13.
 
 The crystal/Q1/Q2 oscillator remains a supplied 14.318 MHz digital boundary.
-Speaker Q4 and composite-video Q3 output stages remain observable digital
-signals; output voltage, current, and load waveforms are not reconstructed.
+Q3 and Q4 now have explicit reduced output-network models, described below.
+Enable them with `ENABLE_ANALOG_OUTPUTS=1` on either CPU wrapper; default
+digital regressions leave their validity flags false to avoid analog-step cost.
 The cassette output jack uses the actual R18/R19 resistive divider and an
 optional resistive load (zero means open circuit). ASSUMPTION: the digital
 J13 output is represented by ideal 0.2 V low and 4.0 V high levels with zero
@@ -43,3 +44,42 @@ unmodeled. The cassette input still starts at Cap10, rather than a recorder.
 The RC reductions omit supply decoupling, input jack attenuation, bias currents,
 leakage, tolerance, parasitics, and transistor nonlinearities. Therefore this
 model is a functional mixed-signal reconstruction, not an exact analog replica.
+
+## Output network implementation contract
+
+The output reconstruction uses the imported physical nets, cross-checked against
+Red Book sheets S-10/S-11. The latter has a known supply error: R9 goes to +5 V,
+confirmed by [Willegal's copper audit](https://www.willegal.net/appleii/appleii-pcb.htm).
+The burst tank is **L1 27 µH in parallel with Cap2 47 pF and CT3 5–50 pF**,
+driven by B12 pin 12 through R5 1 kΩ; it is not an RC-only filter.
+R6 2.7 kΩ, R7 1.5 kΩ and R8 2 kΩ sum tank, B10 pin 5 video and C13 pin 8
+sync into Q3's base. R9 is 10 Ω at the collector. Q3's emitter drives the
+200 Ω R11 level pot, then R10 27 Ω into the video jack, with configurable load.
+
+ASSUMPTION: Q3 is a reduced NPN with configurable beta, fixed Vbe and saturation
+voltage; TTL voltage sources have no output resistance. CT3 defaults to the
+nominal 3.579545 MHz resonance value, and coil resistance defaults to 10 Ω.
+These are simulation settings, not measurements of an original board. Solve
+the tank with trapezoidal integration at 2 ns, including finite base loading.
+Validate DC levels, tank frequency/decay, load and pot effects independently.
+Gayler Fig.4-4 records nominal open-circuit sync/black/white levels 0/.5/2 V
+for a later board; use that as a plausibility check, not revision-0 calibration.
+
+The speaker network is J13 pin 5 -> Cap11 100 nF -> R24 47 kΩ -> Q4 base,
+with CR1's anode grounded. Q4's grounded emitter and collector through R25
+27 Ω sink the speaker connector. Cap12 100 nF shunts that connector; the
+other speaker lead is +5 V. ASSUMPTION: reduced Darlington beta/Vbe/Vce_sat,
+ideal constant-drop diode, and configurable series RL speaker (8 Ω/200 µH
+by default; inductance is unsourced and must be replaced by measured data).
+Solve the loaded network at 100 ns. Check pulse decay, both edge polarities,
+steady-state AC coupling, current/energy decay and integration convergence.
+A voltage at the connector is an electrical result, not acoustic pressure.
+
+Output models retain a false validity flag after any unknown driven level:
+unknown excitation makes stored energy indeterminate. The explicit `analog_initialize` simulator control reinitializes stored energy
+to zero. It is not connected to CPU RES or any other motherboard wire. Unknown
+startup signals defer initial conditions until the first known drive; later
+unknown drive invalidates stored energy until explicitly reinitialized. ASSUMPTION: initial tank/speaker energy is zero.
+A wrapper parameter enables output sampling explicitly; disabled outputs have
+false validity and zero placeholders. This allows long digital regressions
+without hundreds of millions of additional analog time steps.

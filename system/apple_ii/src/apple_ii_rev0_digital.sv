@@ -14,7 +14,7 @@ module apple_ii_rev0_digital #(
     inout tri [7:0] cpu_data,
     input logic cpu_rw, cpu_phi1, cpu_phi2, cpu_sync,
     output tri cpu_phi0, cpu_reset_n, cpu_irq_n, cpu_nmi_n, cpu_rdy,
-    output tri video_data, composite_sync, speaker, cassette_out,
+    output tri video_data, composite_sync, speaker, cassette_out, color_burst,
     output tri [3:0] annunciators,
     output tri paddle_trigger_n
 );
@@ -422,6 +422,7 @@ module apple_ii_rev0_digital #(
     assign cpu_irq_n = n356;
     assign cpu_nmi_n = n359;
     assign cpu_rdy = n253;
+    assign color_burst = n149;
     assign video_data = n069;
     assign composite_sync = n067;
     assign speaker = n216;
