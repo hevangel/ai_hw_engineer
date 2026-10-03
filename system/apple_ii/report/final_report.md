@@ -205,5 +205,8 @@ unchanged, selects an explicit initial J13 state and observes real J13 edges,
 R18/R19 voltage and generated CPU timing. The independent listing oracle
 requires 16,499 transitions and all 16,498 intervals, including full leader,
 sync, page carry and checksum. This long integration test is running; no pass
-is claimed until the simulator and checker both finish. Physical full READ
-acquisition/error integration is still open.
+is claimed until the simulator and checker both finish. `run_full_read_board.sh` is also executing the full original READ command
+through Cap10/K13/H14, with an independent 12000-half-cycle leader and standard
+sync/data waveform. Four cases cover both polarities and good/bad checksum;
+all six received bytes require actual DRAM readback and ERR must occur only
+for bad checksum. The acceptance gate remains open until all cases finish.

@@ -84,7 +84,8 @@ captures are retained in `work/`. The full WRITE/READ commands now pass nine cas
 harness, including the unmodified leader, sync acquisition, page crossing,
 checksum errors, input polarity and speed variation. Run
 `sh scripts/run_cassette_command_firmware.sh`. That harness uses behavioral
-memory/I/O for speed; full-command physical-board integration remains required.
+memory/I/O for speed; full-command physical-board integration is running via
+`run_full_write_board.sh` and `run_full_read_board.sh` and has not yet passed.
 
 ## Front panel and output circuits
 
