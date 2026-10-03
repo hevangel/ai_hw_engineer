@@ -1,0 +1,10 @@
+# Table4/5/PDF42–43: dest,F,Gi,Pi,carry MSS,OVR MSS,N MSS,Z mode,SIO3 MSS,Y expression MSS/non-MSS,Q action
+0,s+cn if not z else r+s+cn,0 if not z else r&s,s if not z else r|s,carry,overflow,b3(f),Q0,OFF,(carry<<3)|(f>>1) if mss else (si3<<3)|(f>>1),RIGHT
+2,s+cn if not z else r+s+cn,0 if not z else r&s,s if not z else r|s,carry,overflow,b3(f),Q0,OFF,((b3(f)^overflow)<<3)|(f>>1) if mss else (si3<<3)|(f>>1),RIGHT
+4,s+(1 if lss else 0)+cn,s&1 if lss else 0,(s|1) if lss else s,carry,overflow,b3(f),Y,INPUT,f,HOLD
+5,s+cn if not z else (~s)+cn,0,s if not z else ~s,carry,overflow,b3(f) if not z else b3(f)^b3(s),S3,INPUT,(f&7)|((b3(f)^b3(s))<<3) if mss else f,HOLD
+6,s+cn if not z else s-r-1+cn,0 if not z else (~r)&s,s if not z else (~r)|s,carry,overflow,b3(f),Q0,OFF,((b3(f)^overflow)<<3)|(f>>1) if mss else (si3<<3)|(f>>1),RIGHT
+8,s+cn,0,s,b3(q)^b2(q),b2(q)^b1(q),b3(q),Q,F3,f,LEFT
+A,s+cn,0,s,b3(f)^b2(f),b2(f)^b1(f),b3(f),QF,XNOR,((f<<1)|si0)&15,LEFT
+C,s+r+cn if not z else s-r-1+cn,r&s if not z else (~r)&s,r|s if not z else (~r)|s,carry,overflow,b3(f),SC,XNOR,((f<<1)|si0)&15,LEFT
+E,s+r+cn if not z else s-r-1+cn,r&s if not z else (~r)&s,r|s if not z else (~r)|s,carry,overflow,b3(f),SC,F3,f,LEFT

@@ -1,0 +1,7 @@
+# Original AMD Figure17/PDF53 unsigned: offset,Am2910 opcode,D,Am2903 word,A,B,Cn
+0,C,00F,0CC,2,0,0
+1,9,NEXTSELF,000,1,0,0
+# Original AMD Figure19/PDF54 signed:
+0,C,00E,0CC,2,0,0
+1,9,NEXTSELF,040,1,0,0
+2,X,000,0C0,1,0,Z

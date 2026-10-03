@@ -17,6 +17,7 @@ This directory contains the historical chip designs recreated and verified by th
 | AMD Am2909 | Four-bit microprogram sequencer; four-word return stack, separate register/direct buses and OR branching | 1975* (marketing) | [amd_am2909](amd_am2909/) |
 | AMD Am2911 | Four-bit microprogram sequencer; shared direct/register bus, four-word return stack | 1976* (availability evidence) | [amd_am2911](amd_am2911/) |
 | AMD Am2910 | Twelve-bit microprogram controller; five-level stack, loop counter and sixteen instructions | By 1978* (exact year unknown) | [amd_am2910](amd_am2910/) |
+| AMD Am2903 | Enhanced four-bit processor slice; expandable native RAM, multiply/divide/normalize, parity and sign extension | By 1978* (exact year unknown) | [amd_am2903](amd_am2903/) |
 | MOS Technology 6502 | 8-bit microprocessor; 29-opcode subset and Apple II keyboard echo | 1975 | [mos_6502](mos_6502/) |
 | Intel 4004 | 4-bit microprocessor (MCS-4); authentic Busicom manual regression | 1971 | [intel_4004](intel_4004/) |
 | Intel 8008 | 8-bit microprocessor (MCS-8); SCELBAL software regression | 1972 | [intel_8008](intel_8008/) |

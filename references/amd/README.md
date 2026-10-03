@@ -55,3 +55,11 @@ Am2910 occupies PDF96–108 (printed2-88–2-100). Table I/II PDF99 must be
 visually checked for active-low signals; Figure4 PDF103 and explanations
 PDF104–106 provide original microprogram examples. Unlike Am2909, Am2910
 stack depth saturates at zero/five and overflow replaces the full top word.
+
+The [AMD 1979 Designer's Guide](https://bitsavers.trailing-edge.com/components/amd/_dataBooks/1979_AMD_The_Designers_Guide.pdf)
+cache is `1979_AMD_The_Designers_Guide.pdf` (338 pages), SHA256
+`e4e3eacf2c555351bf4c81cfa1fc24f4be39b280deb7f21a08cfe9b8916a53e3`.
+Am2903 Table5 on PDF69/printed2-7 corrects the original 1978 special-E Gi
+cell at Z=LOW to R AND S; the earlier PDF43 print complemented R there.
+Original multiply firmware is 1978 Figures17/19 on PDF53/54, with actual
+Am2910 LDCT/RPCT counts and serial/carry/Z wiring in Figures15/18.

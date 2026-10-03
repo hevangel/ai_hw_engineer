@@ -38,7 +38,7 @@ refined from original catalogs before implementation.
 | 9 | Am2909 | Four-bit microprogram sequencer | Verified: 131,072 external-table transitions, original nested subroutine microcode/exact PCs, three-slice cascade, BMC/PDR/cover, clean lint and synthesis ([report](../design/amd_am2909/report/final_report.md)) |
 | 10 | Am2911 | Microprogram sequencer | Verified actual shared-D/no-OR variant: 131,072 external-table transitions, original microcode/exact PCs, held/live bus checks, three-slice cascade, BMC/PDR/cover and clean lint/synthesis ([report](../design/amd_am2911/report/final_report.md)) |
 | 11 | Am2910 | Microprogram controller | Verified: all sixteen instructions, 87,040 external-table transitions, 28,861 original firmware words/exact PCs, BMC/PDR/23 covers, clean lint/synthesis ([report](../design/amd_am2910/report/final_report.md)) |
-| 12 | Am2903 | Enhanced processor slice | Queued |
+| 12 | Am2903 | Enhanced processor slice | Verified: all 505 words, 415,104 external-table/native cases, original microcode on four slices+Am2910/139,464 products, BMC/PDR/cover and synthesis; localized latch/cascade lint annotations ([report](../design/amd_am2903/report/final_report.md)) |
 | 13 | Am2904 | Status and shift control | Queued |
 | 14 | Am2913 | Interrupt support | Queued |
 | 15 | Am2914 | Interrupt support | Queued |
