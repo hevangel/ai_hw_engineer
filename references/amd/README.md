@@ -7,6 +7,7 @@ locations so the source remains reproducible without committing large books.
 | File | Source | SHA-256 |
 |---|---|---|
 | `1974_AMD_Data_Book.pdf` | [Bitsavers mirror](https://bitsavers.trailing-edge.com/components/amd/_dataBooks/1974_AMD_Data_Book.pdf) | `9d1f5140c9c206b57145e22743c689610b25cd145a07e93a54a205e5f71efefc` |
+| `1977_AMD_8080A_9080A_MOS_Microprocessor_Handbook.pdf` | [AMD handbook scan](https://bitsavers.trailing-edge.com/components/amd/_dataBooks/1977_AMD_8080A_9080A_MOS_Microprocessor_Handbook.pdf) | `6bea9955f5784c009574cd7d18a83c790dc6f72f4e3de1c02bc69cdd2213ac74` |
 
 The 1974 book has 765 PDF pages. Am9300 occupies printed pages 2-33 through
 2-38 (one-based PDF pages 54-59). In particular the serial-input truth table
