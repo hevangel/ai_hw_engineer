@@ -99,3 +99,25 @@ The bidirectional schematic crosses each register's Y to the opposite bus;
 the adjacent prose repeats A for the left output. Native tests follow the
 unambiguous pin connections. The earlier 1978 PDF162–165 already contains
 the complete datasheet, supplying the historical bound.
+
+Am9511 is defined by the 1979 Designer's Guide PDF235–244 (printed4-33–4-42)
+and algorithm chapter PDF275–296 (printed5-1–5-22), detailed commands284–296.
+The independent command CSV cross-checks bit diagrams against the datasheet;
+the summary at PDF279 contains OCR code errors.
+
+[The Am9511 Arithmetic Processing Unit](https://github.com/barberd/coco9511pak/blob/0f272e44db724ed7f0e60730499457be230e4e4f/docs/The%20Am9511%20Arithmetic%20Processing%20Unit.pdf),
+by Richard O. Parker and Joseph H. Kroeger, ©1978, AM-PUB072, is cached as
+`The_Am9511_Arithmetic_Processing_Unit.pdf` (24 pages), SHA256
+`80b2984668ad59773db7610b01d08075513d360b6fafbcbb913660aae5869263`.
+
+[Am9511A/Am9512 Floating Point Processor Manual](https://github.com/barberd/coco9511pak/blob/0f272e44db724ed7f0e60730499457be230e4e4f/docs/Am9511A-9512FP_Processor_Manual.pdf),
+by Steven Cheng, May1981, RMC-615, is cached as
+`Am9511A_9512_Processor_Manual.pdf` (58 pages), SHA256
+`38c673ccd12186caa3b6089b9be4207a6d13ace629a140f4949a0e51d0da1dda`.
+PDF26/printed23 explicitly dates Am9511 to1977 and Am9512 to1979; no exact
+month is established. Original 8080 DEMAND/POLL software is on PDF36–39,
+printed33–36. Its object bytes, including the first POLL-loop target003e,
+are retained in the Am9511 design with provenance and integrity hash.
+The later manual supplies history and host software, while original command
+semantics continue to use the 1979 source rather than silently importing
+A-revision electrical changes.
