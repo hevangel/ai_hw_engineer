@@ -37,6 +37,7 @@ This directory contains the historical chip designs recreated and verified by th
 | Intel 8275 | DMA-fed programmable CRT controller; raster, attributes, cursor and light pen | 1977* | [intel_8275](intel_8275/) |
 | Intel 8279 / 8279-5 | Programmable keyboard/display interface | 1977* | [intel_8279](intel_8279/) |
 | Intel 8272 / 8272A | Four-drive floppy controller; virtual media core with FM/MFM and CRC helpers | 1980* / 1982* | [intel_8272](intel_8272/) |
+| Intel 8273 | HDLC/SDLC serial protocol controller; framing, NRZI, CRC, DMA and loop relay | 1977* | [intel_8273](intel_8273/) |
 | Intel 8237 / 8237A | Four-channel programmable DMA controller; A-revision functional core | 1979* (family) | [intel_8237](intel_8237/) |
 
 The Intel 8008 entry records **1972**, with Intel dating its introduction to April 1972 in its [8008 history](https://www.intel.com/content/www/us/en/history/virtual-vault/articles/the-8008.html). Technical behavior follows the downloaded [MCS-8 Users Manual](intel_8008/references/intel_mcs8_users_manual_nov1973.md) and is checked against SCELBAL and the independent SIMH model; see the [design overview](intel_8008/README.md).
@@ -79,6 +80,11 @@ The Intel 8237/8237A entry records **1979*** for the original 8237 family: the [
 
 ## Design documentation
 
+The Intel 8273 entry uses **1977*** for announced availability: Intel's
+[advertisement in Electronic Design, November 22, 1977](https://device.report/m/8bc5b6376694b97e23c2f7405d8292f666953225fb3eb6506aa146bfc391ae7c)
+lists the 8273 with fourth-quarter 1977 availability. An exact first-shipment
+date was not established. The [design overview](intel_8273/README.md) describes
+the sourced programming model, real serial framing and functional boundaries.
 The AMD Am9300 entry uses **1970*** for commercial availability, separating
 it from first working silicon in **1969**. First-person and AMD-sourced
 accounts differ on the exact first-shipment milestone; see the

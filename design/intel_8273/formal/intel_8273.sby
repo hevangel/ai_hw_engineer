@@ -1,0 +1,40 @@
+[tasks]
+bmc
+prove
+cover_tx
+cover_rx
+cover_error
+
+[options]
+bmc: mode bmc
+bmc: depth 40
+prove: mode prove
+cover_tx: mode cover
+cover_tx: depth 100
+cover_rx: mode cover
+cover_rx: depth 80
+cover_error: mode cover
+cover_error: depth 25
+
+[engines]
+bmc: abc bmc3
+prove: abc pdr
+cover_tx: smtbmc z3
+cover_rx: smtbmc z3
+cover_error: smtbmc z3
+
+[script]
+bmc: read -formal -D FORMAL intel_8273.sv intel_8273_tx.sv intel_8273_rx.sv intel_8273_dpll.sv intel_8273_formal.sv
+prove: read -formal -D FORMAL intel_8273.sv intel_8273_tx.sv intel_8273_rx.sv intel_8273_dpll.sv intel_8273_formal.sv
+cover_tx: read -formal -D FORMAL -D FORMAL_COVER -D COVER_TX intel_8273.sv intel_8273_tx.sv intel_8273_rx.sv intel_8273_dpll.sv intel_8273_formal.sv
+cover_rx: read -formal -D FORMAL -D FORMAL_COVER -D COVER_RX intel_8273.sv intel_8273_tx.sv intel_8273_rx.sv intel_8273_dpll.sv intel_8273_formal.sv
+cover_error: read -formal -D FORMAL -D FORMAL_COVER intel_8273.sv intel_8273_tx.sv intel_8273_rx.sv intel_8273_dpll.sv intel_8273_formal.sv
+prep -top intel_8273_formal -flatten
+
+[files]
+../src/intel_8273.sv
+../src/intel_8273_tx.sv
+../src/intel_8273_rx.sv
+../src/intel_8273_dpll.sv
+intel_8273_props.sv
+intel_8273_formal.sv
