@@ -63,3 +63,13 @@ Am2903 Table5 on PDF69/printed2-7 corrects the original 1978 special-E Gi
 cell at Z=LOW to R AND S; the earlier PDF43 print complemented R there.
 Original multiply firmware is 1978 Figures17/19 on PDF53/54, with actual
 Am2910 LDCT/RPCT counts and serial/carry/Z wiring in Figures15/18.
+
+The [1979 Am2900 Family Data Book](https://bitsavers.trailing-edge.com/components/amd/bitslice/1979_AMD_2900family.pdf)
+cache is `1979_AMD_2900family.pdf` (524 scanned pages), SHA256
+`bc506a9acb19e840351d74cec78c8b0bb46e079e75245dddeddee73ef7167604`.
+Am2904 occupies PDF92–106 (printed2-84–2-98); Tables1–7 on PDF94–98
+pin status operations, conditional-test overbars, carry selection and all32
+shift linkages. Table7 notes2/3 explicitly override CEM/EC holds when a shift
+loads machine carry. Original two-load interrupt restoration and register
+swap applications are on PDF99. The 1978 PDF60–63 entry is advance information,
+not proof of an exact commercial shipment date.
