@@ -6,6 +6,23 @@ This directory contains the historical chip designs recreated and verified by th
 
 | Chip | Description | First introduced | Design |
 |---|---|---:|---|
+| AMD Am9300 | Four-bit parallel-load/JK serial shift register; asynchronous master clear | 1970* (commercial; silicon 1969) | [amd_am9300](amd_am9300/) |
+| AMD Am2501 | Four-bit binary synchronous up/down counter with preset and carry look-ahead | 1970* | [amd_am2501](amd_am2501/) |
+| AMD Am2505 | Four-by-two-bit Booth multiplier/partial-product slice; both logic polarities | 1971* | [amd_am2505](amd_am2505/) |
+| AMD Am3101 | 16x4 asynchronous bipolar RAM; inverted open-collector outputs | 1971* | [amd_am3101](amd_am3101/) |
+| AMD Am9102 / Am9102A / Am9102B | 1024x1 asynchronous NMOS RAM; tri-state output and retained-power standby | 1974* | [amd_am9102](amd_am9102/) |
+| AMD Am9080 / Am9080A | 8-bit processor; complete documented Am9080A instruction set and functional transaction bus | 1975* (Am9080A evidence) | [amd_am9080](amd_am9080/) |
+| AMD Am2901 | Four-bit ALU/register processor slice; documented Am2901A native clock phases and all 512 microinstructions | 1975 | [amd_am2901](amd_am2901/) |
+| AMD Am2902 | Four-group carry look-ahead generator; active-low P/G and hierarchical expansion | 1975* (announcement) | [amd_am2902](amd_am2902/) |
+| AMD Am2909 | Four-bit microprogram sequencer; four-word return stack, separate register/direct buses and OR branching | 1975* (marketing) | [amd_am2909](amd_am2909/) |
+| AMD Am2911 | Four-bit microprogram sequencer; shared direct/register bus, four-word return stack | 1976* (availability evidence) | [amd_am2911](amd_am2911/) |
+| AMD Am2910 | Twelve-bit microprogram controller; five-level stack, loop counter and sixteen instructions | By 1978* (exact year unknown) | [amd_am2910](amd_am2910/) |
+| AMD Am2903 | Enhanced four-bit processor slice; expandable native RAM, multiply/divide/normalize, parity and sign extension | By 1978* (exact year unknown) | [amd_am2903](amd_am2903/) |
+| AMD Am2904 | Micro/machine status registers, conditional tests, carry and shift control | By 1978* (advance information; exact launch year unknown) | [amd_am2904](amd_am2904/) |
+| AMD Am2913 | Eight-input priority interrupt expander with five output gates | By 1978* (exact year unknown) | [amd_am2913](amd_am2913/) |
+| AMD Am2914 | Eight-level vectored interrupt controller; pulse capture, masks, thresholds and cascade | By 1978* (exact year unknown) | [amd_am2914](amd_am2914/) |
+| AMD Am2918 | Quad D register with continuous Q and three-state Y outputs | By 1978* (exact year unknown) | [amd_am2918](amd_am2918/) |
+| AMD Am9511 | Signed integer/native floating arithmetic, conversions and transcendental processing unit | 1977 (manufacturer history) | [amd_am9511](amd_am9511/) |
 | MOS Technology 6502 | 8-bit microprocessor; 29-opcode subset and Apple II keyboard echo | 1975 | [mos_6502](mos_6502/) |
 | Intel 4004 | 4-bit microprocessor (MCS-4); authentic Busicom manual regression | 1971 | [intel_4004](intel_4004/) |
 | Intel 8008 | 8-bit microprocessor (MCS-8); SCELBAL software regression | 1972 | [intel_8008](intel_8008/) |
@@ -61,6 +78,13 @@ The Intel 8272/8272A entry uses **1980*** and **1982*** as the earliest located 
 The Intel 8237/8237A entry records **1979*** for the original 8237 family: the [May 1979 Intel 8237/8237-2 datasheet](https://web.cecs.pdx.edu/~mpj/llp/references/Intel-8237-dma.pdf) is dated by the [technical specification index](https://wiki.osdev.org/Technical_Specifications), and the [family history](https://en.wikipedia.org/wiki/Intel_8237) cites an Intel *Preview* announcement in May/June 1979. The exact introduction date of the later 8237A revision is not established; the year is not an A-revision launch claim. The design follows the [Intel 8237A datasheet](https://www.pcjs.org/documents/datasheets/intel/INTEL_8237A_DMA.pdf); implementation scope and uncertainties are documented in the [chip overview](intel_8237/README.md).
 
 ## Design documentation
+
+The AMD Am9300 entry uses **1970*** for commercial availability, separating
+it from first working silicon in **1969**. First-person and AMD-sourced
+accounts differ on the exact first-shipment milestone; see the
+[chip history and source discussion](amd_am9300/README.md). The ongoing
+[historical AMD series ledger](../plans/amd_historical_series.md) records
+the remaining requested designs and their actual completion state.
 
 The Intel 8275 entry records **1977*** for public introduction: the contemporary [May 26, 1977 Electronics report](https://www.worldradiohistory.com/Archive-Electronics/70s/77/Electronics-1977-05-26.pdf) describes the new controller and says sample quantities are forthcoming. This does not establish an exact first-shipment date. The design follows Intel's [8275 AFN-00224B datasheet scan](intel_8275/references/intel_8275.pdf); see the [overview](intel_8275/README.md) and [specification](intel_8275/spec/spec.md) for sources and implementation boundaries.
 

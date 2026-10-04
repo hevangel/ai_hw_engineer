@@ -1,0 +1,22 @@
+[tasks]
+bmc
+prove
+cover
+
+[options]
+bmc: mode bmc
+prove: mode prove
+cover: mode cover
+depth 32
+multiclock on
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal -sv amd_am9300.sv amd_am9300_props.sv
+prep -top amd_am9300_props
+
+[files]
+../src/amd_am9300.sv
+amd_am9300_props.sv

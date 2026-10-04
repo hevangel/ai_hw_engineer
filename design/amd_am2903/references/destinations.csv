@@ -1,0 +1,17 @@
+# Table3/PDF41: dest,Y_MSS,Y_other,SIO3_MSS,SIO3_other,SIO0,write_n,Q_action
+0,(f&8)|(si3<<2)|((f>>1)&3),(si3<<3)|(f>>1),INPUT,INPUT,F0,0,HOLD
+1,(si3<<3)|(f>>1),(si3<<3)|(f>>1),INPUT,INPUT,F0,0,HOLD
+2,(f&8)|(si3<<2)|((f>>1)&3),(si3<<3)|(f>>1),INPUT,INPUT,F0,0,RIGHT
+3,(si3<<3)|(f>>1),(si3<<3)|(f>>1),INPUT,INPUT,F0,0,RIGHT
+4,f,f,INPUT,INPUT,PARITY,0,HOLD
+5,f,f,INPUT,INPUT,PARITY,1,RIGHT
+6,f,f,INPUT,INPUT,PARITY,1,LOAD
+7,f,f,INPUT,INPUT,PARITY,0,LOAD
+8,(f&8)|((f<<1)&6)|si0,((f<<1)|si0)&15,F2,F3,INPUT,0,HOLD
+9,((f<<1)|si0)&15,((f<<1)|si0)&15,F3,F3,INPUT,0,HOLD
+A,(f&8)|((f<<1)&6)|si0,((f<<1)|si0)&15,F2,F3,INPUT,0,LEFT
+B,((f<<1)|si0)&15,((f<<1)|si0)&15,F3,F3,INPUT,0,LEFT
+C,f,f,F3,F3,OFF,1,HOLD
+D,f,f,F3,F3,OFF,1,LEFT
+E,15*si0,15*si0,SIGN,SIGN,INPUT,0,HOLD
+F,f,f,F3,F3,OFF,0,HOLD

@@ -1,0 +1,17 @@
+code,mnemonic,mask,status,group,clear,irq,vector,m_output,s_output,overflow
+0,MCLR,zero,zero,gar,all,on,zero,0,0,reset
+1,CLRIN,hold,hold,hold,all,hold,zero,0,0,hold
+2,CLRMB,hold,hold,hold,bus,hold,hold,0,0,hold
+3,CLRMR,hold,hold,hold,mask,hold,hold,1,0,hold
+4,CLRVC,hold,hold,hold,held,hold,zero,0,0,hold
+5,RDVC,hold,vector,advance,none,hold,load,0,0,set
+6,RDSTA,hold,hold,hold,none,hold,hold,0,1,hold
+7,RDM,hold,hold,hold,none,hold,hold,1,0,hold
+8,SETM,ones,hold,hold,none,hold,hold,0,0,hold
+9,LDSTA,hold,bus,ge,none,hold,hold,0,0,reset
+a,BCLRM,andnot,hold,hold,none,hold,hold,0,0,hold
+b,BSETM,or,hold,hold,none,hold,hold,0,0,hold
+c,CLRM,zero,hold,hold,none,hold,hold,0,0,hold
+d,DISIN,hold,hold,hold,none,off,hold,0,0,hold
+e,LDM,bus,hold,hold,none,hold,hold,0,0,hold
+f,ENIN,hold,hold,hold,none,on,hold,0,0,hold

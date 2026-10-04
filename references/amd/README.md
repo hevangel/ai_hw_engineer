@@ -1,0 +1,123 @@
+# AMD source cache
+
+Original manufacturer documents are used as the specification oracle; the
+cache PDFs are ignored by Git. Project documentation links to their public
+locations so the source remains reproducible without committing large books.
+
+| File | Source | SHA-256 |
+|---|---|---|
+| `1974_AMD_Data_Book.pdf` | [Bitsavers mirror](https://bitsavers.trailing-edge.com/components/amd/_dataBooks/1974_AMD_Data_Book.pdf) | `9d1f5140c9c206b57145e22743c689610b25cd145a07e93a54a205e5f71efefc` |
+| `1977_AMD_8080A_9080A_MOS_Microprocessor_Handbook.pdf` | [AMD handbook scan](https://bitsavers.trailing-edge.com/components/amd/_dataBooks/1977_AMD_8080A_9080A_MOS_Microprocessor_Handbook.pdf) | `6bea9955f5784c009574cd7d18a83c790dc6f72f4e3de1c02bc69cdd2213ac74` |
+| `1978_The_Am2900_Family_Data_Book.pdf` | [AMD family book](https://bitsavers.trailing-edge.com/components/amd/bitslice/1978_The_Am2900_Family_Data_Book.pdf) | `823513eaf25d19e6ae992809afcd3116bf8cb27b4b0657256842d61c6a56c8fa` |
+
+The 1974 book has 765 PDF pages. Am9300 occupies printed pages 2-33 through
+2-38 (one-based PDF pages 54-59). In particular the serial-input truth table
+is on printed page 2-37 / PDF page 58: K is an active-low input. The scanned
+symbol must be consulted alongside OCR because complement bars are lost in
+text extraction. Am2505 begins on printed page 2-9 / PDF page 30.
+Am2501 shares the Am9306 datasheet on printed pages 2-55 through 2-60
+(PDF pages 76-81); the two parts' state diagrams must not be confused.
+The multiplier application note is printed pages 8-84 to 8-107 (PDF
+pages 719-742); its circuit and pin discussion explicitly applies to
+Am2505 as well as Am25L05 and Am25S05. The book's prefatory letter on
+PDF page 4, signed by Jerry Sanders on June 3, 1974, dates the original
+18-device product-line introduction to April 1970.
+
+The original Am3101 occupies printed pages 6-11 to 6-16 (PDF pages 516-521);
+its output truth table and unspecified deselected-write note are on PDF 520.
+Do not substitute the separate Am3101A sheet starting on PDF 522.
+Am9102/Am9102A/Am9102B occupies printed pages 5-61 to 5-66 (PDF 498-503).
+PDF 501 specifies that output follows data during selected writes; PDF 502
+defines retained-data standby and its required deselection/recovery timing.
+
+The 319-page 1977 8080A/9080A handbook has functional description on PDF
+6-21, instruction semantics on PDF 22-83 and appendix summaries on PDF
+314-317. ANA/ANI on PDF 31-32 explicitly clears AC, unlike Intel 8080
+silicon. Detailed PUSH on PDF 63 decrements SP, correcting the reversed
+general prose on PDF 7. The actual ISR save/restore/EI/RET skeleton is
+on PDF 301 (printed 15-2), including Figure 15-3.
+
+The 402-page 1978 family book defines Am2901A on PDF 11–29, including native
+CP phases on PDF 12; source/function/destination on PDF 14; status Figure 8
+on PDF 16 (overbars must be visually inspected); and actual signed-multiply
+microcode dated August 5, 1975 / J.S. in Figure 21 on PDF 29. Its companion
+Figure 20 supplies cascade shift wiring and sign/overflow correction.
+Am2902A follows on PDF 34/35 (printed 2-26/2-27); physical P/G pins are
+active low, carry pins match active-high Am2901 carries, and only three
+individual carry outputs exist. The original logic diagram, not unbarred
+OCR alone, pins the digital equations.
+Am2909/Am2911 occupy PDF 82–95 (printed 2-74–2-87): Figure 2 / PDF 84
+shows separate register/direct inputs and Am2911's shared-data/no-OR variant;
+Figures 5/6 / PDF 86 specify selection and exact pre-edge-PC push; Figures
+7/8 / PDF 87 provide original pipelined and one-word nested subroutine traces.
+
+Am2910 occupies PDF96–108 (printed2-88–2-100). Table I/II PDF99 must be
+visually checked for active-low signals; Figure4 PDF103 and explanations
+PDF104–106 provide original microprogram examples. Unlike Am2909, Am2910
+stack depth saturates at zero/five and overflow replaces the full top word.
+
+The [AMD 1979 Designer's Guide](https://bitsavers.trailing-edge.com/components/amd/_dataBooks/1979_AMD_The_Designers_Guide.pdf)
+cache is `1979_AMD_The_Designers_Guide.pdf` (338 pages), SHA256
+`e4e3eacf2c555351bf4c81cfa1fc24f4be39b280deb7f21a08cfe9b8916a53e3`.
+Am2903 Table5 on PDF69/printed2-7 corrects the original 1978 special-E Gi
+cell at Z=LOW to R AND S; the earlier PDF43 print complemented R there.
+Original multiply firmware is 1978 Figures17/19 on PDF53/54, with actual
+Am2910 LDCT/RPCT counts and serial/carry/Z wiring in Figures15/18.
+
+The [1979 Am2900 Family Data Book](https://bitsavers.trailing-edge.com/components/amd/bitslice/1979_AMD_2900family.pdf)
+cache is `1979_AMD_2900family.pdf` (524 scanned pages), SHA256
+`bc506a9acb19e840351d74cec78c8b0bb46e079e75245dddeddee73ef7167604`.
+Am2904 occupies PDF92–106 (printed2-84–2-98); Tables1–7 on PDF94–98
+pin status operations, conditional-test overbars, carry selection and all32
+shift linkages. Table7 notes2/3 explicitly override CEM/EC holds when a shift
+loads machine carry. Original two-load interrupt restoration and register
+swap applications are on PDF99. The 1978 PDF60–63 entry is advance information,
+not proof of an exact commercial shipment date.
+
+Am2913 occupies 1979 PDF161–165 (printed2-153–2-157). Its positive-polarity
+encoder and five independent output gates are defined by the two truth tables
+on PDF164. EI HIGH inhibits encoding but does not release the output; EO
+remains independent of all output gates. PDF165 shows the original eight-
+Am2914/one-Am2913 64-level interrupt application. The earlier 1978 book already
+includes the Am2913 datasheet on PDF109–113, supplying the historical bound.
+
+Am2914 occupies 1979 PDF166–173, original applications PDF174–184 and
+detailed logic PDF185–190. The original Figure4 interrupt procedure is PDF177;
+Figures6/9/10 on PDF178/181/182 define the original 64-level ripple cascade,
+vector and status buses. Its first complete datasheet already appears on
+1978 PDF114–121. The later [January1987 manufacturer datasheet](https://bitsavers.trailing-edge.com/components/amd/bitslice/_dataSheets/1987_2914.pdf)
+cache `1987_2914.pdf` (16 pages) has SHA256
+`2bd157401a740dab4505e8522b94dda0e8e3e890eabbd3f6466e6aa6cc1fb293`.
+Its PDF5 explicitly defines native edge sampling and sticky status overflow
+until master clear/status reload. Am2914's spec explains the functional
+paragraphs used to resolve ambiguous scanned gate notation.
+
+Am2918 is defined on 1979 PDF209–212 / printed2-201–2-204; PDF211 contains
+its complete positive-edge/non-inverted truth table. PDF212 MPR-188 and189
+give the original two-chip bidirectional interface and serial converter.
+The bidirectional schematic crosses each register's Y to the opposite bus;
+the adjacent prose repeats A for the left output. Native tests follow the
+unambiguous pin connections. The earlier 1978 PDF162–165 already contains
+the complete datasheet, supplying the historical bound.
+
+Am9511 is defined by the 1979 Designer's Guide PDF235–244 (printed4-33–4-42)
+and algorithm chapter PDF275–296 (printed5-1–5-22), detailed commands284–296.
+The independent command CSV cross-checks bit diagrams against the datasheet;
+the summary at PDF279 contains OCR code errors.
+
+[The Am9511 Arithmetic Processing Unit](https://github.com/barberd/coco9511pak/blob/0f272e44db724ed7f0e60730499457be230e4e4f/docs/The%20Am9511%20Arithmetic%20Processing%20Unit.pdf),
+by Richard O. Parker and Joseph H. Kroeger, ©1978, AM-PUB072, is cached as
+`The_Am9511_Arithmetic_Processing_Unit.pdf` (24 pages), SHA256
+`80b2984668ad59773db7610b01d08075513d360b6fafbcbb913660aae5869263`.
+
+[Am9511A/Am9512 Floating Point Processor Manual](https://github.com/barberd/coco9511pak/blob/0f272e44db724ed7f0e60730499457be230e4e4f/docs/Am9511A-9512FP_Processor_Manual.pdf),
+by Steven Cheng, May1981, RMC-615, is cached as
+`Am9511A_9512_Processor_Manual.pdf` (58 pages), SHA256
+`38c673ccd12186caa3b6089b9be4207a6d13ace629a140f4949a0e51d0da1dda`.
+PDF26/printed23 explicitly dates Am9511 to1977 and Am9512 to1979; no exact
+month is established. Original 8080 DEMAND/POLL software is on PDF36–39,
+printed33–36. Its object bytes, including the first POLL-loop target003e,
+are retained in the Am9511 design with provenance and integrity hash.
+The later manual supplies history and host software, while original command
+semantics continue to use the 1979 source rather than silently importing
+A-revision electrical changes.

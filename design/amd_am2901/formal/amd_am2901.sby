@@ -1,0 +1,21 @@
+[tasks]
+bmc
+prove
+cover
+[options]
+bmc: mode bmc
+prove: mode prove
+cover: mode cover
+depth 16
+multiclock on
+[engines]
+bmc: abc bmc3
+prove: abc pdr
+cover: smtbmc z3
+[script]
+read -formal -sv -I . amd_am2901_alu.sv amd_am2901.sv
+prep -top amd_am2901
+[files]
+../src/amd_am2901_alu.sv
+../src/amd_am2901.sv
+amd_am2901_props.sv

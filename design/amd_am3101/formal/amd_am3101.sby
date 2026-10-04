@@ -1,0 +1,24 @@
+[tasks]
+bmc
+prove
+cover
+
+[options]
+bmc: mode bmc
+prove: mode prove
+cover: mode cover
+depth 16
+multiclock on
+
+[engines]
+bmc: abc bmc3
+prove: abc pdr
+cover: smtbmc z3
+
+[script]
+read -formal -sv amd_am3101.sv amd_am3101_props.sv
+prep -top amd_am3101_props
+
+[files]
+../src/amd_am3101.sv
+amd_am3101_props.sv

@@ -1,0 +1,25 @@
+[tasks]
+bmc
+prove
+cover
+[options]
+bmc: mode bmc
+bmc: depth 8
+prove: mode prove
+cover: mode cover
+cover: depth 16
+[engines]
+bmc: smtbmc z3
+prove: abc pdr
+cover: smtbmc z3
+[script]
+read -formal -D AM9511_TRANSPORT_FORMAL amd_am9511.sv model_fixed.sv model_float.sv model_derived.sv
+prep -top amd_am9511
+[files]
+../src/amd_am9511.sv
+../src/amd_am9511_commands.svh
+amd_am9511_props.sv
+documented_stack.svh
+model_fixed.sv
+model_float.sv
+model_derived.sv

@@ -1,0 +1,26 @@
+[tasks]
+bmc
+prove
+cover
+
+[options]
+bmc: mode bmc
+prove: mode prove
+cover: mode cover
+bmc: depth 32
+prove: depth 12
+cover: depth 32
+
+[engines]
+bmc: abc bmc3
+prove: smtbmc z3
+cover: smtbmc z3
+
+[script]
+read -formal -sv -I. amd_am9080_alu.sv amd_am9080.sv
+prep -top amd_am9080
+
+[files]
+../src/amd_am9080_alu.sv
+../src/amd_am9080.sv
+amd_am9080_props.sv
