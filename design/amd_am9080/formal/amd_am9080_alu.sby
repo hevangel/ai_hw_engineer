@@ -1,0 +1,21 @@
+[tasks]
+bmc
+prove
+cover
+
+[options]
+bmc: mode bmc
+prove: mode prove
+cover: mode cover
+depth 2
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal -sv amd_am9080_alu.sv amd_am9080_alu_props.sv
+prep -top amd_am9080_alu_props
+
+[files]
+../src/amd_am9080_alu.sv
+amd_am9080_alu_props.sv
