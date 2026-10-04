@@ -32,5 +32,7 @@ normal Git LF/CRLF checkout differences while checking the generated content.
 
 Electrical propagation and bus contention are outside the settled digital
 contract. The nine-chip hierarchy is an additional Am2913 circuit, not the
-original eight-Am2914/one-Am2913 application; validation of that application
-belongs to the next design. No known functional issues remain in this scope.
+original eight-Am2914/one-Am2913 application. That application's vector and
+status variants now pass together in the [Am2914 regression](../../amd_am2914/report/final_report.md),
+using eight controllers and two expanders. No known functional issues remain
+in this scope.

@@ -26,5 +26,5 @@ Released A retains the combinational code, but the value is irrelevant while
 its enable is false. Verify this with all 16,384 input vectors, actual
 two-chip EI/EO cascading and a nine-chip 64-request encoder hierarchy.
 The latter uses Am2913 at every level; it does not substitute for the original
-eight-Am2914 application pictured on PDF165. That application can be tested
-once the next chip is implemented.
+eight-Am2914 application pictured on PDF165. Its vector/status variants are
+now verified in the [Am2914 application regression](../../amd_am2914/report/final_report.md).

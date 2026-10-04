@@ -20,6 +20,7 @@ This directory contains the historical chip designs recreated and verified by th
 | AMD Am2903 | Enhanced four-bit processor slice; expandable native RAM, multiply/divide/normalize, parity and sign extension | By 1978* (exact year unknown) | [amd_am2903](amd_am2903/) |
 | AMD Am2904 | Micro/machine status registers, conditional tests, carry and shift control | By 1978* (advance information; exact launch year unknown) | [amd_am2904](amd_am2904/) |
 | AMD Am2913 | Eight-input priority interrupt expander with five output gates | By 1978* (exact year unknown) | [amd_am2913](amd_am2913/) |
+| AMD Am2914 | Eight-level vectored interrupt controller; pulse capture, masks, thresholds and cascade | By 1978* (exact year unknown) | [amd_am2914](amd_am2914/) |
 | MOS Technology 6502 | 8-bit microprocessor; 29-opcode subset and Apple II keyboard echo | 1975 | [mos_6502](mos_6502/) |
 | Intel 4004 | 4-bit microprocessor (MCS-4); authentic Busicom manual regression | 1971 | [intel_4004](intel_4004/) |
 | Intel 8008 | 8-bit microprocessor (MCS-8); SCELBAL software regression | 1972 | [intel_8008](intel_8008/) |

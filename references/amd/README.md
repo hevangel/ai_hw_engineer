@@ -80,3 +80,14 @@ on PDF164. EI HIGH inhibits encoding but does not release the output; EO
 remains independent of all output gates. PDF165 shows the original eight-
 Am2914/one-Am2913 64-level interrupt application. The earlier 1978 book already
 includes the Am2913 datasheet on PDF109–113, supplying the historical bound.
+
+Am2914 occupies 1979 PDF166–173, original applications PDF174–184 and
+detailed logic PDF185–190. The original Figure4 interrupt procedure is PDF177;
+Figures6/9/10 on PDF178/181/182 define the original 64-level ripple cascade,
+vector and status buses. Its first complete datasheet already appears on
+1978 PDF114–121. The later [January1987 manufacturer datasheet](https://bitsavers.trailing-edge.com/components/amd/bitslice/_dataSheets/1987_2914.pdf)
+cache `1987_2914.pdf` (16 pages) has SHA256
+`2bd157401a740dab4505e8522b94dda0e8e3e890eabbd3f6466e6aa6cc1fb293`.
+Its PDF5 explicitly defines native edge sampling and sticky status overflow
+until master clear/status reload. Am2914's spec explains the functional
+paragraphs used to resolve ambiguous scanned gate notation.
