@@ -76,6 +76,6 @@ sv=[re.sub(r'\b[01]\b',lambda m:"1'b"+m.group(),line) if 'gold_u={' in line or '
 for path,lines in [(ROOT/'formal/manufacturer_oracle.svh',sv),(ROOT/'tb/manufacturer_oracle.hpp',cpp)]:
  data=('\n'.join(lines)+'\n').encode()
  if '--check' in sys.argv:
-  assert path.read_bytes()==data,f'stale {path}'
+  assert path.read_text(encoding='utf-8')==data.decode(),f'stale {path}'
  else:path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(data)
 print('Manufacturer oracle tables: 64 status/condition rows, 32 shift rows checked')

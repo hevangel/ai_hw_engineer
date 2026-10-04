@@ -73,3 +73,10 @@ shift linkages. Table7 notes2/3 explicitly override CEM/EC holds when a shift
 loads machine carry. Original two-load interrupt restoration and register
 swap applications are on PDF99. The 1978 PDF60–63 entry is advance information,
 not proof of an exact commercial shipment date.
+
+Am2913 occupies 1979 PDF161–165 (printed2-153–2-157). Its positive-polarity
+encoder and five independent output gates are defined by the two truth tables
+on PDF164. EI HIGH inhibits encoding but does not release the output; EO
+remains independent of all output gates. PDF165 shows the original eight-
+Am2914/one-Am2913 64-level interrupt application. The earlier 1978 book already
+includes the Am2913 datasheet on PDF109–113, supplying the historical bound.
