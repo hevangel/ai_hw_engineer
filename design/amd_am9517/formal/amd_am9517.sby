@@ -1,0 +1,28 @@
+[tasks]
+bmc
+prove
+cover
+
+[options]
+bmc: mode bmc
+bmc: depth 32
+prove: mode prove
+cover: mode cover
+cover: depth 36
+
+[engines]
+bmc: abc bmc3
+prove: abc pdr
+cover: smtbmc z3
+
+[script]
+bmc: read -formal -D FORMAL amd_am9517.sv
+prove: read -formal -D FORMAL amd_am9517.sv
+cover: read -formal -D FORMAL -D FORMAL_COVER amd_am9517.sv
+async2sync
+prep -top amd_am9517
+
+[files]
+../src/amd_am9517.sv
+amd_am9517_props.sv
+amd_am9517_cover_setup.sv

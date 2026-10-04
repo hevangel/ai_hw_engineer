@@ -44,7 +44,7 @@ refined from original catalogs before implementation.
 | 15 | Am2914 | Interrupt support | Verified: all 16 operations/1,441,792 native cases, 4,608 original procedures, original 64-level cascade/4,103 cases, BMC/PDR/21 covers, clean lint/synthesis; source and timing assumptions documented ([report](../design/amd_am2914/report/final_report.md)) |
 | 16 | Am2918 | Quad D register with continuous/three-state outputs | Verified: 512 native transitions, 262,144 original bidirectional and 65,536 original serial cases, BMC/PDR/four covers, clean lint/five-cell synthesis ([report](../design/amd_am2918/report/final_report.md)) |
 | 17 | Am9511 | Arithmetic processing unit | Verified functional reconstruction: all 43 commands, 1.52M independent cases, original DEMAND/POLL programs with exact PCs, six formal tasks/57 covers, clean lint and synthesis; numerical/timing assumptions documented ([report](../design/amd_am9511/report/final_report.md)) |
-| 18 | Am9517 | DMA controller | Queued |
+| 18 | Am9517 | DMA controller | Verified original-AMD functional reconstruction: native/UVM, BMC/PDR/eleven covers, 152 original STUP/SDMA cases with exact PCs, actual seven-channel cascade, coverage and synthesis pass; compatible-count/timing assumptions qualified ([report](../design/amd_am9517/report/final_report.md)) |
 | 19 | AmZ8001 | Segmented Z8000 CPU | Queued |
 | 20 | AmZ8002 | Unsegmented Z8000 CPU | Queued |
 | 21 | Am8086 | 16-bit x86 CPU | Queued |

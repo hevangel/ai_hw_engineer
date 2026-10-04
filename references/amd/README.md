@@ -121,3 +121,17 @@ are retained in the Am9511 design with provenance and integrity hash.
 The later manual supplies history and host software, while original command
 semantics continue to use the 1979 source rather than silently importing
 A-revision electrical changes.
+
+Am9517 occupies the 1979 Designer's Guide PDF245–260 / printed4-43–4-58,
+with original application brief PDF297–316 / printed5-23–5-42. The original
+register map explicitly marks E write illegal; HACK-time arbitration and
+programming during HREQ/HACK wait are explicit. Figure15/PDF307 source-hold
+labels disagree with the adjacent prose and datasheet PDF250; the latter agree
+that bit1=1 enables hold. Original STUP/SDMA objects are PDF311–314; STUP's
+literal object command62/count07 disagree with printed operands60/7F.
+
+The contemporary [January19,1978 Electronics issue](https://www.worldradiohistory.com/Archive-Electronics/70s/78/Electronics-1978-01-19.pdf)
+is cached as `Electronics_1978-01-19.pdf` (165 pages), SHA256
+`b90178cbf4884754e2a62493d622683b0a324aaaa7f00627d137dc98f2dbf245`.
+Cover date is on PDF1; AMD advertises its new Am9517 on PDF77–78. This supports
+availability of a public announcement by1978, not an exact first-shipment date.
