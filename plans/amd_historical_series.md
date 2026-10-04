@@ -42,7 +42,7 @@ refined from original catalogs before implementation.
 | 13 | Am2904 | Status and shift control | Verified: all 8192 words/2,686,976 native vectors, manufacturer interrupt sequences, BMC/PDR/36 covers, clean lint and synthesis ([report](../design/amd_am2904/report/final_report.md)) |
 | 14 | Am2913 | Interrupt support | Verified: all 16,384 pin cases, 4.19M actual two-chip cascade cases, nine-chip hierarchy, BMC/PDR/15 covers, clean lint/synthesis ([report](../design/amd_am2913/report/final_report.md)) |
 | 15 | Am2914 | Interrupt support | Verified: all 16 operations/1,441,792 native cases, 4,608 original procedures, original 64-level cascade/4,103 cases, BMC/PDR/21 covers, clean lint/synthesis; source and timing assumptions documented ([report](../design/amd_am2914/report/final_report.md)) |
-| 16 | Am2918 | Register/control support | Queued |
+| 16 | Am2918 | Quad D register with continuous/three-state outputs | Verified: 512 native transitions, 262,144 original bidirectional and 65,536 original serial cases, BMC/PDR/four covers, clean lint/five-cell synthesis ([report](../design/amd_am2918/report/final_report.md)) |
 | 17 | Am9511 | Arithmetic processing unit | Queued |
 | 18 | Am9517 | DMA controller | Queued |
 | 19 | AmZ8001 | Segmented Z8000 CPU | Queued |

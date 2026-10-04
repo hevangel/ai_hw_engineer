@@ -91,3 +91,11 @@ cache `1987_2914.pdf` (16 pages) has SHA256
 Its PDF5 explicitly defines native edge sampling and sticky status overflow
 until master clear/status reload. Am2914's spec explains the functional
 paragraphs used to resolve ambiguous scanned gate notation.
+
+Am2918 is defined on 1979 PDF209–212 / printed2-201–2-204; PDF211 contains
+its complete positive-edge/non-inverted truth table. PDF212 MPR-188 and189
+give the original two-chip bidirectional interface and serial converter.
+The bidirectional schematic crosses each register's Y to the opposite bus;
+the adjacent prose repeats A for the left output. Native tests follow the
+unambiguous pin connections. The earlier 1978 PDF162–165 already contains
+the complete datasheet, supplying the historical bound.
