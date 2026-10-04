@@ -20,6 +20,7 @@ This directory contains the historical chip designs recreated and verified by th
 | Intel 8275 | DMA-fed programmable CRT controller; raster, attributes, cursor and light pen | 1977* | [intel_8275](intel_8275/) |
 | Intel 8279 / 8279-5 | Programmable keyboard/display interface | 1977* | [intel_8279](intel_8279/) |
 | Intel 8272 / 8272A | Four-drive floppy controller; virtual media core with FM/MFM and CRC helpers | 1980* / 1982* | [intel_8272](intel_8272/) |
+| Intel 8273 | HDLC/SDLC serial protocol controller; framing, NRZI, CRC, DMA and loop relay | 1977* | [intel_8273](intel_8273/) |
 | Intel 8237 / 8237A | Four-channel programmable DMA controller; A-revision functional core | 1979* (family) | [intel_8237](intel_8237/) |
 
 The Intel 8008 entry records **1972**, with Intel dating its introduction to April 1972 in its [8008 history](https://www.intel.com/content/www/us/en/history/virtual-vault/articles/the-8008.html). Technical behavior follows the downloaded [MCS-8 Users Manual](intel_8008/references/intel_mcs8_users_manual_nov1973.md) and is checked against SCELBAL and the independent SIMH model; see the [design overview](intel_8008/README.md).
@@ -61,6 +62,12 @@ The Intel 8272/8272A entry uses **1980*** and **1982*** as the earliest located 
 The Intel 8237/8237A entry records **1979*** for the original 8237 family: the [May 1979 Intel 8237/8237-2 datasheet](https://web.cecs.pdx.edu/~mpj/llp/references/Intel-8237-dma.pdf) is dated by the [technical specification index](https://wiki.osdev.org/Technical_Specifications), and the [family history](https://en.wikipedia.org/wiki/Intel_8237) cites an Intel *Preview* announcement in May/June 1979. The exact introduction date of the later 8237A revision is not established; the year is not an A-revision launch claim. The design follows the [Intel 8237A datasheet](https://www.pcjs.org/documents/datasheets/intel/INTEL_8237A_DMA.pdf); implementation scope and uncertainties are documented in the [chip overview](intel_8237/README.md).
 
 ## Design documentation
+
+The Intel 8273 entry uses **1977*** for announced availability: Intel's
+[advertisement in Electronic Design, November 22, 1977](https://device.report/m/8bc5b6376694b97e23c2f7405d8292f666953225fb3eb6506aa146bfc391ae7c)
+lists the 8273 with fourth-quarter 1977 availability. An exact first-shipment
+date was not established. The [design overview](intel_8273/README.md) describes
+the sourced programming model, real serial framing and functional boundaries.
 
 The Intel 8275 entry records **1977*** for public introduction: the contemporary [May 26, 1977 Electronics report](https://www.worldradiohistory.com/Archive-Electronics/70s/77/Electronics-1977-05-26.pdf) describes the new controller and says sample quantities are forthcoming. This does not establish an exact first-shipment date. The design follows Intel's [8275 AFN-00224B datasheet scan](intel_8275/references/intel_8275.pdf); see the [overview](intel_8275/README.md) and [specification](intel_8275/spec/spec.md) for sources and implementation boundaries.
 

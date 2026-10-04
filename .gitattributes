@@ -4,3 +4,5 @@ design/intel_8275/scripts/*.sh text eol=lf
 design/intel_8237/scripts/*.sh text eol=lf
 system/busicom_141pf/scripts/*.sh text eol=lf
 design/intel_8272/scripts/*.sh text eol=lf
+design/intel_8273/scripts/*.sh text eol=lf
+*.pdf binary
