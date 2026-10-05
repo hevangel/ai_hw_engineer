@@ -1,6 +1,6 @@
 # Docker toolchain release pins
 
-Release discovery date: 2026-09-27. The root Dockerfile builds named EDA tools
+Release discovery date: 2026-10-04. The root Dockerfile builds named EDA tools
 from published releases, with the two upstream snapshot exceptions noted below.
 Commit and archive digests prevent a moving tag from silently changing a build.
 Ubuntu packages come from the dated, signed Ubuntu snapshot; they are the
@@ -8,8 +8,8 @@ distribution's supported packages, not separately compiled upstream releases.
 
 | Component | Selected release / revision | Official source |
 |---|---|---|
-| Ubuntu | 26.04.1 LTS, snapshot 20260927T000000Z | [Ubuntu image](https://hub.docker.com/_/ubuntu), [snapshot service](https://snapshot.ubuntu.com/) |
-| Rust | 1.98.1 (stable channel dated 2026-09-03) | [stable manifest](https://static.rust-lang.org/dist/channel-rust-stable.toml) |
+| Ubuntu | 26.04.1 LTS, snapshot 20261001T000000Z | [Ubuntu image](https://hub.docker.com/_/ubuntu), [snapshot service](https://snapshot.ubuntu.com/) |
+| Rust | 1.99.0 (stable channel dated 2026-09-28) | [stable manifest](https://static.rust-lang.org/dist/channel-rust-stable.toml) |
 | rustup | 1.29.1 | [releases](https://github.com/rust-lang/rustup/releases) |
 | xezim | 0.11.0, `6558a1e64e251cbd8d0c4e936860af268cf7e04f` | [release](https://github.com/aionhw/xezim/releases/tag/0.11.0) |
 | Verilator | v5.052, `ea338be98e1e838d3518809ce8899f85a009963c` | [tag](https://github.com/verilator/verilator/tree/v5.052) |
@@ -21,7 +21,7 @@ distribution's supported packages, not separately compiled upstream releases.
 | Surfer | v0.7.0, `bd749b1f786c1c62cd67893ca71346cbe6983915` | [release](https://gitlab.com/surfer-project/surfer/-/releases/v0.7.0) |
 | Trunk | 0.21.14 (Surfer WebAssembly build) | [release](https://github.com/trunk-rs/trunk/releases/tag/v0.21.14) |
 | Verible | v0.0-4296-g0f262651, static x86_64 archive | [release](https://github.com/chipsalliance/verible/releases/tag/v0.0-4296-g0f262651) |
-| CMake | 4.4.3, PyPI package in a dedicated virtual environment | [package](https://pypi.org/project/cmake/4.4.3/) |
+| CMake | 4.4.4, PyPI package in a dedicated virtual environment | [package](https://pypi.org/project/cmake/4.4.4/) |
 | UVM bundle | `65a3ded36f7f752356de62669fd84e01f4cb0121` (unchanged upstream HEAD) | [repository](https://github.com/nitronis/UVM) |
 
 SBY and EQY publish no standalone GitHub releases. Their `yosys-*` compatibility
