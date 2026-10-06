@@ -7,7 +7,7 @@ FROM ubuntu:26.04@sha256:da6fc2be547864451aa253836dd926da33623312df4a9a243e35dc8
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
 
-ARG UBUNTU_SNAPSHOT=20260927T000000Z
+ARG UBUNTU_SNAPSHOT=20261001T000000Z
 # The pinned minimal base has no CA bundle yet. Bootstrap ca-certificates with
 # APT TLS peer checks disabled; signed metadata and package hashes remain verified.
 RUN rm -f /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources && \
@@ -68,7 +68,7 @@ RUN rm -f /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources && \
 ARG BUILD_JOBS=4
 ENV CARGO_BUILD_JOBS=${BUILD_JOBS}
 
-ARG RUST_VERSION=1.98.1
+ARG RUST_VERSION=1.99.0
 ARG RUSTUP_VERSION=1.29.1
 ARG RUSTUP_TARGET=x86_64-unknown-linux-gnu
 ARG RUSTUP_INIT_SHA256=dda7234360b7f578ca8b0ddcb80145646fa61a67c1720a5abc7051b35c9fcb71
@@ -100,7 +100,7 @@ RUN git clone --filter=blob:none https://github.com/verilator/verilator.git /opt
 FROM base AS yosys-build
 # Yosys 0.69 uses CMake and C++20. Use the release submodules for bundled libraries.
 ARG YOSYS_REV=9f75ca1f9834a39a863915b5dae0c7b1e33533bc
-ARG CMAKE_PIP_VERSION=4.4.3
+ARG CMAKE_PIP_VERSION=4.4.4
 RUN python3 -m venv /opt/cmake && /opt/cmake/bin/pip install --no-cache-dir "cmake==${CMAKE_PIP_VERSION}"
 ENV PATH="/opt/cmake/bin:${PATH}"
 RUN git clone --filter=blob:none https://github.com/YosysHQ/yosys.git /opt/yosys-src && \
