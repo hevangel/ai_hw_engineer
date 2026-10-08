@@ -17,9 +17,10 @@
    Verify hashes; never patch diagnostic instruction bytes.
 6. Complete lint, formal, ALU/opcode/software simulation, UVM and synthesis.
    Record actual results and remaining limitations before submitting a PR.
-7. Subsequent milestones: Intel-specific multi-byte interrupt evidence,
-   undocumented aliases, native T-state/pin adapter and an historical
-   machine/firmware system build. They are not sign-off claims for this core.
+7. Subsequent chip milestones: Intel-specific multi-byte interrupt evidence,
+   undocumented aliases and native T-state/pin behavior. They are not
+   sign-off claims for this initial core. Computer/board/system builds are
+   outside scope; historical software is used only as a chip test stimulus.
 
 Module hierarchy: `intel_8080` instantiates `intel_8080_alu`. Runtime RTL has
 no dependency on the AMD design; only verification shares its immutable

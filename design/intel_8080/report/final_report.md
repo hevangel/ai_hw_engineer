@@ -75,5 +75,6 @@ Normal XTHL works; externally injected XTHL remains an explicit limitation.
 Three-byte interrupt CALL tests pass the inherited functional contract, but
 Intel-specific historical device/software evidence for subsequent operand
 bus cycles remains open. This provisional assumption is not signed off by
-ordinary diagnostics. An historical machine/firmware system build is also
-future work. See the [specification](../spec/spec.md) for the full ledger.
+ordinary diagnostics. Scope remains the 8080 chip and chip-level verification;
+computer/board/system builds are excluded. Historical diagnostic software is
+test stimulus. See the [specification](../spec/spec.md) for the full ledger.

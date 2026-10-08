@@ -40,8 +40,9 @@ part of every instruction test.
 `intel_8080` contains a combinational `intel_8080_alu` and a multi-step
 controller. One rising edge is an implementation step. This initial milestone
 is a functional reconstruction; native two-phase clocks, original T-state
-counts, SYNC/DBIN/WR/WAIT pin waveforms, electrical behavior and a board-level
-Altair/CP/M platform require further work.
+counts, SYNC/DBIN/WR/WAIT pin waveforms and electrical behavior require
+further chip work. Scope is the 8080 chip and its verification; a computer,
+board, operating system or firmware product is outside this design's scope.
 
 | Port | Direction | Meaning |
 |---|---|---|
