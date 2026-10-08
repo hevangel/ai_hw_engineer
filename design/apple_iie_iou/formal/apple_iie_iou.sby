@@ -1,0 +1,28 @@
+[tasks]
+bmc
+prove
+cover
+
+[options]
+bmc: mode bmc
+bmc: depth 32
+prove: mode prove
+cover: mode cover
+cover: depth 40
+
+[engines]
+bmc: abc bmc3
+prove: abc pdr
+cover: smtbmc z3
+
+[script]
+bmc: read -formal -D FORMAL apple_iie_iou.sv
+prove: read -formal -D FORMAL apple_iie_iou.sv
+cover: read -formal -D FORMAL -D FORMAL_COVER apple_iie_iou.sv
+async2sync
+prep -top apple_iie_iou
+
+[files]
+../src/apple_iie_iou.sv
+apple_iie_iou_props.sv
+apple_iie_iou_cover_setup.sv
