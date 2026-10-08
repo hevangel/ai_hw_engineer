@@ -12,3 +12,4 @@ design/apple_iie_iou/scripts/*.sh text eol=lf
 # AMD historical-series scripts are also executed in Linux containers.
 design/amd_*/scripts/*.sh text eol=lf
 design/intel_3205/scripts/*.sh text eol=lf
+design/intel_3404/scripts/*.sh text eol=lf

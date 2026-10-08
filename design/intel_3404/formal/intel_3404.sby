@@ -1,0 +1,19 @@
+[tasks]
+bmc
+prove
+cover
+[options]
+bmc: mode bmc
+bmc: depth 6
+prove: mode prove
+prove: depth 6
+cover: mode cover
+cover: depth 6
+[engines]
+smtbmc z3
+[script]
+read -formal -sv intel_3404.sv intel_3404_props.sv
+prep -top intel_3404_props
+[files]
+../src/intel_3404.sv
+intel_3404_props.sv

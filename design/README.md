@@ -23,6 +23,7 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1971 | Intel 4004 | 4-bit microprocessor (MCS-4); authentic Busicom manual regression | [intel_4004](intel_4004/) |
 | 1972 | Intel 8008 | 8-bit microprocessor (MCS-8); SCELBAL software regression | [intel_8008](intel_8008/) |
 | 1973* | Intel 3205 | One-of-eight binary decoder with active-low outputs and three chip enables; MCS-8 chip-select and state decode | [intel_3205](intel_3205/) |
+| 1973* | Intel 3404 | Six-bit latch as independent 4-bit and 2-bit inverting sections with separate write enables; MCS-8 address and flag latch | [intel_3404](intel_3404/) |
 | 1974* | AMD Am9102 / Am9102A / Am9102B | 1024x1 asynchronous NMOS RAM; tri-state output and retained-power standby | [amd_am9102](amd_am9102/) |
 | 1974 | Intel 8080 | 8-bit microprocessor; documented instruction set on a functional transaction bus | [intel_8080](intel_8080/) |
 | 1975 | AMD Am2901 | Four-bit ALU/register processor slice; documented Am2901A native clock phases and all 512 microinstructions | [amd_am2901](amd_am2901/) |
@@ -73,9 +74,11 @@ The Intel 4003 entry records **1971**: it is the I/O expander of the MCS-4 chip 
 
 The Intel 4004 entry records **1971**: Intel announced the 4004 on November 15, 1971 in Electronic News as the MCS-4 central processor developed for the Busicom 141-PF calculator, making it the first commercially available microprocessor, per the [Intel 4004 historical summary](https://en.wikipedia.org/wiki/Intel_4004) and the [Intel 4004 anniversary project](https://www.4004.com/). Technical behavior is sourced from the [scanned MCS-4 user manual](http://codeabbey.github.io/heavy-data-1/msc4-manual.pdf), instruction-set transcriptions at the [e4004 project](http://e4004.szyc.org/iset.html) and [pastraiser](https://pastraiser.com/cpu/i4004/i4004_opcodes.html), and cross-checked against the [MAME MCS-40 core](https://github.com/mamedev/mame/blob/master/src/devices/cpu/mcs40/mcs40.cpp), summarized in the design's [specification](intel_4004/spec/spec.md).
 
-### Intel — MCS-8 (3205, 8008)
+### Intel — MCS-8 (3205, 3404, 8008)
 
 The Intel 3205 entry uses **1973*** as the earliest located dated Intel documentation: the [November 1973 MCS-8 Users Manual](../references/intel_mcs8_users_manual_nov1973.pdf) prints the decoder's truth table (scan page 32) and uses 3205s throughout the SIM8-01 for 8008 state-line decoding and memory chip selects. The same manual's service note that SIM8-01 boards built prior to October 1972 must be modified shows the MCS-8 module was already in field use, so the decoder's availability may have been earlier; the uncertainty is retained rather than guessed. Function follows the combined [Intel 3205/3404 data sheet](../references/intel_3205_3404_datasheet.pdf); see the [design overview](intel_3205/README.md).
+
+The Intel 3404 entry uses **1973*** on the same evidence: the MCS-8 manual latches the 8008's time-multiplexed address bytes and the INP flag output in 3404s across the SIM8-01 (scan page 33), and the same pre-October-1972 board-revision note implies earlier availability; the uncertainty is retained rather than guessed. The latch's transparent-while-low, store-on-rising-edge function and its independent 4-bit and 2-bit organization follow the combined [Intel 3205/3404 data sheet](../references/intel_3205_3404_datasheet.pdf); the section bit mapping and the synchronous reset artifact are recorded in the design's assumption ledger, see the [design overview](intel_3404/README.md).
 
 The Intel 8008 entry records **1972**, with Intel dating its introduction to April 1972 in its [8008 history](https://www.intel.com/content/www/us/en/history/virtual-vault/articles/the-8008.html). Technical behavior follows the downloaded [MCS-8 Users Manual](intel_8008/references/intel_mcs8_users_manual_nov1973.md) and is checked against SCELBAL and the independent SIMH model; see the [design overview](intel_8008/README.md).
 
