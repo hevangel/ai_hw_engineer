@@ -28,6 +28,7 @@ This directory contains the historical chip designs recreated and verified by th
 | Apple IIe MMU (341-0266) | Full-custom memory mapper: main/aux/bank-switched RAM selection, soft switches, ROM decode and multiplexed DRAM address | 1983 | [apple_iie_mmu](apple_iie_mmu/) |
 | Intel 4004 | 4-bit microprocessor (MCS-4); authentic Busicom manual regression | 1971 | [intel_4004](intel_4004/) |
 | Intel 8008 | 8-bit microprocessor (MCS-8); SCELBAL software regression | 1972 | [intel_8008](intel_8008/) |
+| Intel 8080 | 8-bit microprocessor; documented instruction set on a functional transaction bus | 1974 | [intel_8080](intel_8080/) |
 | 74181 / SN74LS181 | 4-bit TTL arithmetic logic unit and function generator | 1970 | [alu_74181](alu_74181/) |
 | Intel 4001 | 2048-bit mask-programmable ROM + 4-bit I/O port chip (MCS-4) | 1971 | [intel_4001](intel_4001/) |
 | Intel 4002 | 320-bit RAM (256×4 main + 16×4 status) + 4-bit output port (MCS-4) | 1971 | [intel_4002](intel_4002/) |
@@ -79,6 +80,10 @@ Source material is summarized and rephrased for licensing compliance.
 
 The Intel 8272/8272A entry uses **1980*** and **1982*** as the earliest located dated Intel documentation, not exact commercial launch claims. A January 1980 Intel 8272 sheet is reproduced in the [CompuPro Disk 1 manual](https://www.bitsavers.org/pdf/compupro/Storage/171_DISK1/171F_Disk_1_Technical_Manual_1982.pdf); the [8272A preliminary sheet](https://www.threedee.com/jcm/terak/docs/Intel%208272A%20Floppy%20Controller.pdf) carries ©1982. Exact first-shipment dates were not established. See the [design overview](intel_8272/README.md) for its decoded-media scope and sources.
 The Intel 8237/8237A entry records **1979*** for the original 8237 family: the [May 1979 Intel 8237/8237-2 datasheet](https://web.cecs.pdx.edu/~mpj/llp/references/Intel-8237-dma.pdf) is dated by the [technical specification index](https://wiki.osdev.org/Technical_Specifications), and the [family history](https://en.wikipedia.org/wiki/Intel_8237) cites an Intel *Preview* announcement in May/June 1979. The exact introduction date of the later 8237A revision is not established; the year is not an A-revision launch claim. The design follows the [Intel 8237A datasheet](https://www.pcjs.org/documents/datasheets/intel/INTEL_8237A_DMA.pdf); implementation scope and uncertainties are documented in the [chip overview](intel_8237/README.md).
+
+### Intel — 8080
+
+The Intel 8080 entry records **1974**, following Intel's [manufacturer history](https://www.intel.com/content/www/us/en/newsroom/news/50-years-ago-the-influential-intel-8080.html). Announcement and release are distinguished differently in month-level retellings; no exact month is claimed here. The initial design implements documented instructions through a functional transaction bus, with Intel-specific ANA/ANI flags; native pin timing and undocumented aliases remain separate milestones. See the [design overview](intel_8080/README.md).
 
 ## Design documentation
 
