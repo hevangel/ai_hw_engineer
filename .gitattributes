@@ -6,6 +6,7 @@ system/busicom_141pf/scripts/*.sh text eol=lf
 design/intel_8272/scripts/*.sh text eol=lf
 design/intel_8273/scripts/*.sh text eol=lf
 design/apple_iie_mmu/scripts/*.sh text eol=lf
+design/apple_iie_iou/scripts/*.sh text eol=lf
 *.pdf binary
 
 # AMD historical-series scripts are also executed in Linux containers.
