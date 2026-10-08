@@ -1,0 +1,16 @@
+#!/bin/sh
+set -eu
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+DESIGN_DIR=$(dirname "$SCRIPT_DIR")
+mkdir -p "$DESIGN_DIR/work/lint"
+echo '=== Intel 8080 RTL Verilator -Wall lint ==='
+verilator --lint-only -Wall --top-module intel_8080 \
+    "$DESIGN_DIR/src/intel_8080_alu.sv" "$DESIGN_DIR/src/intel_8080.sv" \
+    > "$DESIGN_DIR/work/lint/rtl.log" 2>&1
+sh "$SCRIPT_DIR/run_formal.sh"
+sh "$SCRIPT_DIR/run_alu.sh"
+sh "$SCRIPT_DIR/run_units.sh"
+sh "$SCRIPT_DIR/run_software.sh"
+sh "$SCRIPT_DIR/run_sim.sh"
+sh "$SCRIPT_DIR/run_synth.sh"
+echo '=== Intel 8080 complete verification PASSED ==='
