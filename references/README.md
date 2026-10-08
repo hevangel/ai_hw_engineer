@@ -16,3 +16,11 @@ transcription stays in `design/intel_8008/references/`). Source:
 [DeRamp's Intel archive](https://deramp.com/downloads/mfe_archive/050-Component%20Specifications/Intel/Microprocessors%20and%20Support/8008%20Family/i8008UM%20Nov%2073.pdf).
 The PDF is 4,061,851 bytes. SHA-256:
 `e2b576af238be02755adf046af5443a47b168b385a87bae606149ce217860f84`.
+
+[Intel 3205/3404 combined data sheet](intel_3205_3404_datasheet.pdf),
+the primary functional contract for the intel_3205 and intel_3404 designs
+(catalog pages 2-35 to 2-38: 3205 1-of-8 decoder, 3404 6-bit latch). The
+sheet itself carries no print date. Source:
+[Trinity College Dublin SCSS hardware archive](https://treasures.scss.tcd.ie/hardware/TCD-SCSS-T.20250922.001/Intel-C3000-datasheets/Intel-3205-3404-datasheet.pdf).
+The PDF is 140,267 bytes. SHA-256:
+`4dc74bd9c5909ae6e3b15d094a7e0700a87e97fd195c1a5f59fe7f315cc0cdae`.
