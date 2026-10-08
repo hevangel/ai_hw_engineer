@@ -6,9 +6,10 @@ from pypdf import PdfReader
 
 repo = Path(__file__).resolve().parents[3]
 intel = repo / "design/intel_8008/references"
+refs = repo / "references"
 micral = repo / "system/micral_n/spec/reference"
 
-pdf = PdfReader(intel / "intel_mcs8_users_manual_nov1973.pdf")
+pdf = PdfReader(refs / "intel_mcs8_users_manual_nov1973.pdf")
 chunks = [
     "# Intel MCS-8 8008 User Manual (November 1973)\n",
     "Source: https://deramp.com/downloads/mfe_archive/050-Component%20Specifications/Intel/Microprocessors%20and%20Support/8008%20Family/i8008UM%20Nov%2073.pdf\n",

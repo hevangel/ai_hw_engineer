@@ -1,6 +1,6 @@
 # Intel 8008 specification
 
-Primary source: [Intel MCS-8 Users Manual, November 1973](../references/intel_mcs8_users_manual_nov1973.pdf), especially the instruction section on scanned pages 11–17. Independent behavior cross-check: [SIMH i8008.c](../references/simh_i8008.c). Download URLs appear in the design README.
+Primary source: [Intel MCS-8 Users Manual, November 1973](../../../references/intel_mcs8_users_manual_nov1973.pdf), especially the instruction section on scanned pages 11–17. Independent behavior cross-check: [SIMH i8008.c](../references/simh_i8008.c). Download URLs appear in the design README.
 
 This synchronous functional core presents a 14-bit byte-addressed memory interface and a 5-bit I/O port interface. It does not recreate the 18-pin multiplexed bus, two-phase electrical timing, or READY timing. `ready=0` holds a memory or I/O transaction. `interrupt` substitutes `interrupt_opcode` for the next fetched opcode, including wake from HLT.
 

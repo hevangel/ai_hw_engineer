@@ -6,7 +6,7 @@ The repository core is a synthesizable, synchronous functional reconstruction. I
 
 ## Sources and local copies
 
-- [Intel MCS-8 User Manual, November 1973 (PDF)](references/intel_mcs8_users_manual_nov1973.pdf), downloaded from [DeRamp's Intel archive](https://deramp.com/downloads/mfe_archive/050-Component%20Specifications/Intel/Microprocessors%20and%20Support/8008%20Family/i8008UM%20Nov%2073.pdf); [searchable Markdown transcription](references/intel_mcs8_users_manual_nov1973.md).
+- [Intel MCS-8 User Manual, November 1973 (PDF)](../../../references/intel_mcs8_users_manual_nov1973.pdf), downloaded from [DeRamp's Intel archive](https://deramp.com/downloads/mfe_archive/050-Component%20Specifications/Intel/Microprocessors%20and%20Support/8008%20Family/i8008UM%20Nov%2073.pdf); [searchable Markdown transcription](references/intel_mcs8_users_manual_nov1973.md).
 - [SIMH's independent 8008 model](references/simh_i8008.c), downloaded from [SIMH](https://github.com/simh/simh/blob/master/Intel-Systems/common/i8008.c). The regression model in `scripts/make_scelbal_vectors.py` follows this model's instruction semantics.
 - [Authentic SCELBAL binary](references/scelbal_sc1.bin), downloaded from [Mike Willegal's SCELBI archive](https://www.willegal.net/scelbi/software/sc1.bin), following [SIMH's SCELBI instructions](https://github.com/simh/simh/blob/master/Intel-Systems/scelbi/scelbi.txt). The SIMH load address `100` is octal, or hex `0x40`.
 
