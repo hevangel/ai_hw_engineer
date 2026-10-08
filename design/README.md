@@ -48,6 +48,7 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1979* (family) | Intel 8237 / 8237A | Four-channel programmable DMA controller; A-revision functional core | [intel_8237](intel_8237/) |
 | 1980* / 1982* | Intel 8272 / 8272A | Four-drive floppy controller; virtual media core with FM/MFM and CRC helpers | [intel_8272](intel_8272/) |
 | 1983 | Apple IIe MMU (341-0266) | Full-custom memory mapper: main/aux/bank-switched RAM selection, soft switches, ROM decode and multiplexed DRAM address | [apple_iie_mmu](apple_iie_mmu/) |
+| 1983 | Apple IIe IOU (341-0267) | Full-custom video machine: display scanner and interleaved display-address fold, video-mode soft switches, keyboard strobe/auto-repeat, annunciator/speaker/cassette outputs | [apple_iie_iou](apple_iie_iou/) |
 
 ## Date provenance notes
 
@@ -57,9 +58,9 @@ A year marked with an asterisk (`*`) is the earliest located dated documentation
 
 The AMD Am9300 entry uses **1970*** for commercial availability, separating it from first working silicon in **1969**. First-person and AMD-sourced accounts differ on the exact first-shipment milestone; see the [chip history and source discussion](amd_am9300/README.md). The ongoing [historical AMD series ledger](../plans/amd_historical_series.md) records the remaining requested designs and their actual completion state.
 
-### Apple — IIe MMU
+### Apple — IIe MMU and IOU
 
-The Apple IIe MMU (341-0266) entry records **1983**: the custom chip launched with the Apple IIe itself in January 1983 ([Wikipedia](https://en.wikipedia.org/wiki/Apple_IIe), [Centre for Computing History](https://www.computinghistory.org.uk/det/209/Apple-IIe)); the exact introduction day is not asserted. The MMU and its sibling IOU (341-0267) are Synertek-manufactured full-custom DIP-40 parts. Technical behavior follows the [Apple IIe Technical Reference Manual, 2nd ed., © 1985](https://archive.org/details/Apple_IIe_Technical_Reference_Manual), cross-checked against AppleWin and the schematic-derived CC0 [frozen-signal reimplementation](https://github.com/frozen-signal/Apple_IIe_MMU_IOU) for details the manual does not state; see the [chip overview](apple_iie_mmu/README.md).
+The Apple IIe MMU and IOU entries record **1983**, the IIe's introduction month being January 1983 per the [IIe historical summary](https://en.wikipedia.org/wiki/Apple_IIe) and the [Centre for Computing History](https://www.computinghistory.org.uk/det/209/Apple-IIe); the exact introduction day is not asserted. Both parts (Apple 341-0266 / 341-0267) are Synertek-manufactured full-custom DIP-40 chips. Technical behavior follows the [Apple IIe Technical Reference Manual, 2nd ed.](https://archive.org/details/Apple_IIe_Technical_Reference_Manual) and is cross-checked against the schematic-derived CC0 [frozen-signal reimplementation](https://github.com/frozen-signal/Apple_IIe_MMU_IOU); see each design's [specification](apple_iie_mmu/spec/spec.md) ([IOU](apple_iie_iou/spec/spec.md)) for the assumption ledgers.
 
 ### Intel — MCS-4 family (4001, 4002, 4003, 4004)
 
