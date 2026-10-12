@@ -9,7 +9,7 @@ prove: mode prove
 cover: mode cover
 bmc: depth 24
 prove: depth 12
-cover: depth 48
+cover: depth 72
 
 [engines]
 bmc: abc bmc3
@@ -17,9 +17,9 @@ prove: abc pdr
 cover: smtbmc yices
 
 [script]
-bmc: read -formal -sv intel_8086_alu.sv intel_8086.sv
-prove: read -formal -sv intel_8086_alu.sv intel_8086.sv
-cover: read -formal -sv intel_8086_alu.sv intel_8086.sv intel_8086_cover.sv
+bmc: read -formal -sv intel_8086_alu.sv intel_8086_shift.sv intel_8086_muldiv.sv intel_8086.sv
+prove: read -formal -sv intel_8086_alu.sv intel_8086_shift.sv intel_8086_muldiv.sv intel_8086.sv
+cover: read -formal -sv intel_8086_alu.sv intel_8086_shift.sv intel_8086_muldiv.sv intel_8086.sv intel_8086_cover.sv
 bmc: prep -top intel_8086
 prove: prep -top intel_8086
 cover: prep -top intel_8086_cover -flatten
@@ -28,5 +28,7 @@ cover: opt_clean
 
 [files]
 ../src/intel_8086_alu.sv
+../src/intel_8086_shift.sv
+../src/intel_8086_muldiv.sv
 ../src/intel_8086.sv
 intel_8086_cover.sv

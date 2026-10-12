@@ -8,8 +8,7 @@ mkdir -p "$WORK_DIR"
 cd "$WORK_DIR"
 xezim --simulate --sv2017 --error-exit -s tb_top \
     -I "$UVM_DIR" -D UVM_NO_DPI -D UVM_REPORT_DISABLE_FILE_LINE \
-    "$UVM_DIR/uvm_pkg.sv" "$DESIGN_DIR/src/intel_8086_alu.sv" \
-    "$DESIGN_DIR/src/intel_8086.sv" "$DESIGN_DIR/tb/intel_8086_if.sv" \
+    "$UVM_DIR/uvm_pkg.sv" "$DESIGN_DIR/src/"*.sv "$DESIGN_DIR/tb/intel_8086_if.sv" \
     "$DESIGN_DIR/tb/intel_8086_uvm_pkg.sv" "$DESIGN_DIR/tb/tb_top.sv" \
     --max-time 1100000ns -l "$WORK_DIR/uvm.log" > "$WORK_DIR/console.log" 2>&1
 cat "$WORK_DIR/uvm.log"

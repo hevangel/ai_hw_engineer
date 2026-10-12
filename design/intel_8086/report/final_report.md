@@ -1,49 +1,73 @@
-# Intel 8086 — first milestone report
+# Intel 8086 verification report
 
-## Outcome
+## Outcome and reproducibility
 
-The initial segmented CPU subset is implemented and verified. **This is not a complete 8086 or a pin-compatible replacement.** The exact supported encodings and functional bus contract are in the [specification](../spec/spec.md); the [implementation plan](../plans/implementation_plan.md) records the remaining instruction, interrupt and BIU milestones. No system/board design was added.
+The documented 8086 instruction set and native digital chip interface are implemented. `intel_8086_chip` combines the execution unit, six-byte prefetch queue, minimum/maximum-mode bus, READY waits, interrupts/traps, WAIT/ESC, LOCK and HOLD/RQ/GT ownership. `intel_8086` exposes the execution unit separately for functional integration. This delivery contains the chip and verification environment. The [specification](../spec/spec.md) defines the supported encodings, interfaces and assumptions; the [encoding ledger](encoding_coverage.md) assigns evidence to every documented row.
 
-Final verification ran on 2026-10-08 in `ai-hw-engineer:latest`, with Verilator 5.052, Yosys 0.69 and xezim 0.11.0. SymbiYosys used ABC BMC/PDR, Z3 for ALU properties and Yices for CPU covers; UVM was Accellera 1800.2-2017. The complete command exited zero:
+Verification completed on 2026-10-11 with `ai-hw-engineer:latest`: Verilator 5.052, Yosys 0.69, xezim 0.11.0, Accellera UVM 1800.2-2017, SymbiYosys with ABC BMC/PDR, Z3 and Yices, GNU binutils and Python 3. From the repository root inside the image:
 
 ```sh
 sh design/intel_8086/scripts/run_all.sh
 ```
 
+The aggregate script requires every stage to succeed and checks explicit completion/count markers. Initial downloads are pinned and integrity-checked; subsequent runs use ignored `work/` caches. The committed tests and coverage summaries make the evidence reproducible. Passing this suite establishes the listed architectural and digital protocol checks; it is not an exhaustive proof of all silicon states, original instruction-cycle timing or electrical compatibility.
+
 ## Results
 
 | Check | Result |
 |---|---|
-| Verilator `--lint-only -Wall` | Pass, no RTL warnings |
-| ALU BMC/prove/cover | All pass; mathematical byte/word arithmetic and flag equations, three reached cover goals |
-| CPU BMC/prove/cover | All pass; BMC depth 24, unbounded ABC PDR safety proof, five reached cover goals |
-| xezim/UVM | Eight control/boundary scenarios; zero UVM errors/fatals |
-| Independent physical-chip vectors | **361,977 pass** across 182 files, with deterministic ready stalls |
-| Oracle negative controls | Wrong expected IP and removed expected write list both rejected |
-| Historical software | Intel 1979 manual figure 2-63 startup passes through reset far jump and all exact instruction boundaries |
-| Yosys synthesis and `check -assert` | Pass; zero reported structural problems; 4,924 generic cells including ALU, not a technology area/timing estimate |
+| Strict Verilator `--lint-only -Wall` | Complete native hierarchy passes with no RTL warnings |
+| ALU BMC / unbounded prove / cover | All pass; three reached cover goals |
+| CPU BMC / unbounded prove / cover | All pass; BMC depth 24, seven reached cover goals |
+| BIU BMC / unbounded prove / cover | All pass; BMC depth 32, eight reached cover goals |
+| xezim / UVM | Eight boundary/control scenarios; zero errors/fatals |
+| Physical-chip corpus, direct EU | 566,721 instruction cases pass |
+| Physical-chip corpus, native minimum mode | 566,721 instruction cases pass |
+| Physical-chip corpus, native maximum mode | 566,721 instruction cases pass |
+| Directed architecture/control | 153 scenarios pass, including 128 ESC cases and four maximum-CX REP cases |
+| Directed native pins | 25 minimum/maximum-mode bus, prefetch, arbitration and reset scenarios pass |
+| Oracle negative controls | EU and native runners reject wrong expected IP and omitted expected writes |
+| Encoding coverage | All 361 ledger rows assigned; no unassigned documented rows |
+| Intel 1979 startup | Figure 2-63 initialization and reset far jump pass at every exact instruction boundary |
+| Original Microsoft MS-DOS 1.25 DEBUG.COM | EU and both native modes each pass 22,100 RTL instructions and 1,239 external service calls |
+| Yosys synthesis | Both tops synthesize, map and pass `check -assert` with zero structural problems |
 
-The hardware suite starts with 364,000 cases in the selected files. It excludes 2,023 undocumented segment-register fields (8C/8E reg=4–7 and MOV CS); no other exclusion category was triggered. Every remaining case compares all registers, exact CS:IP, defined flags, final memory and ordered byte-write effects from the hardware bus trace. After each non-HLT fixture, the harness installs and executes one NOP at the exact expected next address and checks its retirement and preserved state. There is no padding to tolerate wrong branch destinations. HLT is absent from the upstream corpus and is covered by UVM and formal reachability.
+The corpus total is **1,700,163 instruction-case executions** across the three interfaces. It covers 287 nonempty selected files from all 323 upstream files. Of 646,000 supplied cases, 77,256 upstream non-normal encodings and 2,023 undocumented segment-register fields are excluded explicitly. No test is removed because the RTL fails it. The [selection summary](vector_coverage.json) retains per-file counts and exclusion totals.
 
-Hardware data is pinned to SingleStepTests/8086 commit `e71c68d215a6bb8c356bd4cb3842de3bef345ca9`, with Git-blob verification before conversion. See [reference provenance](../references/README.md) and the generated [selection counts](vector_coverage.json). Expected instruction results come from physical silicon, not a self-written interpreter. Cycle timing and prefetch queues are not compared; the ordered memory-write oracle uses captured cycles only to recover byte addresses, values and ordering.
+## Independent instruction oracle
 
-UVM exercises segment-offset word wrap, SS defaults for BP addressing, signed disp8, DS override, LEA, original PUSH SP/POP SP semantics, 20-bit physical wrap, instruction-IP wrap, reset during a long stalled write, HLT idling and explicit unsupported LOCK/MOV CS stops. Its seven required control observations (reset, stall, both byte lanes, write, halt and fault) all occur.
+Expected results come from [SingleStepTests/8086](https://github.com/SingleStepTests/8086/tree/e71c68d215a6bb8c356bd4cb3842de3bef345ca9), captured on a physical Intel P80C86A-2. Downloaded artifacts are checked against pinned Git blobs. The converter copies captured architectural state and memory; it contains no instruction interpreter. The [reference record](../references/README.md) identifies the manufacturer documents, external artifacts and hardware methodology.
 
-The cover-only ROM harness executes PUSH AX followed by either HLT or unsupported 60h, with reset once and READY high. The safety proof keeps read data, READY and later resets arbitrary. Cover stimulus restrictions do not apply to that proof.
+Every accepted fixture checks all registers, exact CS:IP, defined FLAGS, final RAM and ordered memory/I/O byte writes, including unchanged writes and absence of extra writes. Undefined flags use external metadata masks. Divide-error masks affect only the two saved FLAGS bytes, never saved CS:IP. A subsequent NOP must execute at the exact expected target and preserve the state. Negative controls verify that a wrong target or unlisted write actually fails the harness. Diagnostic vector filtering is disabled in sign-off scripts.
 
-The historical regression preserves Intel's six-instruction segment/stack initialization sequence, assembled by GNU binutils with explicit linker values, plus reset-vector packaging and a test HLT sentinel. Every exact retirement IP and next fetched opcode is checked. See [software provenance and adaptations](../tb/software/README.md). This small routine establishes startup behavior only; it does not establish application-level compatibility.
+Native corpus runs seed the captured initial prefetch queue. Upstream's physical harness deliberately returns 90h for subsequent CODE fetches even where data RAM differs; fixture mode reproduces that external bus policy without changing data RAM or CPU behavior. Ordinary native tests and historical software use unified memory. Their self-modifying-code regression independently checks stale queued bytes and taken-transfer flushing. Original cycle counts and queue occupancy timelines are not compared because EU scheduling differs.
 
-## Boundary correction found by this suite
+The manufacturer documents define the supported instruction set. Upstream metadata labels 0F as normal, but die-derived documentation identifies it as undocumented POP CS and the corpus supplies no 0F fixtures. The ledger records that disagreement and its exclusion. Register-indirect FF /2 CALL is documented but absent from the upstream generator, so a directed exact-target/return test supplies its evidence. WAIT, HLT, ESC and interrupt/control interactions also have dedicated directed tests.
 
-The first hardware-vector run rejected A1.json.gz case 1633, `MOV AX, word [ES:FFFFh]`. The initial implementation incorrectly advanced the physical address for the high byte. Physical silicon reads the high byte from offset 0000h in the same segment. RTL now calculates each byte's segmented address with 16-bit offset wrap; the spec cites the independent fixture and UVM explicitly checks the corresponding store/load boundary. This was found by the design's own regression before review, not an escaped defect.
+## Historical software and control coverage
 
-## Limitations and diagnostics
+Intel's original six-instruction segment/stack startup is assembled with explicit linker values and packaged behind the reset far jump. Every instruction's expected IP and following opcode are checked. A final HLT is a test sentinel. See [software provenance](../tb/software/README.md).
 
-- Decimal adjust, strings/REP, shifts/rotates, multiply/divide, calls/returns, software/hardware interrupts, I/O, WAIT/ESC and undocumented aliases remain outside the subset. Unsupported encodings assert sticky `fault_o`; this is not an original 8086 invalid-opcode exception.
-- TF/IF are stored FLAGS bits only. Interrupt/trap recognition, interrupt shadows, HLT wakeup, HOLD/HLDA and LOCK atomicity are later milestones. Reset currently exits HLT/fault.
-- There is no six-byte prefetch queue or native minimum/maximum-mode timing. Words use two byte-lane transactions even when aligned. Prefetch-sensitive/self-modifying-code compatibility is not claimed.
-- The independent oracle uses a CMOS P80C86A-2. Passing documented operations does not establish all differences from original NMOS silicon.
-- No full historical application or operating system has been signed off. Before full architectural sign-off, run unchanged original application binaries and expand the [assumption ledger](../spec/spec.md#assumption-ledger)'s validation.
-- xezim reports 23 UVM component-name warnings with DPI disabled and its UVM phase-delay diagnostic. The test reaches its explicit completion marker with zero errors/fatals. ABC prints combinational-network notices during synthesis. These diagnostics are retained in the logs; the RTL lint is warning-free.
+The unchanged Microsoft DEBUG.COM binary is pinned to Microsoft's MS-DOS repository and SHA-256. All instructions execute in RTL. An external COM-loader/DOS fixture supplies process initialization, DOS services and a BIOS video-mode query; unknown services fail closed. The script displays registers, edits bytes to `B8 34 12 40 90`, disassembles them, performs three trap-based single steps, displays registers and quits. Assertions require the emitted bytes, AX=1234 then AX=1235, IP=0105, consumption of all input and normal termination. DEBUG installs and executes its own INT 1 handler, exercising real trap/IRET paths in all three interfaces. The emitted transcript is retained.
 
-Ignored local evidence is under `work/`: `run_all.log`, `lint/rtl.log`, `formal/*/status`, `uvm/uvm.log`, `vectors.log`, `vector_selection.json`, `reference/manifest.json`, `software/startup.log` and `synth/synth.log`. Downloaded fixtures, compiled simulators and netlists are not committed.
+The 153 directed control scenarios check STI/IRET interrupt shadows, immediate CLI masking, NMI priority/nesting, TF sampling, all documented MOV/POP segment shadows, HLT wakeup, interruptible WAIT, partial REP state, original two-byte REP restart, LOCK/HOLD, vector/stack aliasing and register-indirect CALL. CL=255 checks ensure later-CPU count masking has not slipped in. Four full-CX REP byte/word moves run 65,535 elements in both directions and verify every write and final SI/DI/CX. All 128 ESC opcode/group/register-or-memory combinations check events, dummy reads and preserved architectural state.
+
+Native tests independently check READY waits, odd word and port cycles, full/stale/flushed prefetch, uninterrupted INTA, AD floating and first-ACK BHE, LOCK, ownership across unlocked odd words, late requests, reset-release priority, reset in every active bus phase, RQ/GT0 priority and surviving RQ/GT1 requests. Pin assertions check address/data direction, output enables, strobes, wait-state status, T4 write-data holding and release/redrive gaps.
+
+## Corrections and proof boundaries
+
+Independent hardware fixtures corrected segment-offset word wrapping, invalid-BCD DAA/DAS adjustment, AAM divide-by-zero flags and the original IDIV range. Manufacturer documentation and original die-derived microcode pin interrupt-vector reads before stack writes, the two-byte REP interrupt restart and the requirement for an explicit LOCK prefix on original memory XCHG. These sources and assumptions are recorded beside the RTL and in the spec.
+
+A separate datasheet audit found gaps in the initial native tests: unlocked odd words could yield between bytes, late ownership requests could be granted at T4, INTA did not fully float AD or drive first-cycle BHE correctly, and extended-wait status/T4 data holding needed correction. Dedicated pin tests now check these rules. Final review also replaced a wrapping prefetch generation bit with a persistent discard flag. A new independent formal monitor first produced a counterexample against the old implementation, then passed BMC and unbounded proof after the fix, with a reached two-redirect cover. See the [audit post-mortem](../../../failure_notes/2026-10-11-intel8086-native-bus-audit.md).
+
+Formal safety leaves the relevant external inputs arbitrary after an initial reset. ALU properties cover mathematical arithmetic and defined flags. CPU properties cover reset entry, stable stalled requests, valid bus spaces/lanes, sticky diagnostic stop and quiet functional HLDA. A separate CPU ROM harness reaches fetch, retirement, write, HLT, fault, INTA and HLDA; its stimulus restrictions do not apply to the safety proof. BIU properties cover queue bounds, wait stability, output restrictions, ownership guards and abandoned-fetch suppression. All 18 cover goals are reached. These properties do not constitute a symbolic proof of every instruction's semantics.
+
+## Practical limits and diagnostics
+
+- This is a synthesizable digital model with explicit multiplexed pins/output enables. Original EU instruction-cycle counts, exact prefetch overlap, clock-edge analog delays, electrical limits and target-library timing closure are outside its contract.
+- The independent instruction oracle uses CMOS P80C86A-2 silicon. Documented operations and selected extensions pass; general undocumented/NMOS behavior, including invalid-BCD equivalence, is not promised. Unsupported/invalid encodings enter diagnostic `fault_o`, which is not an original invalid-opcode exception.
+- ESC supplies the original CPU-side bus/event behavior. Coprocessor arithmetic, an external 8288, board peripherals and a complete DOS operating system are outside this chip delivery. The DEBUG service fixture is documented explicitly.
+- Synthesis uses `synth -noabc; abc -script +strash,map` and produces checked generic netlists for both tops. Generic cell counts are not physical area or maximum-frequency estimates.
+- xezim emits 23 UVM component-name warnings with DPI disabled and a UVM phase-delay diagnostic. Explicit completion is reached with zero errors/fatals. RTL lint remains warning-free.
+
+Ignored local evidence lives under `work/`: `run_all.log`, `lint/rtl.log`, `formal/*/status`, `uvm/uvm.log`, `vectors.log`, `vector_selection.json`, `reference/manifest.json`, `native/tests.log`, `native/vectors_min.log`, `native/vectors_max.log`, `software/startup.log`, `software/debug.log`, `software/native-debug.log`, software transcripts and `synth/*.log`. The deliberately failing pre-fix formal experiment is separate at `formal/prefetch_old_negative/`; it is not a sign-off task. Downloaded fixtures, binaries, netlists and build outputs are not committed.

@@ -4,6 +4,7 @@ module tb_top;
   import intel_8086_uvm_pkg::*;
   intel_8086_if vif ();
   intel_8086 dut (
+      .intr_i(1'b0), .nmi_i(1'b0), .hold_i(1'b0), .test_n_i(1'b0),
       .clk(vif.clk),
       .rst_n(vif.rst_n),
       .bus_ready_i(vif.ready),

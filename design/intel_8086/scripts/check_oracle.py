@@ -3,6 +3,7 @@
 from pathlib import Path
 import struct
 import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 data = (ROOT / 'work/vectors.bin').read_bytes()
@@ -19,6 +20,11 @@ while position < len(data):
     write_count_position = position
     count = struct.unpack_from('<I', data, position)[0]
     position += 4 + count * 5
+    masks_position = position
+    masks_count = struct.unpack_from('<I', data, position)[0]
+    position += 4 + masks_count * 5
+    queue_count = struct.unpack_from('<I', data, position)[0]
+    position += 4 + queue_count * 5
     if count:
         break
 else:
@@ -26,7 +32,7 @@ else:
 
 record = bytearray(data[start:position])
 path = ROOT / 'work/oracle_control.bin'
-runner = ROOT / 'work/verilator/Vintel_8086'
+runner = Path(sys.argv[1]) if len(sys.argv)>1 else ROOT / 'work/verilator/Vintel_8086'
 
 
 def run(payload, expected_failure):
@@ -43,6 +49,7 @@ run(record, None)
 bad_ip = bytearray(record)
 bad_ip[expected_ip - start] ^= 1
 run(bad_ip, 'IP actual=')
-missing_writes = bytearray(record[:write_count_position-start]) + struct.pack('<I', 0)
+missing_writes = (bytearray(record[:write_count_position-start]) + struct.pack('<I', 0)
+                  + record[masks_position-start:])
 run(missing_writes, 'ordered byte writes differ')
 print('PASS: oracle negative controls reject incorrect next IP and extra writes')

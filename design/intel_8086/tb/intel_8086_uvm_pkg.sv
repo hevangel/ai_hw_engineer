@@ -100,7 +100,7 @@ package intel_8086_uvm_pkg;
               {tr.ip,tr.flags,tr.regs,tr.segs} !== {tr.pre_ip,tr.pre_flags,tr.pre_regs,tr.pre_segs} || tr.retire)
             `uvm_error("STALL", "request/architecture changed while stalled")
         end
-        if (tr.req && (tr.addr[0] || !(tr.be == 1 || tr.be == 2) || tr.fetch && tr.write_en))
+        if (tr.req && (tr.addr[0] || tr.be == 0 || tr.fetch && tr.write_en))
           `uvm_error("BUS", "invalid address/lane/direction")
         if ((!tr.rst_n || tr.halted || tr.fault) && tr.req)
           `uvm_error("IDLE", "request during reset/terminal state")
@@ -176,8 +176,10 @@ package intel_8086_uvm_pkg;
       if (tr.pre_req && tr.ready && reset_n) begin
         bit [19:0] address = tr.pre_addr + (tr.pre_be == 2 ? 20'd1 : 20'd0);
         if (tr.pre_write) begin
-          memory[address] = tr.pre_be == 2 ? tr.pre_wdata[15:8] : tr.pre_wdata[7:0];
-          writes++;
+          for (int lane = 0; lane < 2; lane++) if (tr.pre_be[lane]) begin
+            memory[(tr.pre_addr+20'(lane))&20'hfffff] = tr.pre_wdata[lane*8+:8];
+            writes++;
+          end
         end else if (tr.pre_fetch && !fetched) begin
           first_fetch = address;
           first_opcode = memory[address];
@@ -324,9 +326,9 @@ package intel_8086_uvm_pkg;
       if (last.req) `uvm_fatal("RESET", "reset request still active")
       completed++;
 
-      // Unsupported LOCK and MOV CS fail explicitly and never retire.
+      // Undefined opcode 60h and undocumented MOV CS fail explicitly.
       for (int scenario = 0; scenario < 2; scenario++) begin
-        if (scenario == 0) program_bytes('{8'hf0, 8'h90});
+        if (scenario == 0) program_bytes('{8'h60, 8'h90});
         else program_bytes('{8'h8e, 8'hc8});
         boot();
         begin

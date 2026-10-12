@@ -1,10 +1,11 @@
 # Intel 8086 implementation plan
 
-Written before RTL. Keep the design confined to the CPU and its verification environment.
+The specification and this plan were established before RTL. Keep the product confined to the chip and its verification environment.
 
-1. **First functional milestone:** 16-bit register/ALU datapath, segmented 20-bit address generation, variable-length fetch/decode, all 8086 ModR/M addressing forms, byte aliases, data movement, arithmetic/logical operations, stack operations, conditional and unconditional jumps. Unsupported forms stop explicitly. Verify against physical-chip vectors, formal properties, stalled-bus UVM tests and Intel's historical startup example.
-2. **Complete documented execution:** decimal adjustments, near/far CALL/RET, software interrupts/IRET, string/REP operations, shifts/rotates, multiply/divide including original 8086 divide-error semantics, port I/O, WAIT and ESC. Expand external vector coverage as each family lands. Run original historical application binaries, preserving their bytes and licensing, before architectural sign-off.
-3. **Asynchronous control:** INTR acknowledge/vectoring, NMI edge capture, trap flag, interrupt shadows after STI/MOV SS/POP SS, HLT wakeup, HOLD/HLDA, LOCK and interrupted REP restart. Add exact saved-IP and next-instruction tests, plus reset during each transaction phase.
-4. **Native BIU and pins:** six-byte instruction queue, word transfers and odd-address splitting, minimum/maximum-mode control, bus phases/READY timing and arbitration. Separately test prefetch-sensitive and self-modifying historical code. Do not silently redefine the current functional interface as a native one.
+1. Implement the segmented register/ALU datapath, effective addressing, byte aliases, data movement, stacks and branches. Establish independent physical-chip expectations, exact-PC tests and a historical manufacturer startup regression.
+2. Complete decimal adjustment, calls/returns, software interrupts, strings/REP, shifts/rotates, multiply/divide, I/O and WAIT/ESC. Expand the physical corpus and run an unchanged historical application.
+3. Complete NMI/INTR/trap selection, interrupt inhibition, HLT wakeup, interruptible WAIT/REP, HOLD and LOCK. Test saved CS:IP and actual following instructions, including original microcode quirks.
+4. Integrate the six-byte queue and native minimum/maximum-mode BIU. Verify READY, lanes, I/O, INTA, QS, arbitration, odd-word ownership, reset phases and stale-prefetch behavior. Run the complete instruction corpus and unchanged historical application through both native modes.
+5. Audit the manufacturer datasheet and external source against an explicit encoding/requirements ledger. Run strict lint, formal BMC/prove/cover, UVM, all independent corpora, directed controls, real software and synthesis on the final revision. Update the chip/index documentation and PR for human review.
 
-The initial PR is a reviewable implementation of milestone 1. Remaining milestones are explicit scope, not placeholder branches or unresolved code TODOs. No board or virtual-platform system is part of this plan.
+The requested full-chip completion continues the existing feature branch and PR, without a system or board build. Any unmet documented requirement remains a gap; finite test agreement must not be presented as a mathematical guarantee of every state or original transistor timing. Final completion evidence is in the [report](../report/final_report.md).

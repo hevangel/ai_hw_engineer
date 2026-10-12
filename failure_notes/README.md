@@ -26,6 +26,10 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-10-11 — intel_8086 native bus and prefetch cancellation](2026-10-11-intel8086-native-bus-audit.md)
+  Datasheet audit exposed arbitration and INTA/wait/T4 pin gaps after instruction
+  checks passed; a new formal monitor exposed repeated-redirect tag wrap.
+
 - [2026-09-27 - Busicom manual, decimal carry and board integration](2026-09-27-busicom-manual-regression.md)
   Manual replay and independent MAME semantics exposed TCS/DAA errors shared by
   the CPU models, plus incomplete keyboard polarity and printer index integration.
