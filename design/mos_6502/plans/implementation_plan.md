@@ -7,3 +7,30 @@
 5. **Apple II:** wire 48 KiB RAM, keyboard and display soft switches, text video, ROM, and later graphics/storage in `system/apple_ii/`. Start with original 1977 Apple II, then document any II+ behavior separately.
 
 Sign-off is blocked until actual Apple II firmware executes and its trace matches an independent reference. Current code is an implementation seed.
+
+## Stage 2 record (2026-10-13, branch `design/mos-6502-full-isa`)
+
+Delivered against the plan items:
+
+- **Item 2 (core completion)**: full documented NMOS ISA — all 151 opcodes,
+  all thirteen addressing modes, stack ops, BRK/RTI, IRQ (level, I-masked)
+  and NMI (edge), binary and decimal ADC/SBC (canonical Bruce Clark
+  algorithm), the `JMP ($xxFF)` page-wrap quirk, and a `fault_o` diagnostic
+  for the 105 undocumented opcodes. Spec: `spec/spec_full_isa.md`.
+- **Item 4 (verification)**: ISS vector regression vs the vendored py65
+  oracle (770 instructions, 66,307 checks + memory-image compare, Verilator
+  and xezim); SymbiYosys formal (bmc/prove/cover) with reset assumptions,
+  safety properties, and full-state cover traces; real historical software
+  (Klaus Dormann functional test) passing to the success trap — which is
+  what caught the D1 shared-misreading escaped defect
+  (`failure_notes/2026-10-13-mos6502-d1-cmp-zpy.md`). Coverage and
+  synthesis run in the standard flow (`scripts/run_all.sh`).
+
+Still open (future stages):
+
+- **Item 3 (bus accuracy)**: instruction-accurate only — no dummy cycles,
+  no page-cross penalties, no cycle-level RMW (A11); requires the MOS
+  hardware manual.
+- **Item 5 (Apple II)**: the `system/` platform build that motivated this
+  expansion; the 6502 core is now fast enough in simulation to run
+  Apple II firmware under the Klaus-validated instruction semantics.

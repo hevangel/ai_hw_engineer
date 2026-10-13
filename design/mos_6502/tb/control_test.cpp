@@ -37,13 +37,17 @@ static void step(uint16_t next) {
 }
 int main(int argc, char** argv) {
     Verilated::commandArgs(argc, argv);
+    // C++ zero-initializes undriven inputs; an asserted irq_n would hijack
+    // every fetch once the tests clear I. Keep both lines idle.
+    cpu.irq_n = 1;
+    cpu.nmi_n = 1;
     const uint8_t loads[] = {0xa5,0xa6,0xa4,0xad,0xae,0xac};
     for (unsigned op : loads) for (unsigned value = 0; value < 256; ++value) {
         reset(0x8000);
         mem[0x8000] = op; mem[0x8001] = 0xff; mem[0x8002] = 0x40;
         mem[(op < 0xa8) ? 0x00ff : 0x40ff] = value;
         step((op < 0xa8) ? 0x8002 : 0x8003);
-        unsigned actual = (op == 0xa5 || op == 0xad) ? cpu.bus_data_o
+        unsigned actual = (op == 0xa5 || op == 0xad) ? cpu.a_o
                         : (op == 0xa6 || op == 0xae) ? cpu.x_o : cpu.y_o;
         require(actual == value, "load value");
         require(cpu.status_o == (0x24 | (value & 0x80) | (value == 0 ? 2 : 0)),
@@ -57,7 +61,7 @@ int main(int argc, char** argv) {
         mem[0x8002] = op; mem[0x8003] = 0xff; mem[0x8004] = 0x40;
         mem[op == 0x24 ? 0xff : 0x40ff] = value;
         step(0x8002); step(op == 0x24 ? 0x8004 : 0x8005);
-        require(cpu.bus_data_o == a, "BIT changed accumulator");
+        require(cpu.a_o == a, "BIT changed accumulator");
         require(cpu.status_o == (0x24 | (value & 0xc0) | ((a & value) ? 0 : 2)),
                 "BIT flags");
     }

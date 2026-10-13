@@ -1,6 +1,9 @@
 #!/bin/sh
-set -e
-cd "$(dirname "$0")/.."
-./scripts/run_sim.sh
-echo "Full 6502 sign-off is pending: authentic Apple II ROM regression is not yet available."
-exit 1
+set -eu
+HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+sh "$HERE/run_lint.sh"
+sh "$HERE/run_formal.sh" all
+sh "$HERE/run_sim.sh" "${1:-1}"
+sh "$HERE/run_coverage.sh"
+sh "$HERE/run_synth.sh"
+echo "Apple 6502 COMPLETE FLOW PASSED"
