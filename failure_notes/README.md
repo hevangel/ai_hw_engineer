@@ -30,6 +30,11 @@ author is the same agent in every session — the useful question is never
   Datasheet audit exposed arbitration and INTA/wait/T4 pin gaps after instruction
   checks passed; a new formal monitor exposed repeated-redirect tag wrap.
 
+- [2026-10-13 — mos_6502 D1 opcode remap](2026-10-13-mos6502-d1-cmp-zpy.md)
+  The oracle and the RTL were "corrected" together to run opcode D1 as SBC
+  (zp),Y; the directed replay passed on shared wrong semantics until Klaus's
+  functional test executed a genuine CMP (zp),Y.
+
 - [2026-09-27 - Busicom manual, decimal carry and board integration](2026-09-27-busicom-manual-regression.md)
   Manual replay and independent MAME semantics exposed TCS/DAA errors shared by
   the CPU models, plus incomplete keyboard polarity and printer index integration.
