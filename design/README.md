@@ -48,8 +48,8 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | By 1978* (exact year unknown) | AMD Am2918 | Quad D register with continuous Q and three-state Y outputs | [amd_am2918](amd_am2918/) |
 | By 1978* (public announcement; exact shipment unknown) | AMD Am9517 | Four-channel multimode DMA, memory copy/fill and cascade expansion | [amd_am9517](amd_am9517/) |
 | 1978 | Intel 8086 | 16-bit microprocessor; complete documented ISA and native digital BIU with independent physical-chip tests | [intel_8086](intel_8086/) |
-| 1979* (family) | Intel 8237 / 8237A | Four-channel programmable DMA controller; A-revision functional core | [intel_8237](intel_8237/) |
-| 1980* / 1982* | Intel 8272 / 8272A | Four-drive floppy controller; virtual media core with FM/MFM and CRC helpers | [intel_8272](intel_8272/) |
+| 1979* (family) | Intel 8237 / 8237A | Four-channel programmable DMA controller; original IBM PC BIOS integration | [intel_8237](intel_8237/) |
+| 1980* / 1982* | Intel 8272 / 8272A | Four-drive decoded-media floppy controller; FM/MFM/CRC helpers and original IBM PC BIOS/DMA regression | [intel_8272](intel_8272/) |
 | 1983 | Apple IIe MMU (341-0266) | Full-custom memory mapper: main/aux/bank-switched RAM selection, soft switches, ROM decode and multiplexed DRAM address | [apple_iie_mmu](apple_iie_mmu/) |
 | 1983 | Apple IIe IOU (341-0267) | Full-custom video machine: display scanner and interleaved display-address fold, video-mode soft switches, keyboard strobe/auto-repeat, annunciator/speaker/cassette outputs | [apple_iie_iou](apple_iie_iou/) |
 | 1983 | Apple IIe timing PAL (PAL16R8) | Apple-programmed timing generator: φ0/φ1 CPU clocks, asymmetric Q3 strobe, PRAS'/PCAS' DRAM strobes with CAS gating, LDPS' video load and the 7 MHz dot clock | [apple_iie_pal](apple_iie_pal/) |

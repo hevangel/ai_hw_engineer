@@ -2,7 +2,7 @@
 
 ## Result
 
-Implemented the four-channel Intel 8237A synchronous functional core and completed `scripts/run_all.sh` successfully on 2026-10-01. The chip index and [overview](../README.md) include historical context and the uncertainty in the A-revision introduction date.
+Implemented the four-channel Intel 8237A synchronous functional core and completed `scripts/run_all.sh` successfully on 2026-10-14, including the original IBM PC S0 programming fix. The chip index and [overview](../README.md) include historical context and the uncertainty in the A-revision introduction date.
 
 The core implements the NMOS register map, global low/high byte phase, base/current address and counts, masks, non-maskable block software requests, fixed/rotating arbitration, ownership grant/release, demand/single/block/cascade, read/write/verify, polarity, automatic reload, external EOP, normal/extended/compressed transfer phases and memory copy/fill through Temporary. Source-count and EOP-phase decisions are documented in the [specification](../spec/spec.md), with manufacturer sources rather than an RTL-derived oracle.
 
@@ -15,12 +15,12 @@ The core implements the NMOS register map, global low/high byte phase, base/curr
 | SymbiYosys BMC | PASS, depth 32, ABC bmc3 |
 | Unbounded safety proof | PASS, ABC PDR |
 | Non-vacuity cover | PASS, all 11 goals reached within 18 steps (configured depth 36) |
-| Verilator standalone simulation, seed 1 | PASS, 350609 checks, 66887 bus half-transfers |
+| Verilator standalone simulation, seed 1 | PASS, 350723 checks, 66889 bus half-transfers |
 | Xezim standalone simulation, seed 1 | PASS, identical check/transfer totals |
-| Verilator supplemental seed 20261001 | PASS, 351553 checks, 66987 bus half-transfers |
+| Historical supplemental seed 20261001 (2026-10-01 RTL) | PASS, 351553 checks, 66987 bus half-transfers |
 | Xezim UVM 1800.2-2017 | PASS, 144 expected DMA events and 216 register read checks, zero errors/fatals |
 | Xezim code coverage | 99.29% statements, 95.69% branches, 100.00% toggles |
-| Yosys generic synthesis | PASS, 1913 generic cells, 322 flip-flop cells, zero `check -assert` problems |
+| Yosys generic synthesis | PASS, 1916 generic cells, 322 flip-flop cells, zero `check -assert` problems |
 
 The standalone suite checks payloads and exact addresses/counts, wrap/carry/borrow, sticky status read-to-clear, masked software requests on all channels, fixed and rotating contention, delayed grants and HLDA release interlock, demand pause/resume, cascade suppression, READY stalls, verify progress with READY low, timing-option strobes, auto/nonauto EOP, memory copy/fill, unequal source counts, Temporary, and EOP qualification in both copy phases. The maximum-count test checks all **65536** sequential verify transfers and the exact final address/count.
 
@@ -36,6 +36,16 @@ UVM reports 25 component-name warnings under the installed Xezim/UVM combination
 
 These were found by this design's own verification during implementation, not escaped defects.
 
+Original IBM BIOS/PC DOS integration subsequently exposed an escaped defect:
+a pending refresh request put the core in GRANT/S0, where CPU mode writes were
+ignored before HLDA. Intel explicitly allows programming in that window.
+The new test delays HLDA, writes/reads channel 2 during a pending channel-0
+request, then checks the actual transfer address/direction. The complete
+lint, BMC/PDR/cover, dual-simulator, UVM, coverage and synthesis flow passes
+after the fix. See the [post-mortem](../../../failure_notes/2026-10-14-intel8237-pending-grant-programming.md)
+and [IBM PC report](../../../system/ibm_pc/report/final_report.md). The supplemental
+2026-10-01 seed above is historical evidence, not a run of this revision.
+
 ## Toolchain and reproduction
 
 Image: `ai-hw-engineer:latest`, image ID `sha256:c2cfeb3a6b3ba4f2d98f8eb3cc528db2a7c9661ad909b04e387cc0cfe1b8c0d6`.
@@ -50,4 +60,4 @@ Logs/netlists/traces live in the design's ignored `work/` directory: `run_all.lo
 
 ## Limits
 
-This is a functional single-clock reconstruction. Half-clock electrical timing, TTL/NMOS behavior, physical package replacement, page registers, full PC motherboard wiring, historical firmware execution and physical-silicon differential tests are outside this sign-off. Spec assumptions A1-A4 remain explicit. The compatible CMOS datasheet clarifies source counts but its enhanced readback registers and different external-EOP semantics are not silently substituted for the Intel NMOS interface. Generic synthesis is not a placed/routed device implementation or a frequency/area estimate.
+This is a functional single-clock reconstruction. Half-clock electrical timing, TTL/NMOS behavior, physical package replacement, physical-silicon differential tests are outside this sign-off. Spec assumptions A1-A4 remain explicit. The compatible CMOS datasheet clarifies source counts but its enhanced readback registers and different external-EOP semantics are not silently substituted for the Intel NMOS interface. Generic synthesis is not a placed/routed device implementation or a frequency/area estimate.

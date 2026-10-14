@@ -12,7 +12,7 @@ This single-clock functional reconstruction samples synchronous inputs on `clk` 
 
 | Signal | Meaning |
 |---|---|
-| `cs_n`, `ior_n`, `iow_n`, `reg_addr[3:0]`, `data_i[7:0]` | CPU register bus; one access per selected rising edge when idle/released, HLDA low and exactly one strobe low |
+| `cs_n`, `ior_n`, `iow_n`, `reg_addr[3:0]`, `data_i[7:0]` | CPU register bus; one access per selected rising edge when idle, waiting for grant (S0), or released, HLDA low and exactly one strobe low |
 | `data_o[7:0]`, `data_oe` | Register read data, S1 high address byte, or memory-copy destination byte |
 | `dreq[3:0]`, `dack[3:0]` | Command-selectable request/acknowledgment polarity |
 | `hrq`, `hlda` | Ownership request/grant; re-arbitration waits for HLDA low after release |
@@ -68,4 +68,7 @@ External EOP in the source half is retained through destination completion and r
 - **A4:** Source-half external EOP is retained until destination commit, so a byte is not half-copied; source reload remains phase-qualified per Intel. Dedicated phase tests pin this adaptation.
 - Inputs must be synchronous and strobes identify individual clock-edge accesses. The convenience commit interface is the authoritative boundary for external functional memory/peripheral BFMs.
 
-Historical firmware and physical-chip comparison are not included in this peripheral sign-off.
+The [IBM PC system](../../../system/ibm_pc/README.md) runs original BIOS/PC DOS
+with this DMA core and real PIT refresh. It exposed and now regresses CPU
+programming during S0 before HLDA, explicitly permitted by Intel. Physical-chip
+comparison remains outside this sign-off.

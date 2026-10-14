@@ -16,6 +16,11 @@ This is a synchronous functional core with separated data input/output/enable si
 
 Cascade forwards a selected acknowledgment without driving address, AEN or data strobes. See the specification for reset adaptation, undefined read behavior, memory-source count clarification and EOP phase assumptions.
 
+The [IBM PC platform](../../system/ibm_pc/README.md) integrates original BIOS/DOS,
+PIT refresh and diskette DMA. Its formatter exposed CPU mode writes lost while
+waiting for HLDA; the core now permits Intel's S0 programming window. See the
+[post-mortem](../../failure_notes/2026-10-14-intel8237-pending-grant-programming.md).
+
 ## Running verification
 
 From the repository root using the existing toolchain image:

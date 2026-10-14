@@ -48,9 +48,41 @@ module tb_top;
         end
         bus.disk_end(); expect_result(0,0,expect_st2,4,0,1,0);
     endtask
+    task automatic verify_sector;
+        bus.command9(8'h46);bus.header();
+        for(integer k=0;k<128;k++) begin
+            bus.disk_byte(pattern(k));bus.check(bus.drq,"VERIFY next-byte request");
+            bus.dack_n=0;bus.tick(2);
+            bus.check(!bus.drq && !bus.db_oe,"VERIFY DACK without RD or bus data");
+            bus.tc=k==127;bus.tick();bus.dack_n=1;bus.tick();bus.tc=0;bus.tick();
+        end
+        bus.disk_end();expect_result(0,0,0,4,0,1,0);
+    endtask
     initial begin
         if ($value$plusargs("seed=%d",seed)) begin end
         random_state=seed;
+        bus.startup();verify_sector();
+        // Original IBM 5150 BIOS senses one reset-ready event then sends
+        // SPECIFY. Intel AFN-01259C INVALID requires SIS after SEEK/RECALIBRATE,
+        // not after every queued READY transition. SENSE DRIVE is always legal.
+        bus.reset(); bus.ready=15; bus.tick(230);
+        bus.check(!bus.irq,"initial READY scan must not emit a separate IRQ per drive");
+        bus.tick(1070); bus.check(bus.irq,"initial READY scan completion IRQ");
+        bus.cpu_put(8'h08); bus.cpu_get(value); bus.check(value==8'hc0,"first reset-ready status");
+        bus.cpu_get(value); bus.check(value==0,"first reset-ready PCN");
+        bus.cpu_put(8'h03); bus.cpu_put(8'hf1); bus.cpu_put(0); bus.tick(4);
+        bus.cpu_put(8'h04); bus.cpu_put(0); bus.cpu_get(value);
+        bus.check(value==8'h38,"SENSE DRIVE with queued ready events");
+        for(integer drive=1;drive<4;drive++) begin
+            bus.cpu_put(8'h08); bus.cpu_get(value);
+            bus.check(value==8'hc0+8'(drive),"SPECIFY preserves queued ready status");
+            bus.cpu_get(value); bus.check(value==0,"queued ready PCN");
+        end
+        bus.cpu_put(8'h0f); bus.cpu_put(0); bus.cpu_put(1); bus.tick(50);
+        bus.cpu_put(8'h04); bus.cpu_get(value);
+        bus.check(value==8'h80,"completed SEEK still requires SIS");
+        bus.cpu_put(8'h08); bus.cpu_get(value); bus.check(value==8'h20,"seek result preserved");
+        bus.cpu_get(value); bus.check(value==1,"seek target preserved");
         bus.startup();
         bus.cpu_put(8'hff,4); bus.cpu_get(value,4); bus.check(value==8'h80,"invalid opcode");
         bus.cpu_put(8'h08); bus.cpu_get(value); bus.check(value==8'h80,"SIS without event");
@@ -98,10 +130,14 @@ module tb_top;
         expect_result(0,0,0,3,0,3,0);
 
         // Format writes supplied IDs (not loop indices) and filler sector bytes.
+        // Repeat with DMA TC coincident with the final N byte: Intel's format
+        // command still writes that sector's data field before the trailing index.
+        for(integer terminal=0;terminal<2;terminal++) begin
         bus.cpu_put(8'h4d); bus.cpu_put(0); bus.cpu_put(0); bus.cpu_put(2);
         bus.cpu_put(8'h1b); bus.cpu_put(8'he5); bus.tick(4); bus.index_event();
         for (integer sec=0;sec<2;sec++) begin
-            bus.data_put(7,0); bus.data_put(0,0); bus.data_put(8'(sec==0 ? 9 : 2),0); bus.data_put(0,0);
+            bus.data_put(7,0); bus.data_put(0,0); bus.data_put(8'(sec==0 ? 9 : 2),0);
+            bus.data_put(0,0,terminal!=0 && sec==1);
             bus.check(bus.sector_c==7 && bus.sector_r==8'(sec==0 ? 9 : 2),"format ID metadata");
             for (integer k=0;k<128;k++) begin
                 bus.disk_write(value); bus.check(value==8'he5,"format filler");
@@ -109,6 +145,7 @@ module tb_top;
         end
         bus.check(!bus.irq,"format waits trailing index"); bus.index_event();
         expect_result(0,0,0,7,0,3,0);
+        end
 
         // Four simultaneous seeks, outward recalibration, latched PCN and SIS ordering.
         for (integer drive=0;drive<4;drive++) pulse_before[drive]=pulse_counts[drive];

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IBM Personal Computer · 5150</title><link rel="stylesheet" href="style.css"></head>
+<body><main>
+<header><div><span class="eyebrow">THE PERSONAL COMPUTER / 1981</span><h1>IBM <span>5150</span></h1></div>
+<div class="configuration">64 KB RAM <b>·</b> COLOR GRAPHICS <b>·</b> PC DOS 1.00</div></header>
+<section class="workstation" aria-label="IBM PC virtual workstation">
+<div class="monitor"><div class="bezel"><div class="glass" id="screen" tabindex="0" aria-label="Computer display. Click to type on the IBM keyboard.">
+<canvas id="display" width="640" height="400"></canvas><div id="overlay">YOUR PERSONAL COMPUTER<span>Power on to run the original IBM BIOS.</span></div>
+</div><div class="monitor-bottom"><span class="ibm-mark">IBM</span><span class="monitor-label">COLOR DISPLAY</span><i id="monitor-led"></i></div></div></div>
+<div class="system-unit"><div class="unit-left"><div class="badge">IBM<span>Personal Computer</span></div><div class="vents"></div></div>
+<div class="drives"><div class="drive"><span>A</span><div class="slot"></div><i id="drive-a"></i><small>PC DOS 1.00 · 160 KB</small></div>
+<div class="drive"><span>B</span><div class="slot"></div><i id="drive-b"></i><small>WORK DISK · 160 KB</small></div></div>
+<button id="power" class="power-switch" aria-label="Power on">POWER<span>Ⅰ</span></button></div>
+<div class="control-row"><div id="status"><i></i>POWER OFF</div><div class="buttons"><label class="sound-control"><input id="sound" type="checkbox" checked>Speaker</label><button id="pause" disabled>Pause</button><button id="step" disabled>Step</button><button id="reset" disabled>Reset</button></div></div>
+</section>
+<section class="keyboard-section"><div class="keyboard-heading"><span>83-KEY KEYBOARD</span><span id="keyboard-hint">Click the display to use your keyboard</span></div><div id="keyboard" class="keyboard" aria-label="On-screen IBM keyboard"></div></section>
+<div class="disk-controls"><span>DISKETTES</span><label>Mount A<input type="file" id="mount-a" accept=".img,.ima,.dsk" hidden></label><label>Mount B<input type="file" id="mount-b" accept=".img,.ima,.dsk" hidden></label><a href="/api/disk/1" download="ibm-pc-work-disk.img">Save work disk ↓</a><small id="disk-hint">160 KB single-sided images · Changes stay in memory until saved</small></div>
+<footer><span>Original IBM BIOS &amp; BASIC · Original PC DOS · Hardware simulated in RTL</span><button id="details-toggle">Machine details ↗</button></footer>
+<section id="details" hidden><div><span>CPU</span><strong>8088 architecture · 8-bit bus</strong></div><div><span>ADDRESS</span><strong id="address">FFFF:0000</strong></div><div><span>INSTRUCTIONS</span><strong id="instructions">0</strong></div><div><span>REFRESH / DMA</span><strong id="dma">0 / 0</strong></div><p>Functional virtual platform. Original instruction clock counts, analog video and electrical timing are outside the model. The BIOS, DOS and application instructions execute in the hardware model.</p></section>
+<p id="error" role="alert" hidden></p>
+</main><script type="module" src="app.js"></script></body></html>

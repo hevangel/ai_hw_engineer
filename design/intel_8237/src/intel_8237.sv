@@ -54,7 +54,9 @@ module intel_8237 (
     assign hardware_request = dreq ^ {4{command_q[6]}};
     assign raw_request = hardware_request | software_q;
     assign cpu_select = rst_n && !cs_n && !hlda &&
-                        (state_q == IDLE || state_q == RELEASE);
+                        // Intel DMA OPERATION: S0 still accepts programming
+                        // until HLDA. A pending refresh must not drop CPU I/O.
+                        (state_q == IDLE || state_q == GRANT || state_q == RELEASE);
     assign cpu_read = cpu_select && !ior_n && iow_n;
     assign cpu_write = cpu_select && ior_n && !iow_n;
     assign master_clear = cpu_write && reg_addr == 4'hd;
