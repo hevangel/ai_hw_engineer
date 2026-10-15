@@ -49,6 +49,7 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | By 1978* (public announcement; exact shipment unknown) | AMD Am9517 | Four-channel multimode DMA, memory copy/fill and cascade expansion | [amd_am9517](amd_am9517/) |
 | 1978 | Intel 8086 | 16-bit microprocessor; complete documented ISA and native digital BIU with independent physical-chip tests | [intel_8086](intel_8086/) |
 | 1979* (family) | Intel 8237 / 8237A | Four-channel programmable DMA controller; original IBM PC BIOS integration | [intel_8237](intel_8237/) |
+| 1980 | Intel 8087 | Architectural numeric coprocessor core; 80-bit stack, original ESC instructions and transactional memory interface | [intel_8087](intel_8087/) |
 | 1980* / 1982* | Intel 8272 / 8272A | Four-drive decoded-media floppy controller; FM/MFM/CRC helpers and original IBM PC BIOS/DMA regression | [intel_8272](intel_8272/) |
 | 1983 | Apple IIe MMU (341-0266) | Full-custom memory mapper: main/aux/bank-switched RAM selection, soft switches, ROM decode and multiplexed DRAM address | [apple_iie_mmu](apple_iie_mmu/) |
 | 1983 | Apple IIe IOU (341-0267) | Full-custom video machine: display scanner and interleaved display-address fold, video-mode soft switches, keyboard strobe/auto-repeat, annunciator/speaker/cassette outputs | [apple_iie_iou](apple_iie_iou/) |
