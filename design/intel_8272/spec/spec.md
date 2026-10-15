@@ -12,7 +12,16 @@ A decoded media interface supplies sector headers (CHRN, deleted/missing data ma
 
 A0=0 reads MSR only. A0=1 transfers command, execution data or result. MSR bits: RQM/DIO/NDM/CB/D3B/D2B/D1B/D0B. Command/result byte transfers incur 12 emulated µs processing delay; tests may parameterize `RQM_DELAY_US` downward. CPU must wait RQM and observe DIO. Illegal bus direction is ignored. Falling-edge-qualified strobes consume one byte when held low. Command collection is busy; asynchronous seek execution leaves the command interface idle while drive-busy bits remain set. A new command is accepted only after all result bytes are consumed.
 
-DMA DACK drops DRQ and retains a transfer token until the corresponding RD/WR strobe; CS/A0 are not required for DMA data. DACK without RD/WR does not consume data. Non-DMA uses CPU data register accesses, RQM and one interrupt per byte. Execution completion raises IRQ; reading the first result byte acknowledges that completion. Reading MSR never acknowledges IRQ. TC during sector read stops host transfers but drains the physical sector/CRC; during write zero-fills the remainder. A TC accompanying an actual data strobe includes that byte. Scan TC completes the current comparison byte and ends the scan.
+DMA DACK drops DRQ and retains a transfer token until the corresponding RD/WR
+strobe; CS/A0 are not required for DMA data. A completed DMA read acknowledgment
+without RD also consumes that byte (A8, IBM BIOS VERIFY). Data remains stable
+throughout DACK; normal RD consumes it earlier. A write still requires WR.
+Non-DMA uses CPU data register accesses, RQM and one interrupt per byte.
+Execution completion raises IRQ; reading the first result byte acknowledges
+that completion. Reading MSR never acknowledges IRQ. TC during sector read
+stops host transfers but drains the physical sector/CRC; during write zero-fills
+the remainder. A TC accompanying an actual data strobe includes that byte.
+Scan TC completes the current comparison byte and ends the scan.
 
 ## Fifteen commands (Table 4)
 
@@ -48,7 +57,7 @@ Specify sets SRT (16 minus nibble milliseconds), HUT (nibble×16 ms), HLT (7-bit
 
 Each drive has an independent PCN, target and seek timer. Seek produces inward direction=1 when target>PCN, outward=0 otherwise. Recalibrate steps outward until track0 or 77 pulses; failure sets SE+EC and abnormal ST0. Not-ready terminates seeks with SE+NR. Completion stores an event per drive and raises IRQ; SIS returns the lowest-numbered pending drive's ST0/PCN and clears its busy bit when the first result byte is read. SIS acknowledges the seek/poll IRQ latch; further queued events remain available for subsequent SIS commands. New events win over a simultaneous acknowledgement. Non-SIS commands are rejected while a completed seek awaits SIS.
 
-Idle/seek polling samples ready for each drive at 220/220/220/440 µs intervals. Changes generate ST0=C0 plus unit and NR if not ready. Cached ready starts zero, so initially ready drives produce startup polling events. Polling is suspended during data execution and result; seek progression continues independently.
+Idle/seek polling samples ready for each drive at 220/220/220/440 µs intervals at 8 MHz. Changes generate ST0=C0 plus unit and NR if not ready. Cached ready starts zero, so initially ready drives produce startup polling results. The initial scan batches those results into one interrupt after all drives have been sampled (A7). Subsequent ready changes raise ordinary polling interrupts. READY results do not block SPECIFY or Sense Drive Status; completed SEEK/RECALIBRATE results require SIS, as the manufacturer's INVALID section specifies. Polling is suspended during data execution and result; seek progression continues independently.
 
 Read/scan service deadline is 13 µs MFM or 27 µs FM; write/format is 15/31 µs. A byte serviced on its deadline is accepted. Unserviced requests, incoming read bytes when the single-byte register is full, or empty write slots after a request expires produce OR. Testbench media byte spacing obeys these deadlines unless deliberately testing error paths.
 
@@ -60,9 +69,24 @@ Read/scan service deadline is 13 µs MFM or 27 µs FM; write/format is 15/31 µs
 * **A4:** zero HLT is immediate; zero HUT is 256 ms. Recalibrate direction is outward=0, matching SEEK semantics and independent implementations; Intel's prose says high despite the conflicting SEEK direction definition. Test timer boundaries and track0 failures.
 * **A5:** virtual media is responsible for recorded geometry, byte spacing, index rotation, address-mark parsing, CRC error reporting and physical gap bytes. It must supply actual IDs rather than echoing the requested ID. Test wrong cylinder, missing marks, bad CRC, nonsequential format IDs and sector contents with an independent media BFM. The separate codec/CRC does not eliminate this integration requirement.
 * **A6:** Intel describes normal scan completion/status but does not separately tabulate scan result CHRN advancement. This model uses the shared read/scan advancement convention in MAME's `read_data_continue` for normal completion, with Intel's STP and comparison rules taking precedence over that emulator's incomplete scan handling. Directed tests pin these IDs; actual Intel scan result IDs have not been checked against silicon or historical software. No physical-silicon sign-off is claimed.
+* **A7:** initial READY polling raises one IRQ for the complete scan while retaining each drive's result for SIS. The [independent MAME implementation](https://github.com/mamedev/mame/blob/031d99f427df935056d42fa943476ed1bfb8e879/src/devices/machine/upd765.cpp) explicitly documents the original IBM 5150 BIOS's one-IRQ requirement and batches its first poll. The unmodified 1981 IBM BIOS, actual PC DOS disk boot and a directed single-acknowledgement startup regression validate this choice. The manufacturer does not explicitly specify initial IRQ batching; no physical reset-waveform equivalence is claimed.
+* **A8:** a DMA read byte is consumed at completed DACK even without RD. Intel
+  specifies that DACK resets DRQ, while its normal transfer description also
+  shows RD. The [8237A manufacturer specification](https://www.pcjs.org/documents/datasheets/intel/INTEL_8237A_DMA.pdf)
+  explicitly keeps all data strobes inactive in VERIFY. Original IBM BIOS
+  `DISK_VERF` programs mode 42h and issues FDC READ DATA, so DACK-only service is
+  necessary for its unchanged verification routine. The chosen completion edge
+  is a digital integration assumption, not a measured Intel waveform. A chip
+  regression checks every DACK-only byte and TC/result; the real CPU/DMA board
+  test checks 4,096 pseudo-transfers with RAM unchanged. Original DOS FORMAT
+  exercises this path for every formatted track before sign-off.
 
-This design is not a CPU. Complete historical operating-system/physical-drive regression is not a sign-off claim; host-level and media protocol tests establish the functional core's behavior within the documented boundary.
+The [IBM PC virtual platform](../../../system/ibm_pc/README.md) adds original BIOS/PC DOS and integrated 8237 DMA regression. Physical drives and raw flux remain outside this decoded-media core's sign-off boundary.
 
-`MS_US` defaults to 1000; simulation/formal may lower it to accelerate millisecond seek/head timers. `us_tick` service and polling deadlines retain their documented tick counts. Use positive `MS_US` up to 1000 and nonnegative `RQM_DELAY_US` within the 20-bit timer range. Reset must be asserted for at least one clock. GPL is accepted as a command byte but interpreted by the external media formatter, since raw gap bytes are outside this boundary. Scan TC finishes the comparison just accepted and enters result; read TC drains until backend `media_end`. Format with SC=0 waits for index and returns a deterministic but architecturally meaningless CHRN (command bytes), as does the datasheet's undefined format result ID.
+`MS_US` defaults to 1000; simulation/formal may lower it to accelerate millisecond seek/head timers. Use positive `MS_US` up to 2000 and nonnegative `RQM_DELAY_US` within the 20-bit timer range. `CLOCK_SCALE` is 1 for 8 MHz or 2 for 4 MHz and scales byte deadlines and polling intervals. For the IBM PC's 4 MHz configuration, also set `MS_US=2000` and `RQM_DELAY_US=24`: the Intel timing notes require doubled intervals. A separate real-time-tick regression checks 26 µs MFM read service/overrun and 2 ms minimum SRT. Reset must be asserted for at least one clock. GPL is accepted as a command byte but interpreted by the external media formatter, since raw gap bytes are outside this boundary. Scan TC finishes the comparison just accepted and enters result; read TC drains until backend `media_end`. Format with SC=0 waits for index and returns a deterministic but architecturally meaningless CHRN (command bytes), as does the datasheet's undefined format result ID.
 
-TC aborts a search, index wait, head-load wait or format-ID collection immediately, returning the current IDs. Failed scans terminate normally with SN at a reachable final EOT; skipping past EOT through STP continues searching and terminates abnormally after two index pulses.
+TC aborts a search, index wait, head-load wait or unserviced format-ID collection
+immediately, returning the current IDs. An accepted final format ID with TC
+still emits that sector's filler field and waits for the trailing index.
+Failed scans terminate normally with SN at a reachable final EOT; skipping past
+EOT through STP continues searching and terminates abnormally after two index pulses.

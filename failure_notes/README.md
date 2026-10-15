@@ -26,6 +26,18 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-10-14 — intel_8237 programming while waiting for bus grant](2026-10-14-intel8237-pending-grant-programming.md)
+  Original IBM BIOS format exposed mode writes lost when refresh raised HRQ
+  before the CPU completed its current I/O cycle.
+
+- [2026-10-14 — intel_8272 format final-ID terminal count](2026-10-14-intel8272-format-terminal-count.md)
+  A real CPU/DMA board test found a normal format result with the final sector
+  omitted when TC accompanied its last ID byte.
+
+- [2026-10-14 — intel_8272 READY events and original IBM PC BIOS](2026-10-14-intel8272-ibmpc-ready-events.md)
+  BIOS reset exposed overly broad command rejection and separate startup
+  polling IRQs hidden by the standalone startup helper.
+
 - [2026-10-11 — intel_8086 native bus and prefetch cancellation](2026-10-11-intel8086-native-bus-audit.md)
   Datasheet audit exposed arbitration and INTA/wait/T4 pin gaps after instruction
   checks passed; a new formal monitor exposed repeated-redirect tag wrap.

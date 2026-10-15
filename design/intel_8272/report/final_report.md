@@ -1,6 +1,6 @@
 # Intel 8272A verification report
 
-Verification date: October 2, 2026 (America/Vancouver). Scope: the [specified virtual-drive functional core](../spec/spec.md), not physical package compatibility. Three synthesizable modules implement the host/sector controller, FM/MFM word codec and IBM CRC.
+Verification date: October 14, 2026 (America/Vancouver), including the original IBM PC integration corrections. Scope: the [specified virtual-drive functional core](../spec/spec.md), not physical package compatibility. Three synthesizable modules implement the host/sector controller, FM/MFM word codec and IBM CRC.
 
 ## Implementation
 
@@ -41,9 +41,28 @@ Eight cover goals use four separate legal command prefixes: invalid result, medi
 
 ## Limits and assumptions
 
-The [coverage report](coverage_report.md) records actual measured totals and remaining gaps. The design has not been verified with a physical drive, raw track/flux parser, historical BIOS/operating system or an integrated 8237 DMA system. GPL and track layout are backend responsibilities. Event ordering, scan FF masking, zero head-timer semantics, conflicting recalibration direction prose, backend timing and scan result CHRN advancement are explicitly recorded as assumptions A1–A6. In particular, normal scan result-ID advancement is an emulator-corroborated convention, not Intel-silicon validation. Format result IDs are architecturally undefined and are made deterministic only for this model.
+The [coverage report](coverage_report.md) records actual measured totals and remaining gaps. Physical drives and raw track/flux parsing remain unverified. The [IBM PC virtual platform](../../../system/ibm_pc/README.md) now runs original BIOS/PC DOS with the actual 8237 DMA core. GPL and track layout remain backend responsibilities. Event ordering, scan FF masking, zero head-timer semantics, conflicting recalibration direction prose, backend timing, scan result CHRN advancement and initial polling IRQ batching are explicit assumptions A1–A8. In particular, normal scan result-ID advancement and initial IRQ batching have no physical Intel-silicon measurement. Format result IDs are architecturally undefined and deterministic only for this model.
 
 Within the documented boundary, internal regressions resolved TC write-byte retention, late ND final-byte service, physical-head status, scan retry/status/deadline/EOT behavior and invalid Read Track header counter handling. These findings came from the design's own verification/review; there is no claimed external hardware sign-off.
+
+Original 1981 IBM BIOS subsequently exposed two escaped READY-event defects:
+valid SPECIFY/Sense Drive commands were rejected while other polling results
+were queued, and separate initial polling IRQs could obscure a later seek edge.
+Manufacturer command rules and independent MAME reset behavior pin the fixes.
+The new regression acknowledges only one initial READY result before issuing
+those commands, preserves remaining results, and confirms completed SEEK still
+requires SIS. Initial polling now batches one IRQ. A separate 4 MHz regression
+checks doubled 26 µs service/overrun, polling and 2 ms minimum seek timing.
+See the [post-mortem](../../../failure_notes/2026-10-14-intel8272-ibmpc-ready-events.md)
+and [system verification report](../../../system/ibm_pc/report/final_report.md).
+
+System disk tests subsequently found a final format ID with TC skipping its
+sector's filler field and DACK-only VERIFY not consuming read bytes. The
+former now retains the accepted ID and completes the data field. The latter
+uses completed DACK as a read-consumption fallback while preserving normal
+RD timing and Intel's strobe-free DMA VERIFY operation (assumption A8).
+Both have chip regressions and a real CPU/8237/FDC board test. See the
+[format post-mortem](../../../failure_notes/2026-10-14-intel8272-format-terminal-count.md).
 
 ## Recorded results
 
@@ -54,12 +73,17 @@ The complete flow ended with `8272 COMPLETE FLOW PASSED` and exit status zero.
 | Strict lint, three RTL modules | PASS |
 | 32-cycle BMC / unbounded PDR | PASS / PASS |
 | Four cover tasks | PASS; all eight goals reached |
-| Verilator seeds 1 / 42 / 2026 | PASS; 74,591 checks each |
-| Xezim seeds 1 / 42 / 2026 | PASS; 74,591 checks each |
+| Verilator seeds 1 / 42 / 2026 | PASS; 75,432 checks each |
+| Xezim seeds 1 / 42 / 2026 | PASS; 75,432 checks each |
+| 4 MHz service/seek test, both simulators | PASS; 58 checks each |
 | Independent codec, both simulators | PASS; 4,102 checks each |
 | UVM scoreboard / opcode bins | PASS; 203 reads / 15 of 15 bins |
 | UVM errors / fatals / name-check warnings | 0 / 0 / 27 |
-| Controller statement / branch / toggle coverage | 81.76% / 83.99% / 53.90% |
-| Generic synthesis cells: controller / codec / CRC | 6,646 / 76 / 45; all checks pass |
+| Controller statement / branch / toggle coverage | 81.79% / 83.87% / 54.11% |
+| Generic synthesis cells: controller / codec / CRC | 6,444 / 76 / 45; all checks pass |
 
-Cover steps: invalid result 4, search 47, DRQ 51, seven-byte result 56, write execution 49, step pulse 30, SIS result 39 and ND pending byte 55. Repeated procedural fragments account for 773 measured statements and 281 branch arms. Cell counts are generic Yosys cells with no FPGA/ASIC technology mapping. The primary log is `work/final_flow.log`; per-task artifacts reside under `work/formal`, `work/sim`, `work/uvm`, `work/codec`, `work/coverage` and `work/synth`.
+All eight cover goals remain reached. Repeated procedural fragments account
+for 780 measured statements and 279 branch arms. Cell counts are generic Yosys
+cells with no FPGA/ASIC technology mapping. The final chip rerun's primary log is
+`system/ibm_pc/work/fdc_final.log`; chip artifacts reside under `work/formal`,
+`work/sim`, `work/uvm`, `work/clock`, `work/codec`, `work/coverage` and `work/synth`.

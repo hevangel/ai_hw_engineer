@@ -2,7 +2,7 @@
 set -eu
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 ROOT=$(CDPATH= cd -- "$HERE/../.." && pwd)
-mkdir -p "$HERE/work/sim" "$HERE/work/uvm" "$HERE/work/codec"
+mkdir -p "$HERE/work/sim" "$HERE/work/uvm" "$HERE/work/codec" "$HERE/work/clock"
 verilator --binary --timing -j 4 -Wall -Wno-BLKSEQ -Wno-PROCASSINIT -Wno-UNUSEDSIGNAL -I"$HERE/tb" --top-module tb_top --Mdir "$HERE/work/sim/obj" "$HERE/src/intel_8272.sv" "$HERE/tb/intel_8272_if.sv" "$HERE/tb/tb_top.sv" > "$HERE/work/sim/build.log" 2>&1
 for seed in "${1:-1}" 42 2026; do
   "$HERE/work/sim/obj/Vtb_top" +seed="$seed" > "$HERE/work/sim/verilator_$seed.log" 2>&1
@@ -19,4 +19,12 @@ XEZIM_COV_DB="$HERE/work/uvm/coverage.json" xezim --simulate --sv2017 --error-ex
 grep '8272 UVM SCOREBOARD PASSED' "$HERE/work/uvm/run.log"
 grep 'UVM_ERROR :    0' "$HERE/work/uvm/run.log"
 grep 'UVM_FATAL :    0' "$HERE/work/uvm/run.log"
+verilator --binary --timing -j 4 -Wall -Wno-BLKSEQ -Wno-PROCASSINIT -Wno-UNUSEDSIGNAL \
+  --top-module tb_clock --Mdir "$HERE/work/clock/obj" "$HERE/src/intel_8272.sv" \
+  "$HERE/tb/intel_8272_if.sv" "$HERE/tb/tb_clock.sv" > "$HERE/work/clock_build.log" 2>&1
+"$HERE/work/clock/obj/Vtb_clock" > "$HERE/work/clock_verilator.log" 2>&1
+grep '8272 4MHZ CLOCK PASSED' "$HERE/work/clock_verilator.log"
+xezim --simulate --sv2017 --error-exit -s tb_clock "$HERE/src/intel_8272.sv" \
+  "$HERE/tb/intel_8272_if.sv" "$HERE/tb/tb_clock.sv" > "$HERE/work/clock_xezim.log" 2>&1
+grep '8272 4MHZ CLOCK PASSED' "$HERE/work/clock_xezim.log"
 echo '8272 SIMULATION PASSED'

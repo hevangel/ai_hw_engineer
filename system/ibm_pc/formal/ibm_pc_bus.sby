@@ -1,0 +1,19 @@
+[tasks]
+bmc
+prove
+cover
+[options]
+bmc: mode bmc
+bmc: depth 24
+prove: mode prove
+cover: mode cover
+cover: depth 32
+[engines]
+bmc: abc bmc3
+prove: abc pdr
+cover: smtbmc yices
+[script]
+read -formal -sv ibm_pc_bus.sv
+prep -top ibm_pc_bus
+[files]
+../src/ibm_pc_bus.sv

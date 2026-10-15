@@ -12,7 +12,9 @@ The index records **1980* for the 8272 family and 1982* for the 8272A**. These a
 
 This is a **virtual-drive functional core**. The host uses edge-qualified CS/RD/WR/DACK, A0, TC, split byte data, DRQ and IRQ. A media backend supplies actual sector IDs, read bytes, index events and CRC errors, and consumes write metadata/bytes. It must obey the unbackpressured byte-service contract in the specification. `us_tick` supplies emulated microseconds; seek and head timers use `MS_US=1000` by default.
 
-The codec and CRC modules operate on individual IBM words/bytes. They do not connect the controller to a raw flux stream. A complete serial track parser/formatter, PLL, physical gaps, write precompensation, package electrical timing and actual floppy-drive or operating-system integration are outside this implementation. GPL is passed through the command protocol but gap generation belongs to the backend. Assumptions about compatible scan masking, event ordering and conflicting recalibration prose are explicitly recorded in the spec.
+The codec and CRC modules operate on individual IBM words/bytes. They do not connect the controller to a raw flux stream. A complete serial track parser/formatter, PLL, physical gaps, write precompensation, package electrical timing and actual floppy-drive integration are outside this implementation. The [IBM PC system](../../system/ibm_pc/README.md) supplies original BIOS/PC DOS and integrated 8237 DMA regression. GPL is passed through the command protocol but gap generation belongs to the backend. Assumptions about compatible scan masking, event ordering, reset polling and conflicting recalibration prose are explicitly recorded in the spec.
+
+Original IBM BIOS integration corrected READY-event command acceptance and initial IRQ batching; see the [failure note](../../failure_notes/2026-10-14-intel8272-ibmpc-ready-events.md). The controller supports explicit 8/4 MHz timing configurations, with a separate deadline/seek regression for the PC's 4 MHz setting.
 
 ## Files and verification
 

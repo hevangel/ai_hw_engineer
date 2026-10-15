@@ -2,7 +2,8 @@
 // Intel 8272A host/decoded-sector controller. See spec/spec.md for the media boundary.
 module intel_8272 #(
     parameter integer RQM_DELAY_US = 12,
-    parameter integer MS_US = 1000
+    parameter integer MS_US = 1000,
+    parameter integer CLOCK_SCALE = 1
 ) (
     input logic clk, rst_n, us_tick,
     input logic cs_n, rd_n, wr_n, dack_n, a0, tc,
@@ -52,10 +53,18 @@ module intel_8272 #(
     logic [3:0] ready_cached;
     logic [1:0] poll_unit, sis_unit;
     logic sis_event;
+    logic completed_seek_pending;
+    logic initial_poll;
     logic [9:0] poll_us;
     logic read_edge, write_edge, cpu_read, cpu_write, data_read, data_write;
     logic execution, to_host, rqm, dio, serviced;
     integer i;
+
+    always_comb begin
+        completed_seek_pending=0;
+        for(integer drive=0;drive<4;drive=drive+1)
+            completed_seek_pending |= event_pending[drive] && event_st0[drive][5];
+    end
 
     function automatic logic [3:0] length_for(input logic [4:0] op);
         case (op)
@@ -83,8 +92,7 @@ module intel_8272 #(
         unload_time=20'((rate==0 ? 256 : int'(rate)*16)*MS_US);
     endfunction
     function automatic logic [19:0] deadline(input logic writing, density);
-        deadline=writing ? (density ? 20'd15 : 20'd31) :
-                             (density ? 20'd13 : 20'd27);
+        deadline=20'(CLOCK_SCALE * (writing ? (density ? 15 : 31) : (density ? 13 : 27)));
     endfunction
 
     `define FDC_REQUEST_BYTE begin \
@@ -133,9 +141,13 @@ module intel_8272 #(
         rqm=(delay_us==0) && ((phase==IDLE || phase==COMMAND || phase==RESULT) ||
             (nd && data_pending && (phase==READ_DATA || phase==WRITE_DATA ||
              phase==SCAN_DATA || phase==FORMAT_ID || phase==SECTOR_DONE)));
-        data_read=to_host && data_pending && read_edge &&
-            ((nd && !cs_n && a0 && rqm) || (!nd && !dack_n &&
-              (dma_token || drq) && !(!cs_n && !a0)));
+        // ASSUMPTION A8: a completed DMA read acknowledge also consumes a
+        // byte without RD, as required by original IBM BIOS's 8237 VERIFY.
+        // Keep the byte stable throughout DACK; normal RD consumes it earlier.
+        data_read=to_host && data_pending &&
+            ((read_edge && ((nd && !cs_n && a0 && rqm) || (!nd && !dack_n &&
+              (dma_token || drq) && !(!cs_n && !a0)))) ||
+             (!nd && dma_token && !dack_old && dack_n));
         data_write=!to_host && data_pending && write_edge &&
             ((nd && !cs_n && a0 && rqm) || (!nd && !dack_n && (dma_token || drq)));
         serviced=data_read || data_write;
@@ -167,7 +179,7 @@ module intel_8272 #(
             mfm<=0; head_load<=0; sector_begin<=0; sector_end<=0;
             tx_valid<=0; tx_byte<=0; step<=0; direction<=0;
             seek_active<=0; seek_busy<=0; event_pending<=0; recal<=0;
-            ready_cached<=0; poll_unit<=0; poll_us<=220; sis_unit<=0; sis_event<=0;
+            ready_cached<=0; poll_unit<=0; poll_us<=10'(220*CLOCK_SCALE); initial_poll<=1; sis_unit<=0; sis_event<=0;
             for (i=0;i<9;i=i+1) command[i]<=0;
             for (i=0;i<7;i=i+1) result[i]<=0;
             for (i=0;i<4;i=i+1) begin
@@ -220,7 +232,10 @@ module intel_8272 #(
                 if (phase==IDLE) begin
                     command[0]<=db_in; command_index<=1; command_length<=length_for(db_in[4:0]);
                     sis_event<=0;
-                    if (!valid_opcode(db_in) || (event_pending!=0 && db_in!=8'h08))
+                    // Intel AFN-01259C INVALID: only a completed SEEK/RECALIBRATE
+                    // requires SIS before the next command. Pending READY polls
+                    // must not reject the original IBM BIOS's SPECIFY command.
+                    if (!valid_opcode(db_in) || (completed_seek_pending && db_in!=8'h08))
                         `FDC_INVALID_RESULT
                     else if (length_for(db_in[4:0])==1) phase<=LAUNCH;
                     else phase<=COMMAND;
@@ -304,7 +319,7 @@ module intel_8272 #(
                 else if ((opcode==5'h05 || opcode==5'h09 || opcode==5'h0d) && write_protect[unit])
                     `FDC_FINISH({2'b01,3'b0,head,unit},8'h02,st2,c,h,r,n)
                 else if (tc && (phase==LOAD || phase==INDEX_WAIT || phase==SEARCH ||
-                    phase==FORMAT_ID || phase==FORMAT_END))
+                    (phase==FORMAT_ID && !data_write) || phase==FORMAT_END))
                     `FDC_FINISH({5'b0,head,unit},st1,st2,c,h,r,n)
                 else if (data_pending && us_tick && service_us==1 && !serviced && !tc)
                     `FDC_FINISH({2'b01,3'b0,head,unit},st1|8'h10,st2,c,h,r,n)
@@ -452,10 +467,18 @@ module intel_8272 #(
                 if (poll_us>1) poll_us<=poll_us-1'b1;
                 else begin
                     poll_unit<=poll_unit+1'b1;
-                    poll_us<=poll_unit==2 ? 10'd440 : 10'd220;
+                    poll_us<=10'((poll_unit==2 ? 440 : 220)*CLOCK_SCALE);
                     ready_cached[poll_unit]<=ready[poll_unit];
+                    // ASSUMPTION A7: batch the initial READY scan into one IRQ.
+                    // Original IBM 5150 BIOS requires one reset IRQ; MAME's
+                    // upd765 run_drive_ready_polling batches all drives likewise.
+                    if(initial_poll && poll_unit==3) begin
+                        initial_poll<=0;
+                        if(event_pending!=0 || ready_cached[poll_unit]!=ready[poll_unit]) irq_event<=1;
+                    end
                     if (ready_cached[poll_unit]!=ready[poll_unit]) begin
-                        event_pending[poll_unit]<=1; irq_event<=1;
+                        event_pending[poll_unit]<=1;
+                        if(!initial_poll) irq_event<=1;
                         event_st0[poll_unit]<={2'b11,2'b00,!ready[poll_unit],1'b0,poll_unit};
                         event_pcn[poll_unit]<=pcn[poll_unit];
                     end

@@ -89,7 +89,7 @@ module tb_top;
     endtask
     task automatic wr(input logic [3:0] offset, input logic [7:0] value);
         @(negedge clk);
-        check(!hlda && !hrq, "CPU has bus for write");
+        check(!hlda, "CPU has bus for write");
         reg_addr = offset; cpu_data = value; cs_n = 0; iow_n = 0; ior_n = 1;
         tick();
         if (offset == 8) command_shadow = value;
@@ -98,7 +98,7 @@ module tb_top;
     endtask
     task automatic rd(input logic [3:0] offset, input logic [7:0] expected);
         @(negedge clk);
-        check(!hlda && !hrq, "CPU has bus for read");
+        check(!hlda, "CPU has bus for read");
         reg_addr = offset; cs_n = 0; ior_n = 0; iow_n = 1;
         #1; check(data_oe && data_o == expected,
                   $sformatf("register %h expected %h actual %h", offset, expected, data_o));
@@ -196,6 +196,16 @@ module tb_top;
         wr(8, 0); wr(15, 15); request(1); tick(8); check(!hrq, "write all masks"); request(0);
         wr(14, 0); request(1); grant_bus(); wait_events(1); request(0); release_bus();
         expect_event(0, 0, 16'h100, 4'b0110);
+
+        // Intel's S0 permits CPU programming until HLDA. The original PC's
+        // refresh request can arrive while the CPU is writing DMA registers.
+        reset_chip();program_channel(0,16'h100,0,8'h40);unmask(0);
+        program_channel(2,16'h2300,0,8'h40);unmask(2);request(1);tick(3);
+        check(hrq && !hlda,"pending refresh before CPU programming");
+        wr(11,8'h4a);word_write(4,16'h2345);word_read(4,16'h2345);
+        grant_bus();wait_events(1);request(0);release_bus();
+        request(4);grant_bus();wait_events(2);request(0);release_bus();
+        expect_event(1,2,16'h2345,4'b0110);
 
         $display("8237A block directions, address boundary, wait and timing tests");
         for (int timing = 0; timing < 3; timing++) begin
