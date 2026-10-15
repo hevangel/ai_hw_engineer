@@ -17,6 +17,21 @@ reset/power, speaker pitch derived from the PIT output, disk-image mounting
 and a writable work disk that can be downloaded. RAM/ROM storage and decoded
 floppy media are external simulation models, not CPU/BIOS emulation.
 
+The **CPU waveform** panel embeds the same self-hosted Surfer viewer used by
+BUSICOM. Power on, choose a clock window and press **Capture CPU**. It records
+the next 256 clocks by default (up to 65,536), pauses the actual machine and
+loads the finalized FST. Use **Run** to continue. **CPU registers** shows named
+general/segment registers, IP, flags, instruction state and bus activity;
+**CPU bus and DMA** shows byte-bus phases, prefetch and DMA ownership. Surfer
+supports zooming, cursors and adding signals; **Reload waveform** restores the
+selected preset, and **Download FST** saves the capture.
+
+The viewer is served from `/surfer/` on the PC's own port using the Docker
+image's bundled assets. It needs no separate port or hosted service. Capture
+timestamps use the nominal 4.772727 MHz clock; they do not imply native 8088
+instruction timing. Recording is bounded and only runs on request. Restarting
+the simulator clears its capture session; Reset retains the last capture.
+
 - [Specification and assumptions](spec/spec.md)
 - [Implementation plan](plans/implementation_plan.md)
 - [Reference provenance and hashes](spec/reference/README.md)

@@ -59,6 +59,17 @@ firmware handles keyboard interpretation. The server validates commands and
 does not execute arbitrary shell requests. Ordinary boot and software execution
 must work without architectural-state injection or patched firmware.
 
+Embed local Surfer for genuine Verilator FST CPU captures. An explicit capture
+records 1..65,536 clocks from the current machine, publishes the file only after
+closing it and leaves execution paused at the end of that window. Trace both
+clock phases, using nominal 4.772727 MHz timestamps at 1 ps resolution. Named
+scalar register probes, instruction state, byte-bus/prefetch signals and DMA
+ownership must be available. Repeated capture/download/poll operations are
+serialized; stale files from a prior server session must not be advertised.
+Serve the bundled WASM assets on the same origin and permit raw FST download.
+Recording must produce exactly the same machine state as an ordinary run of
+the same number of clocks, including CPU registers/PC, VRAM and peripherals.
+
 The aggregate regression must boot unchanged IBM BIOS through POST, boot
 unchanged PC DOS 1.00 through the actual FDC/DMA path, interact through keyboard
 IRQs, verify command output and exercise original BASIC/application software.

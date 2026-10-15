@@ -12,3 +12,7 @@
    software and browser/backend regressions. Record escaped defects, actual
    evidence, assumptions and limits. Update system/chip documentation as needed,
    then commit, push and open a reviewable system PR.
+6. Embed local Surfer CPU waveforms with bounded on-demand FST capture,
+   readable register/bus/DMA presets and download. Verify capture is state
+   equivalent to ordinary execution, serialized HTTP delivery, browser display
+   and synthesis of the observation-only register aliases.

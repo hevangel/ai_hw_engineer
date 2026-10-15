@@ -1,13 +1,16 @@
 #include "Vibm_pc.h"
 #include "Vibm_pc___024root.h"
 #include "verilated.h"
+#include "verilated_fst_c.h"
 #include <array>
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
+#include <cstdio>
 #include <deque>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -33,6 +36,9 @@ public:
     bool old_speaker=false;
     uint8_t disk_protection=1;
     std::string directory;
+    std::unique_ptr<VerilatedFstC> waveform;
+    uint64_t waveform_time=0,capture_start=0,capture_cycles=0,capture_version=0;
+    static constexpr uint64_t HALF_CLOCK_PS=104762; // nominal 4.772727 MHz
     static std::vector<uint8_t> read_file(const std::string &path){
         std::ifstream file(path,std::ios::binary);
         if(!file)throw std::runtime_error("missing image: "+path);
@@ -125,6 +131,7 @@ public:
         if(!active)transferring=false;
         old_active=active;
         board.eval();
+        if(waveform){waveform->dump(waveform_time);waveform_time+=HALF_CLOCK_PS;}
         if(io_trace && board.rootp->ibm_pc__DOT__dma_valid && board.rootp->ibm_pc__DOT__dma_channel==2){
             std::cerr<<board.cycle_count<<" DMA "<<std::hex<<board.mem_addr<<" "
                 <<unsigned(board.rootp->ibm_pc__DOT__dma_iow_n ? board.mem_wdata:board.mem_rdata)
@@ -148,6 +155,7 @@ public:
             }
         }
         board.clk=1;board.eval();
+        if(waveform){waveform->dump(waveform_time);waveform_time+=HALF_CLOCK_PS;}
         if(board.speaker && !old_speaker){
             auto period=board.cycle_count-last_speaker_rise;
             if(last_speaker_rise && period)speaker_hz=unsigned(4772727/period);
@@ -169,6 +177,25 @@ public:
     std::vector<std::pair<unsigned,uint8_t>> memory_writes;
     std::string location(){std::ostringstream s;s<<std::hex<<uint16_t(board.segs>>16)<<":"<<board.ip;return s.str();}
     void run(uint64_t cycles){for(uint64_t i=0;i<cycles;++i)tick();}
+    void capture(unsigned cycles){
+        if(!powered || cycles<1 || cycles>65536)throw std::runtime_error("invalid waveform capture");
+        running=false;
+        const char *configured=std::getenv("IBM_PC_FST_PATH");
+        const std::string path=configured ? configured:directory+"/../cpu-waveform.fst";
+        const std::string temporary=path+".next";
+        waveform=std::make_unique<VerilatedFstC>();
+        board.trace(waveform.get(),2);
+        waveform->set_time_unit("1ps");waveform->set_time_resolution("1ps");
+        waveform->open(temporary.c_str());
+        if(!waveform->isOpen())throw std::runtime_error("cannot open waveform capture");
+        waveform_time=0;
+        auto start=uint64_t(board.cycle_count);
+        run(cycles);
+        board.clk=0;board.eval();waveform->dump(waveform_time);
+        waveform->close();waveform.reset();
+        if(std::rename(temporary.c_str(),path.c_str()))throw std::runtime_error("cannot publish waveform capture");
+        capture_start=start;capture_cycles=cycles;++capture_version;
+    }
     std::string text(){
         std::string out;unsigned columns=board.cga_mode&1 ? 80:40;
         board.crtc_debug_index=12;board.eval();unsigned start=board.crtc_debug_data<<8;
@@ -196,7 +223,8 @@ public:
         for(unsigned i=0;i<4;++i){if(i)s<<',';s<<((board.segs>>(16*i))&65535);}
         s<<"],\"crtc\":[";
         for(unsigned i=0;i<18;++i){if(i)s<<',';board.crtc_debug_index=i;board.eval();s<<unsigned(board.crtc_debug_data);}
-        s<<"],\"vram\":\"";
+        s<<"],\"captureStart\":"<<capture_start<<",\"captureCycles\":"<<capture_cycles
+            <<",\"captureVersion\":"<<capture_version<<",\"vram\":\"";
         const char hex[]="0123456789abcdef";
         for(unsigned i=0;i<16384;++i){auto v=memory[0xb8000+i];s<<hex[v>>4]<<hex[v&15];}
         s<<"\"}";return s.str();
@@ -206,6 +234,7 @@ public:
 
 int main(int argc,char **argv){
     Verilated::commandArgs(argc,argv);
+    Verilated::traceEverOn(true);
     try{
         if(argc<2)throw std::runtime_error("usage: simulator IMAGE_DIRECTORY [--boot CYCLES]");
         Machine m(argv[1]);
@@ -232,6 +261,7 @@ int main(int argc,char **argv){
             else if(command=="OFF"){m.running=false;m.powered=false;}
             else if(command=="PAUSE")m.running=false;
             else if(command=="RUN")m.run(std::min<uint64_t>(value,5000000));
+            else if(command=="CAPTURE")m.capture(unsigned(value));
             else if(command=="KEY" && value<=255)m.keys.push_back(value);
             else if((command=="MOUNT" || command=="SAVE") && value<2){
                 std::string path;in>>path;

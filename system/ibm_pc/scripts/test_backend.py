@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import struct
 import time
 import urllib.error
 import urllib.request
@@ -47,6 +48,8 @@ def main():
                     time.sleep(.1)
             initial=request()
             assert not initial['powered'] and not initial['running'] and initial['cycles']==0
+            reject('/waveform.fst',None,404)
+            reject('/api/control',{'action':'CAPTURE','cycles':1024})
             stepped=control('STEP')
             assert stepped['powered'] and stepped['instructions']==1 and (stepped['cs'],stepped['ip'])==(0xf000,0xe05b)
             assert request()['cycles']==stepped['cycles']
@@ -57,6 +60,36 @@ def main():
                 paused=control('PAUSE');polling.result()
             assert not paused['running']
             assert request()['cycles']==request()['cycles']==paused['cycles']
+            for cycles in (True,0,-1,65537,'4096'):
+                reject('/api/control',{'action':'CAPTURE','cycles':cycles})
+            before=request()['cycles']
+            captured=control('CAPTURE',cycles=1024)
+            assert not captured['running'] and captured['captureVersion']==1
+            assert captured['captureStart']==before and captured['cycles']==before+1024
+            waveform=request('/waveform.fst?capture=1',raw=True)
+            # FST HEADER layout from the independent fstcpp Writer::writeHeader_.
+            assert len(waveform)>128 and waveform[0]==0
+            assert struct.unpack_from('>QQ',waveform,9)==(0,1024*209524)
+            assert struct.unpack_from('b',waveform,73)[0]==-12
+            with urllib.request.urlopen(urllib.request.Request(BASE+'/waveform.fst',method='HEAD')) as response:
+                assert int(response.headers['Content-Length'])==len(waveform)
+                assert response.headers['X-Waveform-Version']=='1' and not response.read()
+            assert request()['cycles']==captured['cycles']
+            control('RESET');second=control('CAPTURE',cycles=4096)
+            assert second['captureStart']==0 and second['captureVersion']==2 and second['cycles']==4096
+            second_waveform=request('/waveform.fst',raw=True)
+            assert struct.unpack_from('>QQ',second_waveform,9)==(0,4096*209524)
+            assert b'Surfer' in request('/surfer/',raw=True)
+            with urllib.request.urlopen(BASE+'/surfer/surfer_bg.wasm') as response:
+                assert response.headers['Content-Type']=='application/wasm'
+                assert response.read(4)==b'\0asm'
+            reject('/surfer/%2e%2e/%2e%2e/AGENTS.md',None,404)
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                download=pool.submit(request,'/waveform.fst',None,True)
+                third=control('CAPTURE',cycles=16384)
+                concurrent=download.result()
+            assert third['captureVersion']==3 and not third['running']
+            assert struct.unpack_from('>QQ',concurrent,9) in ((0,4096*209524),(0,16384*209524))
             control('KEY',codes=[30,158]);assert request()['keysQueued']==2
             reject('/api/control',{'action':'KEY','codes':[True]})
             reject('/api/control',{'action':'KEY','codes':[256]})
@@ -75,7 +108,7 @@ def main():
             reset=control('RESET')
             assert reset['powered'] and reset['cycles']==0 and reset['instructions']==0 and reset['keysQueued']==0
             assert (reset['cs'],reset['ip'])==(65535,0)
-            print('PASS: real RTL HTTP power/step/run/pause/reset, keyboard validation and disk mount/export')
+            print('PASS: real RTL HTTP controls, keyboard/disks, bounded repeated FST captures, headers/timing and self-hosted Surfer')
         finally:
             process.terminate()
             try:process.wait(timeout=5)

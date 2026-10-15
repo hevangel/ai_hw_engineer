@@ -14,5 +14,6 @@ done
 "$SYSTEM/work/obj/Vibm_pc" "$SYSTEM/work/reference" --disk-tests "$SYSTEM/work/disk.bin"
 python3 "$SYSTEM/scripts/test_software.py"
 python3 "$SYSTEM/scripts/test_backend.py"
+python3 "$SYSTEM/scripts/test_waveform.py"
 sh "$SYSTEM/scripts/run_synth.sh"
 echo 'PASS: IBM PC complete virtual-platform verification'

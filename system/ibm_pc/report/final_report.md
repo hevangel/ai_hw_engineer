@@ -124,3 +124,37 @@ are absent. Speaker output uses measured pitch, not an exported transition
 stream. ROMs/font/OS retain their copyrights and are downloaded to ignored
 cache, not redistributed. Passing these finite tests does not establish
 universal software compatibility, silicon equivalence or FPGA timing closure.
+
+## CPU waveform viewer addition
+
+The PC now embeds the same bundled Surfer WASM viewer as BUSICOM, served at
+`/surfer/` on the PC server's own origin. Capture records a bounded window from
+the live Verilator model, closes the FST and atomically publishes it. It pauses
+the actual machine rather than resetting or replaying firmware. Clock phases
+use 104,762 ps half-periods (nominal 4.772727 MHz); the existing EU scheduling
+limits still apply. Scalar CPU register probes give readable AX..DI and segment
+register names even when a viewer handles unpacked arrays differently.
+
+The default window is 256 clocks; the API accepts 1..65,536. CPU-register and
+CPU-bus/DMA presets load real signal rows, with reload, hierarchy browsing and
+FST download. No trace is written during ordinary execution. Server-session
+metadata prevents advertising an old capture after a process restart. Capture,
+state polling and downloads share the simulator lock, so readers receive a
+complete old or new FST. Per-port files isolate live and test servers.
+
+`scripts/test_waveform.py` compares six captures (1/4,096/65,536 clocks before
+and after a million ordinary clocks) with unrecorded execution. All reported
+CPU/VRAM/peripheral state must match exactly. `test_backend.py` checks repeated
+capture versions and exact clock bounds, independent FST-header timing/1 ps
+resolution, GET/HEAD consistency, concurrent capture/download, invalid lengths,
+capture while powered off, local WASM serving and traversal rejection. These
+checks, strict traced build and existing board/speaker/format/VERIFY tests pass.
+The aggregate includes the new regression. CPU execution RTL is unchanged;
+the board adds only observation aliases.
+
+Browser inspection confirms every named register and the bus/DMA preset,
+including actual refresh handoffs, at normal and wide desktop layouts.
+Whole-board synthesis passes with the observation aliases; its final log is
+`work/waveform_synthesis.log`. The historical-software counters above record
+the original platform sign-off; the waveform addition's focused regression
+compares recorded and ordinary CPU execution and reruns the board/disk paths.

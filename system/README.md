@@ -21,5 +21,5 @@ under `spec/reference/`.
 The Micral N year follows the [Computer History Museum catalog](https://www.computerhistory.org/revolution/artifact/297/1147). Its reconstruction and documented limits are in the [system overview](micral_n/README.md).
 
 The IBM PC year follows [IBM's manufacturer history](https://www.ibm.com/history/personal-computer).
-Its original BIOS/BASIC/PC DOS firmware, RTL hardware, front panel and functional
+Its original BIOS/BASIC/PC DOS firmware, RTL hardware, front panel, CPU waveform viewer and functional
 boundaries are described in the [system overview](ibm_pc/README.md).

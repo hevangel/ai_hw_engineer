@@ -78,6 +78,12 @@ module ibm_pc (
     logic [3:0] drive_ready;
     logic [3:0] fdc_step, fdc_direction;
     logic [63:0] retire_count;
+    // Named scalar probes keep CPU registers readable in waveform tools that
+    // do not expose Verilator's unpacked-array hierarchy consistently.
+    logic [15:0] cpu_ax,cpu_cx,cpu_dx,cpu_bx,cpu_sp,cpu_bp,cpu_si,cpu_di;
+    logic [15:0] cpu_es,cpu_cs,cpu_ss,cpu_ds;
+    assign {cpu_di,cpu_si,cpu_bp,cpu_sp,cpu_bx,cpu_dx,cpu_cx,cpu_ax}=regs;
+    assign {cpu_ds,cpu_ss,cpu_cs,cpu_es}=segs;
 
     intel_8086 cpu(.clk(clk),.rst_n(rst_n),.bus_ready_i(eu_ready),.bus_rdata_i(eu_rdata),
         .intr_i(pic_int && !dma_hrq && !hlda),.nmi_i(1'b0),.hold_i(1'b0),.test_n_i(1'b0),
@@ -236,5 +242,6 @@ module ibm_pc (
     assign unused_signals=&{1'b0,eu_first,eu_seg,cpu_hlda,esc,esc_opcode,esc_address,fetching,
         ppi_a,ppi_c,ppi_aoe,ppi_boe,ppi_coe,dma_addr_oe,dma_adstb,dma_aen,dma_memr_n,
         fdc_mfm,fdc_load,fdc_deleted,nmi_enabled,unused_cas,unused_cas_oe,unused_en,unused_en_oe,
-        ppi_b[5:2],dma_dack[3],dma_dack[1],disk_present};
+        ppi_b[5:2],dma_dack[3],dma_dack[1],disk_present,
+        cpu_ax,cpu_cx,cpu_dx,cpu_bx,cpu_sp,cpu_bp,cpu_si,cpu_di,cpu_es,cpu_cs,cpu_ss,cpu_ds};
 endmodule

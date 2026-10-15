@@ -7,17 +7,20 @@ from pathlib import Path
 import subprocess
 import threading
 import tempfile
+from urllib.parse import urlsplit, unquote
 
 ROOT = Path(__file__).resolve().parents[1]
+SURFER_ROOT = Path('/opt/surfer/webapp')
 
 class Simulator:
     def __init__(self):
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
+        self.waveform_path=ROOT/'work'/f'cpu-waveform-{os.environ.get("IBM_PC_PORT","8088")}.fst'
         self.log = (ROOT/'work/server_simulator.log').open('w')
         self.process = subprocess.Popen(
             [str(ROOT/'work/obj/Vibm_pc'), str(ROOT/'work/reference')],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self.log,
-            text=True, bufsize=1)
+            text=True, bufsize=1,env={**os.environ,'IBM_PC_FST_PATH':str(self.waveform_path)})
         self.running = False
 
     def command(self, command):
@@ -26,6 +29,8 @@ class Simulator:
                 command='RUN 500000' if self.running else 'STATE'
             if command in ('AUTO','PAUSE','RESET','STEP','OFF'):
                 self.running=command=='AUTO'
+            if command.startswith('CAPTURE '):
+                self.running=False
             if self.process.poll() is not None:
                 raise RuntimeError('RTL simulator exited; inspect its log')
             self.process.stdin.write(command+'\n')
@@ -34,6 +39,19 @@ class Simulator:
             if not line:
                 raise RuntimeError('RTL simulator returned no state')
             return json.loads(line)
+
+    def capture(self,cycles):
+        with self.lock:
+            if not self.command('STATE')['powered']:
+                raise ValueError('Power on the PC before capturing a waveform')
+            return self.command(f'CAPTURE {cycles}')
+
+    def waveform(self):
+        with self.lock:
+            state=self.command('STATE')
+            if not state['captureVersion']:
+                return None,0
+            return self.waveform_path.read_bytes(),state['captureVersion']
 
     def close(self):
         if self.process.poll() is None:
@@ -52,7 +70,16 @@ def main():
         def __init__(self, *args, **kwargs):
             super().__init__(*args, directory=str(ROOT/'host/web'), **kwargs)
 
-        def send(self, payload, status=200, kind='application/json', filename=None):
+        def translate_path(self,path):
+            name=unquote(urlsplit(path).path)
+            if name.startswith('/surfer/'):
+                candidate=(SURFER_ROOT/name[len('/surfer/'):]).resolve()
+                if not candidate.is_relative_to(SURFER_ROOT):
+                    return str(SURFER_ROOT/'not-found')
+                return str(candidate)
+            return super().translate_path(path)
+
+        def send(self, payload, status=200, kind='application/json', filename=None,version=None,head=False):
             data = json.dumps(payload).encode() if kind=='application/json' else payload
             self.send_response(status)
             self.send_header('Content-Type', kind)
@@ -60,12 +87,33 @@ def main():
             self.send_header('Cache-Control', 'no-store')
             if filename:
                 self.send_header('Content-Disposition',f'attachment; filename="{filename}"')
+            if version is not None:
+                self.send_header('X-Waveform-Version',str(version))
             self.end_headers()
-            self.wfile.write(data)
+            if not head:
+                self.wfile.write(data)
+
+        def serve_waveform(self,head=False):
+            data,version=sim.waveform()
+            if data is None:
+                self.send({'error':'Capture a CPU waveform first'},404,head=head)
+            else:
+                self.send(data,kind='application/octet-stream',version=version,head=head)
+
+        def do_HEAD(self):
+            if urlsplit(self.path).path=='/waveform.fst':
+                try:
+                    self.serve_waveform(head=True)
+                except (OSError,RuntimeError) as error:
+                    self.send({'error':str(error)},500,head=True)
+            else:
+                super().do_HEAD()
 
         def do_GET(self):
             try:
-                if self.path=='/api/state':
+                if urlsplit(self.path).path=='/waveform.fst':
+                    self.serve_waveform()
+                elif self.path=='/api/state':
                     self.send(sim.command('POLL'))
                 elif self.path=='/api/font':
                     self.send((ROOT/'work/reference/cga.bin').read_bytes(), kind='application/octet-stream')
@@ -118,6 +166,11 @@ def main():
                 action = body.get('action')
                 if action in ('AUTO','PAUSE','RESET','STEP','OFF'):
                     self.send(sim.command(action))
+                elif action=='CAPTURE':
+                    cycles=body.get('cycles',4096)
+                    if type(cycles) is not int or not 1<=cycles<=65536:
+                        raise ValueError('Capture requires 1..65536 CPU clocks')
+                    self.send(sim.capture(cycles))
                 elif action=='KEY':
                     codes = body.get('codes')
                     if not isinstance(codes, list) or not 0<len(codes)<=64 or any(
