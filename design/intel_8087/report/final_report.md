@@ -2,9 +2,11 @@
 
 ## Delivered scope
 
-`intel_8087` is an integer-only SystemVerilog functional coprocessor with an
-80-bit register stack, original D8–DF decoding and a byte memory handshake.
-No host floating-point operations or DPI functions implement the RTL.
+`intel_8087` is a synthesizable SystemVerilog floating-point coprocessor
+implemented with explicit sign, exponent and significand datapaths. It has
+an 80-bit register stack, original D8–DF decoding and a byte memory handshake.
+Floating-point calculations use integer bit-vector operations in the RTL,
+without SystemVerilog `real` arithmetic or host floating-point DPI functions.
 
 | Class | Implemented operations |
 |---|---|
