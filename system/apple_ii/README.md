@@ -8,3 +8,11 @@ The [supporting chip inventory](spec/chip_inventory.md) maps the motherboard's
 RAM, ROM, character generator, TTL logic, and analog support parts. A synthetic
 ROM regression now exercises CPU keyboard polling, text-RAM writes and strobe
 acknowledgement end to end; authentic Monitor boot remains pending.
+
+## Web interface and waveform
+
+A web-interface screenshot with captured waveforms is not yet available.
+This system currently has RTL and testbench regressions, but no web front
+panel or browser waveform-capture interface. Add a genuine screenshot here
+when those features are implemented, following the
+[system README template](../TEMPLATE.md).

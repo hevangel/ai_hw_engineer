@@ -98,24 +98,56 @@ Create a new chip design from the project template:
 ai_hw_engineer/
 ├── Dockerfile              — Reproducible image with the EDA toolchain
 ├── README.md               — Project purpose, method, and usage
+├── AGENTS.md               — Repository instructions for AI coding agents
+├── CONTRIBUTING.md         — Contribution and review guidelines
+├── LICENSE                 — Project license
 ├── docs/                   — Documentation for the tools used by the engineer
-│   ├── xezim/              — Xezim SystemVerilog simulator
+│   ├── eqy/                — Formal equivalence checking with Yosys
+│   ├── surfer/             — Surfer waveform viewer and self-hosted web setup
+│   ├── uvm/                — UVM reference-library usage
+│   ├── verible/            — SystemVerilog lint and formatting utilities
 │   ├── verilator/          — Verilator compiler and simulator
-│   ├── yosys-symbiyosys/   — Yosys synthesis and SymbiYosys formal verification
-│   └── surfer/             — Surfer waveform viewer
+│   ├── xezim/              — Xezim SystemVerilog simulator
+│   ├── yosys-symbiyosys/   — Synthesis and formal-verification documentation
+│   └── toolchain-releases.md — Pinned versions and upstream sources
 ├── libs/                   — Reference libraries
-│   └── uvm/                — UVM reference releases
+│   └── uvm/                — Pinned UVM reference-library submodule
 ├── design/                 — Chip designs, one project per chip
+│   ├── README.md           — Chip index, introduction years, and source notes
 │   ├── TEMPLATE.md         — Design-folder conventions
-│   └── _template/          — Starting point for new designs
+│   ├── _template/          — Starting point for new designs
+│   └── <chip_name>/        — Historical CPUs, peripherals, and logic chips
+├── system/                 — Historical systems built from chip designs
+│   ├── README.md           — System index and integration overview
+│   ├── TEMPLATE.md         — System README and screenshot conventions
+│   ├── apple_ii/           — Apple II reconstruction in progress
+│   ├── busicom_141pf/      — BUSICOM printing calculator
+│   ├── ibm_pc/             — IBM PC 5150
+│   ├── ibm_pc_xt_5160/     — IBM PC XT 5160
+│   └── micral_n/           — Micral N
+├── references/             — Shared manufacturer manuals and datasheets
+├── plans/                  — Repository-wide design-series plans
+├── failure_notes/          — Escaped-defect post-mortems and prevention rules
+├── semantic-review/        — Recorded semantic code reviews
+├── session_history/        — Engineering session records
 └── scripts/                — Project-level utility scripts
-    └── new_design.sh       — Create a chip design from the template
+    ├── new_design.sh       — Create a chip design from the template
+    ├── run_surfer_web.sh   — Launch the self-hosted Surfer viewer
+    ├── serve_surfer_web.sh — Start the Surfer web server
+    └── serve_surfer_web.py — Surfer HTTP server implementation
 ```
 
-Each chip project lives under `design/<chip_name>/`:
+The tree shows maintained source and documentation; local scratch folders,
+caches, and generated build outputs are omitted. Browse the
+[chip index](design/README.md) and [system index](system/README.md) for project
+details, historical sources, and verification boundaries.
+
+Each chip project lives under `design/<chip_name>/`, following the shared
+template and adding references or other support folders as needed:
 
 ```text
 design/<chip_name>/
+├── README.md   — Historical context, sources, and design documentation links
 ├── spec/       — Chip specification and reference material
 ├── src/        — SystemVerilog RTL
 ├── tb/         — Simulation and UVM testbench
@@ -124,6 +156,13 @@ design/<chip_name>/
 ├── plans/      — Implementation, test, and formal plans
 └── report/     — Verification results and final sign-off report
 ```
+
+System projects live under `system/<system_name>/`. They use the same
+specification, planning, RTL, testbench, scripts, and report conventions, with
+`formal/` where applicable and `host/` for web front panels and DPI bridges.
+System reference material is typically stored under `spec/reference/`.
+Available folders and verification flows vary by project; start with its
+`README.md`.
 
 ## Standard design workflow
 

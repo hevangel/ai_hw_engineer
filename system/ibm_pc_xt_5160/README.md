@@ -13,6 +13,15 @@ Firmware artifacts and independent controller references are pinned to
 with original DOS 2.00 media from the
 [PCjs diskette archive](https://github.com/jeffpar/pcjs-diskettes/tree/cd3433748b09837a4c60ca7066f3642772b2d711/pcx86/sys/dos/ibm/2.00).
 
+## Web interface and waveform
+
+![IBM PC XT 5160 web interface with a captured CPU waveform in Surfer](assets/web-interface-waveform.jpg)
+
+The RTL platform during BIOS POST with a 4,096-clock CPU capture loaded in the
+embedded Surfer viewer. The CGA display is still blank at this stage of POST.
+Power on, choose **4,096** clocks and press **Capture CPU** to capture the
+current execution. Capture pauses the machine; **Run** resumes it.
+
 ## Run
 
 From the repository root in the hardware-toolchain container:
