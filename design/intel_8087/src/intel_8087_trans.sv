@@ -23,7 +23,7 @@ module intel_8087_trans (
     logic [5:0] unused_flags;
     logic unused_round;
     logic [3:0] unused_cc;
-    intel_8087_alu alu(.a_i(a),.b_i(b),.op_i(alu_op),.control_i(16'h13ff),
+    intel_8087_alu alu(.enable_i(phase!=0),.a_i(a),.b_i(b),.op_i(alu_op),.control_i(16'h13ff),
         .result_o(value),.exceptions_o(unused_flags),.rounded_up_o(unused_round),.condition_o(unused_cc));
     always_comb begin
         a=0; b=0; alu_op=0;

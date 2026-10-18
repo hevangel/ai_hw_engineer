@@ -122,9 +122,9 @@ module intel_8087 (
     assign st0=stack_q[top_q*80+:80];
     assign sti=stack_q[index_i*80+:80];
     assign st1=stack_q[index_one*80+:80];
-    assign loaded=fp_load(buffer_q[79:0],format_q);
+    assign loaded=state==EXEC&&memory_form ? fp_load(buffer_q[79:0],format_q):86'd0;
     assign source=memory_form?loaded[79:0]:sti;
-    intel_8087_alu alu(.a_i(alu_a),.b_i(alu_b),.op_i(alu_op),.control_i(cw_q),
+    intel_8087_alu alu(.enable_i(state==EXEC),.a_i(alu_a),.b_i(alu_b),.op_i(alu_op),.control_i(cw_q),
         .result_o(alu_result),.exceptions_o(alu_flags),.rounded_up_o(alu_round),.condition_o(alu_cc));
     intel_8087_trans trans(.clk(clk),.rst_n(rst_n),.start_i(state==TRANS_START),
         .op_i(trans_op),.x_i(st0),.y_i(st1),.done_o(trans_done),.result_o(trans_result));
@@ -224,6 +224,7 @@ module intel_8087 (
         next_inst=inst_pointer; next_operand=operand_pointer; next_opcode=last_opcode;
         write_buffer=0; write_command=0; bad_encoding=0; begin_trans=0;
         flags=0; converted=0; value=0; exponent=0; blocked=0;
+        if(state==EXEC||state==TRANS_WAIT||state==WRITE) begin
         if(opcode<8'hd8||opcode>8'hdf) bad_encoding=1;
         else if((opcode==8'hd8||opcode==8'hdc||opcode==8'hda||opcode==8'hde)&&
             (memory_form||opcode==8'hd8||opcode==8'hdc||opcode==8'hde)) begin
@@ -379,6 +380,7 @@ module intel_8087 (
         // Before exceptions suppress all effects. Precision traps retire the
         // rounded result. Range traps retire wrapped register results but
         // preserve memory and stack for FST/FSTP (Intel S-19--S-20).
+        end
         blocked=|(flags[2:0]&~cw_q[2:0]) ||
             (write_command&&|(flags[4:3]&~cw_q[4:3]));
         if(blocked||bad_encoding) begin

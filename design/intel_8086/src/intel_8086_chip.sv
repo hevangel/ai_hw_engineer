@@ -49,6 +49,9 @@ module intel_8086_chip (
   logic unused_hlda, unused_esc;
   logic [ 5:0] unused_esc_opcode;
   logic [19:0] unused_esc_address;
+  logic [7:0] unused_esc_modrm;
+  logic [19:0] unused_esc_instruction;
+  logic unused_waiting;
   intel_8086 eu (
       .clk(clk),
       .rst_n(!reset_i),
@@ -79,6 +82,7 @@ module intel_8086_chip (
       .esc_valid_o(unused_esc),
       .esc_opcode_o(unused_esc_opcode),
       .esc_address_o(unused_esc_address),
+      .esc_modrm_o(unused_esc_modrm),.esc_instruction_o(unused_esc_instruction),.waiting_o(unused_waiting),
       .regs_o(regs_o),
       .segs_o(segs_o),
       .ip_o(ip_o),

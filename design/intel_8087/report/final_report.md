@@ -86,3 +86,9 @@ evidence is not a full original-silicon compatibility sign-off.
 
 No unresolved TODO markers are used as substitutes for implementation;
 the explicit limits above define the delivered verification boundary.
+## XT integration follow-up
+
+Numeric combinational paths now have execution enables for complete-system
+simulation. The existing 246,624-check numerical regression passed unchanged
+after this optimization. The XT platform also exercises CPU-issued ESC/WAIT,
+memory arbitration and a DOS program computing 6*7 and SQRT(169).

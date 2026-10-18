@@ -26,6 +26,10 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-10-16 — XT fixed-disk sector-buffer diagnostic](2026-10-16-xt-fixed-disk-sector-buffer.md)
+  Original IBM adapter ROM exposed missing SRAM commands through POST error
+  1701; initial direct DMA tests had covered only disk media.
+
 - [2026-10-14 — intel_8237 programming while waiting for bus grant](2026-10-14-intel8237-pending-grant-programming.md)
   Original IBM BIOS format exposed mode writes lost when refresh raised HRQ
   before the CPU completed its current I/O cycle.
