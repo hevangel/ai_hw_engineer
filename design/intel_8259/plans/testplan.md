@@ -63,6 +63,7 @@ acknowledge), matching how a CPU latches the bus.
 | Fully nested priority | Lower blocked while in service; higher preempts |
 | Specific EOI and rotation | Rotate-on-non-specific-EOI reorders priority; specific EOI |
 | Masking | OCW1 mask hides a request; unmask reveals it; IMR readback |
+| Request withdrawal | Masked withdrawal, unmask/reassertion, withdrawal before/after first INTA, rotated fixed-IR7 spurious vector |
 | Polled mode | OCW3 poll, poll word with pending level, poll acknowledge sets ISR |
 | Level-triggered | Held line re-requests after EOI |
 | Automatic EOI | ISR self-clears at end of acknowledge |

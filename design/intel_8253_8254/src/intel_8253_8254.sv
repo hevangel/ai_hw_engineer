@@ -269,6 +269,9 @@ module intel_8253_8254 #(
                             if (canonical_mode(
                                     mode_bits[counter_index]) == 3'd0) begin
                                 counting[counter_index] <= 1'b0;
+                                // Intel 8254 Mode 0 definition, p.10: a new
+                                // count re-arms OUT low without a CLK pulse.
+                                out_state[counter_index] <= 1'b0;
                             end
                         end
                         2'b10: begin
@@ -290,6 +293,7 @@ module intel_8253_8254 #(
                             if (canonical_mode(
                                     mode_bits[counter_index]) == 3'd0) begin
                                 counting[counter_index] <= 1'b0;
+                                out_state[counter_index] <= 1'b0;
                             end
                         end
                         2'b11: begin
@@ -308,6 +312,7 @@ module intel_8253_8254 #(
                                 if (canonical_mode(
                                         mode_bits[counter_index]) == 3'd0) begin
                                     counting[counter_index] <= 1'b0;
+                                    out_state[counter_index] <= 1'b0;
                                 end
                             end else begin
                                 reload_value[counter_index][15:8] <= data_i;

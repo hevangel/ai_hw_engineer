@@ -134,7 +134,8 @@ module tb_intel_8259;
         end
     endfunction
 
-    // Reference next-state computation, mirroring the RTL always_ff exactly.
+    // Register model. Request withdrawal is independently pinned to Intel
+    // 231468-003 Figure 9/p.18 and checked by literal scenarios below.
     task automatic model_step;
         logic       m_initialized;
         logic       m_role_master;
@@ -179,7 +180,7 @@ module tb_intel_8259;
             inta_fall_c =  ref_prev_inta && !inta_n;
             inta_rise_c = !ref_prev_inta &&  inta_n;
 
-            eligible_c   = ref_irr & ~ref_imr;
+            eligible_c   = ref_irr & ~ref_imr & ir;
             elig_res_c   = resolve_req(eligible_c, ref_lowest);
             isr_res_c    = resolve_req(ref_isr, ref_lowest);
             elig_valid_c = elig_res_c[6];
@@ -188,7 +189,7 @@ module tb_intel_8259;
             isr_level_c  = isr_res_c[2:0];
             // The next-state model does not use the priority-rank fields
             _unused_ranks = ^{elig_res_c[5:3], isr_res_c[5:3]};
-            sel_level_c  = elig_valid_c ? elig_level_c : ref_lowest;
+            sel_level_c  = elig_valid_c ? elig_level_c : 3'd7;
             ack_engage_c = m_initialized &&
                            (m_role_master || (cas_i == m_own_id));
             max_phase_c  = m_upm ? 2'd2 : 2'd3;
@@ -199,7 +200,7 @@ module tb_intel_8259;
                 if (m_ltim) begin
                     irr_sensed_c[i] = ir[i];
                 end else begin
-                    irr_sensed_c[i] = ref_irr[i] | (ir[i] & ~ref_prev_ir[i]);
+                    irr_sensed_c[i] = ir[i] & (ref_irr[i] | ~ref_prev_ir[i]);
                 end
             end
 
@@ -388,7 +389,7 @@ module tb_intel_8259;
         e_initialized = (ref_init_state == StReady);
         e_role_master = e_sngl ? 1'b1 : (e_buf ? e_ms : sp_n_i);
 
-        e_eligible   = ref_irr & ~ref_imr;
+        e_eligible   = ref_irr & ~ref_imr & ir;
         e_elig_res   = resolve_req(e_eligible, ref_lowest);
         e_isr_res    = resolve_req(ref_isr, ref_lowest);
         e_elig_valid = e_elig_res[6];
@@ -781,6 +782,43 @@ module tb_intel_8259;
         lower_ir(5);
         cpu_write(1'b0, 8'h20);
         eoi_count = eoi_count + 1;
+
+        // Intel Fig.9: the request latch is transparent, including edge mode.
+        $display("--- withdrawn edge requests ---");
+        init_8086_single(8'h40, 1'b0);
+        cpu_write(1'b1, 8'h01); // mask periodic timer
+        raise_ir(0);
+        idle_cycle();
+        cpu_write(1'b0, 8'h0a);
+        cpu_read(1'b0, rdata);
+        check_condition(rdata[0], "asserted masked source remains in IRR");
+        lower_ir(0);
+        cpu_read(1'b0, rdata);
+        check_condition(!rdata[0], "withdrawn edge source clears IRR");
+        cpu_write(1'b1, 8'h00);
+        check_condition(!int_o, "unmask cannot resurrect a withdrawn timer edge");
+        raise_ir(0);
+        idle_cycle();
+        check_condition(int_o, "new timer assertion requests service");
+        lower_ir(0);
+        inta_pulse(b0);
+        inta_pulse(b1);
+        check_condition(b1 == 8'h47, "withdrawn request acknowledges as spurious IR7");
+        cpu_write(1'b0, 8'h0b);
+        cpu_read(1'b0, rdata);
+        check_condition(rdata == 0, "spurious acknowledge must not set ISR");
+        raise_ir(0);
+        idle_cycle();
+        inta_pulse(b0);
+        lower_ir(0); // safe after the first falling INTA edge
+        inta_pulse(b1);
+        check_condition(b1 == 8'h40, "withdrawal after first INTA retains selected vector");
+        cpu_write(1'b0, 8'h20);
+
+        cpu_write(1'b0, 8'hc2); // rotate priorities: lowest is now IR2
+        inta_pulse(b0);
+        inta_pulse(b1);
+        check_condition(b1 == 8'h47, "spurious vector stays IR7 after priority rotation");
 
         // ---- Poll mode ----
         $display("--- polled mode ---");

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IBM Personal System/2 · Model 30</title><link rel="stylesheet" href="style.css"></head>
+<body><div class="pc-layout"><main>
+<header><div><span class="eyebrow">PERSONAL SYSTEM/2 / 1987</span><h1>IBM <span>PS/2 Model 30</span></h1></div>
+<div class="configuration">640 KB RAM <b>·</b> MCGA · 8 MHz 8086 <b>·</b> PC DOS 3.30</div></header>
+<section class="workstation" aria-label="IBM PS/2 Model 30 virtual workstation">
+<div class="monitor"><div class="bezel"><div class="glass" id="screen" tabindex="0" aria-label="Computer display. Click to type on the IBM keyboard.">
+<canvas id="display" width="640" height="400"></canvas><div id="overlay">YOUR PERSONAL SYSTEM/2<span>Power on to run the original IBM BIOS.</span></div>
+</div><div class="monitor-bottom"><span class="ibm-mark">IBM</span><span class="monitor-label">8512 COLOR DISPLAY</span><i id="monitor-led"></i></div></div></div>
+<div class="system-unit"><div class="unit-left"><div class="badge">IBM<span>Personal System/2</span></div><div class="vents"></div></div>
+<div class="drives"><div class="drive"><span>A</span><div class="slot"></div><i id="drive-a"></i><small id="floppy-a-label">PC DOS 3.30 · 720 KB</small></div>
+<div class="drive" id="floppy-b" hidden><span>B</span><div class="slot"></div><i id="drive-b"></i><small>WORK DISK · 720 KB</small></div><div class="drive" id="harddrive"><span>C</span><div class="slot fixed-disk"></div><i id="drive-c"></i><small>FIXED DISK · 20 MB</small></div></div>
+<button id="power" class="power-switch" aria-label="Power on">POWER<span>Ⅰ</span></button></div>
+<div class="control-row"><div id="status"><i></i>POWER OFF</div><div class="buttons"><label class="sound-control"><input id="sound" type="checkbox" checked>Speaker</label><button id="pause" disabled>Pause</button><button id="step" disabled>Step</button><button id="reset" disabled>Reset</button></div></div>
+</section>
+<section class="keyboard-section"><div class="keyboard-heading"><span>101-KEY MODEL M KEYBOARD</span><span id="keyboard-hint">Click the display to use your keyboard</span></div><div id="keyboard" class="keyboard" aria-label="On-screen IBM keyboard"></div></section>
+<div class="disk-controls"><span>DRIVES</span><label>Mount A<input type="file" id="mount-a" accept=".img,.ima,.dsk" hidden></label><label id="mount-b-label" hidden>Mount B<input type="file" id="mount-b" accept=".img,.ima,.dsk" hidden></label><button id="eject-a">Eject A</button><label>Mount HDD<input type="file" id="mount-hdd" accept=".img,.m30" hidden></label><a href="/api/disk/2" download="ibm-ps2-model30-harddisk.m30">Save hard disk ↓</a><a href="/api/disk/2/raw" download="ibm-ps2-model30-harddisk.img">Raw image ↓</a><a id="save-b" hidden href="/api/disk/1" download="ibm-ps2-model30-work-disk.img">Save work disk ↓</a><small id="disk-hint">20 MB hard disk saves automatically · Eject A and Reset to boot C after installing DOS</small></div>
+<footer><span>Original Model 30 BIOS · Original PC DOS · Hardware simulated in RTL</span><button id="details-toggle">Machine details ↗</button></footer>
+<section id="details" hidden><div><span>CPU</span><strong>8086 · native 16-bit memory bus</strong></div><div><span>ADDRESS</span><strong id="address">FFFF:0000</strong></div><div><span>INSTRUCTIONS</span><strong id="instructions">0</strong></div><div><span>REFRESH / DMA</span><strong id="dma">0 / 0</strong></div><p>Functional virtual platform. Original instruction clock counts, analog video and electrical timing are outside the model. The BIOS, DOS and application instructions execute in the hardware model.</p></section>
+<p id="error" role="alert" hidden></p>
+</main>
+<details id="waveform_panel" class="waveform-panel" open>
+<summary>CPU waveform <span>FST · Surfer</span></summary>
+<div class="waveform-content">
+<p>Capture the next CPU clocks from this machine. Capture pauses execution; use Run to continue.</p>
+<div class="waveform-actions">
+<label>Clocks <select id="waveform_cycles"><option value="256" selected>256</option><option value="1024">1,024</option><option value="4096">4,096</option><option value="16384">16,384</option><option value="65536">65,536</option></select></label>
+<button id="waveform_capture" disabled>Capture CPU</button>
+<label>Signals <select id="waveform_signals"><option value="cpu">CPU registers</option><option value="bus">CPU bus and DMA</option><option value="disk">Hard disk and DMA 3</option></select></label>
+<button id="waveform_refresh" disabled>Reload waveform</button>
+<a id="waveform_download" href="/waveform.fst" download="ibm-ps2-model30-cpu.fst" hidden>Download FST ↓</a>
+</div>
+<div id="waveform_status" role="status">Power on the PC, then capture a CPU waveform.</div>
+<iframe id="surfer_frame" title="Surfer CPU waveform viewer" loading="lazy"></iframe>
+<p class="waveform-legend">The CPU preset shows registers and instruction state. The hard disk preset shows DBA commands, IRQ5 and DMA3. Add other signals using Surfer's hierarchy panel.</p>
+</div>
+</details></div>
+<script type="module" src="app.js"></script><script type="module" src="waveform.js"></script></body></html>

@@ -53,6 +53,13 @@ represent the shared cascade and buffer-enable pins. This preserves functional
 ordering without claiming pin-level timing, metastability behavior, NMOS/TTL
 electrical behavior, or package compatibility.
 
+The Model 30 firmware regression exposed a withdrawn timer request that
+survived in IRR. Edge-mode requests now require the source to remain high
+until the first acknowledge, following Intel 231468-003 Figure 9. A request
+withdrawn before acknowledgement produces the fixed IR7 spurious vector;
+withdrawal after the first acknowledge retains the captured vector. See the
+[escaped-defect analysis](../../failure_notes/2026-10-18-intel8259-withdrawn-request.md).
+
 ## Documentation
 
 - [Specification](spec/spec.md)

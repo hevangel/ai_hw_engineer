@@ -124,7 +124,7 @@ module intel_8259_props (
     logic [2:0] isr_level;
     logic [2:0] elig_rank;
     logic [2:0] isr_rank;
-    assign eligible   = irr & ~imr;
+    assign eligible   = irr & ~imr & ir;
     assign elig_res   = resolve_req(eligible, lowest_priority);
     assign isr_res    = resolve_req(isr, lowest_priority);
     assign elig_valid = elig_res[6];
@@ -220,7 +220,7 @@ module intel_8259_props (
 
         // Structural safety
         assert (!data_oe || (bus_read || ((ack_phase != 2'd0) && !inta_n)));
-        assert (!int_o || (initialized && (|(irr & ~imr))));
+        assert (!int_o || (initialized && (|(irr & ~imr & ir))));
         assert ((cas_oe == 3'b000) || (cas_oe == 3'b111));
         assert ((cas_oe == 3'b000) ||
                 (role_master && ack_slave && (ack_phase != 2'd0)));
@@ -267,6 +267,14 @@ module intel_8259_props (
             if ($past(spec_eoi)) begin
                 assert (isr[$past(data_i[2:0])] == 1'b0);
             end
+
+            // Intel 231468-003 Fig. 9: withdrawal removes the request even
+            // in edge mode. Literal source-line assertions avoid deriving
+            // this expectation from the DUT's edge-sensing expression.
+            for (integer line_number=0;line_number<8;line_number=line_number+1)
+                if (!$past(ir[line_number])) assert (!irr[line_number]);
+            if ($past(ack_phase)==0 && ack_phase==1 && !$past(elig_valid))
+                assert (ack_level==7);
 
             // Reachable-state structural bounds
             assert (init_state <= StReady);

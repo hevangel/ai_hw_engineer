@@ -87,6 +87,10 @@ Modes 2 and 3 require programmed counts of at least 2. Other values have determi
 - LSB/MSB stores the first byte as the low byte and completes the count on the second byte.
 - Completing a count write sets the null-count indication until the counting element is loaded.
 - In Mode 0, the first byte of an LSB/MSB rewrite stops the current count.
+- In Mode 0, a new count write immediately drives OUT low, including the
+  first byte of a two-byte rewrite after terminal count. The completed count
+  loads on the next clock without decrementing; its terminal event produces
+  a new rising edge. Authority: Intel 8254 datasheet, Mode 0 definition p.10.
 - Modes 0, 2, 3, and 4 transfer a completed count on the next sampled falling counter-clock event. Modes 1 and 5 arm the count and transfer it on the sampled falling counter-clock event associated with a GATE trigger.
 
 For the 8254, read and write byte phases are independent. For the 8253, any LSB/MSB data access toggles the one shared phase for that counter; an intervening read can therefore redirect the next write, and vice versa.

@@ -17,6 +17,10 @@ Both chips share one synthesizable SystemVerilog module, [`intel_8253_8254`](src
 
 The common timer engine provides three fixed 16-bit counters, Modes 0–5 (including Mode 2/3 aliases), binary and packed four-decade BCD counting, count/status latches, GATE control, null-count status, and the four-address CPU programming interface.
 
+Mode 0 count rewrites re-arm OUT low immediately and produce another
+terminal-count edge. Original Model 30 POST exposed this path; directed
+regressions cover LSB, MSB and two-byte rewrites for both timer variants.
+
 The historical devices use three independent asynchronous counter clocks and do not have a device-wide clock or reset. This implementation adds an integration `clk` and synchronous active-low `rst_n`; falling counter-clock and rising GATE events are detected from sampled input levels. External asynchronous inputs therefore require integration-layer synchronization. The design is a cycle-defined digital reconstruction and does not claim pin timing, metastability, electrical, package, or process compatibility.
 
 ## Documentation

@@ -30,9 +30,11 @@ structural safety assertions, and proves the key sequential transitions.
 | S9 | ICW1 restarts initialization and clears operating state | P1 |
 | S10 | The mask register changes only through OCW1 (outside reset/ICW1) | P1 |
 | S11 | Specific EOI clears exactly the addressed in-service bit | P1 |
+| S13 | A sampled low source clears its IRR bit, independently of the mask | P1 |
+| S14 | Empty first acknowledge captures fixed IR7 | P1 |
 | S12 | The initialization state and acknowledge phase stay within their legal ranges | P2 |
 
-The synthesized proof cone contains 31 assertion outputs after packed and vector
+The synthesized proof cone contains 38 assertion outputs after packed and vector
 properties are lowered.
 
 ## Reachability covers
@@ -50,6 +52,7 @@ proof-strategy note below).
 | C6 | Priority is rotated away from the reset order |
 | C7 | Rotate-in-automatic-EOI mode is active |
 | C8 | Special mask mode enables an interrupt while a level is in service |
+| C9 | An unacknowledged request is withdrawn without reset |
 
 ## Assumptions
 
@@ -94,7 +97,7 @@ formal/
 ## Final status
 
 - BMC: PASS through 20 frames; no assertion output reached.
-- PDR: PASS, 31/31 assertion outputs proved; converged by frame 5.
+- PDR: PASS, 31/38 assertion outputs proved; converged by frame 5.
 - Cover: PASS, 8/8 cover statements reached; maximum witness step 26.
 - No counterexample, timeout, unknown result, or over-constraining indication
   remains for the safety proofs.
