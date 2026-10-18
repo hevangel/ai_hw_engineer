@@ -2,6 +2,15 @@
 
 R2E introduced the Intel 8008-based Micral N in **1973**. Its modular Pluribus design supported configurable memory and I/O cards; the optional front console was intended for development and service. This reconstruction wires the repository's 8008 CPU into a 16 KiB system memory, I/O input groups and output latches, and a browser front panel.
 
+## Web interface and waveform
+
+![Micral N web console after running the MO5 I/O demonstration](assets/web-interface.jpg)
+
+The live RTL console paused after running the MO5 I/O exercise with input
+group 5 bit D7 enabled. The processor state, address/data lamps and latched
+output are visible. This panel does not yet implement waveform capture or an
+embedded waveform viewer, so this screenshot shows the console only.
+
 ## Run
 
 From the repository root, using the project's tool image:

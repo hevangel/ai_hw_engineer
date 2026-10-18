@@ -3,9 +3,13 @@
 The original five-ROM firmware runs on the reconstructed Intel MCS-4 chips.
 The browser provides physical keys, switches, printer drum and paper tape.
 
+## Web interface and waveform
+
 ![Current Busicom 141-PF calculator, manual replay, and Surfer waveform](assets/web-app.jpg)
 
 Current web panel with a completed manual example and the 4004 FST signals.
+Run a manual example or enter a calculation, then expand the waveform panel
+to reproduce this view. The capture finalizes when the operation becomes idle.
 
 ## Run
 

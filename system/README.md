@@ -19,6 +19,12 @@ Each `system/<name>/` folder follows the chip-design layout (`spec/`,
 DPI bridge). The `spec/` folder also stores downloaded reference material
 under `spec/reference/`.
 
+Use the [system README template](TEMPLATE.md) for system overviews. Each
+system README includes a **Web interface and waveform** section with a real
+browser screenshot showing captured signals where supported, or an explicit
+note identifying the missing web-interface or waveform feature. Screenshot
+assets live in each system's `assets/` folder.
+
 The Micral N year follows the [Computer History Museum catalog](https://www.computerhistory.org/revolution/artifact/297/1147). Its reconstruction and documented limits are in the [system overview](micral_n/README.md).
 
 The IBM PC year follows [IBM's manufacturer history](https://www.ibm.com/history/personal-computer).

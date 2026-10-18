@@ -11,6 +11,15 @@ a 64 KiB, CGA-equipped 5150 with two single-sided 160 KiB drives and an
 its system adapter supplies the original PC's 8-bit bus and four-byte queue.
 BIOS, DOS and application instructions and interrupts execute in RTL.
 
+## Web interface and waveform
+
+![IBM PC 5150 web interface with a captured CPU waveform in Surfer](assets/web-interface-waveform.jpg)
+
+The RTL platform during BIOS POST with a 4,096-clock CPU capture loaded in the
+embedded Surfer viewer. The CGA display is still blank at this stage of POST.
+Power on, choose **4,096** clocks and press **Capture CPU** to capture the
+current execution. Capture pauses the machine.
+
 The front panel shows actual CGA memory with the original character ROM,
 physical and on-screen scan-code keyboard input, run/pause/instruction step,
 reset/power, speaker pitch derived from the PIT output, disk-image mounting
