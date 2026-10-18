@@ -1,0 +1,32 @@
+[tasks]
+bmc common
+prove common
+cover_stack
+cover_bus
+
+[options]
+bmc: mode bmc
+bmc: depth 6
+prove: mode prove
+prove: depth 6
+cover_stack: mode cover
+cover_stack: depth 22
+cover_bus: mode cover
+cover_bus: depth 8
+timeout 120
+
+[engines]
+smtbmc yices
+
+[script]
+common: read -formal -sv -DFORMAL_CONTROL intel_8087_numeric_cut.sv intel_8087.sv intel_8087_props.sv
+cover_stack: read -formal -sv -DFORMAL_CONTROL -DCOVER_STACK intel_8087_numeric_cut.sv intel_8087.sv intel_8087_props.sv
+cover_bus: read -formal -sv -DFORMAL_CONTROL -DCOVER_BUS intel_8087_numeric_cut.sv intel_8087.sv intel_8087_props.sv
+prep -top intel_8087_props -flatten
+opt -full
+
+[files]
+../src/intel_8087.sv
+intel_8087_numeric_cut.sv
+intel_8087_control_math.svh
+intel_8087_props.sv

@@ -9,10 +9,11 @@ and a host bridge for external storage, media and user input.
 | System | Year | Chips used | Folder |
 |---|---|---|---|
 | Apple II (in progress) | 1977 | MOS 6502 | [apple_ii/](apple_ii/) |
-| BUSICOM 141-PF printing calculator | 1971 | 4004, 5×4001, 2×4002, 3×4003 | [busicom_141pf/](busicom_141pf/) |
+| BUSICOM 141-PF printing calculator | 1971 | 4004, 5Ã—4001, 2Ã—4002, 3Ã—4003 | [busicom_141pf/](busicom_141pf/) |
 | Micral N | 1973 | Intel 8008, 16 KiB memory, I/O bus | [micral_n/](micral_n/) |
 | IBM PC 5150 | 1981 | 8088 bus adapter/shared 8086 EU, 8259, 8253, 8255, 8237, 8272, CGA | [ibm_pc/](ibm_pc/) |
 | IBM PS/2 Model 30 (in progress) | 1987 | Native 8086, planar gate arrays, 8259, 8253, 8237, 8272, MM58167-compatible RTC, MCGA, integrated DBA fixed-disk controller | [ibm_ps2_model30/](ibm_ps2_model30/) |
+| IBM PC XT 5160 | 1983 | 8088, 8087, 256 KiB RAM, CGA, IBM/Xebec 10 MB fixed disk | [ibm_pc_xt_5160/](ibm_pc_xt_5160/) |
 
 Each `system/<name>/` folder follows the chip-design layout (`spec/`,
 `plans/`, `src/`, `tb/`, `scripts/`, `report/`) plus `host/` (web app and

@@ -23,3 +23,9 @@ sh design/intel_8086/scripts/run_all.sh
 ```
 
 The first run downloads pinned, integrity-checked references to ignored `work/`. The report distinguishes documented behavior, supported extensions, finite verification evidence and timing/electrical limits; it does not claim exhaustive silicon equivalence.
+
+## XT coprocessor integration
+
+The execution core also exports the captured ESC ModR/M byte, ESC instruction
+physical address and WAIT state for the [XT/8087 platform](../../system/ibm_pc_xt_5160/README.md).
+These observation outputs do not change native CPU instruction or bus behavior.

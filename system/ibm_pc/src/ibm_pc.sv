@@ -45,6 +45,9 @@ module ibm_pc (
     logic locked, redirect, suspend_fetch, inhibit_grant, cpu_hlda, esc;
     logic [5:0] esc_opcode;
     logic [19:0] esc_address;
+    logic [7:0] unused_esc_modrm;
+    logic [19:0] unused_esc_instruction;
+    logic unused_waiting;
     logic fetching, hlda, inta_active;
     logic [7:0] read_data;
     logic pic_int, pic_oe, pit_oe, ppi_oe, dma_oe, fdc_oe;
@@ -93,6 +96,7 @@ module ibm_pc (
         .retire_o(retired),.lock_o(locked),.hlda_o(cpu_hlda),.redirect_o(redirect),
         .prefetch_suspend_o(suspend_fetch),.arbitration_inhibit_o(inhibit_grant),
         .esc_valid_o(esc),.esc_opcode_o(esc_opcode),.esc_address_o(esc_address),
+        .esc_modrm_o(unused_esc_modrm),.esc_instruction_o(unused_esc_instruction),.waiting_o(unused_waiting),
         .regs_o(regs),.segs_o(segs),.ip_o(ip),.flags_o(flags));
     ibm_pc_bus bus(.clk(clk),.rst_n(rst_n),.eu_req(eu_req),.eu_write(eu_write),
         .eu_fetch(eu_fetch),.eu_intack(eu_ack),.eu_addr(eu_addr),.eu_be(eu_be),
