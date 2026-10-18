@@ -26,6 +26,23 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-10-18 — Model 30 MCGA mode 6](2026-10-18-model30-mcga-mode6.md)
+  Original BASICA exposed high-resolution-only graphics decoded as text.
+
+- [2026-10-18 — 8259A withdrawn request](2026-10-18-intel8259-withdrawn-request.md)
+  Original FDISK warm restart exposed an edge/request-latch interpretation
+  shared by RTL and reference model.
+- [2026-10-18 — Model 30 floppy identification](2026-10-18-model30-floppy-identification.md)
+  Original FORMAT exposed a 720K drive reported as high density.
+
+- [2026-10-15 — Model 30 planar integration](2026-10-15-model30-planar-integration.md)
+  Original POST exposed CPU/DMA clock crossing and omitted floppy/serial
+  gate-array behavior that standalone chip tests could not cover.
+
+- [2026-10-15 — PIT Mode 0 count rewrite](2026-10-15-pit-mode0-rearm.md)
+  Original Model 30 POST exposed terminal OUT remaining high across a count
+  rewrite, preventing the second timer interrupt.
+
 - [2026-10-14 — intel_8237 programming while waiting for bus grant](2026-10-14-intel8237-pending-grant-programming.md)
   Original IBM BIOS format exposed mode writes lost when refresh raised HRQ
   before the CPU completed its current I/O cycle.

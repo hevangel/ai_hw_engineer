@@ -147,7 +147,8 @@ module intel_8259 (
     logic [2:0] elig_rank;
     logic [2:0] isr_rank;
 
-    assign eligible   = irr & ~imr;
+    // Intel 231468-003 Figure 9/p.18: IR must remain asserted until INTA.
+    assign eligible   = irr & ~imr & ir;
     assign elig_res   = resolve_req(eligible, lowest_priority);
     assign isr_res    = resolve_req(isr, lowest_priority);
     assign elig_valid = elig_res[6];
@@ -176,9 +177,9 @@ module intel_8259 (
     end
     assign int_o = int_want;
 
-    // Level selected at acknowledge pulse 1 (spurious -> lowest priority level)
+    // Intel datasheet p.18: a spurious acknowledge always vectors through IR7.
     logic [2:0] sel_level;
-    assign sel_level = elig_valid ? elig_level : lowest_priority;
+    assign sel_level = elig_valid ? elig_level : 3'd7;
 
     // Acknowledge engagement: a slave engages only when addressed by cascade
     logic ack_engage;
@@ -253,7 +254,9 @@ module intel_8259 (
             if (ltim) begin
                 irr_sensed[i] = ir[i];
             end else begin
-                irr_sensed[i] = irr[i] | (ir[i] & ~prev_ir[i]);
+                // The request latch follows low IR; the edge latch only
+                // prevents retriggering while a serviced source stays high.
+                irr_sensed[i] = ir[i] & (irr[i] | ~prev_ir[i]);
             end
         end
     end
@@ -422,6 +425,7 @@ module intel_8259 (
 `ifdef FORMAL
 `ifdef FORMAL_COVER
     intel_8259_cover formal_coverage (
+        .irr             (irr),
         .clk             (clk),
         .rst_n           (rst_n),
         .cs_n            (cs_n),

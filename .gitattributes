@@ -4,6 +4,8 @@ design/intel_8275/scripts/*.sh text eol=lf
 design/intel_8237/scripts/*.sh text eol=lf
 system/busicom_141pf/scripts/*.sh text eol=lf
 system/ibm_pc/scripts/*.sh text eol=lf
+system/ibm_ps2_model30/scripts/*.sh text eol=lf
+design/intel_8253_8254/scripts/*.sh text eol=lf
 design/intel_8272/scripts/*.sh text eol=lf
 design/intel_8273/scripts/*.sh text eol=lf
 design/apple_iie_mmu/scripts/*.sh text eol=lf
@@ -19,3 +21,5 @@ design/intel_3404/scripts/*.sh text eol=lf
 # mos_6502 scripts are executed in Linux containers; references stay byte-exact.
 design/mos_6502/scripts/*.sh text eol=lf
 design/mos_6502/references/*.hex -text
+
+design/intel_8259/scripts/*.sh text eol=lf

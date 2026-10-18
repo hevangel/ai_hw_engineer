@@ -259,14 +259,17 @@ device; ICW1 then clears IMR to all-zero per the historical device.
 ### 7.1 Request sensing
 
 - Edge-triggered (`LTIM == 0`): a sampled low-to-high transition on `ir[i]` sets
-  `IRR[i]`. `IRR[i]` remains set until it is cleared by an acknowledge of level
-  `i` or by ICW1. A held-high level does not generate repeated requests; a new
-  rising edge is required after each acknowledge.
+  `IRR[i]` while the source remains high. Withdrawal before the first INTA
+  clears the request; acknowledge of level `i` and ICW1 also clear it. A
+  held-high level does not generate repeated requests; a new rising edge
+  is required after each acknowledge.
 - Level-triggered (`LTIM == 1`): `IRR[i]` follows the sampled `ir[i]` level. A
   level that remains high re-requests after its ISR bit is cleared.
 
-Edge latching is frozen for the acknowledged level between acknowledge pulse 1
-and completion of the acknowledge sequence.
+The selected acknowledge level/vector is captured at pulse 1. Other sources
+continue to be sampled on the model clock during the sequence. The original
+asynchronous priority cell's internal freeze pulse timing is outside this
+sampled functional contract; it is not claimed as pin-level equivalent.
 
 ### 7.2 Priority resolution
 
@@ -309,8 +312,8 @@ completion of the final pulse. If rotate-in-automatic-EOI is also set, the
 until an explicit EOI command (Section 5.6).
 
 If no eligible request exists when pulse 1 arrives (a spurious acknowledge), the
-device selects the lowest-priority level, drives its vector, and does not set an
-ISR bit, matching the historical spurious-interrupt behavior.
+device selects fixed IR7, drives its vector, and does not set an ISR bit.
+Priority rotation does not change the spurious level.
 
 ### 7.5 Poll mode
 
@@ -425,3 +428,22 @@ The following original-device characteristics are outside scope:
 
 Source content is summarized and rephrased for licensing compliance; no source
 text is reproduced verbatim beyond device names and signal terminology.
+
+
+## Withdrawn requests (manufacturer priority cell)
+
+Intel 8259A datasheet order 231468-003, Figure 9 (printed p.17), shows
+that the request latch is transparent outside acknowledge/poll freeze.
+The edge-sense latch prevents repeated acknowledgement of a continuously
+high input; it does not preserve an IRR request after its source falls.
+Printed p.18 explicitly requires IR to remain high through the falling
+edge of the first INTA, including edge mode. A withdrawn request cannot
+set that level's ISR bit; an acknowledge with no valid request returns
+the spurious vector without setting ISR. A source that remains asserted
+while masked is still pending when unmasked; IMR does not erase IRR.
+
+This corrects the prior assumption that any sampled rising edge remained
+pending independently of the source level. The Model 30 software reboot
+exposes that distinction when PIT Mode 0 programming withdraws a pending
+old periodic timer request. Native tests must cover high/low withdrawal,
+mask/unmask withdrawal, reassertion, and a pulse lost before acknowledge.

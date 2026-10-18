@@ -541,6 +541,40 @@ module tb_top;
                         "Odd Mode 3 low phase must last two clocks");
         alias_scenario_count = alias_scenario_count + 1;
 
+        $display("--- Mode 0 count rewrite after terminal, without control rewrite ---");
+        // Independent authority: Intel 8254 datasheet Mode 0, p.10.
+        // Original IBM Model 30 POST at F000:0688 exposed the missing edge.
+        for (int format = 1; format <= 3; format++) begin
+            cpu_write(2'b11, 8'(format << 4));
+            if (format == 2) cpu_write(2'b00, 8'h01);
+            else begin
+                cpu_write(2'b00, 8'h02);
+                if (format == 3) cpu_write(2'b00, 8'h00);
+            end
+            for (int tick = 0; tick <= (format == 2 ? 256 : 2); tick++) pulse_counter(0);
+            check_condition(out_o_8253[0] && out_o_8254[0],
+                            "Mode 0 rewrite fixture must first reach terminal OUT high");
+            cpu_write(2'b00, format == 2 ? 8'h01 : 8'h03);
+            check_condition(!out_o_8253[0] && !out_o_8254[0],
+                            "New Mode 0 count first byte must immediately drive OUT low");
+            if (format == 3) begin
+                pulse_counter(0);
+                pulse_counter(0);
+                check_condition(!out_o_8253[0] && !out_o_8254[0],
+                                "Partial Mode 0 rewrite must remain stopped and low");
+                cpu_write(2'b00, 8'h00);
+            end
+            pulse_counter(0); // load, not decrement
+            for (int tick = 1; tick < (format == 2 ? 256 : 3); tick++) begin
+                pulse_counter(0);
+                check_condition(!out_o_8253[0] && !out_o_8254[0],
+                                "Rewritten Mode 0 OUT must remain low before exact terminal");
+            end
+            pulse_counter(0);
+            check_condition(out_o_8253[0] && out_o_8254[0],
+                            "Rewritten Mode 0 must generate a second terminal rising edge");
+        end
+
         $display("--- GATE pause, force-high, and restart ---");
         program_counter(0, 3'd0, 1'b0, 16'h0002);
         pulse_counter(0);

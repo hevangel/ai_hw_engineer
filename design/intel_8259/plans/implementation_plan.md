@@ -144,3 +144,7 @@ splitting them would obscure the ordering rules that define correct behavior.
 | Simulation complete | Complete |
 | Synthesis complete | Complete |
 | Documentation and automated gates | Complete |
+
+Follow-up: pin request withdrawal to Intel Figure 9/p.18 before changing
+edge sensing; add independent literal expectations and formal obligations,
+then run unchanged Model 30 software-reboot regression.

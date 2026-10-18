@@ -165,3 +165,26 @@ Individual entry points are `run_lint.sh`, `run_sim.sh`, `run_formal.sh`, `run_s
 | Specification, plans, scripts, README, and reports complete | PASS |
 
 **Sign-off status: READY.**
+
+## 9. October 15, 2026: Model 30 firmware regression
+
+The original IBM PS/2 Model 30 BIOS exposed an escaped Mode 0 defect:
+writing a new count after terminal count left OUT high, preventing a second
+IRQ0. The [failure note](../../../failure_notes/2026-10-15-pit-mode0-rearm.md)
+pins the repair to Intel's specified immediate OUT-low behavior. Single-byte
+writes and the first byte of a two-byte write now lower OUT without a
+counter-clock edge. The two-byte sequence still waits for its second byte
+before loading and counting.
+
+The complete dual-variant flow passes: strict Verilator/Verible lint,
+Xezim simulation (22,544 cycles, 780 checks, zero failures), bounded and
+unbounded proofs, all seven semantic covers per variant, and generic
+synthesis/structural checks. The added immediate OUT-low formal obligation
+also passes BMC/PDR for both variants. Existing results above describe the
+earlier baseline; these counts supersede its simulation totals.
+
+System validation executes unchanged Model 30 POST past the timer test.
+The original IBM PC 5150 regression also passes through PC DOS 1.00,
+DIR, CHKDSK, FORMAT on all 40 cylinders, COPY with independent FAT12 byte
+comparison, BASIC and DONKEY graphics (325 million clocks). No CPU or BIOS
+intercepts are used. Generated logs remain under ignored `work/` folders.

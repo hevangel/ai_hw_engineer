@@ -1,7 +1,7 @@
 # Intel 8259A Coverage Report
 
-**Validation date:** 2026-08-26
-**Container image:** `sha256:d2ffb0d844d69e4de521c2c8e376d46ea34f6edfec1d5069039895c1b2e6f147`
+**Validation date:** 2026-10-18
+**Original baseline container image:** `sha256:d2ffb0d844d69e4de521c2c8e376d46ea34f6edfec1d5069039895c1b2e6f147`
 
 ## Simulation coverage
 
@@ -15,10 +15,10 @@ the poll word, and cascade signaling.
 
 ```text
 Pseudorandom seed: 0x8259, operations: 2048
-8259 simulation result: 5816 cycles, 5816 interface checks, 40763 field checks
-CPU reads: 263, CPU writes: 1780, init sequences: 276
+8259 simulation result: 5867 cycles, 5867 interface checks, 41128 field checks
+CPU reads: 266, CPU writes: 1789, init sequences: 277
 INTA sequences: 13, EOI commands: 216, poll reads: 1, OCW3 writes: 250
-IR rising edges: 138
+IR rising edges: 141
 Failures: 0
 TEST PASSED
 ```
@@ -48,7 +48,7 @@ TEST PASSED
 
 ## Formal coverage
 
-The property harness proves 31 assertion outputs. Reset is required only in the
+The property harness proves 38 assertion outputs. Reset is required only in the
 initial formal cycle and remains unconstrained afterward, allowing arbitrary
 later reset assertion and reset-priority conflicts. A scripted-stimulus
 reachability harness demonstrates non-vacuity of the safety proofs.
@@ -56,10 +56,10 @@ reachability harness demonstrates non-vacuity of the safety proofs.
 | Task | Engine | Bound/convergence | Result |
 |---|---|---:|---|
 | BMC | ABC `bmc3` | 20 frames | PASS |
-| Unbounded proof | ABC `pdr` | converged by frame 5 | PASS, 31/31 assertion outputs |
-| Cover | `smtbmc --syn --nopresat --unroll z3` | depth 30 configured; maximum witness step 26 | PASS, 8/8 covers |
+| Unbounded proof | ABC `pdr` | converged by frame 8 | PASS, 31/38 assertion outputs |
+| Cover | `smtbmc --syn --nopresat --unroll z3` | depth 30 configured; maximum witness step 29 | PASS, 9/9 covers |
 
-The eight reached covers demonstrate: the device reaches the initialized state;
+The nine reached covers demonstrate withdrawal of a pending request, plus: the device reaches the initialized state;
 an interrupt is requested to the CPU; the MCS-86/88 vector byte is driven on the
 second acknowledge pulse; a master drives the cascade address for a slave line;
 a CPU register read drives the bus; priority is rotated away from the reset
@@ -85,3 +85,14 @@ interrupt while a level is in service.
 Functional scenario counters, reference-model comparisons, specification-derived
 protocol checks, unbounded safety proof, formal reachability, and synthesis
 structural checks are the verification evidence for this design.
+
+## Model 30 request-withdrawal follow-up
+
+Validated October 18, 2026 in `ai-hw-engineer:latest` with Verilator 5.052,
+Yosys 0.69 and the bundled Xezim/SymbiYosys tools. Intel 231468-003
+Figure 9 pins request withdrawal and fixed-IR7 spurious acknowledgement.
+Literal directed tests cover withdrawal before/after the first INTA,
+masked withdrawal, reassertion and rotated spurious IR7. Formal properties
+check low-line IRR clearing and empty-acknowledge vector selection. The
+additional cover withdraws a pending IR5 without reset or acknowledge.
+See the [post-mortem](../../../failure_notes/2026-10-18-intel8259-withdrawn-request.md).

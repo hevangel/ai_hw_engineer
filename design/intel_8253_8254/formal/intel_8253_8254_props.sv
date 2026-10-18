@@ -74,6 +74,12 @@ module intel_8253_8254_props #(
 
         for (check_index = 0; check_index < 3;
              check_index = check_index + 1) begin
+            // Intel's Mode 0 definition: either single-byte count format
+            // re-arms OUT low immediately, without a counter-clock event.
+            if (!$initstate && $past(rst_n && bus_write &&
+                addr == check_index[1:0] && shadow_mode[check_index] == 0 &&
+                (shadow_rw[check_index] == 1 || shadow_rw[check_index] == 2)))
+                assert (!out_o[check_index]);
             if (!$initstate && status_pending[check_index] && bus_read &&
                 (addr == check_index[1:0])) begin
                 assert (data_o[7] ==

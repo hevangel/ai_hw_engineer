@@ -10,18 +10,18 @@ modes, all end-of-interrupt variants, automatic EOI, special fully nested mode,
 special mask mode, polled mode, register readback, and cascade signaling are
 complete.
 
-Strict lint passes without warnings or violations. A 5,816-cycle xezim
-regression passes 5,816 whole-interface and 40,763 field checks using a
+Strict lint passes without warnings or violations. A 5,867-cycle xezim
+regression passes 5,867 whole-interface and 41,128 field checks using a
 cycle-accurate reference model plus specification-derived protocol checks.
-Formal BMC, unbounded proof of 31 assertion outputs with later reset
-unconstrained, and 8/8 non-vacuity covers pass. Generic Yosys synthesis reports
-zero structural problems and 1,038 cells.
+Formal BMC, unbounded proof of 38 assertion outputs with later reset
+unconstrained, and 9/9 non-vacuity covers pass. Generic Yosys synthesis reports
+zero structural problems and 1,037 cells.
 
 ## 2. Design overview
 
 - Module: `intel_8259`
 - Version: 1.0
-- Validation date: 2026-08-26
+- Validation date: 2026-10-18
 - Language: SystemVerilog IEEE 1800-2017
 - CPU interface: sampled active-low `cs_n`, `rd_n`, `wr_n`, one address bit `a0`
 - Request interface: eight `ir` inputs, `int_o` request, `inta_n` acknowledge
@@ -41,10 +41,10 @@ un-initialized state.
 
 | Tool | Validated version/revision |
 |---|---|
-| Verilator | 5.050, revision `3d2421f3` |
+| Verilator | 5.052 |
 | Verible | `v0.0-4148-g1ea007ec` |
 | xezim | 0.10.3, revision `66efe06` |
-| Yosys | 0.46, revision `e97731b9d` |
+| Yosys | 0.69 |
 | SymbiYosys | v0.68 |
 | Z3 | image default |
 
@@ -74,10 +74,10 @@ formula, priority nesting, EOI clearing, the poll word, and cascade signaling.
 
 ```text
 Pseudorandom seed: 0x8259, operations: 2048
-8259 simulation result: 5816 cycles, 5816 interface checks, 40763 field checks
-CPU reads: 263, CPU writes: 1780, init sequences: 276
+8259 simulation result: 5867 cycles, 5867 interface checks, 41128 field checks
+CPU reads: 266, CPU writes: 1789, init sequences: 277
 INTA sequences: 13, EOI commands: 216, poll reads: 1, OCW3 writes: 250
-IR rising edges: 138
+IR rising edges: 141
 Failures: 0
 TEST PASSED
 ```
@@ -102,8 +102,8 @@ strobes, and all request/acknowledge/cascade inputs remain unconstrained.
 | Task | Engine | Result |
 |---|---|---|
 | BMC | ABC `bmc3`, 20 frames | PASS, no assertion output reached |
-| Unbounded proof | ABC `pdr` | PASS, 31/31 assertion outputs proved; converged by frame 5 |
-| Cover | `smtbmc --syn --nopresat --unroll z3`, depth 30 | PASS, 8/8 covers reached; maximum witness step 26 |
+| Unbounded proof | ABC `pdr` | PASS, 31/38 assertion outputs proved; converged by frame 8 |
+| Cover | `smtbmc --syn --nopresat --unroll z3`, depth 30 | PASS, 9/9 covers reached; maximum witness step 29 |
 
 The cover task uses a scripted-stimulus harness connected to the same DUT. The
 AIG-based ABC engine used for BMC and proof converges in under a second, but SBY
@@ -119,20 +119,20 @@ Yosys generic synthesis completes with no inferred latches, no memories, no
 remaining processes, and zero `check` problems.
 
 ```text
-Number of wires:                455
-Number of wire bits:           1705
+Number of wires:                481
+Number of wire bits:           1687
 Number of public wires:          90
 Number of public wire bits:     321
 Number of ports:                 18
 Number of port bits:             45
 Number of memories:               0
 Number of processes:              0
-Number of cells:               1038
-  $_AND_                        245
+Number of cells:               1037
+  $_AND_                        252
   $_DFF_P_                       15
   $_MUX_                        394
-  $_NOT_                        138
-  $_OR_                         152
+  $_NOT_                        135
+  $_OR_                         147
   $_SDFFE_PN0P_                  29
   $_SDFFE_PN1P_                   8
   $_SDFFE_PP0P_                   7
@@ -146,11 +146,11 @@ directly comparable with the historical NMOS transistor implementation.
 
 ## 5. Reproduction
 
-From the repository root on a Docker host, run the validated image ID:
+From the repository root on a Docker host, run the validated tool image:
 
 ```bash
 docker run --rm -v "${PWD}:/workspace" -w /workspace \
-  sha256:d2ffb0d844d69e4de521c2c8e376d46ea34f6edfec1d5069039895c1b2e6f147 \
+  ai-hw-engineer:latest \
   sh design/intel_8259/scripts/run_all.sh
 ```
 
@@ -167,6 +167,8 @@ Individual entry points are `run_lint.sh`, `run_sim.sh`, `run_formal.sh`,
 - Cascade behavior is modeled at the single-device signaling level (master
   cascade drive, slave address decode, buffered `EN_n`); full multi-chip system
   timing is not modeled.
+- Other request inputs continue to be clock-sampled during acknowledgement;
+  the asynchronous priority cell freeze pulse is outside this model.
 - Original pulse widths, propagation delays, electrical levels, drive currents,
   package pins, and process behavior are outside scope.
 - Formal cover uses a scripted, constrained environment due to a solver
@@ -187,8 +189,19 @@ Individual entry points are `run_lint.sh`, `run_sim.sh`, `run_formal.sh`,
 | Reference-model and specification-derived deterministic regression | PASS |
 | Verilator and Verible lint | PASS |
 | BMC and unbounded proof | PASS |
-| Formal non-vacuity cover | PASS, 8/8 |
+| Formal non-vacuity cover | PASS, 9/9 |
 | Generic synthesis and structural checks | PASS |
 | Specification, plans, scripts, and reports complete | PASS |
 
 **Sign-off status: READY.**
+
+## Model 30 request-withdrawal follow-up
+
+Validated October 18, 2026 in `ai-hw-engineer:latest` with Verilator 5.052,
+Yosys 0.69 and the bundled Xezim/SymbiYosys tools. Intel 231468-003
+Figure 9 pins request withdrawal and fixed-IR7 spurious acknowledgement.
+Literal directed tests cover withdrawal before/after the first INTA,
+masked withdrawal, reassertion and rotated spurious IR7. Formal properties
+check low-line IRR clearing and empty-acknowledge vector selection. The
+additional cover withdraws a pending IR5 without reset or acknowledge.
+See the [post-mortem](../../../failure_notes/2026-10-18-intel8259-withdrawn-request.md).

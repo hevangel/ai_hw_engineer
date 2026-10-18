@@ -22,6 +22,7 @@ module intel_8259_cover (
     input logic       sp_n_i,
     input logic       initialized,
     input logic [7:0] isr,
+    input logic [7:0] irr,
     input logic [2:0] lowest_priority,
     input logic       special_mask,
     input logic       auto_rotate,
@@ -67,8 +68,10 @@ module intel_8259_cover (
             as_ir = 8'h08;   // IR3 (no slave)
         end else if (t < 6'd24) begin
             as_ir = 8'h04;   // IR2 (has a slave)
-        end else begin
+        end else if (t < 6'd27) begin
             as_ir = 8'h24;   // IR2 + IR5
+        end else begin
+            as_ir = 8'h04;   // withdraw unacknowledged IR5 before restart
         end
 
         case (t)
@@ -98,7 +101,7 @@ module intel_8259_cover (
                          as_data = 8'h80; end   // OCW2: rotate-in-AEOI set
             6'd23: begin as_cs_n = 1'b0; as_wr_n = 1'b0; as_a0 = 1'b0;
                          as_data = 8'h68; end   // OCW3: set special mask mode
-            6'd26: begin as_cs_n = 1'b0; as_wr_n = 1'b0; as_a0 = 1'b0;
+            6'd29: begin as_cs_n = 1'b0; as_wr_n = 1'b0; as_a0 = 1'b0;
                          as_data = 8'h11; end   // ICW1: restart
             default: begin end
         endcase
@@ -137,6 +140,9 @@ module intel_8259_cover (
         cover (!$initstate && initialized && auto_rotate);
         // C8: special mask mode enables an interrupt while a level is in service
         cover (!$initstate && special_mask && int_o && (|isr));
+
+        // C9: a pending source is withdrawn outside any acknowledge/reset.
+        cover (!$initstate && initialized && $past(irr[5]) && !ir[5] && !irr[5]);
 
         if (t != 6'd63) begin
             t <= t + 6'd1;
