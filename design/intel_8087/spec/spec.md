@@ -109,3 +109,10 @@ The aggregate regression must include original manufacturer software from
 the manual, not just generated instruction tests. Modern x87 is an oracle
 only for shared documented numeric behavior, never for FENI/FDISI,
 projective infinity, original NaN encodings, or instruction timing.
+## Execution enable
+
+The internal ALU accepts `enable_i`; when disabled its outputs are inactive.
+The controller enables numerical work only in EXEC, and the transcendental
+sequencer enables its ALU during active phases. Load conversion is enabled
+only for an executing memory instruction. Architectural results and state
+transitions retain the instruction contract.

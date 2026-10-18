@@ -38,6 +38,9 @@ module intel_8086 (
     output logic esc_valid_o,
     output logic [5:0] esc_opcode_o,
     output logic [19:0] esc_address_o,
+    output logic [7:0] esc_modrm_o,
+    output logic [19:0] esc_instruction_o,
+    output logic waiting_o,
     output logic [127:0] regs_o,
     output logic [63:0] segs_o,
     output logic [15:0] ip_o, flags_o
@@ -160,6 +163,9 @@ module intel_8086 (
   assign arbitration_inhibit_o=memory_pair_active;
   assign esc_opcode_o={opcode[2:0],modrm[5:3]};
   assign esc_address_o=physical(seg[ea_seg],ea);
+  assign esc_modrm_o=modrm;
+  assign esc_instruction_o=physical(seg[1],instruction_ip);
+  assign waiting_o=state==WAITING;
   assign string_more=repeat_kind!=0 && gpr[1]!=1 &&
       (!(opcode==8'ha6 || opcode==8'ha7 || opcode==8'hae || opcode==8'haf) ||
        (flags[6] == (repeat_kind==2)));

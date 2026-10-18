@@ -1,4 +1,5 @@
 module intel_8087_alu (
+    input logic enable_i,
     input logic [79:0] a_i, b_i,
     input logic [3:0] op_i,
     input logic [15:0] control_i,
@@ -30,6 +31,7 @@ module intel_8087_alu (
         result_o=FP_INDEF; exceptions_o=0; rounded_up_o=0; condition_o=0;
         // ASSUMPTION: reserved PC=01 uses 64 bits; excluded from compatibility.
         precision=control_i[9:8]==0 ? 24 : (control_i[9:8]==2 ? 53:64);
+        if(enable_i) begin
         if(a_i[78:64]==0 && ma!=0) exceptions_o[1]=1;
         if(b_i[78:64]==0 && mb!=0 && op_i!=4 && op_i!=5) exceptions_o[1]=1;
         // Normalize denormal significands before arithmetic.
@@ -153,5 +155,6 @@ module intel_8087_alu (
             end
         end
         if(invalid) begin result_o=FP_INDEF; exceptions_o[0]=1; end
+        end
     end
 endmodule

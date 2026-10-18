@@ -33,3 +33,10 @@ sh design/intel_8087/scripts/run_all.sh
 The regression requires an x86 host with actual 80-bit x87 `long double`;
 compilation deliberately fails if it is a 64-bit alias. Regression execution
 requires no external downloads. See the report before integration or sign-off.
+## Complete-system integration
+
+The [IBM XT 5160 platform](../../system/ibm_pc_xt_5160/README.md) connects real
+8088 ESC and WAIT execution to this core and arbitrates its memory transfers
+with the CPU and DMA. Expensive numeric combinational paths are enabled only
+during execution, avoiding reevaluation during the XT's lengthy original RAM
+POST. This optimization preserves the numerical contract.

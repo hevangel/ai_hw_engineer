@@ -90,3 +90,10 @@ Requests sampled by T2 may receive ownership at T4; later requests are handled a
 | A6 | Invalid-BCD DAA/DAS inputs follow physical P80C86 vectors: incoming AF changes the high-adjust threshold to 9Fh. Intel only documents valid packed-BCD use; original NMOS identity for invalid inputs is not asserted. All available DAA/DAS vectors pass. |
 
 Sign-off evidence and practical limits are recorded in the [final report](../report/final_report.md). Passing finite tests and safety properties is not an exhaustive proof of every CPU state or electrical implementation.
+## Coprocessor observation outputs
+
+`esc_modrm_o` exports the captured ModR/M byte; `esc_instruction_o` exports
+the physical CS:instruction-start address. `waiting_o` identifies WAITING.
+The XT uses these alongside the existing ESC operand/opcode and TEST input
+to connect the architectural 8087 interface. Native wrappers leave these
+observation outputs unused.
