@@ -24,7 +24,7 @@ Their copyrighted bytes and generated traces remain in ignored `work/`.
 |---|---|
 | Strict Verilator 5.052 traced build | PASS with `-Wall --assert` |
 | Bus conversion formal | Depth-24 BMC, unbounded PDR and 4/4 covers PASS |
-| Full-board Yosys 0.69 synthesis | PASS; 210,525 generic cells, zero structural problems |
+| Full-board Yosys 0.69 synthesis | PASS; 210,657 generic cells, zero structural problems |
 | DBA controller bounded formal | Depth-32 BMC and 5/5 control-handshake covers PASS |
 | CPU/DMA3/fixed-disk fixture | PASS; 107,782 clocks, 2,048 DMA transfers, 1,036 media writes, IRQ5 and exact HLT PC |
 | Drive controller tests | PASS; 53,217 checks including external ECC/CRC vectors, bursts, retries, extended checks, ID/format, ND buffer operations, DMA blocks and short TC |
@@ -32,6 +32,8 @@ Their copyrighted bytes and generated traces remain in ignored `work/`.
 | Exact-PC CPU board fixture | PASS; native/odd memory lanes, split word I/O, DMA clock crossing/page readback, ROM protection, RAM mapping, MCGA/DAC/font, keyboard commands, UART loopback/IRQ, RTC and reset retention |
 | CPU/DMA/FDC fixture | PASS; 6,576,987 clocks, 9,252 DMA transfers, 4,608 media writes |
 | Original fixed-disk install/boot | PASS; FDISK/restart, full FORMAT /S, COPY, CHKDSK, independent FAT16/file comparison, cold C: boot with zero floppy reads and copied-program execution |
+| Original graphics software | PASS; BASICA SCREEN 2 interleaved rectangle and BIOS modes 13h/11h exact full-framebuffer comparisons through original DEBUG |
+| Configured-clock reboot | PASS; unchanged POST and DOS return to COMMAND.COM after CPU/board reset, zero POST errors |
 | Battery storage | PASS; CPU-written 32-byte RTC image survives process restart/reset; invalid size rejected |
 | Waveform execution equivalence | PASS; six captures at 1/4,096/65,536 clocks equal ordinary execution, including CPU state, RAM hash, VRAM/font/palette/RTC and counters |
 | HTTP backend | PASS; power/run/pause/step/reset, keyboard, mount/export, bounded captures, atomic FST download, HEAD, timing and self-hosted Surfer |
@@ -62,9 +64,28 @@ word memory cycle, paired word I/O, paired video memory, or INTA.
 
 Original POST reaches `640KB OK`. A fresh battery image produces the
 legitimate `161-Set Date and Time` notice; no hardware diagnostic remains.
-F1 resumes and original PC DOS sectors transfer through FDC/DMA. The full 160-track floppy FORMAT passes with 730,112 usable bytes. The
-remaining application/reboot checks are still running; completion is not yet
-claimed.
+F1 resumes and original PC DOS sectors transfer through FDC/DMA. Original
+DIR/CHKDSK and the full 160-track floppy FORMAT pass, with 730,112 usable
+bytes. COPY writes CHECK.COM and an independent BPB/FAT12 reader verifies
+720K geometry and exact file bytes. BASICA evaluates 6*7 as 42.
+
+The separate display run boots configured BIOS/DOS with zero POST errors
+at 234,000,000 clocks. BASICA SCREEN 2 draws the exact interleaved rectangle
+at 270,750,000 clocks and returns to DOS. Original DEBUG assembles BIOS
+INT 10h/INT 16h calls: mode 13h matches all 64,000 expected pixel bytes at
+357,500,000 clocks; mode 11h matches all 38,400 bytes at 418,000,000 clocks.
+Both return through the BIOS keyboard wait to DEBUG in text mode. A full
+CPU/board reset then passes unchanged POST with the retained battery clock,
+boots DOS at 236,000,000 clocks and reaches COMMAND.COM after accepting
+the normal date/time prompts at 239,500,000 clocks, with zero POST errors.
+
+The floppy FORMAT/COPY/BASIC-expression stages and display stages were run
+separately. The initial driver incorrectly requested BASICA SCREEN 13,
+which the original interpreter rejects. The corrected driver uses supported
+SCREEN 2 and original DEBUG/BIOS calls for native MCGA, with paced scan
+codes to respect the original 16-byte BIOS keyboard buffer. The aggregate
+entrypoint includes the corrected scripts; an uninterrupted aggregate run
+is not claimed.
 
 `test_software.py` exercises cold POST, original PC DOS 3.30, DATE/TIME and original DEBUG.COM executing BIOS RTC setters,
 DIR/CHKDSK, FORMAT/COPY with an independent FAT12 comparison, BASICA and
@@ -92,6 +113,11 @@ The aggregate `run_all.sh` always includes this real-software regression.
   original FORMAT exposed an undocumented gate-array identification input
   returning the high-density value. Assumption A12 records the original
   BIOS evidence; rate selection and media bounds are now enforced.
+
+- [MCGA mode 6 selection](../../../failure_notes/2026-10-18-model30-mcga-mode6.md):
+  original BASICA exposed a valid high-resolution-only mode register value
+  decoded as text. The native board fixture now checks its literal status
+  and the historical graphics suite checks interleaved pixel memory.
 
 ## Functional limits
 
