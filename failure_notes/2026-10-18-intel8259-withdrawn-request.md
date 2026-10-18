@@ -36,8 +36,9 @@ empty acknowledge to select IR7. Existing reset/init/mask/EOI checks remain.
 
 The complete chip lint, Xezim, BMC/prove/cover and synthesis flow passes.
 A synthetic external-ROM warm-start reproducer also reaches the original
-BIOS timer test without 102 after the repair. Full unchanged FDISK restart
-is additionally required in the Model 30 historical software suite.
+BIOS timer test without 102 after the repair. The full unchanged FDISK
+software restart also passes at 412,000,000 cumulative clocks without
+adding any POST diagnostic; the historical suite checks this explicitly.
 
 ## Prevention
 

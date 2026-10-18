@@ -9,9 +9,11 @@ machine. Historical hardware is documented in IBM's
 [Technical Reference](https://www.ibmfiles.com/ibmfiles/ps2/25/model30tr.pdf)
 and [April 1987 product reference](https://bitsavers.org/pdf/ibm/pc/PS2_and_IBM_PC_Product_Reference_Version_4.0_Apr87.pdf).
 
-Implementation is in progress; no completed boot or verification claim is
-made until recorded in the report. The CPU and peripheral execution belong
-in RTL, with the host limited to external storage, media and user input.
+The original IBM BIOS and PC DOS boot through RTL CPU and peripherals.
+Original DOS creates and formats the fixed disk, installs its system files
+and boots C: with the floppy ejected. The host supplies external storage,
+media and user input. Measured verification and functional limits are
+recorded in the report.
 
 - [Specification and assumption ledger](spec/spec.md)
 - [Integrated fixed disk, controller and image format](spec/hard_disk.md)
