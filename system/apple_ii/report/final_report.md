@@ -295,7 +295,25 @@ regression passes with allocator poisoning and AddressSanitizer; all existing
 pin comparisons also pass with the initialized solver. See the
 [post-mortem](../../../failure_notes/2026-10-18-apple-ii-reference-initialization.md).
 
-Further historical firmware integration reruns are in progress. The long
+Fresh historical firmware reruns also passed: original Monitor and its full
+107,520-pixel frame on both reference and authored CPUs; cassette byte input
+in both polarities on both CPUs with seven DRAM readbacks, 112 transitions
+and 111 exact cycle intervals per run; front-panel ordered input/reset/EOF
+handling and frame encoding; and original Integer BASIC FOR/NEXT, SUM=55,
+POKE/PRINT, lores PLOT/SCRN, one isolated speaker toggle and Monitor readback.
+BASIC executed 292,559 instruction fetches and counted 11,751 unresolved
+non-opcode reads. The compiled authored-CPU harness passed all nine complete
+original WRITE/READ command cases, including full leaders, page crossing,
+both input polarities, speed variation and checksum-error ERR behavior.
+
+The imported Docker overlay built successfully, and its reference startup
+smoke test passed. Internal links across 22 imported/moved Markdown documents
+and Git whitespace checks passed. The isolated CPU and firmware rerun drivers
+both exited zero. Downloaded artifacts, compiled binaries and raw traces are
+ignored; the retained front-panel image is explicitly identified as an earlier
+capture. A scratch-source comparison found only an unsupported Verilator
+experiment and a stale nested copy of the earlier CPU, not additional
+completed implementation work. The long
 full-delay physical WRITE/READ gates are retained with their historical
 pre-charge results; no completed post-copper/charge result is claimed here.
 The exact analog/font acceptance limits and intentional final failure of

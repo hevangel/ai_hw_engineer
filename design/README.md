@@ -37,8 +37,8 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1975* | Intel 8255 / 8255A | 24-line programmable peripheral interface | [intel_8255](intel_8255/) |
 | 1976* (availability evidence) | AMD Am2911 | Four-bit microprogram sequencer; shared direct/register bus, four-word return stack | [amd_am2911](amd_am2911/) |
 | 1976 | Intel 8259 / 8259A | Eight-input programmable interrupt controller; manufacturer-based request-withdrawal regression | [intel_8259](intel_8259/) |
-| 1977 | Apple II revision-0 support packages | 4116 RAM, ROM, 2513, TTL/bus interfaces and analog support; package years vary | [apple_ii_chips](apple_ii_chips/) |
 | 1977 (manufacturer history) | AMD Am9511 | Signed integer/native floating arithmetic, conversions and transcendental processing unit | [amd_am9511](amd_am9511/) |
+| 1977* (board use) | Apple II revision-0 support packages | 4116 RAM, ROM, 2513, TTL/bus interfaces and analog support; package years vary | [apple_ii_chips](apple_ii_chips/) |
 | 1977* | Intel 8273 | HDLC/SDLC serial protocol controller; framing, NRZI, CRC, DMA and loop relay | [intel_8273](intel_8273/) |
 | 1977* | Intel 8275 | DMA-fed programmable CRT controller; raster, attributes, cursor and light pen | [intel_8275](intel_8275/) |
 | 1977* | Intel 8279 / 8279-5 | Programmable keyboard/display interface | [intel_8279](intel_8279/) |
@@ -136,3 +136,11 @@ The [1983 IBM XT platform](../system/ibm_pc_xt_5160/README.md) uses the Intel
 8086 core's additional ESC/WAIT observation outputs and the Intel 8087's
 execution-gated numeric datapaths. The chip introduction years and respective
 architectural verification boundaries above remain unchanged.
+
+### Apple — revision-0 support packages
+
+The grouped support-package entry records **1977 board use**, established by
+the [Apple II Reference Manual](https://apple2history.org/dl/Apple_II_Redbook.pdf),
+rather than asserting a common first-introduced year for the individual TTL,
+RAM, ROM and analog parts. Individual variant dates remain unestablished;
+see the [package overview](apple_ii_chips/README.md).

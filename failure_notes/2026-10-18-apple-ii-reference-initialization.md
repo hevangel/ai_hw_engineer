@@ -31,7 +31,7 @@ The new VPI startup test checks both reset-vector reads and the exact first
 fetch at FF59. It passes normally and with AddressSanitizer (leak checking
 is disabled for the process-lifetime reference instance). The initialized
 solver also passes all 648 transistor pin scenarios / 116,501 compared cycles.
-Historical Monitor and cassette regressions remain required by `run_all.sh`.
+Historical Monitor boot/full raster and both cassette input polarities also pass with the initialized reference. They remain required by `run_all.sh`.
 
 ## Prevention
 
