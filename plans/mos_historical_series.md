@@ -3,9 +3,9 @@
 Requested on 2026-10-18: implement the MOS Technology chips in the supplied
 history one at a time, then Atari 2600, Commodore 64, Nintendo NES and Super
 Nintendo, in that order. This ledger persists the work between sessions.
-The scope below enumerates the named parts; it does not claim that those
-parts comprise MOS's entire commercial catalog. Additional catalog parts
-need their own sourced requirements before joining the queue.
+The initial inventory below enumerates the named parts; it does not claim that those
+parts comprise MOS's entire commercial catalog. This inventory is not a scope limit. Additional catalog parts
+and all additional support chips discovered in the machine schematics must be researched and added to the queue.
 
 ## Completion gate
 
@@ -23,7 +23,7 @@ AGENTS.md. Do not count scaffolding or a functional CPU as cycle accurate.
 | 0 | MOS 6502 | Existing CPU shared by the family | Existing documented-ISA functional implementation; native NMOS bus timing and undocumented opcodes remain system prerequisites |
 | 1 | MOS 6532 RIOT | RAM, ports, timer; Atari prerequisite | Digital contract verified: lint, BMC/PDR/five covers, Verilator/xezim and synthesis; silicon/software integration pending ([report](../design/mos_6532/report/final_report.md)) |
 | 2 | MOS 6522 VIA | Ports, timers, serial shift register | Sampled digital implementation verified: all registers/modes, lint, BMC/PDR/ten covers, both simulators and synthesis. NMOS timing/source discrepancies remain open ([report](../design/mos_6522/report/final_report.md)) |
-| 3 | MOS 6530 RRIOT | Mask ROM, RAM, ports, timer | Queued; choose and source mask-ROM variant |
+| 3 | MOS 6530 RRIOT | Mask ROM, RAM, ports, timer | Both KIM-1 mask variants verified: ROM hashes, full 8 KB map, BMC/PDR/six covers, both simulators, original monitor boot/display and synthesis. Physical pin/timing gates remain ([report](../design/mos_6530/report/final_report.md)) |
 | 4 | MOS 6507 | Reduced-address/pin CPU | Queued; shares corrected cycle-timed 6502 core |
 | 5 | MOS 6510 | CPU with integrated port | Queued |
 | 6 | MOS 6526 CIA | Ports, timers, serial, time of day | Queued |
@@ -62,4 +62,4 @@ create empty system folders or advertise working consoles before those gates.
 The RIOT implementation covers the manufacturer register map, phase-two bus,
 128-byte RAM, port A/B readback distinction, four timer rates, and independent
 timer/PA7 interrupt acknowledgment. See its report for measured status and
-remaining compatibility limits. The VIA sampled contract also passes its complete flow; its discrepancy ledger remains an open fidelity requirement. Continue with the 6530 RRIOT while retaining all unresolved chip/system gates. The full user objective was reaffirmed on 2026-10-18 and remains active; no chip approximation or queued system counts as the completed end state.
+remaining compatibility limits. The VIA sampled contract also passes its complete flow; its discrepancy ledger remains an open fidelity requirement. The 6530-002/003 implementation now passes its chip and original-monitor regressions. Next: native cycle-timed NMOS 6502 engine and 6507, retaining every unresolved chip/system gate. The full user objective was reaffirmed on 2026-10-18 and remains active; no chip approximation or queued system counts as the completed end state.

@@ -34,6 +34,7 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1975* | Intel 8251 / 8251A | Programmable synchronous/asynchronous serial interface (USART) | [intel_8251](intel_8251/) |
 | 1975* / 1982* | Intel 8253 / 8254 | Three-channel programmable interval timers | [intel_8253_8254](intel_8253_8254/) |
 | 1975* | Intel 8255 / 8255A | 24-line programmable peripheral interface | [intel_8255](intel_8255/) |
+| By 1976* (KIM-1 manual; launch year unconfirmed) | MOS Technology 6530 RRIOT | Mask ROM, 64-byte RAM, ports and timer; both KIM-1 masks and original monitor regression | [mos_6530](mos_6530/) |
 | 1976* (availability evidence) | AMD Am2911 | Four-bit microprogram sequencer; shared direct/register bus, four-word return stack | [amd_am2911](amd_am2911/) |
 | 1976 | Intel 8259 / 8259A | Eight-input programmable interrupt controller; manufacturer-based request-withdrawal regression | [intel_8259](intel_8259/) |
 | 1977 (manufacturer history) | AMD Am9511 | Signed integer/native floating arithmetic, conversions and transcendental processing unit | [amd_am9511](amd_am9511/) |
@@ -62,9 +63,11 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 
 A year marked with an asterisk (`*`) is the earliest located dated documentation or announcement, not a claim of an exact commercial launch date; availability may have preceded or followed that document, and the uncertainty is retained rather than guessed. The notes below record the sources behind each index date and are grouped by company and chip series.
 
-### MOS — 6522, 6532 and reconstruction series
+### MOS — 6522, 6530, 6532 and reconstruction series
 
 The 6522 entry uses a **by 1977** bound from the [November 1977 MOS preliminary datasheet](https://www.6502.org/documents/datasheets/mos/mos_6522_preliminary_nov_1977.pdf), not an exact shipment date. See the [VIA history and unresolved timing discrepancies](mos_6522/README.md).
+
+The 6530 entry uses **by 1976** from the manufacturer's [August 1976 KIM-1 User Manual](https://bitsavers.org/components/mosTechnology/kim-1/6500-15B_KIM-1_Users_Manual_197608.pdf). Its October 1975 firmware revision does not establish an exact chip launch date; see the [RRIOT history and mask-specific reconstruction](mos_6530/README.md).
 
 The 6532 year is an availability bound from the [1982 MOS Data Catalog](https://bitsavers.trailing-edge.com/components/mosTechnology/_dataBooks/1982_MOS_Technology_Data_Catalog.pdf), not a claim that it launched in 1982. The archived datasheet is assigned 1976 by a secondary catalog, but the date is not established on the scan; see the [chip history](mos_6532/README.md). The requested sequential chip reconstructions followed by Atari 2600, Commodore 64, NES and Super Nintendo are tracked in the [MOS series ledger](../plans/mos_historical_series.md).
 
