@@ -42,7 +42,10 @@ whose unit testbenches pin the exact text/hi-res address sequences (citing
 Sather, *Understanding the Apple IIe*, pp. 5-9, 5-15..5-18). Run
 `sh design/apple_iie_iou/scripts/run_all.sh` inside `ai-hw-engineer:latest`.
 
-The PAL (RAS'/CAS' timing) is the remaining IIe custom-adjacent part and a
-candidate for its own design; this IOU is specified so a future
-`system/apple_iie` build can wire it to the [MMU](../apple_iie_mmu/README.md),
-the existing `mos_6502` core and the Apple II board inventory.
+The separate [timing PAL](../apple_iie_pal/) and [MMU](../apple_iie_mmu/)
+are integrated with this IOU and the functional NMOS 6502 in the platform.
+
+The [Apple IIe platform](../../system/apple_iie/) now validates these interfaces
+with unchanged original 1983 firmware, keyboard-driven BASIC and PR#3.
+Firmware integration exposed shared reference/RTL assumptions corrected from
+the primary manual; see the [post-mortem](../../failure_notes/2026-10-19-apple-iie-rom-switches.md).

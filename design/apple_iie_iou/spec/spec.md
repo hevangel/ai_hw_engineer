@@ -129,7 +129,7 @@ G2A'=C0XX', G2B'=Q3) yields the range selects:
 | C02X' | A6=0, LA5=1, LA4=0 | `$C020-$C02F` | any access toggles CASSO |
 | C03X' | A6=0, LA5=1, LA4=1 | `$C030-$C03F` | any access toggles SPKR |
 | C04X' | A6=1, LA5=0, LA4=0 | `$C040-$C04F` | none (game-port STROBE is board decode, A7) |
-| C05X' | A6=1, LA5=0, LA4=1 | `$C050-$C05F` | write: video switches/annunciators (§5.2) |
+| C05X' | A6=1, LA5=0, LA4=1 | `$C050-$C05F` | read or write: video switches/annunciators (§5.2) |
 | C06X' | A6=1, LA5=1, LA4=0 | `$C060-$C06F` | **none** ('138 Y6 unconnected: paddles are board-level) |
 | C07X' | A6=1, LA5=1, LA4=1 | `$C070-$C07F` | write `$C07E`/`$C07F`: IOUDIS latch; read `$C07E`/`$C07F`: MD7 (A5) |
 
@@ -162,9 +162,9 @@ output; the reconstruction ignores them (documented no-op).
 
 ### 5.2 `$C050-$C05F` — video mode latch (74LS259 style)
 
-Select = `LA[3:1]`, D = `LA0`, latched on writes:
+Select = `LA[3:1]`, D = `LA0`, latched on reads or writes during PHI0 (TRM Table 2-1):
 
-| Select | Off write | On write | Flag | Reset behavior |
+| Select | Off access | On access | Flag | Reset behavior |
 | --- | --- | --- | --- | --- |
 | 000 | `$C050` | `$C051` | TEXT (`ITEXT`) | **not cleared by RESET'** |
 | 001 | `$C052` | `$C053` | MIXED (`MIX`) | **not cleared by RESET'** |
@@ -467,3 +467,12 @@ color generation), the PAL variant, power-on reset generation, paddle analog
 timing, and cassette read electronics. The design terminates at the pin
 contract of §3; a future `system/apple_iie` build wires it to the MMU, the
 6502 and board models.
+
+## Firmware integration correction (October 19, 2026)
+
+TRM Table 2-1 explicitly marks TEXT, MIXED, PAGE2 and HIRES R/W. The
+original ROM uses these read-side effects. C05x is therefore access-qualified,
+while C00x and C07E/F remain write-qualified. The prior reference model
+shared a write-only assumption with RTL; directed read/status checks and
+formal properties now pin the primary-source rule. See the
+[post-mortem](../../../failure_notes/2026-10-19-apple-iie-rom-switches.md).

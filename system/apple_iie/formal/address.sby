@@ -1,0 +1,17 @@
+[tasks]
+bmc
+prove
+cover
+[options]
+bmc: mode bmc
+prove: mode prove
+cover: mode cover
+depth 4
+[engines]
+smtbmc z3
+[script]
+read -formal -sv apple_iie_address.sv address_formal.sv
+prep -top address_formal
+[files]
+../src/apple_iie_address.sv
+address_formal.sv

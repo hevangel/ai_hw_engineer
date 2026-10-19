@@ -26,11 +26,15 @@ Delivered against the plan items:
   (`failure_notes/2026-10-13-mos6502-d1-cmp-zpy.md`). Coverage and
   synthesis run in the standard flow (`scripts/run_all.sh`).
 
-Still open (future stages):
+Remaining timing work:
 
 - **Item 3 (bus accuracy)**: instruction-accurate only — no dummy cycles,
   no page-cross penalties, no cycle-level RMW (A11); requires the MOS
   hardware manual.
-- **Item 5 (Apple II)**: the `system/` platform build that motivated this
-  expansion; the 6502 core is now fast enough in simulation to run
-  Apple II firmware under the Klaus-validated instruction semantics.
+Completed platform integration:
+
+- **Item 5 (Apple II)**: [Apple II](../../../system/apple_ii/) and
+  [Apple IIe](../../../system/apple_iie/) now execute historical firmware.
+  The IIe runs its original ROM, keyboard-driven BASIC and 80-column slot-3
+  firmware with the authored MMU/IOU/PAL. Functional CPU bus timing remains
+  explicitly qualified; this does not complete item 3's pin/cycle accuracy.

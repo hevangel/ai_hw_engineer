@@ -53,6 +53,11 @@ always_ff @(posedge clk) begin
         if (kbd_n == 1'b0) cover(1);
         if (cxxxout) cover(1);
 
+        // Original-ROM integration: neither decode may be vacuous.
+        if(!intcx&&c8win&&a==16'hcb25&&!romen1_n)cover(1);
+        if(intcx&&slotc3&&a==16'hc300&&!romen1_n)cover(1);
+        if(intcx&&!c8win&&a==16'hc900&&!romen1_n)cover(1);
+
         // Class 8: the MPON reset sequence.
         if (mpon) cover(1);
     end

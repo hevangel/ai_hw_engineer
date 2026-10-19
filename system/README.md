@@ -8,6 +8,7 @@ and a host bridge for external storage, media and user input.
 
 | System | Year | Chips used | Folder |
 |---|---|---|---|
+| Apple IIe functional virtual platform | 1983 | NMOS 6502, IIe MMU, IOU, timing PAL, 128 KiB RAM | [apple_iie/](apple_iie/) |
 | Apple II revision-0 (functional; fidelity validation ongoing) | 1977 | MOS 6502 plus 82 support IC packages | [apple_ii/](apple_ii/) |
 | BUSICOM 141-PF printing calculator | 1971 | 4004, 5×4001, 2×4002, 3×4003 | [busicom_141pf/](busicom_141pf/) |
 | Micral N | 1973 | Intel 8008, 16 KiB memory, I/O bus | [micral_n/](micral_n/) |

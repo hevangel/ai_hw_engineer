@@ -37,7 +37,10 @@ schematic-derived CC0 [frozen-signal reimplementation](https://github.com/frozen
 for details the manual does not state. Run
 `sh design/apple_iie_mmu/scripts/run_all.sh` inside `ai-hw-engineer:latest`.
 
-The IOU (video timing, annunciators, keyboard/paddle inputs) and the PAL
-(RAS'/CAS' timing) are separate chips and candidates for their own designs;
-the MMU here is specified so a future `system/apple_iie` build can wire it to
-the existing `mos_6502` core and the Apple II board inventory.
+The separate [IOU](../apple_iie_iou/) and [timing PAL](../apple_iie_pal/)
+are integrated with this MMU and the functional NMOS 6502 in the platform.
+
+The [Apple IIe platform](../../system/apple_iie/) now validates these interfaces
+with unchanged original 1983 firmware, keyboard-driven BASIC and PR#3.
+Firmware integration exposed shared reference/RTL assumptions corrected from
+the primary manual; see the [post-mortem](../../failure_notes/2026-10-19-apple-iie-rom-switches.md).

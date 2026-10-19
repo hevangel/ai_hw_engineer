@@ -28,3 +28,5 @@ design/intel_8259/scripts/*.sh text eol=lf
 design/mos_6502_cycle/scripts/*.sh text eol=lf
 design/apple_ii_chips/scripts/*.sh text eol=lf
 system/apple_ii/scripts/*.sh text eol=lf
+
+system/apple_iie/scripts/*.sh text eol=lf

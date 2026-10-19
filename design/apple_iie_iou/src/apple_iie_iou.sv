@@ -175,10 +175,10 @@ module apple_iie_iou (
     logic an0_q, an1_q, an2_q, an3_q;        // AN3 shared with DHIRES (A5)
     logic ioudis;
 
-    logic wr_act, c00x_wr, c05x_wr, c07ef_wr;
+    logic wr_act, c00x_wr, c05x_access, c07ef_wr;
     assign wr_act   = phi0 && !rw;
     assign c00x_wr  = sel_c00x && wr_act;
-    assign c05x_wr  = sel_c05x && wr_act;
+    assign c05x_access  = sel_c05x && phi0;
     assign c07ef_wr = sel_c07x && wr_act && la[3] && la[2] && la[1];
 
     always_ff @(posedge clk) begin
@@ -200,7 +200,7 @@ module apple_iie_iou (
             end
             // $C050-$C05F video latch (spec 5.2): a 74LS259-style bank of
             // eight latches, select = la[3:1], D = la0.
-            if (c05x_wr) begin
+            if (c05x_access) begin
                 if (la[3:1] == 3'd0)      itext <= la0;
                 else if (la[3:1] == 3'd1) mix   <= la0;
                 else if (la[3:1] == 3'd2) pg2   <= la0;
