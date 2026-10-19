@@ -31,6 +31,7 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1975* (marketing) | AMD Am2909 | Four-bit microprogram sequencer; four-word return stack, separate register/direct buses and OR branching | [amd_am2909](amd_am2909/) |
 | 1975* (Am9080A evidence) | AMD Am9080 / Am9080A | 8-bit processor; complete documented Am9080A instruction set and functional transaction bus | [amd_am9080](amd_am9080/) |
 | 1975 | MOS Technology 6502 | 8-bit microprocessor; functional and native bus engines, all opcode slots, independent timing and historical software regressions; silicon/board gates open | [mos_6502](mos_6502/) |
+| 1975* (historically reported; primary launch unconfirmed) | MOS Technology 6507 | Thirteen-bit physical bus, native NMOS CPU, internal IRQ/NMI ties; package and historical software regressions | [mos_6507](mos_6507/) |
 | 1975* | Intel 8251 / 8251A | Programmable synchronous/asynchronous serial interface (USART) | [intel_8251](intel_8251/) |
 | 1975* / 1982* | Intel 8253 / 8254 | Three-channel programmable interval timers | [intel_8253_8254](intel_8253_8254/) |
 | 1975* | Intel 8255 / 8255A | 24-line programmable peripheral interface | [intel_8255](intel_8255/) |
@@ -145,3 +146,8 @@ The [1983 IBM XT platform](../system/ibm_pc_xt_5160/README.md) uses the Intel
 8086 core's additional ESC/WAIT observation outputs and the Intel 8087's
 execution-gated numeric datapaths. The chip introduction years and respective
 architectural verification boundaries above remain unchanged.
+
+The 6507 year is historically reported as 1975; the exact manufacturer launch
+notice remains unverified. Technical package behavior uses the MOS family
+datasheet and photographed die ties. See the [6507 overview](mos_6507/README.md)
+for sources and the [measured package report](mos_6507/report/final_report.md).

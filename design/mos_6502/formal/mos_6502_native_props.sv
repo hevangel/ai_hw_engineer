@@ -4,6 +4,14 @@
         if (!f_native_valid) assume(!rst_n);
         assert(fetch_o == (state == S_FETCH));
         assert(jammed_o == (state == S_KIL_HALT));
+`ifdef MOS6507_FORMAL
+        // These are asserted on the actual instantiated core, not assumed
+        // by its environment: the 6507 adapter must provide the die ties.
+        assert(irq_n && nmi_n && so_n);
+        if (f_native_valid && rst_n && $past(rst_n)) begin
+            assert(!irq_pending && !irq_sample && !nmi_pending && !nmi_polled);
+        end
+`endif
         if (bus_we) assert(rst_n && (state == S_MEMORY || state == S_RMW_OLD ||
             state == S_RMW_NEW || state == S_PUSH || state == S_JSR_PH ||
             state == S_JSR_PL || state == S_BRK_PH || state == S_BRK_PL || state == S_BRK_PS));
@@ -48,7 +56,9 @@
         cover(f_native_valid && rst_n && state == S_RMW_NEW);
         cover(f_native_valid && rst_n && state == S_INDEXED && page_cross);
         cover(f_native_valid && rst_n && state == S_VEC_L && !int_nmi_q);
+`ifndef MOS6507_FORMAL
         cover(f_native_valid && rst_n && state == S_VEC_L && int_nmi_q);
+`endif
         cover(f_native_valid && rst_n && state == S_FETCH && !rdy_i);
         cover(f_native_valid && rst_n && state == S_KIL_HALT);
         cover(f_native_valid && rst_n && state == S_RST_H && rdy_i);

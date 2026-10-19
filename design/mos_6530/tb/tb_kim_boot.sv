@@ -1,5 +1,5 @@
 `timescale 1ns/1ps
-// Existing functional CPU + actual original RRIOT masks/ROMs. Not a system release.
+// Selectable CPU + actual original RRIOT masks/ROMs. Not a system release.
 module tb_kim_boot;
     logic clk = 0, rst_n = 0;
     logic phi2;
@@ -14,10 +14,26 @@ module tb_kim_boot;
     int mask_ram_writes = 0, cycles = 0;
     logic [15:0] expected_pc [0:3];
     logic [7:0] expected_opcode [0:3];
-    // CPU consumes a functional transfer at posedge. Complete the peripheral
-    // phase at that edge too; do not claim native NMOS instruction timing.
+    // CPU completes each bus transfer at posedge. The peripheral PHI2 falls
+    // there too. Native variants model CPU cycles; analog phase timing is open.
     assign phi2 = !clk;
-`ifdef NATIVE_CPU
+`ifdef CPU_6507
+    logic [12:0] physical_addr;
+    logic [15:0] debug_addr;
+    assign bus_addr = {3'b000, physical_addr};
+    mos_6507 cpu (
+        .clk, .rst_n, .rdy_i(1'b1),
+        .bus_addr(physical_addr), .debug_bus_addr_o(debug_addr),
+        .bus_data_i, .bus_data_o, .bus_we,
+        .fetch_o(fetch), .fault_o(fault), .jammed_o(jammed),
+        .pc_o(pc), .status_o(status), .a_o(a), .x_o(x), .y_o(y), .s_o(sp)
+    );
+    // Assert the physical truncation without using debug bits as board inputs.
+    always_ff @(posedge clk) if (rst_n) begin
+        if (debug_addr[12:0] !== physical_addr || (fetch && debug_addr !== pc))
+            $fatal(1, "6507 physical/fetch address mismatch");
+    end
+`elsif NATIVE_CPU
     mos_6502_native cpu (
         .clk, .rst_n, .rdy_i(1'b1), .irq_n(1'b1), .nmi_n(1'b1), .so_n(1'b1),
         .bus_addr, .bus_data_i, .bus_data_o, .bus_we,
