@@ -37,6 +37,7 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1976* (availability evidence) | AMD Am2911 | Four-bit microprogram sequencer; shared direct/register bus, four-word return stack | [amd_am2911](amd_am2911/) |
 | 1976 | Intel 8259 / 8259A | Eight-input programmable interrupt controller; manufacturer-based request-withdrawal regression | [intel_8259](intel_8259/) |
 | 1977 (manufacturer history) | AMD Am9511 | Signed integer/native floating arithmetic, conversions and transcendental processing unit | [amd_am9511](amd_am9511/) |
+| By 1977* (preliminary datasheet; launch unconfirmed) | MOS Technology 6522 VIA | Ports, input latches, handshake, timers and eight serial modes; sampled contract verified, NMOS timing open | [mos_6522](mos_6522/) |
 | 1977* | Intel 8273 | HDLC/SDLC serial protocol controller; framing, NRZI, CRC, DMA and loop relay | [intel_8273](intel_8273/) |
 | 1977* | Intel 8275 | DMA-fed programmable CRT controller; raster, attributes, cursor and light pen | [intel_8275](intel_8275/) |
 | 1977* | Intel 8279 / 8279-5 | Programmable keyboard/display interface | [intel_8279](intel_8279/) |
@@ -61,7 +62,9 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 
 A year marked with an asterisk (`*`) is the earliest located dated documentation or announcement, not a claim of an exact commercial launch date; availability may have preceded or followed that document, and the uncertainty is retained rather than guessed. The notes below record the sources behind each index date and are grouped by company and chip series.
 
-### MOS — 6532 and reconstruction series
+### MOS — 6522, 6532 and reconstruction series
+
+The 6522 entry uses a **by 1977** bound from the [November 1977 MOS preliminary datasheet](https://www.6502.org/documents/datasheets/mos/mos_6522_preliminary_nov_1977.pdf), not an exact shipment date. See the [VIA history and unresolved timing discrepancies](mos_6522/README.md).
 
 The 6532 year is an availability bound from the [1982 MOS Data Catalog](https://bitsavers.trailing-edge.com/components/mosTechnology/_dataBooks/1982_MOS_Technology_Data_Catalog.pdf), not a claim that it launched in 1982. The archived datasheet is assigned 1976 by a secondary catalog, but the date is not established on the scan; see the [chip history](mos_6532/README.md). The requested sequential chip reconstructions followed by Atari 2600, Commodore 64, NES and Super Nintendo are tracked in the [MOS series ledger](../plans/mos_historical_series.md).
 

@@ -22,7 +22,7 @@ AGENTS.md. Do not count scaffolding or a functional CPU as cycle accurate.
 |---:|---|---|---|
 | 0 | MOS 6502 | Existing CPU shared by the family | Existing documented-ISA functional implementation; native NMOS bus timing and undocumented opcodes remain system prerequisites |
 | 1 | MOS 6532 RIOT | RAM, ports, timer; Atari prerequisite | Digital contract verified: lint, BMC/PDR/five covers, Verilator/xezim and synthesis; silicon/software integration pending ([report](../design/mos_6532/report/final_report.md)) |
-| 2 | MOS 6522 VIA | Ports, timers, serial shift register | Queued |
+| 2 | MOS 6522 VIA | Ports, timers, serial shift register | Sampled digital implementation verified: all registers/modes, lint, BMC/PDR/ten covers, both simulators and synthesis. NMOS timing/source discrepancies remain open ([report](../design/mos_6522/report/final_report.md)) |
 | 3 | MOS 6530 RRIOT | Mask ROM, RAM, ports, timer | Queued; choose and source mask-ROM variant |
 | 4 | MOS 6507 | Reduced-address/pin CPU | Queued; shares corrected cycle-timed 6502 core |
 | 5 | MOS 6510 | CPU with integrated port | Queued |
@@ -59,7 +59,7 @@ create empty system folders or advertise working consoles before those gates.
 
 ## Current work
 
-Start with the RIOT's manufacturer register map, native phase-two bus,
+The RIOT implementation covers the manufacturer register map, phase-two bus,
 128-byte RAM, port A/B readback distinction, four timer rates, and independent
 timer/PA7 interrupt acknowledgment. See its report for measured status and
-remaining compatibility limits. Next chip: 6522 VIA after RIOT review.
+remaining compatibility limits. The VIA sampled contract also passes its complete flow; its discrepancy ledger remains an open fidelity requirement. Continue with the 6530 RRIOT while retaining all unresolved chip/system gates. The full user objective was reaffirmed on 2026-10-18 and remains active; no chip approximation or queued system counts as the completed end state.
