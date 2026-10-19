@@ -35,3 +35,5 @@ assembled `.bin.hex` used by the testbench) — both are verification
 references only; neither is linked into the RTL.
 
 The year is supported by the [IEEE historical exhibit](https://history.ieee.org/programs/ieee-global-museum/microchips-that-shook-the-world/). The exact commercial introduction date is not asserted. Instruction behavior is grounded in MOS Technology's [January 1976 programming manual](https://www.bitsavers.org/components/mosTechnology/6500-50A_MCS6500pgmManJan76.pdf); cycle timing must be checked against its [hardware manual](https://archive.6502.org/books/mcs6500_family_hardware_manual.pdf).
+
+The Apple II motherboard uses the separately verified [physical-bus variant](../mos_6502_cycle/). Both authored cores are retained: this core keeps its functional-bus and Klaus verification; the physical-bus variant preserves the motherboard's pin/cycle regression contract.

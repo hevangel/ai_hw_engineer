@@ -1,0 +1,23 @@
+[tasks]
+bmc
+prove
+cover
+
+[options]
+bmc: mode bmc
+prove: mode prove
+cover: mode cover
+depth 18
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal -sv mos_6502_cycle.sv mos_6502_cycle_formal.sv
+prep -top mos_6502_cycle_formal
+memory_map
+opt
+
+[files]
+../src/mos_6502_cycle.sv
+mos_6502_cycle_formal.sv

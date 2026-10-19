@@ -8,7 +8,7 @@ and a host bridge for external storage, media and user input.
 
 | System | Year | Chips used | Folder |
 |---|---|---|---|
-| Apple II (in progress) | 1977 | MOS 6502 | [apple_ii/](apple_ii/) |
+| Apple II revision-0 (functional; fidelity validation ongoing) | 1977 | MOS 6502 plus 82 support IC packages | [apple_ii/](apple_ii/) |
 | BUSICOM 141-PF printing calculator | 1971 | 4004, 5×4001, 2×4002, 3×4003 | [busicom_141pf/](busicom_141pf/) |
 | Micral N | 1973 | Intel 8008, 16 KiB memory, I/O bus | [micral_n/](micral_n/) |
 | IBM PC 5150 | 1981 | 8088 bus adapter/shared 8086 EU, 8259, 8253, 8255, 8237, 8272, CGA | [ibm_pc/](ibm_pc/) |

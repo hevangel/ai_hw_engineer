@@ -23,3 +23,18 @@ part of this original Apple II target.
 For the current FPGA-style implementation, RAM/ROM are inferred memories and
 the TTL functions will be grouped into synthesizable functional modules. This
 inventory does not claim a pin-by-pin reconstruction of every support chip.
+
+
+## Implemented revision-0 package reconstruction
+
+The earlier functional grouping has been superseded for the motherboard model
+by individual physical packages. The source transcription contains 83 ICs:
+79 wired digital packages plus H7 CPU and B3/H13/K13 analog support. Their
+location/pin/net records are in [the connectivity manifest](../board/rev0_connectivity.json).
+The 89-socket replica BOM also counts non-IC sockets, so it is not an IC count.
+
+The [package library](../../../design/apple_ii_chips/README.md) contains
+29 digital support models and 3 analog support models. The physical H7 CPU
+uses an independent transistor reference with separately identified licenses.
+[The system report](../report/final_report.md) records actual Monitor boot,
+keyboard commands, physical DRAM bank tests, and remaining fidelity limits.
