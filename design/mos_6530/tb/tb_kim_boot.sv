@@ -5,7 +5,7 @@ module tb_kim_boot;
     logic phi2;
     logic [15:0] bus_addr, pc;
     logic [7:0] bus_data_i, bus_data_o, status, a, x, y, sp;
-    logic bus_we, fetch, fault;
+    logic bus_we, fetch, fault, jammed;
     logic [7:0] data_2, data_3;
     logic oe_2, oe_3, irq_2, irq_3;
     logic [7:0] pa_2, pb_2, pa_oe_2, pb_oe_2, pa_3, pb_3, pa_oe_3, pb_oe_3;
@@ -17,11 +17,21 @@ module tb_kim_boot;
     // CPU consumes a functional transfer at posedge. Complete the peripheral
     // phase at that edge too; do not claim native NMOS instruction timing.
     assign phi2 = !clk;
+`ifdef NATIVE_CPU
+    mos_6502_native cpu (
+        .clk, .rst_n, .rdy_i(1'b1), .irq_n(1'b1), .nmi_n(1'b1), .so_n(1'b1),
+        .bus_addr, .bus_data_i, .bus_data_o, .bus_we,
+        .fetch_o(fetch), .fault_o(fault), .jammed_o(jammed),
+        .pc_o(pc), .status_o(status), .a_o(a), .x_o(x), .y_o(y), .s_o(sp)
+    );
+`else
+    assign jammed = 0;
     mos_6502 cpu (
         .clk, .rst_n, .bus_addr, .bus_data_i, .bus_data_o, .bus_we,
         .irq_n(1'b1), .nmi_n(1'b1), .fetch_o(fetch), .fault_o(fault),
         .pc_o(pc), .status_o(status), .a_o(a), .x_o(x), .y_o(y), .s_o(sp)
     );
+`endif
     mos_6530_kim chip_2 (
         .clk(phi2), .rst_n, .rw(!bus_we), .board_addr(bus_addr[12:0]),
         .data_i(bus_data_o), .data_o(data_2), .data_oe(oe_2),
@@ -65,7 +75,7 @@ module tb_kim_boot;
         rst_n = 1;
         for (cycles = 0; cycles < 100000; cycles++) begin
             #1;
-            if (fault) fail("CPU fault in original monitor");
+            if (fault || jammed) fail("CPU fault/lock-up in original monitor");
             if (oe_2 && oe_3) fail("RRIOT bus contention");
             if (fetch && boot_fetches < 4) begin
                 if (pc !== expected_pc[boot_fetches] || bus_data_i !== expected_opcode[boot_fetches])
