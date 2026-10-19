@@ -73,3 +73,19 @@ against pinned hashes in `work/reference/`; those bytes are not committed.
 The aggregate flow runs formal/cover, strict traced build, exact-PC board
 and disk fixtures, battery/backend/waveform tests, synthesis and the DOS
 application regression. Individual scripts are independently runnable.
+
+## Original application regression
+
+After `scripts/test_harddisk.py` installs DOS, run:
+
+```sh
+python3 system/ibm_ps2_model30/scripts/test_real_software.py
+```
+
+This boots a private copy of the guest-created disk, executes original
+EDLIN and BASICA, and checks application results and DOS-written files.
+EDLIN's new/edited file and backup have independent exact-byte checks.
+BASICA runs the [prime workload](tb/software/README.md), saves and reloads
+it through DOS, and checks software square-root arithmetic. The complete
+`run_all.sh` includes this regression after the disk-install test. Detailed
+measured outcomes belong in the [verification report](report/final_report.md).

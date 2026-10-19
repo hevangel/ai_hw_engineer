@@ -15,4 +15,5 @@ sh "$SYSTEM/scripts/run_synth.sh"
 python3 "$SYSTEM/scripts/test_software.py"
 python3 "$SYSTEM/scripts/test_display_software.py"
 python3 "$SYSTEM/scripts/test_harddisk.py"
+python3 "$SYSTEM/scripts/test_real_software.py"
 echo 'PASS: IBM PS/2 Model 30 complete verification flow'

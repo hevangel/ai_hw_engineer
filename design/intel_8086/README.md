@@ -29,3 +29,14 @@ The first run downloads pinned, integrity-checked references to ignored `work/`.
 The execution core also exports the captured ESC ModR/M byte, ESC instruction
 physical address and WAIT state for the [XT/8087 platform](../../system/ibm_pc_xt_5160/README.md).
 These observation outputs do not change native CPU instruction or bus behavior.
+
+For the original-software regression alone, including unchanged DEBUG.COM
+through the execution unit and both native bus modes:
+
+```sh
+sh design/intel_8086/scripts/run_software.sh
+```
+
+The current RTL passed this software flow and the complete verification
+flow on October 18, 2026; see the
+[verification report](report/final_report.md#current-historical-software-rerun).

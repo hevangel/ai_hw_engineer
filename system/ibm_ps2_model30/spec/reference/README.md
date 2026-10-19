@@ -42,3 +42,18 @@ protocol, with the original Model 30 geometry, IRQ5 and DMA3. Sources and
 fixed ECC/CRC vector provenance are recorded in the
 [fixed-disk specification](../hard_disk.md). No drive MCU firmware or
 unverified discrete controller chip identity is substituted for that contract.
+
+## Additional application regression
+
+The unchanged EDLIN.COM and BASICA.COM bytes come from the pinned PC DOS
+3.30 disk above. `scripts/test_real_software.py` verifies their individual
+SHA-256 hashes before booting a private copy of a DOS-created hard disk.
+Its own `tb/software/primes.bas` is a new test workload executed by the
+original interpreter, rather than a claimed historical BASIC program.
+
+IBM's [DOS Version 3.30 Reference, April 1987](https://www.minuszerodegrees.net/manuals/IBM/IBM%20DOS%20Version%203.30%20-%20Reference%20-%20First%20Edition%20APR87.pdf),
+printed page 8-19, specifies EDLIN's exact CR/LF/1Ah ending and original-file
+.BAK rename. Microsoft's pinned [MS-DOS 2.0 EDLIN source](https://github.com/microsoft/MS-DOS/blob/2d04cacc5322951f187bb17e017c12920ac8ebe2/v2.0/source/EDLIN.ASM)
+independently documents INSERT/ENDINS handling of a leading Ctrl-Z. The
+regression executes the original 3.30 binary, rather than reconstructing
+that application from the older source.
