@@ -15,6 +15,11 @@ and a host bridge for external storage, media and user input.
 | IBM PC XT 5160 | 1983 | 8088, 8087, 256 KiB RAM, CGA, IBM/Xebec 10 MB fixed disk | [ibm_pc_xt_5160/](ibm_pc_xt_5160/) |
 | IBM PS/2 Model 30 | 1987 | Native 8086, planar gate arrays, 8259, 8253, 8237, 8272, MM58167-compatible RTC, MCGA, integrated DBA fixed-disk controller | [ibm_ps2_model30/](ibm_ps2_model30/) |
 
+The requested Atari 2600, Commodore 64, Nintendo NES and Super Nintendo
+reconstructions are queued, in that order, after the chip work in the
+[MOS series ledger](../plans/mos_historical_series.md). They are not yet
+implemented systems.
+
 Each `system/<name>/` folder follows the chip-design layout (`spec/`,
 `plans/`, `src/`, `tb/`, `scripts/`, `report/`) plus `host/` (web app and
 storage/media bridge). The `spec/` folder records reference provenance;
