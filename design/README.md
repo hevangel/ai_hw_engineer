@@ -32,6 +32,7 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1975* (Am9080A evidence) | AMD Am9080 / Am9080A | 8-bit processor; complete documented Am9080A instruction set and functional transaction bus | [amd_am9080](amd_am9080/) |
 | 1975 | MOS Technology 6502 | 8-bit microprocessor; functional and native bus engines, all opcode slots, independent timing and historical software regressions; silicon/board gates open | [mos_6502](mos_6502/) |
 | 1975* (historically reported; primary launch unconfirmed) | MOS Technology 6507 | Thirteen-bit physical bus, native NMOS CPU, internal IRQ/NMI ties; package and historical software regressions | [mos_6507](mos_6507/) |
+| By 1982* (preliminary datasheet; launch unconfirmed) | MOS Technology 6510 | Native NMOS CPU with integrated processor port and AEC drivers; digital and real-software gates pass, physical/reset discrepancies open | [mos_6510](mos_6510/) |
 | 1975* | Intel 8251 / 8251A | Programmable synchronous/asynchronous serial interface (USART) | [intel_8251](intel_8251/) |
 | 1975* / 1982* | Intel 8253 / 8254 | Three-channel programmable interval timers | [intel_8253_8254](intel_8253_8254/) |
 | 1975* | Intel 8255 / 8255A | 24-line programmable peripheral interface | [intel_8255](intel_8255/) |
@@ -151,3 +152,8 @@ The 6507 year is historically reported as 1975; the exact manufacturer launch
 notice remains unverified. Technical package behavior uses the MOS family
 datasheet and photographed die ties. See the [6507 overview](mos_6507/README.md)
 for sources and the [measured package report](mos_6507/report/final_report.md).
+
+The 6510 entry uses a by-1982 bound from the manufacturer's November 1982
+preliminary datasheet. See the [6510 history and source ledger](mos_6510/README.md)
+and [measured report](mos_6510/report/final_report.md), including the
+independent emulators' reset disagreement and sampled charge limitations.

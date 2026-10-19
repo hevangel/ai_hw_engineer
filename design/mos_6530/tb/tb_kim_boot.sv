@@ -33,6 +33,26 @@ module tb_kim_boot;
         if (debug_addr[12:0] !== physical_addr || (fetch && debug_addr !== pc))
             $fatal(1, "6507 physical/fetch address mismatch");
     end
+`elsif CPU_6510
+    logic address_oe, rw_oe, data_oe;
+    logic [5:0] processor_port, processor_oe;
+    logic [7:0] processor_ddr, processor_latch;
+    mos_6510 cpu (
+        .clk, .rst_n, .rdy_i(1'b1), .irq_n(1'b1), .nmi_n(1'b1), .aec_i(1'b1),
+        .bus_addr, .bus_data_i, .bus_data_o, .bus_we,
+        .bus_addr_oe(address_oe), .bus_rw_oe(rw_oe), .bus_data_oe(data_oe),
+        .port_i(6'h3f), .port_o(processor_port), .port_oe(processor_oe),
+        .ddr_o(processor_ddr), .latch_o(processor_latch),
+        .fetch_o(fetch), .fault_o(fault), .jammed_o(jammed),
+        .pc_o(pc), .status_o(status), .a_o(a), .x_o(x), .y_o(y), .s_o(sp)
+    );
+    always_ff @(posedge clk) if (rst_n) begin
+        if (!address_oe || !rw_oe || data_oe !== (bus_we && bus_addr > 1) ||
+            processor_port !== processor_latch[5:0] || processor_oe !== processor_ddr[5:0])
+            $fatal(1,"6510 processor bus/port wiring");
+        if (fetch && boot_fetches == 0 && (processor_ddr !== 0 || processor_latch !== 0))
+            $fatal(1,"6510 processor-port reset profile");
+    end
 `elsif NATIVE_CPU
     mos_6502_native cpu (
         .clk, .rst_n, .rdy_i(1'b1), .irq_n(1'b1), .nmi_n(1'b1), .so_n(1'b1),
@@ -74,7 +94,11 @@ module tb_kim_boot;
     end
     always_ff @(posedge clk) begin
         if (rst_n && bus_we && bus_addr[12:0] < 13'h0400)
+`ifdef CPU_6510
+            ram[bus_addr[9:0]] <= data_oe ? bus_data_o : 8'hff;
+`else
             ram[bus_addr[9:0]] <= bus_data_o;
+`endif
     end
     task automatic fail(input string why);
         $fatal(1, "%s PC=%04x bus=%04x A=%02x X=%02x Y=%02x S=%02x P=%02x ports=%02x/%02x/%02x/%02x oe=%02x/%02x/%02x/%02x irq=%b%b",
