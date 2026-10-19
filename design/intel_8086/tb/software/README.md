@@ -13,3 +13,10 @@ The binary's bytes are never patched or reassembled. A chip test fixture establi
 The script runs register display (`r`), hex edit (`e 100 b8 34 12 40 90`), disassembly (`u 100 104`), three single steps (`t`), another register display and quit (`q`). Assertions require decoded bytes `B83412`, AX=1234 after MOV, AX=1235 after INC, IP=0105 after NOP, complete command consumption, no startup file error and normal exit. No broad PC padding or instruction emulation is used.
 
 Run this original application through the direct EU interface and both native bus modes, with READY backpressure. Ordinary software mode uses unified code/data RAM, unlike the specialized upstream physical-vector responder. Preserve `work/software/debug.log`, `native-debug.log` and `debug_transcript.log` for inspection. This is an application regression with a service fixture, not a complete DOS/PC system.
+
+Run `sh design/intel_8086/scripts/run_software.sh` for the startup and all
+three DEBUG interfaces without downloading the physical-vector corpus.
+The external DOS/BIOS service fixture remains explicit; the Model 30
+[application regression](../../../../system/ibm_ps2_model30/scripts/test_real_software.py)
+also executes original DOS/BIOS in RTL and checks original EDLIN/BASICA
+through keyboard input and disk contents.

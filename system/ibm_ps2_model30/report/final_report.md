@@ -32,6 +32,7 @@ Their copyrighted bytes and generated traces remain in ignored `work/`.
 | Exact-PC CPU board fixture | PASS; native/odd memory lanes, split word I/O, DMA clock crossing/page readback, ROM protection, RAM mapping, MCGA/DAC/font, keyboard commands, UART loopback/IRQ, RTC and reset retention |
 | CPU/DMA/FDC fixture | PASS; 6,576,987 clocks, 9,252 DMA transfers, 4,608 media writes |
 | Original fixed-disk install/boot | PASS; FDISK/restart, full FORMAT /S, COPY, CHKDSK, independent FAT16/file comparison, cold C: boot with zero floppy reads and copied-program execution |
+| Original application workload | PASS; original EDLIN create/edit/backup bytes, BASICA prime sieve/save/reload/square root, return to DOS; 557,250,000 clocks, zero CPU faults or POST errors |
 | Original graphics software | PASS; BASICA SCREEN 2 interleaved rectangle and BIOS modes 13h/11h exact full-framebuffer comparisons through original DEBUG |
 | Configured-clock reboot | PASS; unchanged POST and DOS return to COMMAND.COM after CPU/board reset, zero POST errors |
 | Battery storage | PASS; CPU-written 32-byte RTC image survives process restart/reset; invalid size rejected |
@@ -163,3 +164,41 @@ prompt handling. It reaches COMMAND.COM at 242,000,000 clocks and executes
 CHECK.COM at 250,000,000 clocks, with 179,200 DMA transfers, zero POST
 errors and zero floppy-media reads. Default `test_harddisk.py` runs both
 stages; the resume option validates installed file bytes before starting RTL.
+
+
+## Original EDLIN and BASICA application run
+
+Additional application verification completed on October 19, 2026 with
+`scripts/test_real_software.py`, on unchanged system/CPU RTL. The script
+boots a private copy of the earlier guest-installed DOS disk; C: boot has
+zero floppy reads and zero POST errors. It then mounts the hash-pinned DOS
+floppy to execute the unchanged 7,526-byte EDLIN.COM and 36,403-byte
+BASICA.COM applications. DOS/BIOS and application instructions run in RTL;
+no external DOS-service fixture or CPU-register injection is used here.
+
+EDLIN creates REAL86.TXT, closes it, reopens it, deletes/inserts line two
+and closes it again. At 304,750,000 clocks an independent FAT16 reader
+checks the exact edited CR/LF/1Ah bytes and the original .BAK payload.
+COMMAND.COM TYPE reads the edited file at 310,250,000 clocks.
+
+Original BASICA runs the new [prime workload](../tb/software/README.md)
+using its software floating-point/array routines without an 8087. An
+independent trial-division oracle requires 168 primes through 1000 and sum
+76,127; this passes at 457,000,000 clocks. BASICA saves its tokenized program
+to C: at 463,000,000 clocks. NEW discards the in-memory program and CLS
+clears the prior output before LOAD reads the DOS-saved file. The repeated
+calculation passes at 547,000,000 clocks. INT(SQR(2)*1000000) returns
+1,414,213 at 554,500,000 clocks. SYSTEM returns to DOS at 557,250,000 clocks,
+with zero CPU faults and zero POST diagnostics.
+
+The final application script passes uninterrupted. It prevalidates typed
+source characters before POST and recognizes BASIC's final console prompt
+above its original function-key legend. Its final disk bundle preserves
+all original installed DOS file bytes as well as the independently checked
+text/backup and saved BASIC program. Logs, frames, state snapshots and the
+private disk remain under ignored `work/real_software*`. The full system
+aggregate is still distinguished from the separately executed stages above.
+
+The current [8086 complete verification flow](../../../design/intel_8086/report/final_report.md#current-historical-software-rerun)
+also passes, including the original Microsoft DEBUG application through all
+three CPU interfaces and all 1,700,163 physical-chip instruction cases.

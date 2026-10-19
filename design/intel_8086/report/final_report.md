@@ -4,7 +4,7 @@
 
 The documented 8086 instruction set and native digital chip interface are implemented. `intel_8086_chip` combines the execution unit, six-byte prefetch queue, minimum/maximum-mode bus, READY waits, interrupts/traps, WAIT/ESC, LOCK and HOLD/RQ/GT ownership. `intel_8086` exposes the execution unit separately for functional integration. This delivery contains the chip and verification environment. The [specification](../spec/spec.md) defines the supported encodings, interfaces and assumptions; the [encoding ledger](encoding_coverage.md) assigns evidence to every documented row.
 
-Verification completed on 2026-10-11 with `ai-hw-engineer:latest`: Verilator 5.052, Yosys 0.69, xezim 0.11.0, Accellera UVM 1800.2-2017, SymbiYosys with ABC BMC/PDR, Z3 and Yices, GNU binutils and Python 3. From the repository root inside the image:
+The complete verification flow first passed on October 11, 2026 and was rebuilt and rerun successfully on October 18, 2026 with `ai-hw-engineer:latest`: Verilator 5.052, Yosys 0.69, xezim 0.11.0, Accellera UVM 1800.2-2017, SymbiYosys with ABC BMC/PDR, Z3 and Yices, GNU binutils and Python 3. From the repository root inside the image:
 
 ```sh
 sh design/intel_8086/scripts/run_all.sh
@@ -33,6 +33,25 @@ The aggregate script requires every stage to succeed and checks explicit complet
 | Yosys synthesis | Both tops synthesize, map and pass `check -assert` with zero structural problems |
 
 The corpus total is **1,700,163 instruction-case executions** across the three interfaces. It covers 287 nonempty selected files from all 323 upstream files. Of 646,000 supplied cases, 77,256 upstream non-normal encodings and 2,023 undocumented segment-register fields are excluded explicitly. No test is removed because the RTL fails it. The [selection summary](vector_coverage.json) retains per-file counts and exclusion totals.
+
+## Current historical-software rerun
+
+On October 18, 2026, the current RTL (including the ESC/WAIT observation
+outputs added for XT integration) was rebuilt and `run_software.sh` passed:
+Intel's original startup sequence and unchanged Microsoft DEBUG.COM in the
+execution unit, native minimum mode and native maximum mode. Each DEBUG
+run executes 22,100 RTL instructions and 1,239 external service calls,
+including register display, editing, disassembly, trap-based single steps
+and normal exit. The software entrypoint now runs all three interfaces
+without requiring the physical instruction-vector corpus. Linux shell
+scripts are explicitly checked out with LF endings.
+
+The complete `run_all.sh` was also rerun successfully on the current RTL:
+strict lint, all nine formal tasks, eight UVM scenarios, 153 control tests,
+25 native bus tests, all 1,700,163 physical-chip instruction-case executions,
+oracle negative controls, historical software and both synthesis tops pass.
+The retained completion log is `work/current-run-all.log`. These are the
+same finite contracts and physical-oracle limitations described below.
 
 ## Independent instruction oracle
 
@@ -70,4 +89,4 @@ Formal safety leaves the relevant external inputs arbitrary after an initial res
 - Synthesis uses `synth -noabc; abc -script +strash,map` and produces checked generic netlists for both tops. Generic cell counts are not physical area or maximum-frequency estimates.
 - xezim emits 23 UVM component-name warnings with DPI disabled and a UVM phase-delay diagnostic. Explicit completion is reached with zero errors/fatals. RTL lint remains warning-free.
 
-Ignored local evidence lives under `work/`: `run_all.log`, `lint/rtl.log`, `formal/*/status`, `uvm/uvm.log`, `vectors.log`, `vector_selection.json`, `reference/manifest.json`, `native/tests.log`, `native/vectors_min.log`, `native/vectors_max.log`, `software/startup.log`, `software/debug.log`, `software/native-debug.log`, software transcripts and `synth/*.log`. The deliberately failing pre-fix formal experiment is separate at `formal/prefetch_old_negative/`; it is not a sign-off task. Downloaded fixtures, binaries, netlists and build outputs are not committed.
+Ignored local evidence lives under `work/`: `current-run-all.log`, `run_all.log`, `lint/rtl.log`, `formal/*/status`, `uvm/uvm.log`, `vectors.log`, `vector_selection.json`, `reference/manifest.json`, `native/tests.log`, `native/vectors_min.log`, `native/vectors_max.log`, `software/startup.log`, `software/debug.log`, `software/native-debug.log`, software transcripts and `synth/*.log`. The deliberately failing pre-fix formal experiment is separate at `formal/prefetch_old_negative/`; it is not a sign-off task. Downloaded fixtures, binaries, netlists and build outputs are not committed.
