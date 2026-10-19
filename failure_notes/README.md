@@ -80,3 +80,11 @@ author is the same agent in every session — the useful question is never
   never exercised the serial shift path. Caught by Kintli's annotated
   firmware source (user-supplied): the `~` on the keyboard 4003 data
   input inverted the firmware's active-low column scan.
+
+- [2026-10-03 — Apple II copper topology and floating data bus](2026-10-03-apple-ii-copper-floating-bus.md)
+  An independent copper layout exposed a shorted soft-5 branch and missing
+  unused-output ground; a historical circuit/software description exposed
+  missing passive data-bus charge retention.
+
+- [2026-10-18 — Apple II reference startup initialization](2026-10-18-apple-ii-reference-initialization.md)
+  AddressSanitizer exposed an uninitialized group count in the pinned external solver; the build derives an allocation-only fix while retaining original source hashes.

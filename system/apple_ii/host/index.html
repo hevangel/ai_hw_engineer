@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>Apple II revision 0</title>
+<style>
+body{background:#17221c;color:#f3f0df;font:16px system-ui;margin:2rem auto;max-width:920px;padding:0 1rem}
+h1{font-weight:500}canvas{width:100%;aspect-ratio:560/384;background:#000;image-rendering:pixelated;outline:2px solid #586655}
+button,textarea{font:inherit;color:inherit;background:#29372c;border:1px solid #788573;border-radius:4px;padding:.6rem;margin:.3rem 0}
+button{cursor:pointer;margin-right:.4rem}textarea{width:100%;box-sizing:border-box}small{color:#b8c5b2}#status{min-height:1.5rem}
+</style>
+<h1>Apple II <small>revision 0 · 1977</small></h1>
+<canvas id="screen" width="560" height="192" tabindex="0" aria-label="Apple II display; click to type"></canvas>
+<p id="status">Waiting for the first video frame…</p>
+<button id="reset">Reset</button><button id="basic">Integer BASIC</button><button id="clear">Clear screen</button>
+<textarea id="commands" rows="4" aria-label="Commands" placeholder="300:A5 5A&#10;300.301"></textarea>
+<button id="send">Type commands</button>
+<p><small>Click the display to type. Enter, Escape and Ctrl combinations work.
+The motherboard runs at simulator speed. Orange pixels have an unknown signal.
+The display shows monochrome serial video.</small></p>
+<script>
+const canvas=document.querySelector('#screen'),ctx=canvas.getContext('2d'),status=document.querySelector('#status');
+const image=ctx.createImageData(560,192);
+async function post(path,text=''){
+  const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+  const result=await response.json();status.textContent=response.ok?'Input queued.':result.error;
+}
+document.querySelector('#reset').onclick=()=>post('/reset');
+document.querySelector('#basic').onclick=()=>post('/keys','\x02\r');
+document.querySelector('#clear').onclick=()=>post('/keys','\x1b@');
+document.querySelector('#send').onclick=()=>{let s=document.querySelector('#commands').value.toUpperCase();post('/keys',s.endsWith('\n')?s:s+'\n');};
+canvas.onkeydown=e=>{
+  let key=e.key==='Enter'?'\r':e.key==='Escape'?'\x1b':e.key==='Backspace'?'\x08':e.key.length===1?e.key.toUpperCase():'';
+  if(e.ctrlKey && e.key.length===1)key=String.fromCharCode(e.key.toUpperCase().charCodeAt(0)&31);
+  if(key && !e.metaKey && !e.altKey){e.preventDefault();post('/keys',key);}
+};
+async function refresh(){
+  try{
+    const response=await fetch('/frame');
+    if(response.status===200){const pixels=new Uint8Array(await response.arrayBuffer());
+      if(pixels.length===560*192){for(let i=0;i<pixels.length;i++){
+        image.data[i*4]=pixels[i]===2?230:pixels[i]?160:0;
+        image.data[i*4+1]=pixels[i]===2?100:pixels[i]?255:0;
+        image.data[i*4+2]=pixels[i]===2?20:pixels[i]?130:0;image.data[i*4+3]=255;
+      }ctx.putImageData(image,0,0);if(status.textContent.startsWith('Waiting'))status.textContent='Running at simulator speed.';}
+    }
+    const state=await (await fetch('/status')).json();
+    if(!state.running)status.textContent='Simulator stopped. See work/front_panel.log.';
+  }catch{status.textContent='Front panel disconnected.';}
+  setTimeout(refresh,1000);
+}refresh();
+</script></html>

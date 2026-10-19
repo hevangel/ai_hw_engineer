@@ -30,12 +30,14 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1975* (announcement) | AMD Am2902 | Four-group carry look-ahead generator; active-low P/G and hierarchical expansion | [amd_am2902](amd_am2902/) |
 | 1975* (marketing) | AMD Am2909 | Four-bit microprogram sequencer; four-word return stack, separate register/direct buses and OR branching | [amd_am2909](amd_am2909/) |
 | 1975* (Am9080A evidence) | AMD Am9080 / Am9080A | 8-bit processor; complete documented Am9080A instruction set and functional transaction bus | [amd_am9080](amd_am9080/) |
+| 1975 | MOS Technology 6502 physical-bus variant | Documented NMOS ISA with pin/cycle timing for the Apple II revision-0 motherboard | [mos_6502_cycle](mos_6502_cycle/) |
 | 1975 | MOS Technology 6502 | 8-bit microprocessor; full documented NMOS instruction set (151 opcodes), decimal mode, IRQ/NMI; passes Klaus Dormann's functional test | [mos_6502](mos_6502/) |
 | 1975* | Intel 8251 / 8251A | Programmable synchronous/asynchronous serial interface (USART) | [intel_8251](intel_8251/) |
 | 1975* / 1982* | Intel 8253 / 8254 | Three-channel programmable interval timers | [intel_8253_8254](intel_8253_8254/) |
 | 1975* | Intel 8255 / 8255A | 24-line programmable peripheral interface | [intel_8255](intel_8255/) |
 | 1976* (availability evidence) | AMD Am2911 | Four-bit microprogram sequencer; shared direct/register bus, four-word return stack | [amd_am2911](amd_am2911/) |
 | 1976 | Intel 8259 / 8259A | Eight-input programmable interrupt controller; manufacturer-based request-withdrawal regression | [intel_8259](intel_8259/) |
+| 1977 | Apple II revision-0 support packages | 4116 RAM, ROM, 2513, TTL/bus interfaces and analog support; package years vary | [apple_ii_chips](apple_ii_chips/) |
 | 1977 (manufacturer history) | AMD Am9511 | Signed integer/native floating arithmetic, conversions and transcendental processing unit | [amd_am9511](amd_am9511/) |
 | 1977* | Intel 8273 | HDLC/SDLC serial protocol controller; framing, NRZI, CRC, DMA and loop relay | [intel_8273](intel_8273/) |
 | 1977* | Intel 8275 | DMA-fed programmable CRT controller; raster, attributes, cursor and light pen | [intel_8275](intel_8275/) |

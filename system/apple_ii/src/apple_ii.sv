@@ -17,12 +17,14 @@ module apple_ii #(
     logic [15:0] cpu_addr;
     logic [7:0] cpu_data_i, cpu_data_o;
     logic cpu_we;
+    logic [7:0] unused_a, unused_sp;
 
-    mos_6502 cpu (
-        .clk(clk), .rst_n(rst_n), .bus_addr(cpu_addr),
+    mos_6502_cycle cpu (
+        .clk(clk), .rst_n(rst_n), .res_n(1'b1), .irq_n(1'b1),
+        .nmi_n(1'b1), .rdy(1'b1), .so_n(1'b1), .bus_addr(cpu_addr),
         .bus_data_i(cpu_data_i), .bus_data_o(cpu_data_o), .bus_we(cpu_we),
         .fetch_o(cpu_fetch), .fault_o(cpu_fault), .pc_o(cpu_pc),
-        .status_o(cpu_status), .x_o(cpu_x), .y_o(cpu_y)
+        .status_o(cpu_status), .x_o(cpu_x), .y_o(cpu_y), .a_o(unused_a), .sp_o(unused_sp)
     );
     apple_ii_memory #(.ROM_FILE(ROM_FILE)) memory (
         .clk(clk), .rst_n(rst_n), .cpu_addr(cpu_addr),
