@@ -23,3 +23,5 @@ design/mos_6502/scripts/*.sh text eol=lf
 design/mos_6502/references/*.hex -text
 
 design/intel_8259/scripts/*.sh text eol=lf
+
+design/mos_6532/scripts/*.sh text eol=lf
