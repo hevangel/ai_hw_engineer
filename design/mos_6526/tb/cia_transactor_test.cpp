@@ -48,6 +48,7 @@ int main(int argc,char**argv) {
         if(payload.size()!=104 || sum!=11949) throw std::runtime_error("Original DATA checksum/length");
         for(unsigned timer=0;timer<2;timer++) {
             Vcia_software_top dut;
+            dut.tod_input_i=0;
             dut.rdy_i=1; dut.reference_cia_i=reference; dut.reference_irq_n_i=1; dut.reference_nmi_n_i=1;
             std::array<unsigned char,65536> ram{};
             std::copy(payload.begin(),payload.end(),ram.begin()+0x3200);

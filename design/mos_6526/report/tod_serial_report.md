@@ -32,14 +32,15 @@ The serial block accepts already-qualified CNT rising edges and timer baud
 pulses. It does not silently claim a complete physical synchronizer.
 
 - Verilator passes all 256 receive bytes and all 65,536 buffered transmit
-  byte pairs, decoding actual CNT/SP output edges: 3,018,789 native clocks.
-  It checks gaps between baud pulses, MSB order, IRQ after bit eight,
+  byte pairs, decoding actual CNT/SP output edges: 3,281,091 native clocks.
+  It checks gaps between baud pulses, MSB order, hardware-qualified
+  completion request timing,
   continuous buffered output, final SP retention, pending-buffer overwrite,
   CPU-write/receive precedence and direction-change release.
 - Four-state simulation passes all 256 receive bytes, 256 buffered pairs
-  and 16,148 checks. The same SV bench also passes Verilator.
-- Strict lint, BMC/PDR/five reachable covers and synthesis/check pass;
-  generic synthesis uses 125 cells.
+  and 17,339 checks. The same SV bench also passes Verilator.
+- Strict lint, BMC/PDR/six reachable covers and synthesis/check pass;
+  generic synthesis uses 132 cells after adding the delayed request.
 
 The normal byte protocol is specified by the MOS datasheet. Direction
 flush, overlapping SDR writes and physical SP sampling retain the explicit
@@ -78,3 +79,12 @@ Integrate PHI2 port sampling, two timer sources/cascade, PB timer overrides,
 PC handshake, resolved-pin readback and revision-qualified ICR/IRQ behavior.
 Then run complete-device independent timing and historical CIA software,
 formal and board integration gates before considering the CIA complete.
+
+## Original software qualification
+
+The [serial hardware-table regression](serial_software_report.md) now
+checks 21 original timing samples and records the escaped completion/read
+boundary defects and corrections. The [TOD original-software regression](tod_software_report.md)
+checks 66 time samples across latch/release, stop/restart and alarm-write
+paths. These qualify additional sampled behavior while retaining physical
+synchronizer, reset, double-write and revision/corner-case gates.

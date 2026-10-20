@@ -8,6 +8,7 @@ module mos_6526_serial (
 );
     logic [7:0] sdr_q, shift_q, pending_data_q;
     logic [2:0] bits_q;
+    logic [3:0] tx_irq_q;
     logic active_q, pending_q, previous_mode_q, cnt_q, sp_q;
     assign data_o = sdr_q;
     assign active_o = active_q;
@@ -19,17 +20,27 @@ module mos_6526_serial (
     assign sp_oe = output_mode_i && !sp_q;
     assign irq_event_o = rst_n && previous_mode_q == output_mode_i &&
         ((!output_mode_i && cnt_rise_i && bits_q == 7) ||
-         (output_mode_i && baud_pulse_i && active_q && !cnt_q && bits_q == 7));
+         (output_mode_i && tx_irq_q[3]));
     always_ff @(posedge clk) begin
         if (!rst_n) begin
             sdr_q <= 0; shift_q <= 0; pending_data_q <= 0;
+            tx_irq_q <= 0;
             bits_q <= 0; active_q <= 0; pending_q <= 0;
             previous_mode_q <= 0; cnt_q <= 1; sp_q <= 1;
         end else begin
+            // ASSUMPTION: sampled request phase matching the original
+            // cia-sdr-delay hardware table (VICE SVN 45953); physical pin
+            // synchronization remains open in spec/spec.md.
+            // request four PHI2 clocks after bit 8 is presented, before
+            // the final CNT rising edge when the divider is sufficiently slow.
+            tx_irq_q <= {tx_irq_q[2:0], output_mode_i &&
+                previous_mode_q == output_mode_i && baud_pulse_i &&
+                active_q && cnt_q && bits_q == 7};
             previous_mode_q <= output_mode_i;
             if (previous_mode_q != output_mode_i) begin
                 // ASSUMPTION: direction transition flush/release; see spec.
                 shift_q <= 0; bits_q <= 0; active_q <= 0; pending_q <= 0;
+                tx_irq_q <= 0;
                 cnt_q <= 1; sp_q <= 1;
             end else if (!output_mode_i) begin
                 if (cnt_rise_i) begin

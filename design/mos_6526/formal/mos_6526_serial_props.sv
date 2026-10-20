@@ -11,6 +11,7 @@
                 if ($past(write_i)) assert(data_o == $past(data_i));
                 if ($past(write_i && output_mode_i)) assert(pending_o);
                 if ($past(previous_mode_q != output_mode_i)) begin
+                    assert(tx_irq_q == 0);
                     assert(cnt_o && sp_o && !active_o && bits_q == 0);
                     if (!$past(write_i && output_mode_i)) assert(!pending_o);
                 end
@@ -25,4 +26,5 @@
         cover(f_valid && rst_n && active_o && pending_o);
         cover(f_valid && rst_n && irq_event_o && output_mode_i && pending_o);
         cover(f_valid && rst_n && irq_event_o && !output_mode_i && write_i);
+        cover(f_valid && rst_n && irq_event_o && output_mode_i && !cnt_o && !baud_pulse_i);
     end

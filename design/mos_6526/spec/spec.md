@@ -256,3 +256,41 @@ cycle D7 view. Retaining only the previous committed IRQ state introduces
 an extra CPU-observed NMI cycle, visible in Lorenz CIA2 timer tests. This
 does not establish subcycle electrical transition timing; that remains an
 explicit capture requirement.
+
+## Independent serial delay qualification
+
+Execute the unchanged `CIA/shiftregister/cia-sdr-delay.prg` from VICE SVN
+45953, with its original 21-word hardware table and D7FF result store.
+The fixture supplies PAL raster bit 7 (312 lines, 63 PHI2 clocks per line),
+RAM, reset-vector override and an executing RTS at FFD2 for diagnostic
+console output. It supplies no video DMA or screen editor. The program's
+raw timer table at 2000, rather than rendered text, determines its result.
+Require exact SYS entry 080D, next instruction 080F, and exact result-store
+and following instruction PCs; fail on any original nonzero result.
+
+ASSUMPTION: the captured old/new-unspecified C64c/C128D timing table is
+represented in this sampled interface by a transmit completion request
+four PHI2 clocks after presentation of bit 8
+(the fifteenth baud pulse), rather than at the sixteenth pulse. CNT still
+rises on pulse 16 to finish the wire transfer. This is a sampled profile:
+other divider values and silicon revisions still require captured traces.
+The four-cycle request pipeline is flushed on direction change/reset.
+
+ASSUMPTION: a serial completion already visible in the current ICR read is
+consumed by that read, instead of being retained for the next read. The
+unchanged 21-sample program distinguishes this from the timer/FLAG source
+set-wins convention: retaining it produces false early completion in the
+following transfer at three polling alignments. Other serial/read races
+and the electrical timing of this boundary remain capture requirements.
+
+## Independent TOD software qualification
+
+Execute unchanged SVN 45953 CIA/tod read-latch and write-stop programs,
+including their embedded comparison tables, without firmware substitutions.
+The explicit PAL fixture supplies 63 clocks per line, 312 lines per frame
+and one TOD rising edge per frame (50 Hz nominal). This preserves the
+original programs' frame-counted waits. It is a timing stimulus generator,
+not VIC-II logic or DMA. Require exact entry JMP at 080D, target SEI at
+0820, original D7FF result-store PCs and following self-loop JMPs, and the
+original sample counts in zero-page loopcnt. Reset hour remains unchanged:
+both programs initialize the TOD explicitly and do not qualify power-up.

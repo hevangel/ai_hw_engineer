@@ -11,5 +11,7 @@ sh "$HERE/scripts/run_sim.sh"
 sh "$HERE/scripts/run_software.sh"
 sh "$HERE/scripts/run_software.sh" 0
 sh "$HERE/scripts/run_transactor.sh"
+sh "$HERE/scripts/run_serial_software.sh"
+sh "$HERE/scripts/run_tod_software.sh"
 sh "$HERE/scripts/run_synth.sh"
 echo 'MOS 6526 SAMPLED DIGITAL GATES PASS (external software and revision qualification remain)'

@@ -26,6 +26,10 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-10-20 — MOS 6526 serial completion timing](2026-10-20-mos6526-serial-completion-timing.md)
+  Original hardware-table software exposed a late transmit request and a
+  consumed completion retained into the following transfer.
+
 - [2026-10-20 — MOS 6526 loss detector phase coverage](2026-10-20-mos6526-loss-detector-phase-coverage.md)
   The original Transactor detector required a witnessed read/underflow
   overlap; zero error stars in the fixed-raster fixture were inconclusive.

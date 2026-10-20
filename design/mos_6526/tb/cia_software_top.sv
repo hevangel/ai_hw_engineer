@@ -2,7 +2,7 @@
 module cia_software_top #(
     parameter bit TIMER_B_READ_LOSS = 1
 ) (
-    input logic clk, rst_n, rdy_i,
+    input logic clk, rst_n, rdy_i, tod_input_i,
     input logic reference_cia_i, reference_irq_n_i, reference_nmi_n_i,
     input logic [7:0] memory_data_i,
     output logic [15:0] bus_addr, pc_o,
@@ -43,7 +43,7 @@ module cia_software_top #(
         .clk, .rst_n, .cs_n(!cia_selected), .rw(!bus_we), .addr(bus_addr[3:0]),
         .data_i(bus_data_o), .data_o(cia_data), .data_oe(unused_data_oe),
         .pa_i(pa), .pb_i(pb), .pa_o, .pb_o, .pa_oe, .pb_oe,
-        .cnt_i(1'b1), .sp_i(1'b1), .flag_n_i(1'b1), .tod_i(1'b0),
+        .cnt_i(1'b1), .sp_i(1'b1), .flag_n_i(1'b1), .tod_i(tod_input_i),
         .cnt_o(unused_cnt), .cnt_oe(unused_cnt_oe), .sp_o(unused_sp),
         .sp_oe(unused_sp_oe), .pc_n(unused_pc), .irq_n
     );
@@ -51,7 +51,7 @@ module cia_software_top #(
         .clk, .rst_n, .cs_n(!cia2_selected), .rw(!bus_we), .addr(bus_addr[3:0]),
         .data_i(bus_data_o), .data_o(cia2_data), .data_oe(unused_data2_oe),
         .pa_i(pa2), .pb_i(pb2), .pa_o(pa2_o), .pb_o(pb2_o), .pa_oe(pa2_oe), .pb_oe(pb2_oe),
-        .cnt_i(1'b1), .sp_i(1'b1), .flag_n_i(1'b1), .tod_i(1'b0),
+        .cnt_i(1'b1), .sp_i(1'b1), .flag_n_i(1'b1), .tod_i(tod_input_i),
         .cnt_o(unused_cnt2), .cnt_oe(unused_cnt2_oe), .sp_o(unused_sp2),
         .sp_oe(unused_sp2_oe), .pc_n(unused_pc2), .irq_n(nmi_n)
     );

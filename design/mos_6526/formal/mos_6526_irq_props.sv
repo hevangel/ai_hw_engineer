@@ -12,6 +12,7 @@
                 if (!$past(read_i) && rst_n && !read_i) assert(irq_n == $past(cycle_irq_n));
                 assert((pending_q & $past(captured_sources)) == $past(captured_sources));
                 if ($past(read_i)) begin
+                    assert(!pending_q[3]);
                     assert(pending_q == $past(captured_sources));
                     assert(!asserted_q);
                     assert(!tb_loss_q);
@@ -33,6 +34,7 @@
         cover(f_valid && rst_n && read_i && d7_q);
         cover(f_valid && rst_n && acknowledge_q && scheduled_q);
         cover(f_valid && rst_n && asserted_q && mask_q == 0);
+        cover(f_valid && rst_n && read_i && source_i[3] && cycle_data_o[3]);
         if (TIMER_B_READ_LOSS) begin
             cover(f_valid && rst_n && tb_loss_q);
             cover(f_valid && rst_n && read_i && tb_loss_view && pending_q[1] && !cycle_data_o[1]);

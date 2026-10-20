@@ -43,6 +43,7 @@ static void run(const std::string& path,const std::string& kernal_path) {
     // Actual RTS instructions execute; no CPU state/PC is teleported over calls.
     if(kernal.empty()) for(unsigned address : {0xff84u,0xff8au,0xffd2u}) ram[address]=0x60;
     Vcia_software_top dut;
+    dut.tod_input_i=0;
     dut.rdy_i=1;
     dut.reference_cia_i=0; dut.reference_irq_n_i=1; dut.reference_nmi_n_i=1;
     std::uint64_t cycles=0;

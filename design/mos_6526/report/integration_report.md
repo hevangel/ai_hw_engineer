@@ -35,10 +35,10 @@ oracle on all 3,623,621 cycles; the registered interface is unchanged.
 
 The sampled interrupt foundation separately passes every one of 1,024
 mask/source combinations and acknowledgment/pending-enable races:
-9,361 checks per profile in each simulator, including current-cycle
+9,364 checks per profile in each simulator, including current-cycle
 source/D7/IRQ views, adjacent-read loss and recovery. Strict lint and
-BMC/PDR pass for both profiles, with eight reachable covers for the
-affected profile and five for the unaffected profile. Synthesis checks
+BMC/PDR pass for both profiles, with nine reachable covers for the
+affected profile and six for the unaffected profile. Synthesis checks
 both profiles separately: 72 generic IRQ cells affected, 67 unaffected.
 See the [Transactor report](transactor_report.md) for their independent
 original-software qualification.
@@ -48,9 +48,9 @@ original-software qualification.
 Whole-device BMC at depth 32 and unbounded PDR safety proofs pass with
 multiclock modeling. Properties include reset, register-write preservation,
 resolved port reads, pin enables, handshake and every child block's
-assertions. All **37 covers** (seven integration covers plus child covers)
-are reachable; the last is reached at step 41 of the depth-64 cover run.
-Yosys 0.69 synthesis and `check` pass with **1,826 generic cells** including
+assertions. All **39 covers** (seven integration covers plus child covers)
+are reachable; the last is reached at step 47 of the depth-64 cover run.
+Yosys 0.69 synthesis and `check` pass with **1,833 generic cells** including
 both timer instances and all other child blocks. Strict `-Wall` lint passes.
 
 ## Independent historical software
@@ -98,3 +98,10 @@ IRQ/TOD/serial software and complete-device captures/reference traces
 are required. The
 four requested systems remain pending; this report does not claim C64
 compatibility or a completed console.
+
+Original serial-delay and TOD latch/stop programs also run against both
+actual CIAs and the native CPU fixture. The [serial report](serial_software_report.md)
+records 21 unchanged hardware timing samples and the completion/read-race
+fixes. The [TOD report](tod_software_report.md) records 66 original time
+comparisons over 19,629,050 clocks. Both use explicit timing stimuli; neither
+claims a complete C64 board or resolves silicon revision capture gates.

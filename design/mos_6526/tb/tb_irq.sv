@@ -50,6 +50,10 @@ module tb_irq #(parameter bit TIMER_B_READ_LOSS=1);
         reset_chip(); put(8'h90); read_i=1; source_i=5'h10; tick(); read_i=0; source_i=0;
         require_check(data_o==8'h10 && irq_n,"Fresh event survives coincident ICR read");
         tick(); require_check(data_o==8'h90 && !irq_n,"New request wins delayed D7 acknowledge");
+        reset_chip(); source_i=8; read_i=1; #1;
+        require_check(cycle_data_o[3],"Concurrent serial request is visible to current ICR read");
+        tick(); source_i=0; read_i=0; #1;
+        require_check(!cycle_data_o[3],"Serial request consumed by current read cannot leak to next transfer");
         for(int flags=0;flags<32;flags++) begin
             reset_chip(); put(8'h9f);
             read_i=1; tick(); read_i=0;

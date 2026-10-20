@@ -30,6 +30,10 @@ module mos_6526_irq #(
     always_comb begin
         read_sources = pending_q | source_i;
         captured_sources = source_i;
+        // ASSUMPTION: a currently visible serial completion is consumed
+        // by this read. Original cia-sdr-delay detects stale re-capture;
+        // see the serial qualification ledger in spec/spec.md.
+        if (read_i) captured_sources[3] = 0;
         if (read_i && tb_loss_view) begin
             read_sources[1] = 0;
             captured_sources[1] = 0;

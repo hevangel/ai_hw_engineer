@@ -51,10 +51,30 @@ int main(int argc,char **argv) {
                     rig.tick(); rig.require(rig.dut.cnt_o==clock && rig.dut.sp_o==data,"baud gaps preserve clock and data");
                 }
             }
+            for(unsigned drain=0;drain<4;++drain) rig.tick();
             rig.require(received==16 && decoded==pair && rig.interrupts==previous+2,"all buffered output byte pairs");
             rig.require(!rig.dut.active_o && !rig.dut.pending_o && rig.dut.cnt_o && rig.dut.sp_o==(second&1),
                         "serial idle retains final bit and releases CNT");
         }
+        // Exact hardware-qualified request latency, with sparse baud pulses.
+        rig.reset(true); rig.put(0x55); auto previous=rig.interrupts;
+        for(unsigned half=0;half<15;++half) {
+            rig.tick(true);
+            if(half!=14) for(unsigned gap=0;gap<8;++gap) rig.tick();
+        }
+        rig.require(!rig.dut.cnt_o && rig.interrupts==previous,"bit eight presented before completion request");
+        for(unsigned delay=0;delay<3;++delay) {
+            rig.tick(); rig.require(rig.interrupts==previous,"no early transmit request");
+        }
+        rig.tick();
+        rig.require(rig.interrupts==previous+1 && !rig.dut.cnt_o,"request four clocks after fifteenth baud pulse");
+        rig.tick(true);
+        rig.require(rig.dut.cnt_o && !rig.dut.active_o,"sixteenth pulse completes CNT wire transfer");
+        rig.reset(true); rig.put(0x55); previous=rig.interrupts;
+        for(unsigned half=0;half<15;++half) rig.tick(true);
+        rig.dut.output_mode_i=0; rig.tick();
+        for(unsigned drain=0;drain<4;++drain) rig.tick();
+        rig.require(rig.interrupts==previous,"direction change cancels an in-flight transmit request");
         rig.reset(true); rig.put(0x12); rig.put(0x34); // overwrite full pending slot
         unsigned decoded=0;
         for(unsigned half=0;half<16;++half) {
@@ -64,7 +84,7 @@ int main(int argc,char **argv) {
         rig.require(decoded==0x34,"latest write replaces pending byte");
         rig.reset();
         for(unsigned bit=0;bit<7;++bit) rig.tick(false,true,true);
-        auto previous=rig.interrupts; rig.dut.write_i=1; rig.dut.data_i=0x5a; rig.tick(false,true,true); rig.dut.write_i=0;
+        previous=rig.interrupts; rig.dut.write_i=1; rig.dut.data_i=0x5a; rig.tick(false,true,true); rig.dut.write_i=0;
         rig.require(rig.dut.data_o==0x5a && rig.interrupts==previous+1,"CPU SDR write wins coincident receive completion");
         rig.reset(true); rig.put(0); rig.tick(true); rig.dut.output_mode_i=0; rig.tick();
         rig.require(!rig.dut.active_o && !rig.dut.pending_o && rig.dut.cnt_o && rig.dut.sp_o && !rig.dut.cnt_oe && !rig.dut.sp_oe,

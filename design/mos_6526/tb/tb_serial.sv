@@ -46,9 +46,25 @@ module tb_serial;
                 if(half==3) put(second_byte,1); else tick(1);
                 if(!previous_clock && cnt_o) decoded={decoded[14:0],sp_o};
             end
+            repeat(4) tick();
             require_check(decoded=={first_byte,second_byte} && interrupts==previous_interrupts+2,"Buffered byte stream and completion events");
             require_check(cnt_o && sp_o==second_byte[0] && !active_o && !pending_o,"Final SP retained, clock idle high");
         end
+        reset_chip(1); put(8'h55); previous_interrupts=interrupts;
+        for(int half=0;half<15;half++) begin
+            tick(1);
+            if(half!=14) repeat(8) tick();
+        end
+        require_check(!cnt_o && interrupts==previous_interrupts,"Bit eight precedes request");
+        repeat(3) begin
+            tick(); require_check(interrupts==previous_interrupts,"No early transmit request");
+        end
+        tick(); require_check(interrupts==previous_interrupts+1 && !cnt_o,"Four-clock transmit request latency");
+        tick(1); require_check(cnt_o && !active_o,"Final rising CNT completes wire transfer");
+        reset_chip(1); put(8'h55); previous_interrupts=interrupts;
+        repeat(15) tick(1);
+        output_mode_i=0; tick(); repeat(4) tick();
+        require_check(interrupts==previous_interrupts,"Direction change cancels in-flight transmit request");
         reset_chip(0); repeat(7) tick(0,1,1);
         previous_interrupts=interrupts; write_i=1; data_i=8'h5a; tick(0,1,1); write_i=0;
         require_check(data_o==8'h5a && interrupts==previous_interrupts+1,"CPU write and receive completion precedence");

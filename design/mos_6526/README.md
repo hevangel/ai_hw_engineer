@@ -40,3 +40,14 @@ unchanged independent CIA and recovered transistor CPU oracle. The
 read/underflow race and explicit RDY phase-coverage input.
 The [phase-coverage failure analysis](../../failure_notes/2026-10-20-mos6526-loss-detector-phase-coverage.md)
 explains why the initial zero-output probe was inconclusive.
+
+`scripts/run_serial_software.sh` executes the original hardware-table
+serial-delay program, matching all 21 timing samples in 64,250 clocks.
+The [serial software report](report/serial_software_report.md) describes
+the exact CPU checkpoints, declared raster fixture and remaining revision
+limits. It found and now regresses the
+[serial completion defect](../../failure_notes/2026-10-20-mos6526-serial-completion-timing.md).
+`scripts/run_tod_software.sh` also passes original latch and stop/restart
+programs: 66 checked time samples over 19,629,050 clocks. The
+[TOD software report](report/tod_software_report.md) records their unchanged
+tables, exact CPU checkpoints and declared frame-synchronous clock stimulus.
