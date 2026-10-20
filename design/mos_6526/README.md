@@ -12,14 +12,18 @@ establishes that documented bound. The
 and [physical measurement discussion](https://www.forum64.de/index.php?thread/109935-mos6526-cia-detailed-test-vectors-and-models/)
 provide independent pipeline evidence beyond the preliminary datasheet.
 
-Implementation is in progress, with isolated timer, TOD and serial blocks.
-The timer uses an unchanged external oracle. This directory does not yet provide a complete
-CIA. Read the [specification/source and fidelity ledger](spec/spec.md) and
+The assembled sampled CIA connects ports, two timers, TOD, serial and
+interrupt control. The timer uses an unchanged external oracle. Physical
+revision and external-software qualification are still in progress.
+Read the [specification/source and fidelity ledger](spec/spec.md) and
 [implementation plan](plans/implementation_plan.md) and
 [measured timer report](report/timer_report.md). The timer now passes an
 unchanged external oracle, four-state replay, formal and synthesis;
 `scripts/run_timer_all.sh` runs those foundation gates. Read the
 [TOD/serial measured report](report/tod_serial_report.md) for their exhaustive,
 formal and four-state checks; `run_tod_all.sh` and `run_serial_all.sh` run
-those flows. Ports, interrupt pipelines, full-device timing/software and
-system integration remain required.
+those flows. The [integration report](report/integration_report.md) records
+the complete register-interface regression and interrupt checks.
+The [status and known issues](report/final_report.md) collect remaining gates.
+`scripts/run_all.sh` runs the sampled digital gates. Full-device external
+timing/software, old-CIA interrupt races and system integration remain required.

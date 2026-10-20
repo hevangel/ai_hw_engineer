@@ -7,6 +7,7 @@
                 assert(count_o == 16'hffff && latch_o == 16'hffff);
                 assert(!started_o && !underflow_o);
             end else begin
+                assert(underflow_o == $past(underflow_event_o));
                 if (underflow_o || $past(load_delay_q)) assert(count_o == latch_o);
                 if ($past(write_low_i)) assert(latch_o[7:0] == $past(data_i));
                 else assert(latch_o[7:0] == $past(latch_o[7:0]));

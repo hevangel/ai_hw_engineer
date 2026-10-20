@@ -4,7 +4,7 @@ module mos_6526_timer (
     input logic write_low_i, write_high_i, write_control_i,
     input logic [7:0] data_i,
     output logic [15:0] count_o, latch_o,
-    output logic started_o, underflow_o
+    output logic started_o, underflow_o, underflow_event_o
 );
     logic [15:0] count_q, latch_q, count_next, latch_next;
     logic started_q, started_next, oneshot_q;
@@ -14,6 +14,10 @@ module mos_6526_timer (
     assign count_o = count_q;
     assign latch_o = latch_q;
     assign started_o = started_q;
+    // Pre-boundary event lets a same-edge peripheral consume the underflow
+    // without inserting another register delay. underflow_o retains the
+    // post-boundary event for pulse outputs and delayed cascaded sources.
+    assign underflow_event_o = rst_n && underflow_next;
 
     // ASSUMPTION: sampled pipeline follows the pinned independent VICE timer
     // profile; this is not a claim about every subcycle physical race.

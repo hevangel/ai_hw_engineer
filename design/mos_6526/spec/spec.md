@@ -125,3 +125,30 @@ with their own meaningful regressions and reachable formal covers. Require
 strict lint, formal BMC/prove/cover, simulation in two tools and synthesis,
 plus external CIA software and physical timing evidence before system sign-off.
 The timer foundation alone is not a completed CIA or C64 prerequisite.
+
+## Sampled interrupt foundation
+
+The isolated interrupt block uses a legacy-latency sampled profile: new
+enabled events schedule IR/D7 and the IRQ pin for the following clock.
+Unmasked events still set their pending bits. Enabling an already-pending
+source schedules an interrupt; clearing a mask does not cancel a scheduled
+or active request. Reading ICR returns pre-boundary flags, releases the
+IRQ pin immediately, clears low pending bits on the boundary and clears D7
+one boundary later. Fresh source events survive a simultaneous read; a
+fresh scheduled request takes precedence over delayed D7 clearing.
+ASSUMPTION: these cycle boundaries approximate the old-device pipeline
+reported in physical measurements and the pinned VICE reference. This is
+not a complete old-6526 revision model: timer-B/read-ICR loss and other
+subcycle/revision races remain required external-validation gates.
+
+## Integrated sampled bus
+
+The chip samples resolved PA/PB/CNT/SP/FLAG/TOD on PHI2 rising edges and
+completes bus operations/submodule cycles on falling edges. ASSUMPTION:
+reset spans both phases; external pulses shorter than the sample interval
+and analog setup/hold windows are outside this sampled interface. Timer A
+pre-boundary underflow feeds its ICR source and serial baud path; its
+registered underflow feeds timer-B cascade on the following boundary.
+ASSUMPTION: cascade latency follows this selected sampled profile and still
+requires complete-device external timing comparison. Timer pulses last a
+full cycle; toggle outputs initialize high on a stopped-to-start command.

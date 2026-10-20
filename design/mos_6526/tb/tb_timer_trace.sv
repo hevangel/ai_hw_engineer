@@ -8,7 +8,7 @@ module tb_timer_trace;
     string path;
     int handle, fields, command, data, pulse, mode, expected_count, expected_latch, expected_start, expected_underflow;
     int cycles=0;
-    mos_6526_timer dut (.*);
+    mos_6526_timer dut (.underflow_event_o(), .*);
     initial begin
         if (!$value$plusargs("vectors=%s",path)) $fatal(1,"Missing independent timer records");
         handle=$fopen(path,"r");
