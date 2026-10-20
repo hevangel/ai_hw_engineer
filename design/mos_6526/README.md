@@ -27,3 +27,7 @@ the complete register-interface regression and interrupt checks.
 The [status and known issues](report/final_report.md) collect remaining gates.
 `scripts/run_all.sh` runs the sampled digital gates. Full-device external
 timing/software, old-CIA interrupt races and system integration remain required.
+`scripts/run_software.sh` also runs two unchanged, hash-pinned public-domain
+Lorenz PB6/PB7 programs on the native CPU/CIA fixture. They found and now
+regress the internal timer-selected PRB read-phase defect described in the
+[failure note](../../failure_notes/2026-10-19-mos6526-timer-port-read-phase.md).

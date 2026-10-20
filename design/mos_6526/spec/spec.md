@@ -152,3 +152,27 @@ registered underflow feeds timer-B cascade on the following boundary.
 ASSUMPTION: cascade latency follows this selected sampled profile and still
 requires complete-device external timing comparison. Timer pulses last a
 full cycle; toggle outputs initialize high on a stopped-to-start command.
+
+## Historical software harness contract
+
+Run unchanged public-domain Lorenz 2.15 CIA test PRGs from VICE SVN revision
+45243, with SHA-256 pins for binaries and their original source. The harness
+uses the native NMOS CPU bus and an actual CIA instance at DC00. Resolved
+port inputs loop back driven bits and pull undriven bits high. This isolated
+test environment holds VIC raster reads in the border (D011=80, D012=00),
+has no DMA, and supplies real RTS instructions for KERNAL console/vector/I/O
+entry points. These are explicit environment stubs, not a working C64.
+Do not modify CIA assertions or success/failure tables in the PRGs. Enter
+through their BASIC SYS address after CPU reset and assert the exact initial
+fetch PCs/opcodes. Accept only the original success-mailbox instruction and
+its exact following instruction; fail immediately on the failure mailbox.
+
+ASSUMPTION: when PBON selects a timer, the PRB timer-bit read mux uses the
+timer's current-cycle underflow/toggle result before its falling-edge output
+latch. GPIO bits still read the rising-edge resolved-pin sample. This
+distinction is pinned by the original Lorenz `cia1pb6`/`cia1pb7` timing
+tables and VICE `ciacore_read(CIA_PRB)`, which updates each timer before
+overriding its PRB bit. The preliminary sheet's general resolved-pin read
+description does not describe that internal phase exception. Pin-versus-bus
+captures remain required; do not use a delayed physical-output loopback as
+the internal timer read mux.

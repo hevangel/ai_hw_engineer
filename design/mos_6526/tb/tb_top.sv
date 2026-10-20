@@ -75,6 +75,23 @@ module tb_top;
         put(4,8'h78); expect_reg(4,8'h34);
         put(14,8'h10); expect_reg(14,0); idle(); idle();
         expect_reg(4,8'h78); expect_reg(5,8'h12);
+        // Original Lorenz PB6/PB7 tables: read eight cycles after START.
+        // GPIO pins are held low to distinguish the internal timer read mux.
+        for(int timer_index=0;timer_index<2;timer_index++) begin
+            for(int toggle_mode=0;toggle_mode<2;toggle_mode++) begin
+                for(int load_value=0;load_value<8;load_value++) begin
+                    if(toggle_mode==0 || (load_value!=4 && load_value!=5)) begin
+                        reset_chip(); pb_i=0;
+                        put(timer_index==0 ? 4 : 6,8'(load_value));
+                        put(timer_index==0 ? 5 : 7,0);
+                        put(timer_index==0 ? 14 : 15,toggle_mode==0 ? 3 : 7);
+                        for(int p=0;p<7;p++) idle();
+                        expect_reg(1,((toggle_mode==0 ? (load_value==0 || load_value==6) :
+                            (load_value==2 || load_value==7))) ? (timer_index==0 ? 8'h40 : 8'h80) : 0);
+                    end
+                end
+            end
+        end
         // Count exactly twelve qualified external edges in Timer B CNT mode.
         reset_chip(); put(6,40); put(7,0); put(15,8'h21);
         for(int p=0;p<12;p++) cnt_pulse();

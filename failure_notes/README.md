@@ -26,6 +26,10 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-10-19 — MOS 6526 timer-selected port read phase](2026-10-19-mos6526-timer-port-read-phase.md)
+  Unchanged Lorenz CIA software exposed a delayed GPIO sample incorrectly
+  used for the internal timer-selected PB6/PB7 read mux.
+
 - [2026-10-18 — Model 30 MCGA mode 6](2026-10-18-model30-mcga-mode6.md)
   Original BASICA exposed high-resolution-only graphics decoded as text.
 

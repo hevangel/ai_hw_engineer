@@ -8,7 +8,11 @@
         assert(pa_oe == (rst_n ? ddra_q : 8'b0));
         assert(pb_oe == (rst_n ? ddrb_q | {crb_low_q[0],cra_low_q[0],6'b0} : 8'b0));
         if (addr==0) assert(data_o == pa_sample_q);
-        if (addr==1) assert(data_o == pb_sample_q);
+        if (addr==1) begin
+            assert(data_o[5:0] == pb_sample_q[5:0]);
+            if (!cra_low_q[0]) assert(data_o[6] == pb_sample_q[6]);
+            if (!crb_low_q[0]) assert(data_o[7] == pb_sample_q[7]);
+        end
         if (f_chip_valid) begin
             if (!$past(rst_n)) begin
                 assert(pra_q==0 && prb_q==0 && ddra_q==0 && ddrb_q==0);

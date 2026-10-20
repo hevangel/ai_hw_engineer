@@ -12,10 +12,11 @@ This is a measured development milestone; compatibility sign-off remains open.
 Known issues and outstanding evidence: old-device timer-B/read-ICR loss is
 not implemented; sampled IRQ/read races and timer cascade need independent
 complete-device traces; physical serial synchronizer latency is approximated;
-TOD reset profiles disagree. Historical CIA software must run against this
-implementation before system compatibility is claimed. Reset must span
+TOD reset profiles disagree. Two unchanged Lorenz PB6/PB7 programs pass;
+broader historical timer/IRQ/TOD/serial software remains required before
+system compatibility is claimed. Reset must span
 both PHI2 phases. Analog timing, setup/hold and pulses shorter than a sample
 interval are outside this interface.
 
 `scripts/run_all.sh` runs all existing sampled digital gates. It does not
-claim to discharge the open historical-software or physical-revision gates.
+claim to discharge all historical-software or physical-revision gates.

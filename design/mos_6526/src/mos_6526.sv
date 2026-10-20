@@ -55,7 +55,11 @@ module mos_6526 (
         endcase
         case (addr)
             0: data_o = pa_sample_q;
-            1: data_o = pb_sample_q;
+            // ASSUMPTION: timer-selected read bits bypass the GPIO sample
+            // and use this cycle's timer result (Lorenz/VICE; spec ledger).
+            1: data_o = {crb_low_q[0] ? (crb_low_q[1] ? tb_toggle_q ^ tb_event : tb_event) : pb_sample_q[7],
+                         cra_low_q[0] ? (cra_low_q[1] ? ta_toggle_q ^ ta_event : ta_event) : pb_sample_q[6],
+                         pb_sample_q[5:0]};
             2: data_o = ddra_q;
             3: data_o = ddrb_q;
             4: data_o = ta_count[7:0];

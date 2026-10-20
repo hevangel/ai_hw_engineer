@@ -8,7 +8,7 @@ See the [specification](../spec/spec.md) for the source/profile ledger.
 ## Measured simulation
 
 On Verilator 5.052 and xezim 0.11.0, `scripts/run_sim.sh` passes the same
-**1,109,946 checks over 351,165 PHI2 cycles per simulator**:
+**1,110,730 checks over 351,529 PHI2 cycles per simulator**:
 
 - All 65,536 DDR/latch combinations for both ports, resolved input reads
   that differ from output intent, output enables and PRB handshake release.
@@ -24,6 +24,8 @@ On Verilator 5.052 and xezim 0.11.0, `scripts/run_sim.sh` passes the same
 - Both TOD input dividers, alarm comparison, coherent hour-read snapshots
   and tenths-read release while the live clock continues.
 - Selected PHI2-high read enable and PHI2-low bus release.
+- Both original Lorenz PB6/PB7 timing tables as direct regressions, with
+  GPIO inputs held different from the internal timer read result.
 
 These integration expectations are directed specification checks written
 for this design. They are not an unchanged whole-CIA independent oracle.
@@ -43,15 +45,48 @@ multiclock modeling. Properties include reset, register-write preservation,
 resolved port reads, pin enables, handshake and every child block's
 assertions. All **34 covers** (seven integration covers plus child covers)
 are reachable; the last is reached at step 41 of the depth-64 cover run.
-Yosys 0.69 synthesis and `check` pass with **1,668 generic cells** including
+Yosys 0.69 synthesis and `check` pass with **1,678 generic cells** including
 both timer instances and all other child blocks. Strict `-Wall` lint passes.
+
+## Independent historical software
+
+`scripts/run_software.sh` runs unchanged public-domain Lorenz 2.15
+`cia1pb6.prg` and `cia1pb7.prg` as maintained in VICE SVN revision 45243.
+The fetcher checks SHA-256 for both binaries and all original included
+source/provenance files. The binaries and expected tables are not rebuilt
+or modified. On the native NMOS CPU and assembled CIA in Verilator:
+
+| Program | CPU clocks | CIA reads | CIA writes | Success store PC | Next instruction PC |
+|---|---:|---:|---:|---|---|
+| cia1pb6 | 20,566 | 466 | 1,377 | 0843 | 0846 |
+| cia1pb7 | 20,409 | 466 | 1,377 | 0843 | 0846 |
+
+The harness asserts exact startup PCs/opcodes and the exact instruction
+following the success store, and fails immediately on the original failure
+mailbox. Actual RTS instructions implement the documented console/vector/I/O
+stubs. Raster reads are fixed in the border and no DMA occurs. This is an
+isolated software fixture, not a C64 system.
+
+The original PB6 test found a timer-selected PRB read-phase defect. The
+correction and prevention are recorded in its
+[escaped-defect note](../../../failure_notes/2026-10-19-mos6526-timer-port-read-phase.md).
+The maintained original sources are
+[PB6](https://svn.code.sf.net/p/vice-emu/code/!svn/bc/45243/testprogs/general/Lorenz-2.15/src/cia1pb6.s)
+and [PB7](https://svn.code.sf.net/p/vice-emu/code/!svn/bc/45243/testprogs/general/Lorenz-2.15/src/cia1pb7.s).
+
+The larger `cia1ta` program was probed separately, but calls KERNAL FDA3,
+which this fixture does not yet implement. Its initial timeout was traced
+to that missing entry. The harness now fails immediately on unsupported
+KERNAL instruction fetches. That probe is not a CIA result; this flow does
+not count or skip its tests.
 
 ## Required before compatibility sign-off
 
 The selected sampled interrupt profile is not a completed physical old-CIA
 revision. Timer-B/read-ICR loss, precise IRQ/read races, physical CNT/SP
 synchronizer latency, TOD reset disagreements and cascade/subcycle timing
-remain explicit external-validation gates. Independent historical CIA
-software and complete-device captures/reference traces are required. The
+remain explicit external-validation gates. Broader independent historical
+timer/IRQ/TOD/serial software and complete-device captures/reference traces
+are required. The
 four requested systems remain pending; this report does not claim C64
 compatibility or a completed console.
