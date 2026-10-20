@@ -194,7 +194,7 @@ always_ff @(posedge clk) begin
             // C05x video latch with IOUDIS gating (spec 5.2)
             if (f_sel05($past(a6), $past(la5), $past(la4)) && $past(c0xx_n) == 1'b0
                 && $past(la7) == 1'b0 && $past(q3) == 1'b0
-                && $past(phi0) == 1'b1 && $past(rw) == 1'b0) begin
+                && $past(phi0) == 1'b1) begin
                 case ($past(la[3:1]))
                     3'd0: assert(itext == $past(la0));
                     3'd1: assert(mix   == $past(la0));

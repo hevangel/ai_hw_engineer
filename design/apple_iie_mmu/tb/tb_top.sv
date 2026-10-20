@@ -101,11 +101,11 @@ module tb_top;
         if (f_rng(addr, 16'hC000, 16'hC0FF))
             int_rom = 1'b0;
         else if (f_rng(addr, 16'hC300, 16'hC3FF))
-            int_rom = !r_slotc3;                 // C3 rule precedes the C1-7 rule
+            int_rom = r_intcx || !r_slotc3;                 // C3 rule precedes the C1-7 rule
         else if (f_rng(addr, 16'hC100, 16'hC7FF))
             int_rom = r_intcx;
         else if (f_rng(addr, 16'hC800, 16'hCFFF))
-            int_rom = r_intcx && r_c8win;
+            int_rom = r_intcx || r_c8win;
 
         exp_rom1_n = !inh_i ? 1'b1
                    : !(((r_rdram == 0) && rw_i && f_rng(addr, 16'hD000, 16'hDFFF))
@@ -183,7 +183,7 @@ module tb_top;
                     default: ;   // $C00C-$C00F: not MMU-observable
                 endcase
             end
-            if (f_rng(addr, 16'hC050, 16'hC05F) && !rw_i) begin
+            if (f_rng(addr, 16'hC050, 16'hC05F)) begin
                 case (addr[2:1])
                     2'd2: r_pg2   = addr[0];
                     2'd3: r_hires = addr[0];
@@ -423,6 +423,15 @@ module tb_top;
         check(cxxxout === 1'b0 && romen1_n === 1'b0, "C200: internal ROM");
         switch_write(16'hC006);                          // slots back
 
+        // Original IIe firmware JSR C3xx then JMP CB25; TRM Chapter 6.
+        access(16'hC300,1'b1); access(16'hCB25,1'b1);
+        check(!romen1_n && !cxxxout,"C3 activates C800 ROM with INTCX off");
+        access(16'hCFFF,1'b1); access(16'hCB25,1'b1);
+        check(romen1_n && cxxxout,"CFFF releases internal C800 window");
+        switch_write(16'hC007); switch_write(16'hC00B); access(16'hC300,1'b1);
+        check(!romen1_n,"INTCX overrides slot-3 ROM setting");
+        switch_write(16'hC006); switch_write(16'hC00A);
+
         // $C300 internal vs slot, and the C800 window lifecycle.
         access(16'hC300, 1'b1);
         check(cxxxout === 1'b0 && romen1_n === 1'b0, "C300: internal 80-col ROM");
@@ -436,7 +445,7 @@ module tb_top;
         check(cxxxout === 1'b0 && romen1_n === 1'b0, "C900: internal via window");
         access(16'hCFFF, 1'b1);                          // closes the window
         access(16'hC900, 1'b1);
-        check(cxxxout === 1'b1, "C900 after CFFF: card space again");
+        check(cxxxout === 1'b0, "C900 after CFFF: INTCX still forces ROM");
         switch_write(16'hC006);                          // slots in Cx
 
         // $D000-$DFFF ROM reads vs banked RAM; $E000-$FFFF bank-independent.

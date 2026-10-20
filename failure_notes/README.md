@@ -88,3 +88,9 @@ author is the same agent in every session — the useful question is never
 
 - [2026-10-18 — Apple II reference startup initialization](2026-10-18-apple-ii-reference-initialization.md)
   AddressSanitizer exposed an uninitialized group count in the pinned external solver; the build derives an allocation-only fix while retaining original source hashes.
+
+- [2026-10-19 — Apple IIe ROM extension and read-side video switches](2026-10-19-apple-iie-rom-switches.md)
+  Original firmware exposed shared MMU/IOU reference assumptions about C800 ROM and R/W video switches.
+
+- [2026-10-19 — Apple IIe coverage-sensitive simulation](2026-10-19-apple-iie-xezim-coverage.md)
+  Board RAM readback changes under xezim coverage instrumentation; strict functional tests remain and Verilator supplies coverage.

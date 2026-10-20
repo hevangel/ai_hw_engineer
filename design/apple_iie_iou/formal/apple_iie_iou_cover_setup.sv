@@ -98,6 +98,10 @@ always_ff @(posedge clk) begin
         cover(set_delay && akd && !strble);                    // delay armed
         cover(ctc14s_q && akd && set_delay);                   // N9 tick (one tick;
                                                                //  full 3-tick activation is sim-only)
+        // TRM Table 2-1: exercise read-side C05x selects independently of writes.
+        cover(sel_c05x&&phi0&&rw&&la==4'h1);
+        cover(sel_c05x&&phi0&&rw&&la==4'h5);
+        cover(sel_c05x&&phi0&&rw&&la==4'h7);
         // --- switches / devices (spec 5) ---
         cover(ioudis && sel_c05x && wr_act && la[3:1] == 3'd4); // gated AN0 write
         cover(!ioudis && sel_c05x && wr_act && la[3:1] == 3'd7); // AN3 write

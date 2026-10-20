@@ -98,9 +98,22 @@ failure mode the independent-encoding rule exists to catch.
 
 ## Known limitations
 
-See the assumption ledger A1-A10 in [spec/spec.md](spec/spec.md): NTSC-only,
+See the assumption ledger A1-A10 in [spec/spec.md](../spec/spec.md): NTSC-only,
 sub-14M timing abstracted to the cycle level, RESET' modeled as a plain
 input, ITEXT/MIX power-on values forced to 0, IOUDIS/DHIRES implemented from
 the TRM alone (Enhanced IIe; the CC0 reference predates them), board-level
 I/O (paddles, NE558 trigger, keyboard data bits) out of scope, RA bus
 modeled as split sense/drive ports.
+
+
+## Original-ROM integration regression (2026-10-19)
+
+C050-C057 video switches now respond to reads as well as writes per TRM
+Table 2-1. The original IIe ROM uses these reads during startup; the
+[escaped-defect note](../../../failure_notes/2026-10-19-apple-iie-rom-switches.md)
+records the shared oracle error and correction. Updated full flows pass
+30,831,387 Verilator checks and 30,831,415 xezim checks, formal BMC/prove/cover
+and synthesis. Coverage is statement 167/167, branch 94/94 and toggle
+378/380 (99.47 percent). Added non-vacuous covers include read-side TEXT,
+PAGE2 and HIRES selection. The functional Apple IIe board now exercises
+this IOU with original firmware and scanner-derived 40/80-column video.

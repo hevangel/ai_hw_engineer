@@ -122,9 +122,9 @@ module apple_iie_mmu (
                         default: ;   // $C00C-$C00F: IOU-shared, no MMU-observable effect (A8)
                     endcase
                 end
-                // $C05x latch: PAGE2 ($C054/5) and HIRES ($C056/7), writes only;
+                // $C05x latch: PAGE2 ($C054/5) and HIRES ($C056/7), read or write;
                 // the 259 select is a[2:1] with data bit a[0].
-                if (access_c05x && !rw) begin
+                if (access_c05x) begin
                     case (a[2:1])
                         2'd2: pg2   <= a[0];
                         2'd3: hires <= a[0];
@@ -204,11 +204,11 @@ module apple_iie_mmu (
         if (access_c0xx)
             cxxx_internal = 1'b0;
         else if (access_c3xx)
-            cxxx_internal = intc3_sel;
+            cxxx_internal = intcx || intc3_sel;
         else if (in_c1_7)
             cxxx_internal = intcx;
         else if (in_c8_f)
-            cxxx_internal = intcx && c8win;
+            cxxx_internal = intcx || c8win;
         else
             cxxx_internal = 1'b0;
     end

@@ -72,7 +72,7 @@ No RAM cycle targets $C000-$CFFF. $D000-$FFFF ROM reads (`rdram` off) assert ROM
 
 Physical language-card mapping inside the 64K array (the address actually presented on RA0-RA7 for CPU accesses in $D000-$DFFF): bank 2 leaves the window at physical $D000-$DFFF, and bank 1 sends it to physical $C000-$CFFF. Equivalently, physical address bit 12 equals `a[12] ^ bank1` inside the window — $D000-$DFFF has a[12]=1 throughout, so the bank-1 flip remaps the whole 4K window cleanly. $E000-$FFFF maps directly and is unaffected by the bank flags. The remap is observable only on RA4 during column time (bit 12 is a column bit per Table 7-9).
 
-Internal ROM serves $C300-$C3FF when `slotc3` is off (this rule takes precedence — $C300 lies inside the range below), $C100-$C7FF when `intcx` is on, and $C800-$CFFF when the expansion window is open with `intcx` on. The window opens on any access to $C300-$C3FF while internal $C3 is selected and closes on any access to $CFFF (and on reset). KBD' covers $C000-$C01F reads; CXXXOUT covers every $Cxxx cycle not served by internal ROM as defined above, including the whole $C000-$C0FF page.
+Internal ROM serves $C300-$C3FF when `slotc3` is off or `intcx` is on (global internal-ROM selection overrides slot 3), $C100-$C7FF when `intcx` is on, and $C800-$CFFF when the expansion window is open OR `intcx` is on. The window opens on any access to $C300-$C3FF while internal $C3 is selected and closes on any access to $CFFF (and on reset). KBD' covers $C000-$C01F reads; CXXXOUT covers every $Cxxx cycle not served by internal ROM as defined above, including the whole $C000-$C0FF page.
 
 ## Multiplexed address
 
@@ -114,3 +114,15 @@ MPON (the real chip's reset detector) fires when an access to $FFFC follows thre
 - **A9:** Read-modify-write opcodes follow the bus-level rule (each bus access counts independently; a write access preserves the write-enable state). The AppleWin GH#700 emulator workaround treats an RMW write half as enabling from a single access; if original silicon samples R/W' with a race in the LS175 clock path it may match AppleWin there. The bus-level contract is the modeled boundary; cycle-level R/W' sampling races are out of scope.
 
 Inputs must be synchronous and stable at the rising clock edge; the mapping outputs are combinational functions of the presented access and registered switch state, so a cycle's outputs reflect the access presented that cycle. Historical firmware sequences in the testbench are derived from the TRM Appendix I Monitor listing; physical-chip comparison is not included in this sign-off.
+
+## Firmware integration correction (October 19, 2026)
+
+The original IIe ROM enters CB25 after selecting internal C3. TRM Chapter 6,
+Other Uses of I/O Memory Space (printed p.143), says global internal-ROM
+selection covers all C100-CFFF, including C300. The shared extension is
+selected by internal-C3 access independently of that global switch (TRM
+interrupt handling discussion). The previous AND decode and slot-C3 priority
+were shared mistakes in RTL, the reference model and formal expectations.
+TRM Table 2-1 marks PAGE2/HIRES as R/W accesses, not write-only switches.
+The revised tests include reads as well as writes. See the
+[post-mortem](../../../failure_notes/2026-10-19-apple-iie-rom-switches.md).

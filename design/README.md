@@ -54,8 +54,8 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1980 | Intel 8087 | Architectural numeric coprocessor core; 80-bit stack, original ESC instructions and transactional memory interface | [intel_8087](intel_8087/) |
 | 1980* / 1982* | Intel 8272 / 8272A | Four-drive decoded-media floppy controller; FM/MFM/CRC helpers and original IBM PC BIOS/DMA regression | [intel_8272](intel_8272/) |
 | 1982 | Intel 80286 | Work in progress: 24-bit register-execution core, ALU/shifts/branches, independent instruction vectors and original IBM AT flags-test regression | [intel_80286](intel_80286/) |
-| 1983 | Apple IIe MMU (341-0266) | Full-custom memory mapper: main/aux/bank-switched RAM selection, soft switches, ROM decode and multiplexed DRAM address | [apple_iie_mmu](apple_iie_mmu/) |
-| 1983 | Apple IIe IOU (341-0267) | Full-custom video machine: display scanner and interleaved display-address fold, video-mode soft switches, keyboard strobe/auto-repeat, annunciator/speaker/cassette outputs | [apple_iie_iou](apple_iie_iou/) |
+| 1983 | Apple IIe MMU (341-0266) | Firmware-validated memory mapper: main/aux/bank-switched RAM selection, soft switches, ROM decode and multiplexed DRAM address | [apple_iie_mmu](apple_iie_mmu/) |
+| 1983 | Apple IIe IOU (341-0267) | Firmware-validated video machine: read/write video switches, display scanner and interleaved display-address fold, video-mode soft switches, keyboard strobe/auto-repeat, annunciator/speaker/cassette outputs | [apple_iie_iou](apple_iie_iou/) |
 | 1983 | Apple IIe timing PAL (PAL16R8) | Apple-programmed timing generator: φ0/φ1 CPU clocks, asymmetric Q3 strobe, PRAS'/PCAS' DRAM strobes with CAS gating, LDPS' video load and the 7 MHz dot clock | [apple_iie_pal](apple_iie_pal/) |
 
 ## Date provenance notes
@@ -144,3 +144,8 @@ the [Apple II Reference Manual](https://apple2history.org/dl/Apple_II_Redbook.pd
 rather than asserting a common first-introduced year for the individual TTL,
 RAM, ROM and analog parts. Individual variant dates remain unestablished;
 see the [package overview](apple_ii_chips/README.md).
+
+Apple IIe board integration now exercises the unchanged original ROM, BASIC and
+80-column firmware. Primary-manual corrections to Cxxx ROM selection and
+read-side video switches are documented in the [platform](../system/apple_iie/)
+and [post-mortem](../failure_notes/2026-10-19-apple-iie-rom-switches.md).

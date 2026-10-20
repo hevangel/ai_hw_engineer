@@ -22,11 +22,11 @@ function automatic logic f_cxxx_int(logic [15:0] v,
     if (f_in_range(v, 16'hC000, 16'hC0FF))
         f_cxxx_int = 1'b0;                       // I/O page is never ROM
     else if (f_in_range(v, 16'hC300, 16'hC3FF))
-        f_cxxx_int = !slotc3_v;
+        f_cxxx_int = intcx_v || !slotc3_v;
     else if (f_in_range(v, 16'hC100, 16'hC7FF))
         f_cxxx_int = intcx_v;
     else if (f_in_range(v, 16'hC800, 16'hCFFF))
-        f_cxxx_int = intcx_v && c8win_v;
+        f_cxxx_int = intcx_v || c8win_v;
 endfunction
 
 // Expected array selection per spec priority (video pages, ALTZP ranges,

@@ -31,4 +31,17 @@ Each fix is reflected in the spec where behavior, not tooling, was wrong.
 
 ## Assumptions and limits
 
-Assumptions A1-A9 in `spec/spec.md` remain qualified. In particular: the $D000-$DFFF physical remap (A2) follows the schematic-derived CC0 reimplementation and has not been compared against original silicon; MPON phase qualification is approximated at bus-cycle granularity (A3); RW245 polarity is a stated convention (A4); the real chip's RA output-enable windows, latch transparency and R/W' sampling races (A1, A7, A9) are timing behavior outside the synchronous contract. No electrical, package or nanosecond timing equivalence is claimed. Physical-chip comparison and integration into a full `system/apple_iie` build remain future work.
+Assumptions A1-A9 in `spec/spec.md` remain qualified. In particular: the $D000-$DFFF physical remap (A2) follows the schematic-derived CC0 reimplementation and has not been compared against original silicon; MPON phase qualification is approximated at bus-cycle granularity (A3); RW245 polarity is a stated convention (A4); the real chip's RA output-enable windows, latch transparency and R/W' sampling races (A1, A7, A9) are timing behavior outside the synchronous contract. No electrical, package or nanosecond timing equivalence is claimed. Physical-chip comparison remains future work. The functional `system/apple_iie` platform now integrates this MMU with the authored CPU, IOU and PAL.
+
+
+## Original-ROM integration regression (2026-10-19)
+
+The original IIe ROM exposed shared Cxxx-ROM and C05x assumptions. Internal
+C300 now obeys global INTCX as well as slot-3 selection; C800 service accepts
+either global INTCX or the latched C3 window. PAGE2/HIRES accept reads and
+writes, as TRM Table 2-1 specifies. See the
+[escaped-defect note](../../../failure_notes/2026-10-19-apple-iie-rom-switches.md).
+Updated full verification passes 57,208 checks in each simulator, formal
+BMC/prove/cover, coverage and synthesis. Additional non-vacuous covers
+exercise the corrected ROM and read-switch cases. Original system-ROM
+execution now reaches BASIC and the 80-column firmware.

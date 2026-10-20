@@ -221,7 +221,7 @@ module tb_top;
         acc_en  = do_acc && !q3i && !addr[7] && addr[15:8] == 8'hC0;
         sel00   = acc_en && !rw_i && !addr[6] && !addr[5] && !addr[4];
         sel01   = acc_en && !rw_i && !addr[6] && !addr[5] &&  addr[4];
-        sel05   = acc_en && !rw_i &&  addr[6] && !addr[5] &&  addr[4];
+        sel05   = acc_en &&  addr[6] && !addr[5] &&  addr[4];
         sel07   = acc_en && !rw_i &&  addr[6] &&  addr[5] &&  addr[4];
         seldev03 = acc_en && !addr[6] &&  addr[5] &&  addr[4];
         seldev02 = acc_en && !addr[6] &&  addr[5] && !addr[4];
@@ -449,6 +449,14 @@ module tb_top;
         flag_read(16'hC01F, v); check(v == 1'b0, "reset 80col");
         flag_read(16'hC000, v); check(v == 1'b0, "reset key");
         flag_read(16'hC07E, v); check(v == 1'b1, "reset ioudis off");
+
+        // Apple IIe TRM Table 2-1: R/W video switches, independently of C00x writes.
+        cycle(1'b1,16'hC051,1'b1); flag_read(16'hC01A,v); check(v,"read C051 sets TEXT");
+        cycle(1'b1,16'hC050,1'b1); flag_read(16'hC01A,v); check(!v,"read C050 clears TEXT");
+        cycle(1'b1,16'hC055,1'b1); flag_read(16'hC01C,v); check(v,"read C055 sets PAGE2");
+        cycle(1'b1,16'hC054,1'b1); flag_read(16'hC01C,v); check(!v,"read C054 clears PAGE2");
+        cycle(1'b1,16'hC057,1'b1); flag_read(16'hC01D,v); check(v,"read C057 sets HIRES");
+        cycle(1'b1,16'hC056,1'b1); flag_read(16'hC01D,v); check(!v,"read C056 clears HIRES");
 
         // 2. First frame (512 lines, A6) + one steady 262-line frame, text
         repeat (512 + 262) begin
