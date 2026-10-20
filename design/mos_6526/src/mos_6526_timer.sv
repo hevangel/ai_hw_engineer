@@ -3,8 +3,8 @@ module mos_6526_timer (
     input logic clk, rst_n, phi2_mode_i, pulse_i,
     input logic write_low_i, write_high_i, write_control_i,
     input logic [7:0] data_i,
-    output logic [15:0] count_o, latch_o,
-    output logic started_o, underflow_o, underflow_event_o
+    output logic [15:0] count_o, latch_o, cycle_count_o,
+    output logic started_o, underflow_o, underflow_event_o, cycle_started_o
 );
     logic [15:0] count_q, latch_q, count_next, latch_next;
     logic started_q, started_next, oneshot_q;
@@ -14,6 +14,9 @@ module mos_6526_timer (
     assign count_o = count_q;
     assign latch_o = latch_q;
     assign started_o = started_q;
+    // Current PHI2 read view; independently checked before the state commit.
+    assign cycle_count_o = rst_n ? count_next : 16'hffff;
+    assign cycle_started_o = rst_n && started_next;
     // Pre-boundary event lets a same-edge peripheral consume the underflow
     // without inserting another register delay. underflow_o retains the
     // post-boundary event for pulse outputs and delayed cascaded sources.

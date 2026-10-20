@@ -27,7 +27,9 @@ the complete register-interface regression and interrupt checks.
 The [status and known issues](report/final_report.md) collect remaining gates.
 `scripts/run_all.sh` runs the sampled digital gates. Full-device external
 timing/software, old-CIA interrupt races and system integration remain required.
-`scripts/run_software.sh` also runs two unchanged, hash-pinned public-domain
-Lorenz PB6/PB7 programs on the native CPU/CIA fixture. They found and now
-regress the internal timer-selected PRB read-phase defect described in the
-[failure note](../../failure_notes/2026-10-19-mos6526-timer-port-read-phase.md).
+`scripts/run_software.sh` also runs eleven unchanged, hash-pinned public-domain
+Lorenz CIA programs with original 901227-03 KERNAL firmware, plus the two
+isolated PB6/PB7 baselines. The [software report](report/software_report.md)
+records 41,195,603 KERNAL-backed clocks and exact CPU checkpoints. They found
+and now regress the [timer port read defect](../../failure_notes/2026-10-19-mos6526-timer-port-read-phase.md)
+and [counter/ICR/IRQ cycle-view defects](../../failure_notes/2026-10-20-mos6526-current-cycle-reads.md).

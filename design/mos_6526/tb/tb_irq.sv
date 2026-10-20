@@ -1,9 +1,9 @@
 `timescale 1ns/1ps
 module tb_irq;
     logic clk=0, rst_n=0, read_i=0, write_i=0;
-    logic [7:0] data_i=0, data_o;
+    logic [7:0] data_i=0, data_o, cycle_data_o;
     logic [4:0] source_i=0;
-    logic irq_n;
+    logic irq_n, cycle_irq_n;
     int checks=0;
     logic enabled;
     mos_6526_irq dut (.*);
@@ -25,8 +25,12 @@ module tb_irq;
         for(int mask=0;mask<32;mask++) begin
             for(int flags=0;flags<32;flags++) begin
                 reset_chip(); put(8'h80|8'(mask));
-                source_i=5'(flags); tick(); source_i=0;
                 enabled=|(5'(mask)&5'(flags));
+                source_i=5'(flags); #1;
+                require_check(cycle_data_o==8'(flags) && cycle_irq_n,"Current source view precedes scheduled request");
+                tick(); source_i=0; #1;
+                require_check(cycle_data_o=={enabled,2'b00,5'(flags)} && cycle_irq_n==!enabled,
+                    "Current-cycle D7/pin catch up the scheduled request");
                 require_check(data_o==8'(flags) && irq_n,"Source flags precede legacy D7/pin");
                 tick();
                 require_check(data_o=={enabled,2'b00,5'(flags)} && irq_n==!enabled,"All mask/source combinations");

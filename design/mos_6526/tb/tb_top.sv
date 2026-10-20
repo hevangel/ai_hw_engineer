@@ -75,6 +75,23 @@ module tb_top;
         put(4,8'h78); expect_reg(4,8'h34);
         put(14,8'h10); expect_reg(14,0); idle(); idle();
         expect_reg(4,8'h78); expect_reg(5,8'h12);
+        // Independent Lorenz failures: reads catch up the current cycle.
+        for(int timer_index=0;timer_index<2;timer_index++) begin
+            reset_chip();
+            put(timer_index==0 ? 4 : 6,30); put(timer_index==0 ? 5 : 7,0);
+            put(timer_index==0 ? 14 : 15,1); idle(); idle();
+            expect_reg(timer_index==0 ? 4 : 6,29);
+            reset_chip();
+            put(timer_index==0 ? 4 : 6,1); put(timer_index==0 ? 5 : 7,0);
+            put(timer_index==0 ? 14 : 15,9); idle(); idle();
+            expect_reg(timer_index==0 ? 14 : 15,8);
+        end
+        reset_chip(); put(13,8'h81); put(4,0); put(5,0); put(14,1);
+        idle(); expect_reg(13,1); // New underflow flag, D7 still delayed.
+        reset_chip(); put(13,8'h81); put(4,0); put(5,0); put(14,1);
+        idle(); idle();
+        require_check(!irq_n,"Scheduled request reaches the current CPU sampling cycle");
+        expect_reg(13,8'h81);
         // Original Lorenz PB6/PB7 tables: read eight cycles after START.
         // GPIO pins are held low to distinguish the internal timer read mux.
         for(int timer_index=0;timer_index<2;timer_index++) begin

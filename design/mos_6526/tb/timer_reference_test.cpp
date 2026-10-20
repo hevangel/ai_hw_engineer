@@ -32,9 +32,12 @@ struct Rig {
         dut.phi2_mode_i=phi2; dut.pulse_i=pulse;
         dut.write_low_i=command==1; dut.write_high_i=command==2; dut.write_control_i=command==3;
         dut.data_i=data; dut.eval(); const bool boundary_event=dut.underflow_event_o;
+        const unsigned cycle_count=dut.cycle_count_o, cycle_started=dut.cycle_started_o;
         dut.clk=1; dut.eval(); dut.clk=0;
         cia_oracle_cycle(command,data,pulse);
         if(boundary_event!=bool(cia_oracle_underflow())) throw std::runtime_error("pre-boundary external underflow event");
+        if(cycle_count!=cia_oracle_count() || cycle_started!=cia_oracle_started())
+            throw std::runtime_error("current-cycle external counter/control read view");
         if (command==3) phi2=!(data&0x20);
         dut.eval(); ++cycles; compare(); underflows+=dut.underflow_o;
     }

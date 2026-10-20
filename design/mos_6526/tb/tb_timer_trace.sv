@@ -3,12 +3,12 @@ module tb_timer_trace;
     logic clk=0, rst_n=0, phi2_mode_i=0, pulse_i=0;
     logic write_low_i=0, write_high_i=0, write_control_i=0;
     logic [7:0] data_i=0;
-    logic [15:0] count_o, latch_o;
-    logic started_o, underflow_o;
+    logic [15:0] count_o, latch_o, cycle_count_o;
+    logic started_o, underflow_o, cycle_started_o, underflow_event_o;
     string path;
     int handle, fields, command, data, pulse, mode, expected_count, expected_latch, expected_start, expected_underflow;
     int cycles=0;
-    mos_6526_timer dut (.underflow_event_o(), .*);
+    mos_6526_timer dut (.*);
     initial begin
         if (!$value$plusargs("vectors=%s",path)) $fatal(1,"Missing independent timer records");
         handle=$fopen(path,"r");
@@ -22,7 +22,12 @@ module tb_timer_trace;
             end
             rst_n=command!=4; phi2_mode_i=1'(mode); pulse_i=1'(pulse);
             write_low_i=command==1; write_high_i=command==2; write_control_i=command==3; data_i=8'(data);
-            #1; clk=1; #1; clk=0; #1;
+            #1;
+            if(cycle_count_o !== 16'(expected_count) || cycle_started_o !== 1'(expected_start) ||
+               underflow_event_o !== 1'(expected_underflow))
+                $fatal(1,"External current-cycle read mismatch record=%0d count=%04x/%04x start=%b/%b underflow=%b/%b",
+                    cycles,cycle_count_o,16'(expected_count),cycle_started_o,1'(expected_start),underflow_event_o,1'(expected_underflow));
+            clk=1; #1; clk=0; #1;
             if(count_o !== 16'(expected_count) || latch_o !== 16'(expected_latch) ||
                started_o !== 1'(expected_start) || underflow_o !== 1'(expected_underflow))
                 $fatal(1,"External timer replay mismatch record=%0d command=%0d count=%04x/%04x latch=%04x/%04x start=%b/%b underflow=%b/%b",

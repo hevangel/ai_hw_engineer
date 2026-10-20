@@ -176,3 +176,38 @@ overriding its PRB bit. The preliminary sheet's general resolved-pin read
 description does not describe that internal phase exception. Pin-versus-bus
 captures remain required; do not use a delayed physical-output loopback as
 the internal timer read mux.
+
+### KERNAL-backed timer-test environment
+
+The optional `--kernal` fixture maps hash-pinned original 901227-03 ROM at
+E000-FFFF and adds a second actual CIA at DD00, wired to CPU NMI. A six-byte
+RAM bootstrap at 0200 executes JSR FF8A (original RESTOR) and JMP to the
+unchanged program's BASIC SYS address. Only reset-vector reads select that
+bootstrap; IRQ/NMI vectors and all I/O initialization execute original ROM.
+PAL flag 02A6 is initialized to one. The console entry FFD2 alone supplies
+an explicit RTS read override and records output; original ROM files remain
+unchanged. VIC raster inputs remain fixed in the border, no DMA is present,
+and processor-port writes do not change the fixture's fixed ROM/I/O mapping.
+These are isolated-test environment limits, not C64 system compatibility.
+
+ASSUMPTION: timer counter/control bus reads expose the current-cycle result
+before the falling-edge state commit, just as timer-selected PRB reads do.
+The isolated timer exports both registered state and a current-cycle read
+view. The latter is compared against the unchanged VICE timer's result on
+every oracle cycle. Lorenz `cia1ta` test 01 independently requires two
+decrements (1E to 1C) rather than the previous boundary's value 1D.
+
+The integrated ICR bus read likewise catches up current sources and the
+previously scheduled D7 request before acknowledging the read. The isolated
+interrupt block retains its registered-state diagnostic output and exports
+a separate pre-acknowledgment cycle read view. ASSUMPTION: source bits are
+visible in their event cycle; D7 appears on the following cycle. The
+unchanged old-CIA Lorenz tables and VICE ICR catch-up path pin this phase;
+full timer-B/read-loss and physical IRQ transitions remain separate gates.
+
+ASSUMPTION: the integrated logical-cycle IRQ pin uses the caught-up
+scheduled request before the CPU's cycle-completion sample, matching the
+cycle D7 view. Retaining only the previous committed IRQ state introduces
+an extra CPU-observed NMI cycle, visible in Lorenz CIA2 timer tests. This
+does not establish subcycle electrical transition timing; that remains an
+explicit capture requirement.

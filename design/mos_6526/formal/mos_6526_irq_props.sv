@@ -2,12 +2,14 @@
     always_ff @(posedge clk) begin
         f_valid <= 1;
         if (!f_valid) assume(!rst_n);
-        assert(data_o[6:5] == 0);
-        if (read_i || !rst_n) assert(irq_n);
+        assert(data_o[6:5] == 0 && cycle_data_o[6:5] == 0);
+        if (read_i || !rst_n) assert(irq_n && cycle_irq_n);
         if (f_valid) begin
             if (!$past(rst_n)) begin
                 assert(pending_q == 0 && mask_q == 0 && !scheduled_q && !d7_q && !asserted_q);
             end else begin
+                if (!$past(read_i)) assert(data_o == $past(cycle_data_o));
+                if (!$past(read_i) && rst_n && !read_i) assert(irq_n == $past(cycle_irq_n));
                 assert((pending_q & $past(source_i)) == $past(source_i));
                 if ($past(read_i)) begin
                     assert(pending_q == $past(source_i));

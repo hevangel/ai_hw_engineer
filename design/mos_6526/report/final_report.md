@@ -7,13 +7,15 @@ This is a measured development milestone; compatibility sign-off remains open.
 - [Timer oracle and foundation results](timer_report.md)
 - [TOD and serial exhaustive/four-state results](tod_serial_report.md)
 - [Assembled CIA and interrupt results](integration_report.md)
+- [Eleven original Lorenz programs and KERNAL firmware](software_report.md)
 - [Source, revision and assumption ledger](../spec/spec.md)
 
 Known issues and outstanding evidence: old-device timer-B/read-ICR loss is
 not implemented; sampled IRQ/read races and timer cascade need independent
 complete-device traces; physical serial synchronizer latency is approximated;
-TOD reset profiles disagree. Two unchanged Lorenz PB6/PB7 programs pass;
-broader historical timer/IRQ/TOD/serial software remains required before
+TOD reset profiles disagree. Eleven unchanged Lorenz port/timer/cascade/
+clock-mode/NMI programs pass with original KERNAL firmware; additional
+IRQ/TOD/serial software and physical evidence remain required before
 system compatibility is claimed. Reset must span
 both PHI2 phases. Analog timing, setup/hold and pulses shorter than a sample
 interval are outside this interface.

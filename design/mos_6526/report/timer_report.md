@@ -1,7 +1,8 @@
 # CIA timer foundation results
 
-This is the isolated timer foundation, not a completed 6526 CIA. Ports,
-serial, TOD, interrupt pipelines and system software remain required.
+This report measures the isolated timer foundation. The assembled CIA and
+its original-software qualification are measured in the
+[integration report](integration_report.md) and [software report](software_report.md).
 
 ## Independent oracle
 
@@ -21,10 +22,10 @@ Yosys/SymbiYosys 0.69.
 
 | Script | Result |
 |---|---|
-| `run_timer_reference.sh` | Strict lint and 3,623,621 cycle comparisons, all 65,536 reload values, 1,083 underflows; counter/latch/start/underflow agree exactly |
-| `run_timer_fourstate.sh` | 86,993 independently generated records pass xezim; the generator links only the unchanged external C oracle, with no RTL included |
+| `run_timer_reference.sh` | Strict lint and 3,623,621 cycle comparisons, all 65,536 reload values, 1,083 underflows; registered counter/latch/start/underflow and pre-commit count/start/event views agree exactly |
+| `run_timer_fourstate.sh` | 86,993 independently generated records pass xezim before and after state commit; the generator links only the unchanged external C oracle, with no RTL included |
 | `run_timer_formal.sh` | BMC/PDR and six reachable covers pass, bound 24 |
-| `run_timer_synth.sh` | Generic synthesis and `check` pass, 179 cells |
+| `run_timer_synth.sh` | Generic synthesis and `check` pass, 242 cells including current-cycle read outputs |
 
 The cycle suite alternates one-shot/continuous operation across every load,
 checks active pipeline stop/start, force loads, external steps, complete
@@ -39,9 +40,9 @@ Windows bind mount were slow. That affects test I/O, not expected values.
 
 ## Remaining requirements
 
-The isolated timer's cycle boundary is explicit. Integrating it into a
-PHI2 bus and matching cascaded A-to-B clocks, PB outputs and old/new CIA IRQ
-behavior requires additional independent checks. VICE is an emulator rather
-than a physical capture; reported subcycle latch measurements and historical
-CIA software remain separate validation gates in the
-[specification](../spec/spec.md).
+The isolated timer's cycle boundary is explicit. Eleven unchanged Lorenz
+programs now check the assembled PHI2 interface, cascade, PB outputs and
+old-CIA IRQ/NMI-sensitive behavior in the documented original-KERNAL
+fixture. VICE is an emulator rather than a physical capture. Remaining
+subcycle, serial synchronizer, timer-B/read-loss and revision evidence is
+tracked separately in the [specification](../spec/spec.md).

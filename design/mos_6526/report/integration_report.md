@@ -8,7 +8,7 @@ See the [specification](../spec/spec.md) for the source/profile ledger.
 ## Measured simulation
 
 On Verilator 5.052 and xezim 0.11.0, `scripts/run_sim.sh` passes the same
-**1,110,730 checks over 351,529 PHI2 cycles per simulator**:
+**1,110,841 checks over 351,578 PHI2 cycles per simulator**:
 
 - All 65,536 DDR/latch combinations for both ports, resolved input reads
   that differ from output intent, output enables and PRB handshake release.
@@ -30,13 +30,14 @@ On Verilator 5.052 and xezim 0.11.0, `scripts/run_sim.sh` passes the same
 These integration expectations are directed specification checks written
 for this design. They are not an unchanged whole-CIA independent oracle.
 The external VICE timer comparison remains a separate stronger timer gate.
-Its new pre-boundary underflow output also matches the external oracle on
-all 3,623,621 cycles; the registered interface is unchanged.
+Its pre-boundary counter/start/underflow read views also match the external
+oracle on all 3,623,621 cycles; the registered interface is unchanged.
 
 The sampled interrupt foundation separately passes every one of 1,024
 mask/source combinations and acknowledgment/pending-enable races:
-7,175 checks in each simulator. Strict lint, BMC/PDR and all five reachable
-covers pass; synthesis produces 58 generic cells.
+9,223 checks in each simulator, including current-cycle source/D7/IRQ
+views. Strict lint, BMC/PDR and all five reachable covers pass; synthesis
+produces 67 generic cells.
 
 ## Formal and synthesis
 
@@ -45,7 +46,7 @@ multiclock modeling. Properties include reset, register-write preservation,
 resolved port reads, pin enables, handshake and every child block's
 assertions. All **34 covers** (seven integration covers plus child covers)
 are reachable; the last is reached at step 41 of the depth-64 cover run.
-Yosys 0.69 synthesis and `check` pass with **1,678 generic cells** including
+Yosys 0.69 synthesis and `check` pass with **1,805 generic cells** including
 both timer instances and all other child blocks. Strict `-Wall` lint passes.
 
 ## Independent historical software
@@ -74,19 +75,22 @@ The maintained original sources are
 [PB6](https://svn.code.sf.net/p/vice-emu/code/!svn/bc/45243/testprogs/general/Lorenz-2.15/src/cia1pb6.s)
 and [PB7](https://svn.code.sf.net/p/vice-emu/code/!svn/bc/45243/testprogs/general/Lorenz-2.15/src/cia1pb7.s).
 
-The larger `cia1ta` program was probed separately, but calls KERNAL FDA3,
-which this fixture does not yet implement. Its initial timeout was traced
-to that missing entry. The harness now fails immediately on unsupported
-KERNAL instruction fetches. That probe is not a CIA result; this flow does
-not count or skip its tests.
+The expanded fixture now executes original 901227-03 KERNAL vector/I/O and
+interrupt routines with two actual CIA instances. All eleven unchanged
+Lorenz CIA programs pass over 41,195,603 clocks, including counter/ICR reads,
+cascade, execution from registers and NMI-sensitive CIA2 timers. The
+[software report](software_report.md) records every program, exact CPU
+checkpoints, firmware/source hashes and environment limits. That extension
+exposed further counter/ICR/IRQ cycle-view defects, documented in the
+[current-cycle failure note](../../../failure_notes/2026-10-20-mos6526-current-cycle-reads.md).
 
 ## Required before compatibility sign-off
 
 The selected sampled interrupt profile is not a completed physical old-CIA
 revision. Timer-B/read-ICR loss, precise IRQ/read races, physical CNT/SP
 synchronizer latency, TOD reset disagreements and cascade/subcycle timing
-remain explicit external-validation gates. Broader independent historical
-timer/IRQ/TOD/serial software and complete-device captures/reference traces
+remain explicit external-validation gates. Additional independent
+IRQ/TOD/serial software and complete-device captures/reference traces
 are required. The
 four requested systems remain pending; this report does not claim C64
 compatibility or a completed console.

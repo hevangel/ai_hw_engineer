@@ -16,17 +16,17 @@
 ## Current evidence and next gate
 
 The assembled sampled device passes its measured digital integration flow.
-Two unchanged Lorenz programs (PB6 and PB7) now run on the native CPU/CIA
-fixture and exposed a timer read-phase defect, documented in
-[failure notes](../../../failure_notes/2026-10-19-mos6526-timer-port-read-phase.md).
+Eleven unchanged Lorenz programs now run with original 901227-03 KERNAL
+firmware, dual actual CIAs and exact CPU checkpoints. Original vector/I/O
+and interrupt code executes in the fixture; counter, ICR and NMI-sensitive
+failures found by those programs are fixed and documented in
+[failure notes](../../../failure_notes/2026-10-20-mos6526-current-cycle-reads.md).
+The [software report](../report/software_report.md) records every result
+and the fixed raster/ROM mapping/console assumptions.
 
-Next extend the independent software environment for the larger Lorenz
-timer/IRQ tests. `cia1ta` calls KERNAL FDA3 after capturing the tested CIA
-registers; an unsupported ROM fetch now fails immediately. Source that
-environment from the recovered ROM/disassembly, including its I/O setup
-and any IRQ/vector dependencies, rather than silently replacing it with an
-unverified reset helper. The
-[recovered KERNAL IOINIT listing](https://www.pagetable.com/c64ref/c64disasm/#FDA3)
-shows that this routine configures both CIAs, the processor port and the
-periodic timer. Do not count this program as run until those dependencies
-are supported and its original success/failure checks execute unchanged.
+Next obtain independent revision-specific ICR-loss and serial/TOD software
+or captured traces. Old timer-B/read-ICR loss remains unimplemented; physical
+CNT/SP synchronizer, IRQ transition, TOD reset and complete-device subcycle
+evidence remain required. Keep the original Lorenz programs and KERNAL
+artifact unchanged while extending these gates. All four requested systems
+and the later chip queue remain incomplete.

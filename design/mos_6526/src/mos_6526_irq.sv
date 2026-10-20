@@ -2,8 +2,8 @@ module mos_6526_irq (
     input logic clk, rst_n, read_i, write_i,
     input logic [7:0] data_i,
     input logic [4:0] source_i,
-    output logic [7:0] data_o,
-    output logic irq_n
+    output logic [7:0] data_o, cycle_data_o,
+    output logic irq_n, cycle_irq_n
 );
     logic [4:0] pending_q, mask_q, mask_next;
     logic scheduled_q, d7_q, asserted_q, acknowledge_q;
@@ -18,7 +18,11 @@ module mos_6526_irq (
         end
     end
     assign data_o = {d7_q,2'b00,pending_q};
+    // Pre-acknowledgment bus view after this cycle's source/D7 catch-up.
+    // ASSUMPTION: old-CIA event/D7 phases; independent Lorenz/VICE ledger.
+    assign cycle_data_o = {(d7_q && !acknowledge_q) || scheduled_q,2'b00,pending_q | source_i};
     assign irq_n = !(rst_n && asserted_q && !read_i);
+    assign cycle_irq_n = !(rst_n && (asserted_q || scheduled_q) && !read_i);
     always_ff @(posedge clk) begin
         if (!rst_n) begin
             pending_q <= 0; mask_q <= 0; scheduled_q <= 0;

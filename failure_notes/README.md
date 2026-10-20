@@ -26,6 +26,10 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-10-20 — MOS 6526 current-cycle counter, ICR and CPU interrupt visibility](2026-10-20-mos6526-current-cycle-reads.md)
+  Original KERNAL-backed Lorenz timer/NMI programs exposed stale counter/ICR
+  reads and an extra cycle of CPU-observed interrupt latency.
+
 - [2026-10-19 — MOS 6526 timer-selected port read phase](2026-10-19-mos6526-timer-port-read-phase.md)
   Unchanged Lorenz CIA software exposed a delayed GPIO sample incorrectly
   used for the internal timer-selected PB6/PB7 read mux.
