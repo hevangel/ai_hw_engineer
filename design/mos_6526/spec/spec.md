@@ -77,6 +77,16 @@ to generate half-rate CNT, changes SP on falling CNT, buffers the next byte,
 finishes after eight rising edges and returns CNT high. It must preserve
 the last SP bit and handle buffered continuation and direction changes.
 
+The isolated serial block accepts already-qualified CNT rising edges and
+timer-A baud pulses. ASSUMPTION: direction changes flush active/queued shift
+state and release CNT/SP high, while a simultaneous SDR write establishes
+the new mode's data/queue. A CPU write on a receive-completion boundary
+overrides visible SDR but does not suppress the completed-byte event.
+A full single-byte pending buffer is overwritten by a newer CPU write.
+These boundary choices require independent physical/revision validation;
+the normal documented input, buffered output and MSB-first protocol can be
+verified separately without claiming the physical synchronizer is complete.
+
 ## Reset and unresolved assumptions
 
 The preliminary sheet resets ports/control/pending/SDR/TOD to zero, timer
@@ -84,6 +94,17 @@ latches to FFFF and all port pins to inputs. VICE resets timer counters to
 FFFF, stops TOD and uses hour 01 as a common physical value. TOD reset
 and invalid-BCD behavior require an explicit revision/profile decision
 before their RTL and final sign-off.
+
+The isolated TOD implementation selects `RESET_HOUR=01` and stopped reset,
+following the pinned VICE profile; the hour parameter remains configurable.
+ASSUMPTION: this reset profile is not established for every physical die.
+The BCD digit counters preserve invalid-digit wrap rather than coercing an
+invalid software write to a valid time. Writing time hour 12 toggles its
+supplied PM bit; alarm-hour writes do not. ASSUMPTION: a simultaneous TOD
+tick advances the old clock before a register write overrides its selected
+field. An hour read snapshots the pre-boundary time; repeated hour reads
+retain that snapshot until a tenths read. Alarm events require changed
+clock/alarm data that compares equal, matching the pinned independent code.
 
 - ASSUMPTION: an isolated cycle-level timer models the pinned external
   emulator's pipeline profile; physical subcycle races require captures.
