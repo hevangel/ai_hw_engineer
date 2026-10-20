@@ -1,5 +1,7 @@
 // Integrated sampled CIA. Physical/revision qualifications: spec/spec.md.
-module mos_6526 (
+module mos_6526 #(
+    parameter bit TIMER_B_READ_LOSS = 1
+) (
     input logic clk, rst_n, cs_n, rw,
     input logic [3:0] addr,
     input logic [7:0] data_i,
@@ -146,7 +148,7 @@ module mos_6526 (
         .cnt_o, .cnt_oe(serial_cnt_drive), .sp_o, .sp_oe(serial_sp_drive),
         .irq_event_o(serial_event), .active_o(unused_serial_active), .pending_o(unused_serial_pending)
     );
-    mos_6526_irq interrupt_control (
+    mos_6526_irq #(.TIMER_B_READ_LOSS(TIMER_B_READ_LOSS)) interrupt_control (
         .clk(boundary_clk), .rst_n, .read_i(rd && addr == 13), .write_i(wr && addr == 13),
         .data_i, .source_i(interrupt_sources), .data_o(unused_icr_state), .cycle_data_o(icr_data),
         .irq_n(unused_irq_state), .cycle_irq_n(irq_n)

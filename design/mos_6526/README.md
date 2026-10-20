@@ -33,3 +33,10 @@ isolated PB6/PB7 baselines. The [software report](report/software_report.md)
 records 41,195,603 KERNAL-backed clocks and exact CPU checkpoints. They found
 and now regress the [timer port read defect](../../failure_notes/2026-10-19-mos6526-timer-port-read-phase.md)
 and [counter/ICR/IRQ cycle-view defects](../../failure_notes/2026-10-20-mos6526-current-cycle-reads.md).
+`scripts/run_transactor.sh` runs the original loss detector with original
+BASIC/KERNAL routines, two selectable affected/unaffected profiles, an
+unchanged independent CIA and recovered transistor CPU oracle. The
+[Transactor report](report/transactor_report.md) records its witnessed
+read/underflow race and explicit RDY phase-coverage input.
+The [phase-coverage failure analysis](../../failure_notes/2026-10-20-mos6526-loss-detector-phase-coverage.md)
+explains why the initial zero-output probe was inconclusive.

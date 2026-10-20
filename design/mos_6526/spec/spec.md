@@ -138,8 +138,8 @@ one boundary later. Fresh source events survive a simultaneous read; a
 fresh scheduled request takes precedence over delayed D7 clearing.
 ASSUMPTION: these cycle boundaries approximate the old-device pipeline
 reported in physical measurements and the pinned VICE reference. This is
-not a complete old-6526 revision model: timer-B/read-ICR loss and other
-subcycle/revision races remain required external-validation gates.
+not a complete physical old-6526 revision model. The selected Timer B loss
+profile is defined below; remaining subcycle/revision races need captures.
 
 ## Integrated sampled bus
 
@@ -203,7 +203,52 @@ interrupt block retains its registered-state diagnostic output and exports
 a separate pre-acknowledgment cycle read view. ASSUMPTION: source bits are
 visible in their event cycle; D7 appears on the following cycle. The
 unchanged old-CIA Lorenz tables and VICE ICR catch-up path pin this phase;
-full timer-B/read-loss and physical IRQ transitions remain separate gates.
+physical read-loss windows and IRQ transitions remain separate capture gates.
+
+## Affected Timer B/read-ICR profile
+
+`TIMER_B_READ_LOSS` selects an affected old-device profile (default one),
+or an otherwise identical legacy-latency device without this defect (zero).
+The latter is not a fast 8521/new-CIA model. The archived Transactor test
+reports both affected and unaffected physical chips, so chip numbering alone
+does not establish this profile.
+
+The independent VICE `cia_do_update_tb` records a loss marker when Timer B
+underflows one cycle after an ICR read. A subsequent clean Timer B event
+replaces that marker. On the next ICR read, a marked Timer B pending flag is
+removed before returning the value; the marker clears on that read. Other
+source bits and D7 are not masked by the marker. The RTL keeps the existing
+IRQ request pipeline and applies the read loss to the returned/stored Timer B
+flag. A coincident fresh Timer B event uses the previous-cycle read state.
+ASSUMPTION: this sampled underflow/read relation applies to Timer B source
+events regardless of count mode; the original Transactor detector validates
+PHI2 counting, and additional CNT/cascade physical traces remain required.
+
+The permanent regression must execute the original Transactor 104-byte
+payload at 3200, validating its own checksum 11949 and exact bootstrap,
+payload-return and NMI entry/exit PCs. For a fixed observation window, the
+affected profile must print at least one original error star for Timer B and
+none for Timer A. The unaffected profile must print none for either timer.
+No replacement detector or modified payload may manufacture the stars.
+
+The fixture executes original BASIC 901226-01 WAIT code at B840 with its
+documented WAIT 198,7 arguments in 14/15,49/4A and Y=0. It does not run the
+whole BASIC parser. A one-cycle RDY read hold every 127 observation clocks,
+only while executing B83E-B848, sweeps the missing board/DMA phase. Both
+profiles receive the identical legal input pattern; CIA clocks continue.
+This is a declared phase-coverage fixture, not a VIC-II DMA implementation.
+Without this sweep the simplified environment never exercises the adjacent
+ICR-read/underflow window, even with original WAIT code, so zero error stars
+alone is not accepted as evidence of an unaffected chip.
+
+The original payload's error-star results are compared with unchanged
+`floooh/chips` m6526.h at commit
+`9e88298ce56319953ac7a43213a1120359f7a3a6`. That source supplies the tested
+timer/interrupt paths; its TODOs for other peripherals make it unsuitable
+as a full-device TOD/serial oracle. The recovered transistor CPU also
+compares every address/RW/write-data cycle through this software race, with
+the same RDY/IRQ/NMI pins and settled bus read data. None of the external
+reference code, ROM bytes, DATA payload or original detector is edited.
 
 ASSUMPTION: the integrated logical-cycle IRQ pin uses the caught-up
 scheduled request before the CPU's cycle-completion sample, matching the

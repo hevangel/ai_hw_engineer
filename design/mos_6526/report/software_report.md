@@ -7,6 +7,11 @@ total **41,195,603 native CPU clocks** in Verilator 5.052. The original
 programs select their old-CIA expectations; no table, instruction or case
 is modified or skipped.
 
+Both `run_software.sh` (affected default) and `run_software.sh 0`
+(unaffected legacy-latency profile) pass all rows below with identical
+diagnostic counts. These programs do not by themselves establish the
+adjacent-read loss difference; the separate Transactor test witnesses it.
+
 | Original program | CPU clocks | Target CIA reads | Target CIA writes |
 |---|---:|---:|---:|
 | cia1pb6 | 22,473 | 467 | 1,387 |
@@ -78,3 +83,8 @@ port, cascade, clock-mode and NMI behavior in this stated environment.
 It does not establish every old-CIA interrupt race, physical CNT/SP timing,
 TOD reset profile, analog timing or a complete board/system. The separate
 revision/capture gates in the [specification](../spec/spec.md) remain open.
+
+The [original Transactor detector](transactor_report.md) now additionally
+qualifies affected/unaffected Timer B loss profiles with a declared legal
+RDY phase sweep, independent CIA code and the recovered transistor CPU.
+This does not modify any Lorenz program or table.

@@ -35,18 +35,22 @@ oracle on all 3,623,621 cycles; the registered interface is unchanged.
 
 The sampled interrupt foundation separately passes every one of 1,024
 mask/source combinations and acknowledgment/pending-enable races:
-9,223 checks in each simulator, including current-cycle source/D7/IRQ
-views. Strict lint, BMC/PDR and all five reachable covers pass; synthesis
-produces 67 generic cells.
+9,361 checks per profile in each simulator, including current-cycle
+source/D7/IRQ views, adjacent-read loss and recovery. Strict lint and
+BMC/PDR pass for both profiles, with eight reachable covers for the
+affected profile and five for the unaffected profile. Synthesis checks
+both profiles separately: 72 generic IRQ cells affected, 67 unaffected.
+See the [Transactor report](transactor_report.md) for their independent
+original-software qualification.
 
 ## Formal and synthesis
 
 Whole-device BMC at depth 32 and unbounded PDR safety proofs pass with
 multiclock modeling. Properties include reset, register-write preservation,
 resolved port reads, pin enables, handshake and every child block's
-assertions. All **34 covers** (seven integration covers plus child covers)
+assertions. All **37 covers** (seven integration covers plus child covers)
 are reachable; the last is reached at step 41 of the depth-64 cover run.
-Yosys 0.69 synthesis and `check` pass with **1,805 generic cells** including
+Yosys 0.69 synthesis and `check` pass with **1,826 generic cells** including
 both timer instances and all other child blocks. Strict `-Wall` lint passes.
 
 ## Independent historical software
@@ -87,7 +91,7 @@ exposed further counter/ICR/IRQ cycle-view defects, documented in the
 ## Required before compatibility sign-off
 
 The selected sampled interrupt profile is not a completed physical old-CIA
-revision. Timer-B/read-ICR loss, precise IRQ/read races, physical CNT/SP
+revision. Physical Timer-B/read-ICR loss windows, precise IRQ/read races, CNT/SP
 synchronizer latency, TOD reset disagreements and cascade/subcycle timing
 remain explicit external-validation gates. Additional independent
 IRQ/TOD/serial software and complete-device captures/reference traces

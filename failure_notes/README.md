@@ -26,6 +26,10 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-10-20 — MOS 6526 loss detector phase coverage](2026-10-20-mos6526-loss-detector-phase-coverage.md)
+  The original Transactor detector required a witnessed read/underflow
+  overlap; zero error stars in the fixed-raster fixture were inconclusive.
+
 - [2026-10-20 — MOS 6526 current-cycle counter, ICR and CPU interrupt visibility](2026-10-20-mos6526-current-cycle-reads.md)
   Original KERNAL-backed Lorenz timer/NMI programs exposed stale counter/ICR
   reads and an extra cycle of CPU-observed interrupt latency.

@@ -1,12 +1,12 @@
 `timescale 1ns/1ps
-module tb_irq;
+module tb_irq #(parameter bit TIMER_B_READ_LOSS=1);
     logic clk=0, rst_n=0, read_i=0, write_i=0;
     logic [7:0] data_i=0, data_o, cycle_data_o;
     logic [4:0] source_i=0;
     logic irq_n, cycle_irq_n;
     int checks=0;
     logic enabled;
-    mos_6526_irq dut (.*);
+    mos_6526_irq #(.TIMER_B_READ_LOSS(TIMER_B_READ_LOSS)) dut (.*);
     task automatic tick;
         #1; clk=1; #1; clk=0; #1;
     endtask
@@ -50,7 +50,29 @@ module tb_irq;
         reset_chip(); put(8'h90); read_i=1; source_i=5'h10; tick(); read_i=0; source_i=0;
         require_check(data_o==8'h10 && irq_n,"Fresh event survives coincident ICR read");
         tick(); require_check(data_o==8'h90 && !irq_n,"New request wins delayed D7 acknowledge");
-        $display("MOS 6526 IRQ PASS: 1024 mask/source combinations, %0d checks; pending/latency/read races",checks);
+        for(int flags=0;flags<32;flags++) begin
+            reset_chip(); put(8'h9f);
+            read_i=1; tick(); read_i=0;
+            source_i=5'(flags); tick(); source_i=0;
+            read_i=1; #1;
+            require_check(cycle_data_o[4:0]==(5'(flags)&(TIMER_B_READ_LOSS ? 5'h1d : 5'h1f)),
+                "Affected profile loses only Timer B one cycle after an ICR read");
+            require_check(cycle_data_o[7]==(flags!=0) && cycle_irq_n,"Loss does not mask D7; read releases pin");
+            tick(); read_i=0; tick();
+            require_check(data_o==0,"Lost B flag cannot reappear after acknowledgment");
+        end
+        for(int gap=0;gap<4;gap++) begin
+            reset_chip(); put(8'h82);
+            read_i=1; tick(); read_i=0;
+            for(int wait_cycle=0;wait_cycle<gap;wait_cycle++) tick();
+            source_i=2; tick(); source_i=0;
+            read_i=1; #1;
+            require_check(cycle_data_o[1]==!(TIMER_B_READ_LOSS && gap==0),"Exactly the previous-read boundary selects loss");
+        end
+        reset_chip(); read_i=1; tick(); read_i=0; source_i=2; tick(); source_i=0; tick();
+        source_i=2; read_i=1; #1;
+        require_check(cycle_data_o[1],"A clean fresh B event replaces a prior loss marker");
+        $display("MOS 6526 IRQ PASS: loss_profile=%0d, 1024 mask/source combinations, %0d checks; pending/latency/read races",TIMER_B_READ_LOSS,checks);
         $finish;
     end
 endmodule
