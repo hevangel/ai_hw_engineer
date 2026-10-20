@@ -20,6 +20,7 @@ module mos_6526 #(
     logic cnt_rise, flag_fall, tod_rise, selected, wr, rd, boundary_clk;
     logic ta_started, tb_started, ta_underflow, tb_underflow, ta_event, tb_event;
     logic ta_read_started, tb_read_started;
+    logic previous_ta_event_q, serial_baud;
     logic ta_toggle_q, tb_toggle_q, pc_q, tb_pulse, ta_pb, tb_pb;
     logic [15:0] unused_ta_count, unused_tb_count, unused_ta_latch, unused_tb_latch;
     logic [15:0] ta_read_count, tb_read_count;
@@ -51,6 +52,9 @@ module mos_6526 #(
     assign sp_oe = rst_n && serial_sp_drive;
     assign pc_n = !rst_n || pc_q;
     assign interrupt_sources = {flag_fall,serial_event,tod_event,tb_event,ta_event};
+    // MAME serial_output: consecutive latch-zero underflows sustain a
+    // level, with no additional serial clock edge after the first half-bit.
+    assign serial_baud = ta_event && !previous_ta_event_q && !cra_low_q[2];
     always_comb begin
         case (crb_high_q[1:0])
             2'b00: tb_pulse = 0;
@@ -91,10 +95,12 @@ module mos_6526 #(
             cra_high_q <= 0; cra_low_q <= 0; crb_high_q <= 0; crb_low_q <= 0;
             previous_cnt_q <= cnt_i; previous_flag_q <= flag_n_i; previous_tod_q <= tod_i;
             ta_toggle_q <= 0; tb_toggle_q <= 0; pc_q <= 1;
+            previous_ta_event_q <= 0;
         end else begin
             previous_cnt_q <= cnt_sample_q;
             previous_flag_q <= flag_sample_q;
             previous_tod_q <= tod_sample_q;
+            previous_ta_event_q <= ta_event;
             pc_q <= !(selected && addr == 1);
             if (ta_event) ta_toggle_q <= !ta_toggle_q;
             if (tb_event) tb_toggle_q <= !tb_toggle_q;
@@ -144,7 +150,7 @@ module mos_6526 #(
     mos_6526_serial serial_port (
         .clk(boundary_clk), .rst_n, .output_mode_i(cra_high_q[1]),
         .write_i(wr && addr == 12), .data_i, .cnt_rise_i(cnt_rise), .sp_i(sp_sample_q),
-        .baud_pulse_i(ta_event && !cra_low_q[2]), .data_o(serial_data),
+        .baud_pulse_i(serial_baud), .data_o(serial_data),
         .cnt_o, .cnt_oe(serial_cnt_drive), .sp_o, .sp_oe(serial_sp_drive),
         .irq_event_o(serial_event), .active_o(unused_serial_active), .pending_o(unused_serial_pending)
     );

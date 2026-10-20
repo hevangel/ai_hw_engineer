@@ -51,3 +51,9 @@ limits. It found and now regresses the
 programs: 66 checked time samples over 19,629,050 clocks. The
 [TOD software report](report/tod_software_report.md) records their unchanged
 tables, exact CPU checkpoints and declared frame-synchronous clock stimulus.
+The serial runner now also passes the original SDR-load program, logging
+ten FCEB measurements in 61,004 clocks. Separate wire tests preserve all
+65,536 byte pairs queued before any underflow and include late writes that
+release the previous CNT tail. The
+[shifter-preload defect analysis](../../failure_notes/2026-10-20-mos6526-serial-shifter-preload.md)
+also records the independent latch-zero baud-edge correction.

@@ -147,7 +147,7 @@ The chip samples resolved PA/PB/CNT/SP/FLAG/TOD on PHI2 rising edges and
 completes bus operations/submodule cycles on falling edges. ASSUMPTION:
 reset spans both phases; external pulses shorter than the sample interval
 and analog setup/hold windows are outside this sampled interface. Timer A
-pre-boundary underflow feeds its ICR source and serial baud path; its
+pre-boundary underflow feeds its ICR source and the edge-qualified serial baud path; its
 registered underflow feeds timer-B cascade on the following boundary.
 ASSUMPTION: cascade latency follows this selected sampled profile and still
 requires complete-device external timing comparison. Timer pulses last a
@@ -294,3 +294,34 @@ not VIC-II logic or DMA. Require exact entry JMP at 080D, target SEI at
 0820, original D7FF result-store PCs and following self-loop JMPs, and the
 original sample counts in zero-page loopcnt. Reset hour remains unchanged:
 both programs initialize the TOD explicitly and do not qualify power-up.
+
+## Serial shifter and pre-underflow buffering
+
+The original SVN 45953 cia-sdr-load program and its provenance report that
+consecutive SDR writes preserve two bytes without waiting for Timer A.
+An idle transmitter must preload the first byte independently of baud;
+the next byte occupies the single pending slot. Presenting the final SP
+bit frees the shifter for the next byte while that last bit remains on SP
+until its CNT rising edge. Do not wait for that edge to accept the next
+byte. The original program's ten FCEB console results must pass its own
+screen table, and separate pin decoding must prove both bytes survive.
+
+ASSUMPTION: idle preload occurs at the sampled SDR-write boundary. The
+pinned VICE model describes a two-clock shifter-load pipeline; source and
+physical data must qualify writes immediately adjacent to baud edges
+before claiming that subcycle behavior. At the sampled boundary a write
+on last-bit presentation queues the next byte without cancelling the
+outgoing SP/CNT transition; a genuinely full
+pending slot retains the latest write. Direction-switch/write races remain
+an explicit sampled convention, not an electrical guarantee.
+
+The pinned MAME serial_output implementation also distinguishes a sustained
+Timer-A underflow level from separated pulses: latch zero leaves the level
+asserted and produces only the first serial half-bit. Qualify the integrated
+baud input on a rising underflow level. A latch-one transfer must still send
+all eight bits; a latch-zero transfer must not raise serial completion.
+Timer IRQ and cascade counting retain their separate event semantics.
+A free-shifter SDR write releases CNT high and resets the serial bit phase,
+retaining the prior final SP bit; this matches MAME serial_load/output and
+the original ten-result FCEB table. The physical two-clock load pipeline
+remains separately qualified rather than inferred from the polling table.

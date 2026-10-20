@@ -150,10 +150,10 @@ module tb_top;
         flag_n_i=1; idle(); idle(); expect_reg(13,0);
         // Serial output is driven by Timer A; inspect actual CNT/SP pins.
         for(int byte_value=0;byte_value<256;byte_value++) begin
-            reset_chip(); put(14,8'h40); put(4,0); put(5,0);
+            reset_chip(); put(14,8'h40); put(4,1); put(5,0);
             put(13,8'h88); put(12,8'(byte_value)); put(14,8'h41);
             events=0; last_cnt=cnt_o; value=0;
-            for(int p=0;p<48;p++) begin
+            for(int p=0;p<80;p++) begin
                 idle();
                 require_check(cnt_oe==!cnt_o && sp_oe==!sp_o,"Serial open-drain drive/release intents");
                 if(cnt_o && !last_cnt) begin value={value[6:0],sp_o}; events++; end
@@ -163,6 +163,11 @@ module tb_top;
             get(13,value); require_check(value[3] && value[7],"TX completion interrupt routes to ICR");
         end
         // Five/six qualified TOD edges per tenth, coherent snapshot and alarm.
+        reset_chip(); put(14,8'h40); put(4,0); put(5,0);
+        put(12,8'h55); put(14,8'h41);
+        repeat(80) idle();
+        require_check(!cnt_o && sp_o==0,"Latch-zero underflow level stalls after first serial half-bit");
+        get(13,value); require_check(!value[3],"Sustained underflow cannot manufacture serial completion");
         for(int mode=0;mode<2;mode++) begin
             reset_chip(); put(14,mode==0 ? 0 : 8'h80);
             put(11,1); put(10,0); put(9,0); put(8,0);

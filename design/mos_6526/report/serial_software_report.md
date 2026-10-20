@@ -50,17 +50,52 @@ The latter remains an explicit source-specific assumption in the ledger.
 
 On Verilator 5.052 the original program now passes in **64,250 PHI2 clocks**
 with result 00 and all 21 words matching exactly. Isolated serial tests
-also pass all 256 receive bytes and 65,536 buffered transmit byte pairs in
-3,281,091 clocks, including an exact four-clock request check. Four-state
-simulation passes 17,339 checks. Serial BMC/PDR and six reachable covers
-pass; synthesis/check uses 132 generic cells. Both interrupt profiles pass
+also pass all 256 receive bytes, 65,536 buffered transmit byte pairs,
+65,536 pre-underflow byte pairs and 256 late-write transfers in 6,239,264
+clocks, including an exact four-clock request check. Four-state simulation
+passes 39,918 checks. Serial BMC/PDR and eight reachable covers pass;
+synthesis/check uses 273 generic cells. Both interrupt profiles pass
 9,364 checks per simulator, BMC/PDR and respectively nine/six covers;
 synthesis remains 72/67 generic cells.
 
 This evidence qualifies the captured divider-50 case. It does not establish
-all serial divider/revision races, SDR double-write behavior, direction
+all serial divider/revision races, adjacent-write/load races, direction
 changes, or input synchronization. Those and additional TOD corner cases
 remain open before system compatibility sign-off. See the
 [escaped-defect analysis](../../../failure_notes/2026-10-20-mos6526-serial-completion-timing.md).
 The [original TOD latch/stop programs](tod_software_report.md) separately
 qualify 66 time samples without TOD RTL changes.
+
+## Original SDR-load program and byte preservation
+
+The same runner also executes unchanged `cia-sdr-load.prg` and hash-pins
+its original `cia-sdr-load.a65` source. This program primes a transfer,
+waits for SDR-empty, then writes AA and 55 six CPU clocks apart, before the
+next Timer A underflow. The original implementation printed FCBA ten
+times and failed its own screen table with result FF.
+
+Idle preload alone repaired the lost first byte but retained the wrong
+FCBA timing. The independent
+[MAME serial_load/output implementation](https://github.com/mamedev/mame/blob/41a494b6ef80adc924ccb2bdba1ee69580276e0c/src/devices/machine/mos6526.cpp)
+explains that a new load into the free shifter releases CNT high instead
+of waiting out the previous byte's tail. The corrected sampled behavior
+retains the previous final SP bit on that edge and prepares the next byte.
+All ten logged measurements are now FCEB, and the program's own comparison
+of the last five screen rows passes with result 00 after **61,004 clocks**.
+The original delay program retains all 21 timing results and 64,250 clocks.
+
+The fixture asserts entry A9 at 0820, next JSR at 0822, success STY at
+08C9, post-store PC 08CC and next executed LDA at 08CC. Failure at 08D6
+also has an exact next-instruction check. An executing RTS at FFD2 returns
+from console calls. The declared console sink handles only clear-screen,
+carriage return and ordinary character output, converting emitted PETSCII
+to screen RAM. It inserts no expected timing text: the original program
+prints its measured timer values, then compares its untouched table.
+It is not a complete KERNAL screen editor or C64 system.
+
+Wire tests separately decode both bytes for every possible pre-underflow
+pair; the software's table alone cannot prove data preservation. Late-write
+tests include the CNT rising edge caused by loading the free shifter.
+The sampled preload boundary and MAME's two-clock physical load pipeline
+remain distinct in the [assumption ledger](../spec/spec.md). See the
+[escaped-defect note](../../../failure_notes/2026-10-20-mos6526-serial-shifter-preload.md).

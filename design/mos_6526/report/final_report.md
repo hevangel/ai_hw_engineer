@@ -1,7 +1,7 @@
 # MOS 6526 status and known issues
 
 The sampled digital implementation passes strict lint, whole-chip BMC/PDR,
-all 39 reachable covers, Verilator/xezim integration simulation and synthesis.
+all 41 reachable covers, Verilator/xezim integration simulation and synthesis.
 This is a measured development milestone; compatibility sign-off remains open.
 
 - [Timer oracle and foundation results](timer_report.md)
@@ -19,7 +19,8 @@ CPU bus oracle. Known issues and outstanding evidence: physical read-loss
 windows, remaining IRQ/read races and timer cascade need complete-device
 traces; physical serial synchronizer latency is approximated;
 TOD reset profiles disagree. The original serial-delay table now passes all
-21 samples after completion/read-boundary corrections; original TOD
+21 samples after completion/read-boundary corrections. The original SDR-load
+program also logs ten FCEB measurements after preload/CNT-tail fixes; TOD
 latch/stop programs also pass all 66 checked time samples.
 Eleven unchanged Lorenz port/timer/cascade/
 clock-mode/NMI programs pass with original KERNAL firmware; additional

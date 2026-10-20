@@ -8,7 +8,7 @@ See the [specification](../spec/spec.md) for the source/profile ledger.
 ## Measured simulation
 
 On Verilator 5.052 and xezim 0.11.0, `scripts/run_sim.sh` passes the same
-**1,110,841 checks over 351,578 PHI2 cycles per simulator**:
+**1,135,596 checks over 359,858 PHI2 cycles per simulator**:
 
 - All 65,536 DDR/latch combinations for both ports, resolved input reads
   that differ from output intent, output enables and PRB handshake release.
@@ -17,7 +17,7 @@ On Verilator 5.052 and xezim 0.11.0, `scripts/run_sim.sh` passes the same
 - Timer B external CNT mode, Timer A cascade, CNT-gated cascade with
   enabled and inhibited events, and PHI2 Timer A pulse/interrupt routing.
 - All 256 serial input bytes and all 256 serial output bytes through the
-  actual sampled CNT/SP pins; Timer A supplies transmit baud pulses.
+  actual sampled CNT/SP pins; Timer A supplies rising-underflow-qualified transmit baud pulses. Latch one completes all eight output bits; latch zero stalls at the first half-bit and produces no serial completion.
   Open-drain enables assert only for low drive and release for high bits.
 - FLAG falling-edge interrupt, serial completion, TOD alarm and timer
   source routing through ICR; source acknowledgment and delayed D7 clearing.
@@ -48,9 +48,12 @@ original-software qualification.
 Whole-device BMC at depth 32 and unbounded PDR safety proofs pass with
 multiclock modeling. Properties include reset, register-write preservation,
 resolved port reads, pin enables, handshake and every child block's
-assertions. All **39 covers** (seven integration covers plus child covers)
-are reachable; the last is reached at step 47 of the depth-64 cover run.
-Yosys 0.69 synthesis and `check` pass with **1,833 generic cells** including
+assertions. All **41 covers** (seven integration covers plus child covers)
+are reachable; the last is reached at step 75 of the depth-96 cover run (Yices 2.7.0).
+The longer cover bound is needed after excluding repeated serial edges
+from the sustained latch-zero underflow level. All-input safety proofs
+remain unbounded PDR; the cover search retains every target.
+Yosys 0.69 synthesis and `check` pass with **1,976 generic cells** including
 both timer instances and all other child blocks. Strict `-Wall` lint passes.
 
 ## Independent historical software

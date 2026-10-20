@@ -51,6 +51,32 @@ module tb_serial;
             require_check(cnt_o && sp_o==second_byte[0] && !active_o && !pending_o,"Final SP retained, clock idle high");
         end
         reset_chip(1); put(8'h55); previous_interrupts=interrupts;
+        for(int value=0;value<256;value++) begin
+            first_byte=8'(value); second_byte=8'(value)^8'ha5; decoded=0;
+            reset_chip(1); put(first_byte); repeat(5) tick(); put(second_byte);
+            previous_interrupts=interrupts;
+            for(int half=0;half<32;half++) begin
+                previous_clock=cnt_o; tick(1);
+                if(!previous_clock && cnt_o) decoded={decoded[14:0],sp_o};
+            end
+            repeat(4) tick();
+            require_check(decoded=={first_byte,second_byte} && interrupts==previous_interrupts+2,
+                          "Both bytes before first underflow survive");
+            reset_chip(1); put(first_byte); decoded=0;
+            repeat(15) begin
+                previous_clock=cnt_o; tick(1);
+                if(!previous_clock && cnt_o) decoded={decoded[14:0],sp_o};
+            end
+            require_check(!cnt_o,"Previous byte still owes final edge");
+            put(second_byte); require_check(cnt_o,"Late write releases CNT");
+            decoded={decoded[14:0],sp_o};
+            repeat(16) begin
+                previous_clock=cnt_o; tick(1);
+                if(!previous_clock && cnt_o) decoded={decoded[14:0],sp_o};
+            end
+            require_check(decoded=={first_byte,second_byte},"Late write preserves complete bit stream");
+        end
+        reset_chip(1); put(8'h55); previous_interrupts=interrupts;
         for(int half=0;half<15;half++) begin
             tick(1);
             if(half!=14) repeat(8) tick();
@@ -65,6 +91,14 @@ module tb_serial;
         repeat(15) tick(1);
         output_mode_i=0; tick(); repeat(4) tick();
         require_check(interrupts==previous_interrupts,"Direction change cancels in-flight transmit request");
+        reset_chip(0); repeat(7) tick(0,1,1);
+        reset_chip(1); put(8'h01); decoded=0;
+        for(int half=0;half<32;half++) begin
+            previous_clock=cnt_o;
+            if(half==14) put(8'h80,1); else tick(1);
+            if(!previous_clock && cnt_o) decoded={decoded[14:0],sp_o};
+        end
+        require_check(decoded==16'h0180,"Coincident final-bit write preserves outgoing and queued bytes");
         reset_chip(0); repeat(7) tick(0,1,1);
         previous_interrupts=interrupts; write_i=1; data_i=8'h5a; tick(0,1,1); write_i=0;
         require_check(data_o==8'h5a && interrupts==previous_interrupts+1,"CPU write and receive completion precedence");

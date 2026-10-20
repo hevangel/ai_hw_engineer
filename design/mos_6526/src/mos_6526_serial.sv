@@ -10,6 +10,8 @@ module mos_6526_serial (
     logic [2:0] bits_q;
     logic [3:0] tx_irq_q;
     logic active_q, pending_q, previous_mode_q, cnt_q, sp_q;
+    logic shifter_free_q, last_bit;
+    assign last_bit = baud_pulse_i && active_q && cnt_q && bits_q == 7;
     assign data_o = sdr_q;
     assign active_o = active_q;
     assign pending_o = pending_q;
@@ -26,6 +28,7 @@ module mos_6526_serial (
             sdr_q <= 0; shift_q <= 0; pending_data_q <= 0;
             tx_irq_q <= 0;
             bits_q <= 0; active_q <= 0; pending_q <= 0;
+            shifter_free_q <= 1;
             previous_mode_q <= 0; cnt_q <= 1; sp_q <= 1;
         end else begin
             // ASSUMPTION: sampled request phase matching the original
@@ -35,12 +38,13 @@ module mos_6526_serial (
             // the final CNT rising edge when the divider is sufficiently slow.
             tx_irq_q <= {tx_irq_q[2:0], output_mode_i &&
                 previous_mode_q == output_mode_i && baud_pulse_i &&
-                active_q && cnt_q && bits_q == 7};
+                last_bit};
             previous_mode_q <= output_mode_i;
             if (previous_mode_q != output_mode_i) begin
                 // ASSUMPTION: direction transition flush/release; see spec.
                 shift_q <= 0; bits_q <= 0; active_q <= 0; pending_q <= 0;
                 tx_irq_q <= 0;
+                shifter_free_q <= 1;
                 cnt_q <= 1; sp_q <= 1;
             end else if (!output_mode_i) begin
                 if (cnt_rise_i) begin
@@ -48,21 +52,31 @@ module mos_6526_serial (
                     bits_q <= bits_q+3'd1;
                     if (bits_q == 7) sdr_q <= {shift_q[6:0],sp_i};
                 end
-            end else if (baud_pulse_i) begin
+            end else begin
                 if (!active_q && pending_q) begin
-                    shift_q <= {pending_data_q[6:0],1'b0};
-                    sp_q <= pending_data_q[7]; cnt_q <= 0;
+                    shift_q <= pending_data_q;
                     bits_q <= 0; active_q <= 1; pending_q <= 0;
-                end else if (active_q) begin
+                    shifter_free_q <= 0;
+                    if (baud_pulse_i) begin
+                        shift_q <= {pending_data_q[6:0],1'b0};
+                        sp_q <= pending_data_q[7]; cnt_q <= 0;
+                    end
+                end else if (active_q && baud_pulse_i) begin
                     cnt_q <= !cnt_q;
                     if (cnt_q) begin
                         sp_q <= shift_q[7]; shift_q <= {shift_q[6:0],1'b0};
+                        // SP now holds bit 8 independently of the shifter.
+                        // The original SDR-load test requires the next byte
+                        // to be accepted before the final CNT rising edge.
+                        if (bits_q == 7) begin
+                            shifter_free_q <= 1;
+                        end
                     end else begin
                         bits_q <= bits_q+3'd1;
                         if (bits_q == 7) begin
                             if (pending_q) begin
                                 shift_q <= pending_data_q;
-                                pending_q <= 0;
+                                pending_q <= 0; shifter_free_q <= 0;
                             end else active_q <= 0;
                         end
                     end
@@ -72,7 +86,21 @@ module mos_6526_serial (
                 // ASSUMPTION: CPU write wins a coincident receive completion;
                 // a pending transmit slot keeps the latest written byte.
                 sdr_q <= data_i;
-                if (output_mode_i) begin pending_data_q <= data_i; pending_q <= 1; end
+                if (output_mode_i) begin
+                    pending_data_q <= data_i; pending_q <= 1;
+                    // ASSUMPTION: sampled idle preload; the exact load
+                    // pipeline near baud edges remains in the source ledger.
+                    if (previous_mode_q == output_mode_i &&
+                        ((!active_q && !pending_q) ||
+                         (active_q && shifter_free_q))) begin
+                        shift_q <= data_i; active_q <= 1;
+                        shifter_free_q <= 0; pending_q <= 0;
+                        // Independent MAME serial_load/output releases CNT
+                        // between bytes instead of waiting out the old tail.
+                        // The previous final SP bit is retained on this edge.
+                        cnt_q <= 1; bits_q <= 0;
+                    end
+                end
             end
         end
     end

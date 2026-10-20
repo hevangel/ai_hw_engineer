@@ -38,6 +38,41 @@ int main(int argc,char **argv) {
             }
             rig.require(rig.dut.data_o==data && rig.interrupts==previous+1,"all input bytes MSB first");
         }
+        // Independent issue 1219: two CPU writes before the first timer
+        // underflow must preserve both bytes, for every possible byte pair.
+        for(unsigned pair=0;pair<65536;++pair) {
+            rig.reset(true); rig.put(pair>>8);
+            for(unsigned gap=0;gap<5;++gap) rig.tick();
+            rig.put(pair&255);
+            unsigned decoded=0, received=0; auto previous=rig.interrupts;
+            for(unsigned half=0;half<32;++half) {
+                bool before=rig.dut.cnt_o; rig.tick(true);
+                if(!before && rig.dut.cnt_o) { decoded=(decoded<<1)|rig.dut.sp_o; ++received; }
+            }
+            for(unsigned drain=0;drain<4;++drain) rig.tick();
+            rig.require(received==16 && decoded==pair && rig.interrupts==previous+2,
+                        "all byte pairs queued before any underflow");
+        }
+        // A write after presentation of bit 8 supplies its final rising
+        // edge immediately; it must retain that bit while loading byte two.
+        for(unsigned first=0;first<256;++first) {
+            rig.reset(true); rig.put(first);
+            unsigned decoded=0, received=0;
+            for(unsigned half=0;half<15;++half) {
+                bool before=rig.dut.cnt_o; rig.tick(true);
+                if(!before && rig.dut.cnt_o) { decoded=(decoded<<1)|rig.dut.sp_o; ++received; }
+            }
+            rig.require(!rig.dut.cnt_o && received==7,"old byte still owes its final CNT edge");
+            rig.put(first^0xa5);
+            rig.require(rig.dut.cnt_o,"free-shifter write releases the final CNT edge");
+            decoded=(decoded<<1)|rig.dut.sp_o; ++received;
+            for(unsigned half=0;half<16;++half) {
+                bool before=rig.dut.cnt_o; rig.tick(true);
+                if(!before && rig.dut.cnt_o) { decoded=(decoded<<1)|rig.dut.sp_o; ++received; }
+            }
+            rig.require(received==16 && decoded==((first<<8)|(first^0xa5)),
+                        "late write preserves all sixteen bits across CNT release");
+        }
         for(unsigned pair=0;pair<65536;++pair) {
             unsigned first=pair>>8, second=pair&255, decoded=0, received=0;
             rig.reset(true); rig.put(first); auto previous=rig.interrupts;
@@ -75,13 +110,29 @@ int main(int argc,char **argv) {
         rig.dut.output_mode_i=0; rig.tick();
         for(unsigned drain=0;drain<4;++drain) rig.tick();
         rig.require(rig.interrupts==previous,"direction change cancels an in-flight transmit request");
-        rig.reset(true); rig.put(0x12); rig.put(0x34); // overwrite full pending slot
-        unsigned decoded=0;
-        for(unsigned half=0;half<16;++half) {
+        rig.reset(true); rig.put(0x12);
+        for(unsigned gap=0;gap<5;++gap) rig.tick();
+        rig.put(0x34); // Two physical CPU writes, both before any baud pulse.
+        unsigned decoded=0, received=0;
+        for(unsigned half=0;half<32;++half) {
             bool before=rig.dut.cnt_o; rig.tick(true);
-            if(!before && rig.dut.cnt_o) decoded=(decoded<<1)|rig.dut.sp_o;
+            if(!before && rig.dut.cnt_o) { decoded=(decoded<<1)|rig.dut.sp_o; ++received; }
         }
-        rig.require(decoded==0x34,"latest write replaces pending byte");
+        rig.require(received==16 && decoded==0x1234,"both writes before first underflow preserve both bytes");
+        rig.reset(true); rig.put(0x12); rig.put(0x34); rig.put(0x56);
+        decoded=0; received=0;
+        for(unsigned half=0;half<32;++half) {
+            bool before=rig.dut.cnt_o; rig.tick(true);
+            if(!before && rig.dut.cnt_o) { decoded=(decoded<<1)|rig.dut.sp_o; ++received; }
+        }
+        rig.require(received==16 && decoded==0x1256,"full pending slot keeps latest byte without overwriting active byte");
+        rig.reset(true); rig.put(0x01); decoded=0; received=0;
+        for(unsigned half=0;half<32;++half) {
+            bool before=rig.dut.cnt_o;
+            if(half==14) rig.put(0x80,true); else rig.tick(true);
+            if(!before && rig.dut.cnt_o) { decoded=(decoded<<1)|rig.dut.sp_o; ++received; }
+        }
+        rig.require(received==16 && decoded==0x0180,"write on final SP presentation cannot discard the outgoing bit");
         rig.reset();
         for(unsigned bit=0;bit<7;++bit) rig.tick(false,true,true);
         previous=rig.interrupts; rig.dut.write_i=1; rig.dut.data_i=0x5a; rig.tick(false,true,true); rig.dut.write_i=0;
@@ -89,6 +140,6 @@ int main(int argc,char **argv) {
         rig.reset(true); rig.put(0); rig.tick(true); rig.dut.output_mode_i=0; rig.tick();
         rig.require(!rig.dut.active_o && !rig.dut.pending_o && rig.dut.cnt_o && rig.dut.sp_o && !rig.dut.cnt_oe && !rig.dut.sp_oe,
                     "direction transition flushes and releases lines");
-        std::cout<<"MOS 6526 SERIAL PASS: 256 RX bytes, 65536 buffered TX pairs; cycles="<<rig.cycles<<'\n';
+        std::cout<<"MOS 6526 SERIAL PASS: 256 RX bytes, 65536 buffered and 65536 pre-underflow TX pairs, 256 late writes; cycles="<<rig.cycles<<'\n';
     } catch(const std::exception &error) { std::cerr<<error.what()<<'\n'; return 1; }
 }

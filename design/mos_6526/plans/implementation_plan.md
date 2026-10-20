@@ -25,7 +25,7 @@ the loss event. See the [software report](../report/software_report.md),
 [Transactor report](../report/transactor_report.md) and
 [failure analysis](../../../failure_notes/2026-10-20-mos6526-loss-detector-phase-coverage.md).
 
-Original serial-delay software now matches all 21 hardware samples after completion/read-boundary fixes. Original TOD latch and stop/restart programs also pass 66 checked time samples. Next extend serial/TOD corner-case software and obtain physical/revision traces.
+Original serial-delay software now matches all 21 hardware samples after completion/read-boundary fixes. Original TOD latch and stop/restart programs also pass 66 checked time samples. The original SDR-load program also logs ten FCEB results after shifter preload and CNT-tail corrections; all pre-underflow byte pairs survive. Independent reference audit also corrected latch-zero serial baud qualification. Next qualify adjacent-write/load and direction-change/input pipeline races, and obtain physical/revision traces.
 Remaining requirements include actual subcycle IRQ/read-loss windows,
 CNT/cascade loss behavior, serial input synchronization and TOD reset
 profiles. The phase sweep is an explicit verification fixture, not a
@@ -47,3 +47,14 @@ Add a TOD pin to the software fixture with existing regressions driving it
 low. Run original read-latch and write-stop binaries with frame-synchronous
 50 Hz nominal pulses and the declared raster model. Keep their comparison
 tables intact and require exact executed instruction/sample checkpoints.
+
+### Shifter preload and early next-byte acceptance
+
+The pre-underflow pin-decoding regression fails on 89bd58e: only the second
+byte survives two SDR writes before any baud pulse. Pin original SDR-load
+source/binary, preserve its failing output, then separate shifter storage
+from the final output bit's remaining wire interval. Verify all 65,536 byte
+pairs with both writes preceding any baud pulse, buffered streaming and
+late writes after bit-eight presentation. Retain the original 21-delay
+hardware table and run the complete changed-block/integration/software
+flow; record the escaped defect and independent source disagreement.

@@ -4,6 +4,7 @@
         if (!f_chip_valid) assume(!rst_n);
         assert(data_oe == (rst_n && clk && selected && rw));
         assert(cra_value[4] == 0 && crb_value[4] == 0);
+        if (previous_ta_event_q) assert(!serial_baud);
         assert(pa_o == pra_q);
         assert(pa_oe == (rst_n ? ddra_q : 8'b0));
         assert(pb_oe == (rst_n ? ddrb_q | {crb_low_q[0],cra_low_q[0],6'b0} : 8'b0));
@@ -29,6 +30,7 @@
                 assert(previous_cnt_q == $past(cnt_sample_q));
                 assert(previous_flag_q == $past(flag_sample_q));
                 assert(previous_tod_q == $past(tod_sample_q));
+                assert(previous_ta_event_q == $past(ta_event));
             end
         end
         cover(f_chip_valid && rst_n && pa_oe==8'hff && data_o!=pa_o && addr==0);
