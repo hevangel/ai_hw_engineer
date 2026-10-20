@@ -33,6 +33,7 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1975 | MOS Technology 6502 | 8-bit microprocessor; functional and native bus engines, all opcode slots, independent timing and historical software regressions; silicon/board gates open | [mos_6502](mos_6502/) |
 | 1975* (historically reported; primary launch unconfirmed) | MOS Technology 6507 | Thirteen-bit physical bus, native NMOS CPU, internal IRQ/NMI ties; package and historical software regressions | [mos_6507](mos_6507/) |
 | By 1982* (preliminary datasheet; launch unconfirmed) | MOS Technology 6510 | Native NMOS CPU with integrated processor port and AEC drivers; digital and real-software gates pass, physical/reset discrepancies open | [mos_6510](mos_6510/) |
+| By 1981* (preliminary datasheet; launch unconfirmed) | MOS Technology 6526 CIA | Ports, linked timers, serial, TOD/alarm and interrupts; isolated timer verified, complete CIA in progress | [mos_6526](mos_6526/) |
 | 1975* | Intel 8251 / 8251A | Programmable synchronous/asynchronous serial interface (USART) | [intel_8251](intel_8251/) |
 | 1975* / 1982* | Intel 8253 / 8254 | Three-channel programmable interval timers | [intel_8253_8254](intel_8253_8254/) |
 | 1975* | Intel 8255 / 8255A | 24-line programmable peripheral interface | [intel_8255](intel_8255/) |
@@ -157,3 +158,7 @@ The 6510 entry uses a by-1982 bound from the manufacturer's November 1982
 preliminary datasheet. See the [6510 history and source ledger](mos_6510/README.md)
 and [measured report](mos_6510/report/final_report.md), including the
 independent emulators' reset disagreement and sampled charge limitations.
+
+The 6526 is documented by the November 1981 preliminary manufacturer sheet;
+its exact launch remains unconfirmed. The [CIA overview](mos_6526/README.md)
+separates the verified timer foundation from the remaining device work.
