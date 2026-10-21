@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/birdybro/sn74xx_sv",
+  "revision": "037825fb35c24ec41f89747d10efcd3102e22060",
+  "license": "MIT",
+  "license_file": "LICENSE.sn74xx_sv",
+  "selection": "74(?:x|LS|L|H|S)?[0-9]{1,3}, numeric suffix 0..299",
+  "note": "Imported functional baseline, locally adapted and reverified; upstream status is not sign-off."
+}

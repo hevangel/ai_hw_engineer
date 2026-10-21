@@ -28,7 +28,7 @@ settings.
 From the repository root, pass the waveform path to the launcher:
 
 ```sh
-sh scripts/run_surfer_web.sh design/alu_74181/work/sim/alu_74181.fst
+sh scripts/run_surfer_web.sh design/ttl_74xx/work/sim/alu_74181.fst
 ```
 
 The launcher mounts the waveform's containing directory read-only, starts the

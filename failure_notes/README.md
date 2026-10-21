@@ -26,6 +26,9 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-10-20 — inherited TTL oracle assumptions](2026-10-20-ttl-inherited-oracles.md)
+  Manufacturer tables exposed shared strobe/edge assumptions and writable ROM models during library integration.
+
 - [2026-10-18 — Model 30 MCGA mode 6](2026-10-18-model30-mcga-mode6.md)
   Original BASICA exposed high-resolution-only graphics decoded as text.
 

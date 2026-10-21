@@ -1,0 +1,9 @@
+// SPDX-License-Identifier: MIT
+// Derived from sn74xx_sv; see references/LICENSE.sn74xx_sv and provenance.json.
+// ttl_74x285 - 4x4 multiplier, low-order 4 bits of product.
+module ttl_74x285 (
+    input  logic [3:0] a, b,
+    output logic [3:0] y_lo
+);
+    assign y_lo = a * b;
+endmodule

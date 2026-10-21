@@ -1,0 +1,24 @@
+[tasks]
+check
+cover
+
+[options]
+check: mode prove
+cover: mode cover
+depth 24
+
+[engines]
+check: abc pdr
+cover: smtbmc z3
+
+[script]
+read -formal ../src/ttl_74x189.sv ttl_memory_contract_props.sv
+prep -top ttl_memory_contract
+memory_map
+opt
+async2sync
+dffunmap
+
+[files]
+../src/ttl_74x189.sv
+ttl_memory_contract_props.sv
