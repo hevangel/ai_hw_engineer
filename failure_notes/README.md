@@ -103,3 +103,5 @@ author is the same agent in every session — the useful question is never
 
 - [2026-10-19 — Apple IIe coverage-sensitive simulation](2026-10-19-apple-iie-xezim-coverage.md)
   Board RAM readback changes under xezim coverage instrumentation; strict functional tests remain and Verilator supplies coverage.
+
+- [74HC4060 oscillator-output pin swap](2026-10-21-ttl4060-oscillator-output-pin-swap.md): complementary pin branches were reversed; caught before publication.

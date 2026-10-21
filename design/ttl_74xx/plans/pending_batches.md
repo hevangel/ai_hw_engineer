@@ -43,3 +43,53 @@ use a classified digital supply input while retaining asynchronous decoder contr
 The 4059 must test native preset partitioning, decimal-weighted section presets,
 all divide modes, one-cycle pulses and stopped-clock asynchronous LE release.
 Logical asynchronous controls remain required when propagation delay is omitted.
+
+## Original register and diagnostic interfaces
+
+Review MMI 1984 LS793/794 readback and National 1981 LS952 control tables alongside
+Fairchild 1987 AC818 diagnostic diagrams. Preserve feedback when a readback port
+is driving, positive-edge versus transparent storage, independent diagnostic and
+pipeline clocks, registered diagnostic-port enable, and externally resolved Y
+feedback. For the LS952 test input-disable/output-disable priority, OR-combined
+up-transfer, parallel-down/serial-shift priority, synchronous two-rank clear,
+serial order and all control combinations using source-derived transitions.
+Native asynchronous output enables remain live while storage operates.
+
+## Native incident-wave bus interface (16246)
+
+Review TI SCBS227J table and diagram before implementation. Preserve eight
+simultaneous split-path channels and three individual direction controls; model
+open-collector release using per-pin drive flags. Exhaust control combinations,
+all input bits and external feedback observations, then run strict lint, simulation
+and complete generic synthesis. Analog keepers remain a documented board-level
+assumption.
+
+## Native four-clock registered transceiver (16470)
+
+Review the TI SCBS085E table and actual gated-clock diagram before RTL. Retain
+CLKEN's output-isolation effect as well as capture gating. Test four independent
+clocks, byte enables, capture with OE disabled, output hold and legal CLKEN
+transitions, then run strict lint, simulation and complete generic synthesis.
+
+## Native octal feedback transceivers (1620..1623, 2620)
+
+Review TI 1984 Volume 3 tables, inversion/output-type list and feedback prose.
+Preserve independent GBA/GAB enables and qualified bus latch behavior. Model
+feedback only after a settled directional transfer with no competing external
+drivers. Test every byte, both directions, feedback hold and isolation, then
+strict lint, simulation and complete generic synthesis.
+
+## Pure-digital clock fanout (807, 3807, 2525)
+
+Review manufacturer block diagrams and pinouts. Preserve the complete fanout
+without fabricated enables or clock division. Test both steady logic levels and
+transitions, then strict lint, simulation and generic synthesis. Omit analog skew,
+hysteresis and electrical drive. The 2526 remains pending until its selector
+polarity is established by a source beyond the advance-information pin list.
+
+## Externally clocked digital 4060 divider
+
+Review TI SCLS161D falling-edge table and oscillator-gate diagram. Expose only
+native divider taps and two oscillator buffer outputs; no RC timing model.
+Verify complete counter periods, tap mapping, both reset phases and wrong-edge
+hold, then strict lint, simulation and generic synthesis.

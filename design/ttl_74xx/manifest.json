@@ -10569,10 +10569,69 @@
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "74F655 datasheet not accessible via current sources; need confirmation of unidirectional buffer-with-parity pinout before implementation",
-    "specification": "spec/chips/ttl_74x655.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x655.md",
+    "rtl": "src/ttl_74x655.sv",
+    "testbench": "tb/tb_ttl_74x655.sv",
+    "source_review": {
+      "url": "https://archive.org/details/bitsavers_fairchilddldFASTDataBook_29981933/page/n553",
+      "sha256": "32aa9e30cf0fc3cfdeccaae320af5d213ea4bba51173f0833ffe4ac9a74be983",
+      "table_pages": [
+        555,
+        556
+      ],
+      "printed_pages": [
+        "4-510",
+        "4-511"
+      ],
+      "review_date": "2026-10-21",
+      "corroborating_sources": [
+        {
+          "publisher": "Texas Instruments",
+          "title": "SN54F280B/SN74F280B 9-Bit Parity Generators/Checkers, Rev. A",
+          "revision_date": "April 1986, revised October 1993",
+          "source_url": "https://www.ti.com/lit/ds/symlink/sn74f280b.pdf",
+          "pdf_sha256": "EAAFAF4EFE6A4AAA25D56CA5EE809A4054BDA6D5BB7A766595774B89355579CA",
+          "pdf_pages": 15,
+          "used_pages": [
+            {
+              "printed_page": "2-1",
+              "pdf_page_index_1_based": 1,
+              "content": "nine-input parity function table: even count gives Sigma Even=H, Sigma Odd=L; odd count gives complements"
+            },
+            {
+              "printed_page": "2-2",
+              "pdf_page_index_1_based": 2,
+              "content": "F280 parity logic diagram"
+            }
+          ]
+        },
+        {
+          "publisher": "NXP Semiconductors",
+          "title": "74F656A Octal buffer/driver with parity; non-inverting; 3-state, Product Data Sheet Rev. 6",
+          "revision_date": "14 December 2011",
+          "source_url": "https://media.digikey.com/pdf/Data%20Sheets/NXP%20PDFs/74F656A.pdf",
+          "document_host": "DigiKey; document itself is an NXP manufacturer data sheet",
+          "pdf_sha256": "4DB3A6597E9F8DC8B4BC895CC35500304CFC5522A25A1ED42B6710DA2CE8E54A",
+          "pdf_pages": 14,
+          "used_pages": [
+            {
+              "printed_page": "4 of 14",
+              "pdf_page_index_1_based": 4,
+              "content": "package pins: Sigma E pin 21 and Sigma O pin 22; data and OE pin mapping"
+            },
+            {
+              "printed_page": "5 of 14",
+              "pdf_page_index_1_based": 5,
+              "content": "function selection and parity table; any active-high OE disables outputs"
+            }
+          ],
+          "use_note": "Later A revision used only to corroborate pin-compatible PO/PO-bar parity naming and output-enable behavior; original 1985 Fairchild pages control the 74F655/656 model."
+        }
+      ]
+    },
+    "conformance_limits": "The 1985 Fairchild 74F655/656 entry supplies the buffer function table and logic diagram, but no distinct parity truth table. The Sigma Odd/Sigma Even output assignment is an explicit assumption cross-checked against the 9-bit F280 parity convention and the later pin-compatible NXP 74F656A pin/function table; that later A revision does not replace the original Fairchild source for the F655/656 logic."
   },
   {
     "part_number": "74x656",
@@ -10587,10 +10646,69 @@
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "74F656 datasheet not accessible via current sources; need confirmation of unidirectional buffer-with-parity pinout before implementation",
-    "specification": "spec/chips/ttl_74x656.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x656.md",
+    "rtl": "src/ttl_74x656.sv",
+    "testbench": "tb/tb_ttl_74x656.sv",
+    "source_review": {
+      "url": "https://archive.org/details/bitsavers_fairchilddldFASTDataBook_29981933/page/n553",
+      "sha256": "32aa9e30cf0fc3cfdeccaae320af5d213ea4bba51173f0833ffe4ac9a74be983",
+      "table_pages": [
+        555,
+        556
+      ],
+      "printed_pages": [
+        "4-510",
+        "4-511"
+      ],
+      "review_date": "2026-10-21",
+      "corroborating_sources": [
+        {
+          "publisher": "Texas Instruments",
+          "title": "SN54F280B/SN74F280B 9-Bit Parity Generators/Checkers, Rev. A",
+          "revision_date": "April 1986, revised October 1993",
+          "source_url": "https://www.ti.com/lit/ds/symlink/sn74f280b.pdf",
+          "pdf_sha256": "EAAFAF4EFE6A4AAA25D56CA5EE809A4054BDA6D5BB7A766595774B89355579CA",
+          "pdf_pages": 15,
+          "used_pages": [
+            {
+              "printed_page": "2-1",
+              "pdf_page_index_1_based": 1,
+              "content": "nine-input parity function table: even count gives Sigma Even=H, Sigma Odd=L; odd count gives complements"
+            },
+            {
+              "printed_page": "2-2",
+              "pdf_page_index_1_based": 2,
+              "content": "F280 parity logic diagram"
+            }
+          ]
+        },
+        {
+          "publisher": "NXP Semiconductors",
+          "title": "74F656A Octal buffer/driver with parity; non-inverting; 3-state, Product Data Sheet Rev. 6",
+          "revision_date": "14 December 2011",
+          "source_url": "https://media.digikey.com/pdf/Data%20Sheets/NXP%20PDFs/74F656A.pdf",
+          "document_host": "DigiKey; document itself is an NXP manufacturer data sheet",
+          "pdf_sha256": "4DB3A6597E9F8DC8B4BC895CC35500304CFC5522A25A1ED42B6710DA2CE8E54A",
+          "pdf_pages": 14,
+          "used_pages": [
+            {
+              "printed_page": "4 of 14",
+              "pdf_page_index_1_based": 4,
+              "content": "package pins: Sigma E pin 21 and Sigma O pin 22; data and OE pin mapping"
+            },
+            {
+              "printed_page": "5 of 14",
+              "pdf_page_index_1_based": 5,
+              "content": "function selection and parity table; any active-high OE disables outputs"
+            }
+          ],
+          "use_note": "Later A revision used only to corroborate pin-compatible PO/PO-bar parity naming and output-enable behavior; original 1985 Fairchild pages control the 74F655/656 model."
+        }
+      ]
+    },
+    "conformance_limits": "The 1985 Fairchild 74F655/656 entry supplies the buffer function table and logic diagram, but no distinct parity truth table. The Sigma Odd/Sigma Even output assignment is an explicit assumption cross-checked against the 9-bit F280 parity convention and the later pin-compatible NXP 74F656A pin/function table; that later A revision does not replace the original Fairchild source for the F655/656 logic."
   },
   {
     "part_number": "74x657",
@@ -10624,10 +10742,25 @@
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "HC-family parity transceiver datasheet not accessible from current sources; needs confirmation of control-pin set (registered vs combinational) before implementation",
-    "specification": "spec/chips/ttl_74x658.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x658.md",
+    "rtl": "src/ttl_74x658.sv",
+    "testbench": "tb/tb_ttl_74x658.sv",
+    "source_review": {
+      "url": "https://archive.org/details/bitsavers_tidataBookogicDataBook_23574286/page/n395",
+      "sha256": "0e39b88137deecc7a2fc54e27e7b55661c8ecc9c138d451d459658d27ca0e2ba",
+      "table_pages": [
+        398,
+        399
+      ],
+      "printed_pages": [
+        "3-350",
+        "3-351"
+      ],
+      "review_date": "2026-10-21",
+      "corroborating_sources": []
+    }
   },
   {
     "part_number": "74x659",
@@ -10642,10 +10775,25 @@
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "HC-family parity transceiver datasheet not accessible from current sources; needs confirmation of control-pin set (registered vs combinational) before implementation",
-    "specification": "spec/chips/ttl_74x659.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x659.md",
+    "rtl": "src/ttl_74x659.sv",
+    "testbench": "tb/tb_ttl_74x659.sv",
+    "source_review": {
+      "url": "https://archive.org/details/bitsavers_tidataBookogicDataBook_23574286/page/n395",
+      "sha256": "0e39b88137deecc7a2fc54e27e7b55661c8ecc9c138d451d459658d27ca0e2ba",
+      "table_pages": [
+        398,
+        399
+      ],
+      "printed_pages": [
+        "3-350",
+        "3-351"
+      ],
+      "review_date": "2026-10-21",
+      "corroborating_sources": []
+    }
   },
   {
     "part_number": "74x664",
@@ -10654,16 +10802,31 @@
     "input_features": "",
     "output_features": "three-state",
     "datasheet": "SN74HC664",
-    "datasheet_url": "https://archive.org/details/bitsavers_tidataBookogicDataBook_23574286/page/n409",
+    "datasheet_url": "https://archive.org/details/bitsavers_tidataBookogicDataBook_23574286/page/n395",
     "number": 664,
     "module": "ttl_74x664",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "HC-family parity transceiver datasheet not accessible from current sources; needs confirmation of control-pin set (registered vs combinational) before implementation",
-    "specification": "spec/chips/ttl_74x664.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x664.md",
+    "rtl": "src/ttl_74x664.sv",
+    "testbench": "tb/tb_ttl_74x664.sv",
+    "source_review": {
+      "url": "https://archive.org/details/bitsavers_tidataBookogicDataBook_23574286/page/n395",
+      "sha256": "0e39b88137deecc7a2fc54e27e7b55661c8ecc9c138d451d459658d27ca0e2ba",
+      "table_pages": [
+        412,
+        413
+      ],
+      "printed_pages": [
+        "3-364",
+        "3-365"
+      ],
+      "review_date": "2026-10-21",
+      "corroborating_sources": []
+    }
   },
   {
     "part_number": "74x665",
@@ -10672,16 +10835,31 @@
     "input_features": "",
     "output_features": "three-state",
     "datasheet": "SN74HC665",
-    "datasheet_url": "https://archive.org/details/bitsavers_tidataBookogicDataBook_23574286/page/n409",
+    "datasheet_url": "https://archive.org/details/bitsavers_tidataBookogicDataBook_23574286/page/n395",
     "number": 665,
     "module": "ttl_74x665",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "HC-family parity transceiver datasheet not accessible from current sources; needs confirmation of control-pin set (registered vs combinational) before implementation",
-    "specification": "spec/chips/ttl_74x665.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x665.md",
+    "rtl": "src/ttl_74x665.sv",
+    "testbench": "tb/tb_ttl_74x665.sv",
+    "source_review": {
+      "url": "https://archive.org/details/bitsavers_tidataBookogicDataBook_23574286/page/n395",
+      "sha256": "0e39b88137deecc7a2fc54e27e7b55661c8ecc9c138d451d459658d27ca0e2ba",
+      "table_pages": [
+        412,
+        413
+      ],
+      "printed_pages": [
+        "3-364",
+        "3-365"
+      ],
+      "review_date": "2026-10-21",
+      "corroborating_sources": []
+    }
   },
   {
     "part_number": "74x666",
@@ -11238,7 +11416,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Counter/latch/multiplexer family datasheet not accessible from current sources; needs confirmation of control-pin set (load, count, latch, mux-select, OE) before RTL; Not present in the TI SN54LS690-693 / SN54LS696-699 databook \u2014 the family skips 694/695 (690-693, then 696-699). No datasheet found in TI/Signetics/Wikipedia sources; likely a spurious entry in the Wikipedia-derived list. Verify the part actually exists before attempting.",
+    "reason": "No manufacturer-authored function table, pinout, or datasheet for SN74ALS694 was found in the checked primary references. TI's 690-693 and 696-699 family sequence skips 694. No RTL or testbench was created.",
     "specification": "spec/chips/ttl_74x694.md"
   },
   {
@@ -11256,7 +11434,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Counter/latch/multiplexer family datasheet not accessible from current sources; needs confirmation of control-pin set (load, count, latch, mux-select, OE) before RTL; Not present in the TI SN54LS690-693 / SN54LS696-699 databook \u2014 the family skips 694/695. No datasheet found; likely a spurious entry in the Wikipedia-derived list. Verify existence before attempting.",
+    "reason": "No manufacturer-authored function table, pinout, or datasheet for SN74ALS695 was found in the checked primary references. TI's 690-693 and 696-699 family sequence skips 695. No RTL or testbench was created.",
     "specification": "spec/chips/ttl_74x695.md"
   },
   {
@@ -11423,7 +11601,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Datasheet not accessible from current sources; complex programmable/registered/FIFO part needs control-pin and internal-state confirmation before RTL; Datasheet location: National 74F707 8-bit TTL-ECL shift register, bitsavers_nationaldaFASTDatabook_31226275 ~n622 (advance-information entry: general description + logic diagram only, no detailed function table). Cannot implement faithfully without the MODE/LE/clock-edge function table.",
+    "reason": "Advance-information entry gives general description and logic diagram, but no complete MODE/LE/clock-edge function table. A complete native control/edge table is still required.",
     "specification": "spec/chips/ttl_74x707.md"
   },
   {
@@ -11461,7 +11639,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Datasheet not accessible from current sources; complex programmable/registered/FIFO part needs control-pin and internal-state confirmation before RTL; Datasheet located: National 74F710 single-supply TTL-ECL 8-bit shift register, bitsavers_nationaldaFASTDatabook_31226275 n624-625 (8-bit holding latch + shift register, MODE load/shift, differential ECL clock SC/SC-bar, outputs only at Q3/Q7). ADVANCE INFORMATION - no detailed function table (MODE/LE polarity), so not implementable faithfully from the available scan.",
+    "reason": "Advance-information entry describes a holding latch plus shift register and provides diagram-level material, but no complete MODE/LE/clock-edge function table. A complete native control/edge table is still required.",
     "specification": "spec/chips/ttl_74x710.md"
   },
   {
@@ -11527,16 +11705,53 @@
     "input_features": "",
     "output_features": "",
     "datasheet": "SN74LS716",
-    "datasheet_url": "https://archive.org/details/bitsavers_motoroladaSchottkyTTLData_33878952/page/n397",
+    "datasheet_url": "https://bitsavers.trailing-edge.com/components/motorola/_dataBooks/1983_Motorola_Schottky_TTL_Data.pdf",
     "number": 716,
     "module": "ttl_74x716",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Datasheet not accessible from current sources; complex programmable/registered/FIFO part needs control-pin and internal-state confirmation before RTL",
-    "specification": "spec/chips/ttl_74x716.md"
+    "model_level": "qualified_normalized_digital",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x716.md",
+    "rtl": "src/ttl_74x716.sv",
+    "testbench": "tb/tb_ttl_74x716.sv",
+    "conformance_limits": "Keep preset data stable for the full PE_n-low pulse; source does not say whether changes within it pass through transparently. RTL samples on PE_n falling edge and on clock while PE_n remains low. Use the documented zero-entry sequence with MR_n and PE_n low together. MR-alone priority is undocumented; RTL's asynchronous MR priority is not native-certified. Gate is a separate input. Tie gate to clock for the documented single-stage divide phase; the digital reload condition is normalized to q==0, gate low and Bus high, and arbitrary independent Gate/clock timing is not native-certified.",
+    "source_review": {
+      "url": "https://bitsavers.trailing-edge.com/components/motorola/_dataBooks/1983_Motorola_Schottky_TTL_Data.pdf",
+      "sha256": "49F28673FD0EA14793F82FF35A0A3BED7C03448B1743105D2490BF1D5520F919",
+      "table_pages": [
+        399,
+        400,
+        404,
+        405
+      ],
+      "review_date": "2026-10-21",
+      "additional_sources": [
+        {
+          "url": "https://bitsavers.trailing-edge.com/components/motorola/_dataBooks/Motorola_Phase-Locked_Loop_Systems_Data_Book_2ed_Aug73.pdf",
+          "document": "Motorola Phase-Locked Loop Systems Data Book, 2nd edition (1973)",
+          "sha256": "FAC8BCEA96AEFD338D92D40F25D4FED4CA126F91B6ADA5AA1E80631707CB01EF",
+          "pdf_pages": [
+            85,
+            86,
+            87,
+            88,
+            90,
+            91,
+            92,
+            150,
+            151
+          ],
+          "printed_pages": [
+            "78-81",
+            "83-85",
+            "143-144"
+          ],
+          "content": "MC4016/MC74416 pin mapping, BCD output sequence, PE description and AN-541 asynchronous preset/terminal Bus behavior"
+        }
+      ]
+    }
   },
   {
     "part_number": "74x718",
@@ -11545,16 +11760,52 @@
     "input_features": "",
     "output_features": "",
     "datasheet": "SN74LS718",
-    "datasheet_url": "https://archive.org/details/bitsavers_motoroladaSchottkyTTLData_33878952/page/n397",
+    "datasheet_url": "https://bitsavers.trailing-edge.com/components/motorola/_dataBooks/1983_Motorola_Schottky_TTL_Data.pdf",
     "number": 718,
     "module": "ttl_74x718",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Datasheet not accessible from current sources; complex programmable/registered/FIFO part needs control-pin and internal-state confirmation before RTL",
-    "specification": "spec/chips/ttl_74x718.md"
+    "model_level": "qualified_normalized_digital",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x718.md",
+    "rtl": "src/ttl_74x718.sv",
+    "testbench": "tb/tb_ttl_74x718.sv",
+    "conformance_limits": "Keep preset data stable for the full PE_n-low pulse; source does not say whether changes within it pass through transparently. RTL samples on PE_n falling edge and on clock while PE_n remains low. Use the documented zero-entry sequence with MR_n and PE_n low together. MR-alone priority is undocumented; RTL's asynchronous MR priority is not native-certified. Gate is a separate input. Tie gate to clock for the documented single-stage divide phase; the digital reload condition is normalized to q==0, gate low and Bus high, and arbitrary independent Gate/clock timing is not native-certified.",
+    "source_review": {
+      "url": "https://bitsavers.trailing-edge.com/components/motorola/_dataBooks/1983_Motorola_Schottky_TTL_Data.pdf",
+      "sha256": "49F28673FD0EA14793F82FF35A0A3BED7C03448B1743105D2490BF1D5520F919",
+      "table_pages": [
+        399,
+        400,
+        404,
+        405
+      ],
+      "review_date": "2026-10-21",
+      "additional_sources": [
+        {
+          "url": "https://bitsavers.trailing-edge.com/components/motorola/_dataBooks/Motorola_Phase-Locked_Loop_Systems_Data_Book_2ed_Aug73.pdf",
+          "document": "Motorola Phase-Locked Loop Systems Data Book, 2nd edition (1973)",
+          "sha256": "FAC8BCEA96AEFD338D92D40F25D4FED4CA126F91B6ADA5AA1E80631707CB01EF",
+          "pdf_pages": [
+            85,
+            86,
+            87,
+            88,
+            90,
+            91,
+            92,
+            152
+          ],
+          "printed_pages": [
+            "78-81",
+            "83-85",
+            "145"
+          ],
+          "content": "MC4018/MC74418 pin mapping, binary output sequence, PE description and AN-541 asynchronous preset/terminal Bus behavior"
+        }
+      ]
+    }
   },
   {
     "part_number": "74x723",
@@ -11659,16 +11910,42 @@
     "input_features": "",
     "output_features": "three-state",
     "datasheet": "74F732",
-    "datasheet_url": "https://archive.org/details/bitsavers_signeticsdaManual_57966640/page/n790",
+    "datasheet_url": "https://archive.org/details/bitsavers_signeticsdaManual_57966640/page/n791",
     "number": 732,
     "module": "ttl_74x732",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Mux/3-bus-mux datasheet not accessible; needs confirmation of select/enable pin organization before RTL; Datasheet LOCATED: Signetics FAST 74F732 (Quad 4-bit 3-bus data multiplexer, bidirectional A/B/C buses, inverting, 3-state). chips.json datasheet_url page pointer was wrong (pointed to the 723/725 FIFO page). Correct location: bitsavers signeticsdaManual_57966640 pages n790-791. Held blocked: the routing FUNCTION TABLE (select S0..S2 / OEA,OEB,OEC -> source->dest) is not legible enough in the available scan to implement faithfully; needs a clearer datasheet.",
-    "specification": "spec/chips/ttl_74x732.md"
+    "model_level": "four-bit functional routing with explicit digital high-impedance drive flags",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x732.md",
+    "rtl": "src/ttl_74x732.sv",
+    "testbench": "tb/tb_ttl_74x732.sv",
+    "source_review": {
+      "url": "https://archive.org/details/bitsavers_signeticsdaManual_57966640/page/n791",
+      "sha256": "9066E70949CEB4B2C96AAF24F3E58DC3275DA7D38795E2D5A041C609F3332CAF",
+      "table_pages": {
+        "part_identification_and_logic_symbols_pdf_page_indices": [
+          790
+        ],
+        "function_table_pdf_page_indices": [
+          791
+        ],
+        "printed_pages": [
+          "6-726",
+          "6-727"
+        ],
+        "archive_scan_pages": [
+          "n790",
+          "n791"
+        ],
+        "review_renders": [
+          "B:/ai_hw_engineer/.firecrawl/signetics-fast-1987-page-790.png",
+          "B:/ai_hw_engineer/.firecrawl/signetics-fast-1987-page-791.png"
+        ]
+      },
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x733",
@@ -11677,16 +11954,42 @@
     "input_features": "",
     "output_features": "three-state",
     "datasheet": "74F733",
-    "datasheet_url": "https://archive.org/details/bitsavers_signeticsdaManual_57966640/page/n790",
+    "datasheet_url": "https://archive.org/details/bitsavers_signeticsdaManual_57966640/page/n791",
     "number": 733,
     "module": "ttl_74x733",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Mux/3-bus-mux datasheet not accessible; needs confirmation of select/enable pin organization before RTL; Datasheet LOCATED: Signetics FAST 74F733 (Quad 4-bit 3-bus data multiplexer, bidirectional, NON-inverting, 3-state). Correct location: bitsavers signeticsdaManual_57966640 pages n790-791 (chips.json pointer was wrong). Held blocked: routing function table not legible enough in the scan to implement faithfully; needs a clearer datasheet.",
-    "specification": "spec/chips/ttl_74x733.md"
+    "model_level": "four-bit functional routing with explicit digital high-impedance drive flags",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x733.md",
+    "rtl": "src/ttl_74x733.sv",
+    "testbench": "tb/tb_ttl_74x733.sv",
+    "source_review": {
+      "url": "https://archive.org/details/bitsavers_signeticsdaManual_57966640/page/n791",
+      "sha256": "9066E70949CEB4B2C96AAF24F3E58DC3275DA7D38795E2D5A041C609F3332CAF",
+      "table_pages": {
+        "part_identification_and_logic_symbols_pdf_page_indices": [
+          790
+        ],
+        "function_table_pdf_page_indices": [
+          791
+        ],
+        "printed_pages": [
+          "6-726",
+          "6-727"
+        ],
+        "archive_scan_pages": [
+          "n790",
+          "n791"
+        ],
+        "review_renders": [
+          "B:/ai_hw_engineer/.firecrawl/signetics-fast-1987-page-790.png",
+          "B:/ai_hw_engineer/.firecrawl/signetics-fast-1987-page-791.png"
+        ]
+      },
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x734",
@@ -11910,10 +12213,29 @@
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Datasheet not accessible; quad/specialized configuration needs confirmation",
-    "specification": "spec/chips/ttl_74x758.md"
+    "model_level": "digital open-collector bus transceiver with transparent directional modes and an explicit latch-mode abstraction",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x758.md",
+    "rtl": "src/ttl_74x758.sv",
+    "testbench": "tb/tb_ttl_74x758.sv",
+    "source_review": {
+      "url": "https://archive.org/details/bitsavers_tidataBookVol3_25840031/page/n527",
+      "sha256": "DA11F2DEBAF1FF08445E3E73AAAB73A01338F43791CC9C96ED60051E996EF79D",
+      "table_pages": {
+        "function_table_pdf_page_indices": [
+          527
+        ],
+        "logic_diagram_pdf_page_indices": [
+          527
+        ],
+        "printed_pages": [
+          "2-495",
+          "2-497"
+        ]
+      },
+      "review_date": "2026-10-21"
+    },
+    "conformance_limits": "Feedback-mode conformance is claimed only when entered from an established directional transfer, with no external contention. Do not enter feedback from an isolated/floating bus or externally overwrite a driven feedback bus. The model captures the source transparently in directional modes and holds the pair in latch mode. Its retained internal state through isolation is a deterministic model choice; re-entry after isolation is outside conformance. The product preview gives the latch relationship and feedback diagram but does not specify a separate latch timing/state-transition table. Exact silicon capture/re-entry behavior remains uncertified."
   },
   {
     "part_number": "74x759",
@@ -11928,10 +12250,29 @@
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Datasheet not accessible; quad/specialized configuration needs confirmation",
-    "specification": "spec/chips/ttl_74x759.md"
+    "model_level": "digital open-collector bus transceiver with transparent directional modes and an explicit latch-mode abstraction",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x759.md",
+    "rtl": "src/ttl_74x759.sv",
+    "testbench": "tb/tb_ttl_74x759.sv",
+    "source_review": {
+      "url": "https://archive.org/details/bitsavers_tidataBookVol3_25840031/page/n527",
+      "sha256": "DA11F2DEBAF1FF08445E3E73AAAB73A01338F43791CC9C96ED60051E996EF79D",
+      "table_pages": {
+        "function_table_pdf_page_indices": [
+          527
+        ],
+        "logic_diagram_pdf_page_indices": [
+          527
+        ],
+        "printed_pages": [
+          "2-495",
+          "2-497"
+        ]
+      },
+      "review_date": "2026-10-21"
+    },
+    "conformance_limits": "Feedback-mode conformance is claimed only when entered from an established directional transfer, with no external contention. Do not enter feedback from an isolated/floating bus or externally overwrite a driven feedback bus. The model captures the source transparently in directional modes and holds the pair in latch mode. Its retained internal state through isolation is a deterministic model choice; re-entry after isolation is outside conformance. The product preview gives the latch relationship and feedback diagram but does not specify a separate latch timing/state-transition table. Exact silicon capture/re-entry behavior remains uncertified."
   },
   {
     "part_number": "74x760",
@@ -11959,16 +12300,31 @@
     "input_features": "",
     "output_features": "open-collector",
     "datasheet": "SN74ALS762",
-    "datasheet_url": "https://web.archive.org/web/20170224211619/http://www.ti.com/lit/ds/symlink/sn74as762.pdf",
+    "datasheet_url": "https://archive.org/details/bitsavers_tidataBookVol3_25840031/page/n533",
     "number": 762,
     "module": "ttl_74x762",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Datasheet not accessible; quad/specialized configuration needs confirmation",
-    "specification": "spec/chips/ttl_74x762.md"
+    "model_level": "two independent four-bit open-collector banks; group 1 inverting, group 2 non-inverting",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x762.md",
+    "rtl": "src/ttl_74x762.sv",
+    "testbench": "tb/tb_ttl_74x762.sv",
+    "source_review": {
+      "url": "https://archive.org/details/bitsavers_tidataBookVol3_25840031/page/n533",
+      "sha256": "DA11F2DEBAF1FF08445E3E73AAAB73A01338F43791CC9C96ED60051E996EF79D",
+      "table_pages": {
+        "logic_symbols_pdf_page_indices": [
+          533
+        ],
+        "printed_pages": [
+          "2-501"
+        ],
+        "review_crop": "B:/ai_hw_engineer/.firecrawl/762-left-symbol.png"
+      },
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x763",
@@ -12068,16 +12424,29 @@
     "input_features": "",
     "output_features": "three-state",
     "datasheet": "MC74F779",
-    "datasheet_url": "https://archive.org/details/bitsavers_nationaldaFASTDatabook_31226275/page/n626",
+    "datasheet_url": "https://mm.digikey.com/Volume0/opasdata/d220001/medias/docus/966/74F779.pdf",
     "number": 779,
     "module": "ttl_74x779",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Complex specialized part (DRAM controller, FutureBus latched transceiver, multiplier, display address mux, bus arbiter, EDAC, readback latch) requires datasheet for accurate control-pin layout; Datasheet located: National 74F779 8-bit bidirectional binary counter with tri-state, bitsavers_nationaldaFASTDatabook_31226275 n626-627 (chips.json previously pointed to a Motorola databook - WRONG archive item). Multiplexed tri-state I/O, S0/S1 modes (hold/up/down/load), lookahead carry. ADVANCE INFORMATION - no detailed function table in the available scan.",
-    "specification": "spec/chips/ttl_74x779.md"
+    "model_level": "qualified_normalized_digital",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x779.md",
+    "rtl": "src/ttl_74x779.sv",
+    "testbench": "tb/tb_ttl_74x779.sv",
+    "conformance_limits": "S1:S0=11 is absent from the published function table; hold/TC-inactive behavior is an explicit model assumption. S1:S0=00 with OE_n low is absent; hold behavior is an explicit model assumption. Split digital driver masks abstract three-state electrical behavior; analog voltage levels, strength resolution, decode spikes and delays are outside scope.",
+    "source_review": {
+      "url": "https://mm.digikey.com/Volume0/opasdata/d220001/medias/docus/966/74F779.pdf",
+      "sha256": "CA10A9ABC32017A655F6E13236324B3DC771ADE2FCC05C77643D8381C64DC5FF",
+      "table_pages": [
+        1,
+        2,
+        3
+      ],
+      "review_date": "2026-10-21",
+      "additional_sources": []
+    }
   },
   {
     "part_number": "74x783",
@@ -12176,16 +12545,23 @@
     "input_features": "",
     "output_features": "",
     "datasheet": "SN74LS793",
-    "datasheet_url": "https://archive.org/stream/MonolithicMemories-MMI-BipolarLSI1984DatabookOCR#page/n433",
+    "datasheet_url": "https://archive.org/download/MonolithicMemories-MMI-BipolarLSI1984DatabookOCR/MonolithicMemories-MMI-BipolarLSI1984DatabookOCR.pdf",
     "number": 793,
     "module": "ttl_74x793",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Complex specialized part (DRAM controller, FutureBus latched transceiver, multiplier, display address mux, bus arbiter, EDAC, readback latch) requires datasheet for accurate control-pin layout",
-    "specification": "spec/chips/ttl_74x793.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x793.md",
+    "rtl": "src/ttl_74x793.sv",
+    "testbench": "tb/tb_ttl_74x793.sv",
+    "source_review": {
+      "url": "https://archive.org/download/MonolithicMemories-MMI-BipolarLSI1984DatabookOCR/MonolithicMemories-MMI-BipolarLSI1984DatabookOCR.pdf",
+      "sha256": "30c71abee89bf5d401bbf044e1d8b9483da4cb7351ef6013dff4911921ca21b2",
+      "table_pages": "PDF page 451, printed 13-60 (tables and logic symbols)",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x794",
@@ -12194,16 +12570,23 @@
     "input_features": "",
     "output_features": "",
     "datasheet": "SN74LS794",
-    "datasheet_url": "https://archive.org/stream/MonolithicMemories-MMI-BipolarLSI1984DatabookOCR#page/n433",
+    "datasheet_url": "https://archive.org/download/MonolithicMemories-MMI-BipolarLSI1984DatabookOCR/MonolithicMemories-MMI-BipolarLSI1984DatabookOCR.pdf",
     "number": 794,
     "module": "ttl_74x794",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized part (readback register / clock driver / GTLP fanout / diagnostic register / bus-interface flop) requires datasheet for control-pin layout",
-    "specification": "spec/chips/ttl_74x794.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x794.md",
+    "rtl": "src/ttl_74x794.sv",
+    "testbench": "tb/tb_ttl_74x794.sv",
+    "source_review": {
+      "url": "https://archive.org/download/MonolithicMemories-MMI-BipolarLSI1984DatabookOCR/MonolithicMemories-MMI-BipolarLSI1984DatabookOCR.pdf",
+      "sha256": "30c71abee89bf5d401bbf044e1d8b9483da4cb7351ef6013dff4911921ca21b2",
+      "table_pages": "PDF page 451, printed 13-60 (tables and logic symbols)",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x795",
@@ -12382,17 +12765,26 @@
     "description": "1-to-10 clock driver",
     "input_features": "",
     "output_features": "driver",
-    "datasheet": "IDT74FCT807",
+    "datasheet": "IDT74FCT807BT/CT",
     "datasheet_url": "https://archive.org/details/bitsavers_idtdataBoomanceLogicDataBook_51362967/page/n569",
     "number": 807,
     "module": "ttl_74x807",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized part (readback register / clock driver / GTLP fanout / diagnostic register / bus-interface flop) requires datasheet for control-pin layout",
-    "specification": "spec/chips/ttl_74x807.md"
+    "model_level": "manufacturer_digital_clock_fanout",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x807.md",
+    "rtl": "src/ttl_74x807.sv",
+    "testbench": "tb/tb_ttl_74x807.sv",
+    "source_review": {
+      "url": "https://archive.org/details/bitsavers_idtdataBoomanceLogicDataBook_51362967/page/n569",
+      "sha256": "f236185228680c58bd57ebc88461d371800ebaf59a5c86bcbc47d4795731653c",
+      "table_pages": [
+        570
+      ],
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x808",
@@ -12483,16 +12875,23 @@
     "input_features": "",
     "output_features": "three-state",
     "datasheet": "74ACT818",
-    "datasheet_url": "https://archive.org/details/bitsavers_fairchilddldFACTLogicDataBook_27153725/page/n411",
+    "datasheet_url": "https://archive.org/download/bitsavers_fairchilddldFACTLogicDataBook_27153725/1987_Fairchild_FACT_Logic_Data_Book.pdf",
     "number": 818,
     "module": "ttl_74x818",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized part (readback register / clock driver / GTLP fanout / diagnostic register / bus-interface flop) requires datasheet for control-pin layout",
-    "specification": "spec/chips/ttl_74x818.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x818.md",
+    "rtl": "src/ttl_74x818.sv",
+    "testbench": "tb/tb_ttl_74x818.sv",
+    "source_review": {
+      "url": "https://archive.org/download/bitsavers_fairchilddldFACTLogicDataBook_27153725/1987_Fairchild_FACT_Logic_Data_Book.pdf",
+      "sha256": "e8054594a38e14a45fdc86d2708a143e7fa2f086e989cce166cdb62b5e48e49d",
+      "table_pages": "PDF pages 413\u2013415 / printed 5-346\u20135-348",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x819",
@@ -13176,17 +13575,24 @@
     "description": "dual 16x4 register files",
     "input_features": "",
     "output_features": "",
-    "datasheet": "SN74AS870",
-    "datasheet_url": "https://archive.org/details/bitsavers_tidataBookVol3_25840031/page/n645",
+    "datasheet": "SN74AS870, TI D2661",
+    "datasheet_url": "https://archive.org/download/bitsavers_tidataBookVol3_25840031/1984_The_TTL_Data_Book_Vol_3.pdf",
     "number": 870,
     "module": "ttl_74x870",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter \u2014 needs datasheet study before RTL",
-    "specification": "spec/chips/ttl_74x870.md"
+    "model_level": "manufacturer_asynchronous_register_file",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x870.md",
+    "rtl": "src/ttl_74x870.sv",
+    "testbench": "tb/tb_ttl_74x870.sv",
+    "source_review": {
+      "url": "https://archive.org/download/bitsavers_tidataBookVol3_25840031/1984_The_TTL_Data_Book_Vol_3.pdf",
+      "sha256": "da11f2debaf1ff08445e3e73aaab73a01338f43791cc9c96ed60051e996ef79d",
+      "table_pages": "PDF 646\u2013648 / printed 2-613\u20132-615",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x871",
@@ -13194,17 +13600,24 @@
     "description": "dual 16x4 register files",
     "input_features": "",
     "output_features": "",
-    "datasheet": "SN74AS871",
-    "datasheet_url": "https://archive.org/details/bitsavers_tidataBookVol3_25840031/page/n645",
+    "datasheet": "SN74AS871, TI D2661",
+    "datasheet_url": "https://archive.org/download/bitsavers_tidataBookVol3_25840031/1984_The_TTL_Data_Book_Vol_3.pdf",
     "number": 871,
     "module": "ttl_74x871",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter \u2014 needs datasheet study before RTL",
-    "specification": "spec/chips/ttl_74x871.md"
+    "model_level": "manufacturer_asynchronous_register_file",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x871.md",
+    "rtl": "src/ttl_74x871.sv",
+    "testbench": "tb/tb_ttl_74x871.sv",
+    "source_review": {
+      "url": "https://archive.org/download/bitsavers_tidataBookVol3_25840031/1984_The_TTL_Data_Book_Vol_3.pdf",
+      "sha256": "da11f2debaf1ff08445e3e73aaab73a01338f43791cc9c96ed60051e996ef79d",
+      "table_pages": "PDF 646\u2013648 / printed 2-613\u20132-615",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x873",
@@ -14342,16 +14755,23 @@
     "input_features": "",
     "output_features": "three-state",
     "datasheet": "DM74LS952",
-    "datasheet_url": "https://archive.org/stream/NationalSemiconductorLogicDatabook1981/National%20Semiconductor%20Logic%20Databook%201981#page/n417",
+    "datasheet_url": "https://archive.org/download/NationalSemiconductorLogicDatabook1981/National%20Semiconductor%20Logic%20Databook%201981_text.pdf",
     "number": 952,
     "module": "ttl_74x952",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant \u2014 needs dedicated datasheet study; Datasheet FOUND: National DM74LS952 (TL/F/6437; syntax.com.tw/upload/pdf/IC-74LS952.pdf). NOT a simple shift register: dual-rank (upper register A + lower shift register B) with 8 bidirectional TRI-STATE I/O, 6 active-low control lines, and a ~20-row function table including a Data-OR (DOR) function (ORs I/O with reg B), simultaneous transfer-up+down = synchronous clear, and combined shift+transfer modes. Complex multi-mode part - deferred (high mis-model risk), like 681/870/871.",
-    "specification": "spec/chips/ttl_74x952.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x952.md",
+    "rtl": "src/ttl_74x952.sv",
+    "testbench": "tb/tb_ttl_74x952.sv",
+    "source_review": {
+      "url": "https://archive.org/download/NationalSemiconductorLogicDatabook1981/National%20Semiconductor%20Logic%20Databook%201981_text.pdf",
+      "sha256": "f0c778bf290206981394438a0c273e670ead9c923dc73bf656eb6f2f58dee331",
+      "table_pages": "PDF pages 419\u2013424 / printed 6-243\u20136-248; truth tables PDF 422",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x962",
@@ -15238,16 +15658,27 @@
     "input_features": "",
     "output_features": "",
     "datasheet": "74HCT1284",
-    "datasheet_url": "https://web.archive.org/web/20181011013652/http://pdf.datasheetcatalog.com/datasheet/philips/74HCT1284PW.pdf",
+    "datasheet_url": "https://pdf.dzsc.com/7HC/7HCT1284D.pdf",
     "number": 1284,
     "module": "ttl_74x1284",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Termination array / IEEE 1284 / GTLP transceiver / wider parity register \u2014 needs datasheet",
-    "specification": "spec/chips/ttl_74x1284.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x1284.md",
+    "rtl": "src/ttl_74x1284.sv",
+    "testbench": "tb/tb_ttl_74x1284.sv",
+    "source_review": {
+      "url": "https://pdf.dzsc.com/7HC/7HCT1284D.pdf",
+      "sha256": "0CA61DB0C7F3E2BC1BC243B9B7CF7AFD84E17737A0EB01F3571520362A327AAA",
+      "table_pages": [
+        3,
+        3
+      ],
+      "review_date": "2026-10-21"
+    },
+    "conformance_limits": "Analog voltage/current, input hysteresis, overvoltage protection, electrical timing, output slew, and bus contention are omitted; this is not an electrical IEEE 1284 model."
   },
   {
     "part_number": "74x1394",
@@ -15399,17 +15830,28 @@
     "description": "octal bus transceiver, inverting",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "SN74ALS1620",
-    "datasheet_url": "https://archive.org/details/bitsavers_tidataBookVol3_25840031/page/n747",
+    "datasheet": "SN74ALS1620, TI 1984 TTL Data Book Volume 3 product preview",
+    "datasheet_url": "https://archive.org/download/bitsavers_tidataBookVol3_25840031/1984_The_TTL_Data_Book_Vol_3.pdf",
     "number": 1620,
     "module": "ttl_74x1620",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x1620.md"
+    "model_level": "manufacturer_routing_with_qualified_feedback_storage",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x1620.md",
+    "rtl": "src/ttl_74x1620.sv",
+    "testbench": "tb/tb_ttl_74x1620.sv",
+    "conformance_limits": "Feedback mode is qualified only after an established directional transfer, with all external data sources released. Re-entry from isolation and overwriting driven feedback buses are uncertified; retained state through isolation is a deterministic model choice.",
+    "source_review": {
+      "url": "https://archive.org/download/bitsavers_tidataBookVol3_25840031/1984_The_TTL_Data_Book_Vol_3.pdf",
+      "sha256": "da11f2debaf1ff08445e3e73aaab73a01338f43791cc9c96ed60051e996ef79d",
+      "table_pages": [
+        748,
+        749
+      ],
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x1621",
@@ -15417,17 +15859,28 @@
     "description": "octal bus transceiver, non-inverting",
     "input_features": "",
     "output_features": "open-collector",
-    "datasheet": "SN74ALS1621",
-    "datasheet_url": "https://archive.org/details/bitsavers_tidataBookVol3_25840031/page/n747",
+    "datasheet": "SN74ALS1621, TI 1984 TTL Data Book Volume 3 product preview",
+    "datasheet_url": "https://archive.org/download/bitsavers_tidataBookVol3_25840031/1984_The_TTL_Data_Book_Vol_3.pdf",
     "number": 1621,
     "module": "ttl_74x1621",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x1621.md"
+    "model_level": "manufacturer_routing_with_qualified_feedback_storage",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x1621.md",
+    "rtl": "src/ttl_74x1621.sv",
+    "testbench": "tb/tb_ttl_74x1621.sv",
+    "conformance_limits": "Feedback mode is qualified only after an established directional transfer, with all external data sources released. Re-entry from isolation and overwriting driven feedback buses are uncertified; retained state through isolation is a deterministic model choice.",
+    "source_review": {
+      "url": "https://archive.org/download/bitsavers_tidataBookVol3_25840031/1984_The_TTL_Data_Book_Vol_3.pdf",
+      "sha256": "da11f2debaf1ff08445e3e73aaab73a01338f43791cc9c96ed60051e996ef79d",
+      "table_pages": [
+        748,
+        749
+      ],
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x1622",
@@ -15435,17 +15888,28 @@
     "description": "octal bus transceiver, inverting",
     "input_features": "",
     "output_features": "open-collector",
-    "datasheet": "SN74ALS1622",
-    "datasheet_url": "https://archive.org/details/bitsavers_tidataBookVol3_25840031/page/n747",
+    "datasheet": "SN74ALS1622, TI 1984 TTL Data Book Volume 3 product preview",
+    "datasheet_url": "https://archive.org/download/bitsavers_tidataBookVol3_25840031/1984_The_TTL_Data_Book_Vol_3.pdf",
     "number": 1622,
     "module": "ttl_74x1622",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x1622.md"
+    "model_level": "manufacturer_routing_with_qualified_feedback_storage",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x1622.md",
+    "rtl": "src/ttl_74x1622.sv",
+    "testbench": "tb/tb_ttl_74x1622.sv",
+    "conformance_limits": "Feedback mode is qualified only after an established directional transfer, with all external data sources released. Re-entry from isolation and overwriting driven feedback buses are uncertified; retained state through isolation is a deterministic model choice.",
+    "source_review": {
+      "url": "https://archive.org/download/bitsavers_tidataBookVol3_25840031/1984_The_TTL_Data_Book_Vol_3.pdf",
+      "sha256": "da11f2debaf1ff08445e3e73aaab73a01338f43791cc9c96ed60051e996ef79d",
+      "table_pages": [
+        748,
+        749
+      ],
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x1623",
@@ -15453,17 +15917,28 @@
     "description": "octal bus transceiver, non-inverting",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "SN74ALS1623",
-    "datasheet_url": "https://archive.org/details/bitsavers_tidataBookVol3_25840031/page/n747",
+    "datasheet": "SN74ALS1623, TI 1984 TTL Data Book Volume 3 product preview",
+    "datasheet_url": "https://archive.org/download/bitsavers_tidataBookVol3_25840031/1984_The_TTL_Data_Book_Vol_3.pdf",
     "number": 1623,
     "module": "ttl_74x1623",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x1623.md"
+    "model_level": "manufacturer_routing_with_qualified_feedback_storage",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x1623.md",
+    "rtl": "src/ttl_74x1623.sv",
+    "testbench": "tb/tb_ttl_74x1623.sv",
+    "conformance_limits": "Feedback mode is qualified only after an established directional transfer, with all external data sources released. Re-entry from isolation and overwriting driven feedback buses are uncertified; retained state through isolation is a deterministic model choice.",
+    "source_review": {
+      "url": "https://archive.org/download/bitsavers_tidataBookVol3_25840031/1984_The_TTL_Data_Book_Vol_3.pdf",
+      "sha256": "da11f2debaf1ff08445e3e73aaab73a01338f43791cc9c96ed60051e996ef79d",
+      "table_pages": [
+        748,
+        749
+      ],
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x1627",
@@ -15498,7 +15973,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
+    "reason": "No primary manufacturer pinout and function table were located. TI's direct legacy and current symlink endpoints return 404; the inspected 1984 TI Volume 3 pages cover ALS1638/1639, not ALS1631. Secondary references and patent mentions are insufficient to establish exact enable polarity and native pin mapping.",
     "specification": "spec/chips/ttl_74x1631.md"
   },
   {
@@ -17177,10 +17652,20 @@
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x2410.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x2410.md",
+    "rtl": "src/ttl_74x2410.sv",
+    "testbench": "tb/tb_ttl_74x2410.sv",
+    "source_review": {
+      "url": "https://archive.org/details/TexasInstruments-TI-Data-AdvancedLogicandBusInterfaceLogic1991OCR/page/n747",
+      "sha256": "F54A1B538AFF4DF63BBA5A1F79982E8B9A643842E3A70E97AEE00C422074509B",
+      "table_pages": [
+        749
+      ],
+      "review_date": "2026-10-21"
+    },
+    "conformance_limits": "Analog output drive, resistor voltage drop, timing, supply behavior, and bus contention are omitted. The product preview page supplies description and positive-logic diagram rather than a separate function table."
   },
   {
     "part_number": "74x2411",
@@ -17189,16 +17674,26 @@
     "input_features": "",
     "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "SN74BCT2411",
-    "datasheet_url": "https://archive.org/details/TexasInstruments-TI-Data-AdvancedLogicandBusInterfaceLogic1991OCR/page/n749",
+    "datasheet_url": "https://archive.org/details/TexasInstruments-TI-Data-AdvancedLogicandBusInterfaceLogic1991OCR/page/n747",
     "number": 2411,
     "module": "ttl_74x2411",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x2411.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x2411.md",
+    "rtl": "src/ttl_74x2411.sv",
+    "testbench": "tb/tb_ttl_74x2411.sv",
+    "source_review": {
+      "url": "https://archive.org/details/TexasInstruments-TI-Data-AdvancedLogicandBusInterfaceLogic1991OCR/page/n747",
+      "sha256": "F54A1B538AFF4DF63BBA5A1F79982E8B9A643842E3A70E97AEE00C422074509B",
+      "table_pages": [
+        750
+      ],
+      "review_date": "2026-10-21"
+    },
+    "conformance_limits": "Analog output drive, resistor voltage drop, timing, supply behavior, and bus contention are omitted. The product preview page supplies description and positive-logic diagram rather than a separate function table."
   },
   {
     "part_number": "74x2414",
@@ -17393,17 +17888,26 @@
     "description": "8-output clock driver",
     "input_features": "",
     "output_features": "",
-    "datasheet": "74AC2525",
-    "datasheet_url": "https://archive.org/details/bitsavers_nationaldaFACTDatabook_39311242/page/n443",
+    "datasheet": "National 74AC2525",
+    "datasheet_url": "https://www.bitsavers.org/components/national/_dataBooks/1990_National_FACT_Databook.pdf",
     "number": 2525,
     "module": "ttl_74x2525",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x2525.md"
+    "model_level": "manufacturer_digital_clock_fanout",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x2525.md",
+    "rtl": "src/ttl_74x2525.sv",
+    "testbench": "tb/tb_ttl_74x2525.sv",
+    "source_review": {
+      "url": "https://www.bitsavers.org/components/national/_dataBooks/1990_National_FACT_Databook.pdf",
+      "sha256": "a74c1a4b14858171f61104348882c9f05cf4a8b8e5accab4490adb78f0711cf8",
+      "table_pages": [
+        445
+      ],
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x2526",
@@ -17420,7 +17924,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
+    "reason": "National 1990 FACT advance-information page (PDF 445 / printed 4-338) supplies a dual-clock mux symbol and pinout but no selector-polarity truth table. Need native SEL-to-CK0/CK1 mapping before implementation.",
     "specification": "spec/chips/ttl_74x2526.md"
   },
   {
@@ -17581,17 +18085,28 @@
     "description": "octal bus transceiver / MOS driver, inverting",
     "input_features": "",
     "output_features": "three-state, 25 \u03a9 series resistor",
-    "datasheet": "SN74AS2620",
-    "datasheet_url": "https://archive.org/details/bitsavers_tidataBookVol3_25840031/page/n763",
+    "datasheet": "SN74AS2620, TI 1984 TTL Data Book Volume 3 product preview",
+    "datasheet_url": "https://archive.org/download/bitsavers_tidataBookVol3_25840031/1984_The_TTL_Data_Book_Vol_3.pdf",
     "number": 2620,
     "module": "ttl_74x2620",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x2620.md"
+    "model_level": "manufacturer_routing_with_qualified_feedback_storage",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x2620.md",
+    "rtl": "src/ttl_74x2620.sv",
+    "testbench": "tb/tb_ttl_74x2620.sv",
+    "conformance_limits": "Feedback mode is qualified only after an established directional transfer, with all external data sources released. Re-entry from isolation and overwriting driven feedback buses are uncertified; retained state through isolation is a deterministic model choice.",
+    "source_review": {
+      "url": "https://archive.org/download/bitsavers_tidataBookVol3_25840031/1984_The_TTL_Data_Book_Vol_3.pdf",
+      "sha256": "da11f2debaf1ff08445e3e73aaab73a01338f43791cc9c96ed60051e996ef79d",
+      "table_pages": [
+        764,
+        765
+      ],
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x2623",
@@ -18633,17 +19148,36 @@
     "description": "5-bit 4-port FET bus exchange switch with extended voltage range",
     "input_features": "",
     "output_features": "",
-    "datasheet": "SN74CBT3386",
-    "datasheet_url": "https://archive.org/details/TexasInstruments-TI-Data-CBT5-VandCBTLV3.3-VBusSwitches1998OCR/page/n113",
+    "datasheet": "SCDS022F, May 1995, revised May 1998; marked PRODUCT PREVIEW",
+    "datasheet_url": "https://www.ti.com/lit/ug/scdd001b/scdd001b.pdf",
     "number": 3386,
     "module": "ttl_74x3386",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "5-bit 4-port FET bus exchange switch, extended voltage; analog FET switch",
-    "specification": "spec/chips/ttl_74x3386.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x3386.md",
+    "rtl": "src/ttl_74x3386.sv",
+    "testbench": "tb/tb_ttl_74x3386.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ug/scdd001b/scdd001b.pdf",
+      "sha256": "7cce16fb54f1d3f8b5453c801063a1544d1bb7bf91525b19d44b835de1405662",
+      "table_pages": {
+        "functional_table_pdf_index": [
+          99
+        ],
+        "logic_diagram_pdf_index": [
+          100
+        ],
+        "printed_pages": [
+          "3-71",
+          "3-72"
+        ]
+      },
+      "page_numbering": "pdf_index fields are zero-based",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x3390",
@@ -18651,17 +19185,36 @@
     "description": "octal 2-line to 1-line FET multiplexer / bus switch",
     "input_features": "",
     "output_features": "",
-    "datasheet": "IDT74FST3390",
+    "datasheet": "IDT high-performance logic databook, August 1995, section 10.6",
     "datasheet_url": "https://archive.org/details/bitsavers_idtdataBoomanceLogicDataBook_51362967/page/n665",
     "number": 3390,
     "module": "ttl_74x3390",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Octal 2-to-1 FET multiplexer / bus switch; analog FET switch",
-    "specification": "spec/chips/ttl_74x3390.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x3390.md",
+    "rtl": "src/ttl_74x3390.sv",
+    "testbench": "tb/tb_ttl_74x3390.sv",
+    "source_review": {
+      "url": "https://archive.org/details/bitsavers_idtdataBoomanceLogicDataBook_51362967/page/n665",
+      "sha256": "f236185228680c58bd57ebc88461d371800ebaf59a5c86bcbc47d4795731653c",
+      "table_pages": {
+        "block_diagram_and_pin_table_pdf_index": [
+          666
+        ],
+        "function_table_pdf_index": [
+          667
+        ],
+        "printed_pages": [
+          "10.6-1",
+          "10.6-2"
+        ]
+      },
+      "page_numbering": "pdf_index fields are zero-based",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x3573",
@@ -18707,17 +19260,40 @@
     "description": "dual 5-bit FET bus switch",
     "input_features": "",
     "output_features": "",
-    "datasheet": "QS74QST3584",
+    "datasheet": "Quality Semiconductor manufacturer scan; QST3384/QST3584, marked PRELIMINARY; publication date not printed on scanned pages",
     "datasheet_url": "https://datasheet.datasheetarchive.com/originals/distributors/Datasheets-111/DSAP0025436.pdf",
     "number": 3584,
     "module": "ttl_74x3584",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Dual 5-bit FET bus switch; analog FET switch",
-    "specification": "spec/chips/ttl_74x3584.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x3584.md",
+    "rtl": "src/ttl_74x3584.sv",
+    "testbench": "tb/tb_ttl_74x3584.sv",
+    "source_review": {
+      "url": "https://datasheet.datasheetarchive.com/originals/distributors/Datasheets-111/DSAP0025436.pdf",
+      "sha256": "b84f3d3df7cce9a2fa6486c4ebefee1777f69fd29cbbc8a5bc14e46bc1334278",
+      "table_pages": {
+        "description_and_function_table_pdf_index": [
+          0
+        ],
+        "pin_configuration_pdf_index": [
+          1
+        ],
+        "electrical_characteristics_pdf_index": [
+          2
+        ],
+        "printed_pages": [
+          "5-23",
+          "5-24",
+          "5-25"
+        ]
+      },
+      "page_numbering": "pdf_index fields are zero-based",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x3611",
@@ -18965,17 +19541,26 @@
     "description": "1-to-10 clock driver",
     "input_features": "",
     "output_features": "driver",
-    "datasheet": "IDT74FCT3807",
+    "datasheet": "IDT74FCT3807/A",
     "datasheet_url": "https://archive.org/details/bitsavers_idtdataBoomanceLogicDataBook_51362967/page/n589",
     "number": 3807,
     "module": "ttl_74x3807",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "1-to-10 clock driver/buffer; physical clock fanout buffer, electrical not logical",
-    "specification": "spec/chips/ttl_74x3807.md"
+    "model_level": "manufacturer_digital_clock_fanout",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x3807.md",
+    "rtl": "src/ttl_74x3807.sv",
+    "testbench": "tb/tb_ttl_74x3807.sv",
+    "source_review": {
+      "url": "https://archive.org/details/bitsavers_idtdataBoomanceLogicDataBook_51362967/page/n589",
+      "sha256": "f236185228680c58bd57ebc88461d371800ebaf59a5c86bcbc47d4795731653c",
+      "table_pages": [
+        590
+      ],
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x3827",
@@ -19027,17 +19612,36 @@
     "description": "10-bit FET bus switch with dual output enable",
     "input_features": "",
     "output_features": "",
-    "datasheet": "IDT74CBTLV3862",
-    "datasheet_url": "https://datasheet.datasheetarchive.com/originals/distributors/Datasheets-14/DSA-272858.pdf",
+    "datasheet": "DSC-5264/3, December 2014, industrial temperature range",
+    "datasheet_url": "https://www.renesas.com/en/document/dst/74cbtlv3862-datasheet",
     "number": 3862,
     "module": "ttl_74x3862",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "10-bit FET bus switch with dual OE; analog FET switch",
-    "specification": "spec/chips/ttl_74x3862.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x3862.md",
+    "rtl": "src/ttl_74x3862.sv",
+    "testbench": "tb/tb_ttl_74x3862.sv",
+    "source_review": {
+      "url": "https://www.renesas.com/en/document/dst/74cbtlv3862-datasheet",
+      "sha256": "6de6a0522b87dd46013858267058994f9b3c30e5e2cb413414a0ceee8605e1f6",
+      "table_pages": {
+        "description_and_enable_logic_pdf_index": [
+          0
+        ],
+        "pin_configuration_and_function_table_pdf_index": [
+          1
+        ],
+        "printed_pages": [
+          "1",
+          "2"
+        ]
+      },
+      "page_numbering": "pdf_index fields are zero-based",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x3893",
@@ -19423,17 +20027,28 @@
     "description": "14-stage binary ripple counter with oscillator",
     "input_features": "",
     "output_features": "",
-    "datasheet": "SN74HC4060",
-    "datasheet_url": "https://www.ti.com/lit/gpn/sn74hc4060",
+    "datasheet": "TI SN74HC4060 SCLS161D, December 1982 / revised September 2003",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74hc4060.pdf",
     "number": 4060,
     "module": "ttl_74x4060",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "14-stage binary counter with on-chip oscillator; oscillator portion is analog/timing",
-    "specification": "spec/chips/ttl_74x4060.md"
+    "model_level": "manufacturer_counter_with_external_digital_clock",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x4060.md",
+    "rtl": "src/ttl_74x4060.sv",
+    "testbench": "tb/tb_ttl_74x4060.sv",
+    "conformance_limits": "External digital CLKI only. Analog RC/crystal oscillation and ripple propagation are omitted; clock-output Boolean levels and settled divider outputs are modeled.",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74hc4060.pdf",
+      "sha256": "e0d763603b69eb80b37afcc26f4378c2aa6d9e5b6d27c0a555c2c0397af0823a",
+      "table_pages": [
+        1,
+        2
+      ],
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x4061",
@@ -23443,17 +24058,29 @@
     "description": "11-bit incident wave switching bus transceiver",
     "input_features": "",
     "output_features": "three-state, open-collector",
-    "datasheet": "ABTE",
+    "datasheet": "TI SN74ABTE16246, SCBS227J, July 1993 / revised August 2003",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74abte16246.pdf",
     "number": 16246,
     "module": "ttl_74x16246",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x16246.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16246.md",
+    "rtl": "src/ttl_74x16246.sv",
+    "testbench": "tb/tb_ttl_74x16246.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74abte16246.pdf",
+      "sha256": "b56d58e408f44a46562c07e4389c39d40539fcc9211612c3cd460530e6340080",
+      "table_pages": [
+        1,
+        2,
+        3
+      ],
+      "review_date": "2026-10-21"
+    },
+    "conformance_limits": "Valid externally resolved logic inputs are required. Analog bus-hold, live-insertion precharge and incident-wave drive characteristics are omitted; the first eight A outputs retain native open-collector low-only drive."
   },
   {
     "part_number": "74x16260",
@@ -23744,17 +24371,29 @@
     "description": "16-bit registered transceiver",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ABT",
-    "datasheet_url": "",
+    "datasheet": "TI SN74ABT16470 SCBS085E, February 1991 / revised May 1997",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74abt16470.pdf",
     "number": 16470,
     "module": "ttl_74x16470",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x16470.md"
+    "model_level": "manufacturer_gated_clock_registers_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16470.md",
+    "rtl": "src/ttl_74x16470.sv",
+    "testbench": "tb/tb_ttl_74x16470.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74abt16470.pdf",
+      "sha256": "75f4ad1ba4963ea4b195ba9fcfc7a7dd4bf8179b0fe84c80a4c2fb4ab6aebfc6",
+      "table_pages": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16500",

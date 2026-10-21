@@ -7,19 +7,19 @@ from run_library import inventory,digest
 from run_library_formal import families,source_digest
 root=Path(__file__).resolve().parents[1]
 chips=inventory()
-entries=json.loads((root/'manifest.json').read_text())
+entries=json.loads((root/'manifest.json').read_text(encoding='utf-8'))
 pending=[c for c in entries if c['status']=='pending']
 excluded=[c for c in entries if c['status']=='excluded']
 checks=[];failures=[]
 for c in chips:
     for phase in ('lint','sim','synth'):
         path=root/f'work/library/{c["module"]}/{phase}.json'
-        r=json.loads(path.read_text()) if path.exists() else {}
+        r=json.loads(path.read_text(encoding='utf-8')) if path.exists() else {}
         ok=r.get('passed',False) and r.get('source_digest')==digest(c,phase)
         checks.append((c,phase,ok))
         if not ok:failures.append(f'{c["module"]} {phase}')
 formal_path=root/'work/formal/library_results.json'
-formal=json.loads(formal_path.read_text()) if formal_path.exists() else []
+formal=json.loads(formal_path.read_text(encoding='utf-8')) if formal_path.exists() else []
 expected_formal={(family,task) for family in families for task in ('check','cover')}
 formal_ok={(c['family'],c['task']) for c in formal}==expected_formal and all(c['passed'] and c.get('source_digest')==source_digest(c['family']) for c in formal)
 stamp=datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
@@ -69,6 +69,13 @@ The full run_all.sh completion gate returns nonzero while this table is nonempty
 | Part | Function | Reason / next work |
 |---|---|---|
 """
+limits=[c for c in chips if c.get('conformance_limits')]
+if limits:
+    heading='## Pending digital functions'
+    details='## Part-specific conformance limits\n\n'
+    for c in limits:
+        details+=f'- [{c["part_number"]}](../{c["specification"]}): {c["conformance_limits"]}\n'
+    report=report.replace(heading, details+'\n'+heading, 1)
 for c in pending:
     reason=c['reason'].replace('\n',' ').replace('|','/')
     desc=c['description'].replace('\n',' ').replace('|','/')
@@ -79,7 +86,7 @@ report+='\n## Implemented-subset results\n\n| Module | Lint | Sim | Synthesis | 
 for c in chips:
     phases=[('PASS' if ok else 'MISSING / FAIL / STALE') for x,p,ok in checks if x['module']==c['module']]
     report+=f'| [{c["module"]}](../{c["specification"]}) | '+ ' | '.join(phases)+f' | {c.get("synthesis_level","generic gates")} |\n'
-for name in ('extended_report.md','library_report.md'):(root/'report'/name).write_text(report)
+for name in ('extended_report.md','library_report.md'):(root/'report'/name).write_text(report, encoding='utf-8', newline='\n')
 print(f'Report: {sum(ok for _,_,ok in checks)}/{len(checks)} checks; {len(pending)} pending digital parts')
 if failures:print('Unverified checks: '+', '.join(failures))
 sys.exit(int(bool(failures) or not formal_ok))
