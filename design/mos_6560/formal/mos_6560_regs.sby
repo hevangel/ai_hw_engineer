@@ -1,0 +1,20 @@
+[tasks]
+bmc
+prove
+cover
+[options]
+bmc: mode bmc
+bmc: depth 12
+prove: mode prove
+cover: mode cover
+cover: depth 12
+[engines]
+bmc: abc bmc3
+prove: abc pdr
+cover: smtbmc --syn --nopresat yices
+[script]
+read -formal -D FORMAL -I . mos_6560_regs.sv
+prep -top mos_6560_regs
+[files]
+../src/mos_6560_regs.sv
+mos_6560_regs_props.sv

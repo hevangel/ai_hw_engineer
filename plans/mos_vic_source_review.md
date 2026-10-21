@@ -1,8 +1,10 @@
 # MOS 6560/6561 VIC source review
 
 This prepares the next chip in the [MOS series](mos_historical_series.md).
-It is a source/verification inventory, not an implemented VIC or a completed
-chip milestone. Finish the specification and variant history before RTL.
+It is a source/verification inventory, not a completed VIC. The shared CPU
+register component now has a [specification](../design/mos_6560/spec/spec.md)
+and [measured report](../design/mos_6560/report/final_report.md). Raster,
+video fetch, pixels, sound and input capture remain to be implemented.
 
 ## Primary evidence
 
@@ -64,8 +66,13 @@ need explicit sampled contracts and separately qualified analog limits.
 The datasheet also names the MOS 6512 as a processor driven by the generated
 system clocks. Add that discovered family member to the catalog inventory;
 do not assume the existing 6502 package establishes its phase/pin behavior.
-An independently sourced first-introduced-year bound for each VIC variant
-remains required before its design README/index entry is created.
+The dated primary-source bound now located for both variants is **by 1983**:
+Commodore's [VIC-20 Programmer's Reference Guide, first edition, sixth printing](https://archive.org/details/VIC-20ProgrammersReferenceGuide1stEdition6thPrinti)
+prints 1983 in its publication statement and names 6560/6561 on printed page
+212. The 1982 copyright does not establish that every sixth-printing page
+was present in 1982. Exact introduction years and earlier primary evidence
+remain open. The archive's original OCR artifact has SHA-256
+`bc37511c0e3429cb6c74185df0e1aa00cd78d218443395894da4b48172cdf59e`.
 
 ## Verification sequence
 
