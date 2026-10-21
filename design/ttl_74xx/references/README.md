@@ -3,7 +3,7 @@
 The digital-function baseline is adapted from Kevin Coleman's
 [sn74xx_sv](https://github.com/birdybro/sn74xx_sv), commit `037825fb35c24ec41f89747d10efcd3102e22060`,
 under the [MIT license](LICENSE.sn74xx_sv). The copyright and license notice
-are retained here and SPDX headers identify derived sources and tests.
+are retained here for all derived sources and tests.
 Its catalogue was used to freeze the requested numeric range; its previous
 validation claims are not used as local evidence. All code and tests are
 included locally; builds do not fetch dependencies from that repository.
@@ -17,3 +17,22 @@ are linked where the original TTL function differs from later families.
 
 The original 74181 is retained with its original local TI/Fairchild datasheets
 and its own historical documentation; the upstream simplified ALU is not used.
+
+## Extension above 74299
+
+The same pinned catalog supplies numbered larger-footprint and wide-bus entries,
+without a numeric upper limit. `catalog_scope.json` freezes selection and allowed
+analog exclusions. Reference missing/blocked status is preserved as pending,
+with rejected placeholders and omitted boundary-scan functions added to that list.
+This is implementation provenance, not independent functional validation.
+
+Independent primary references consulted for the extension include TI
+[SN74HC595](https://www.ti.com/lit/ds/symlink/sn74hc595.pdf),
+[SN74LS390](https://www.ti.com/lit/ds/symlink/sn74ls390.pdf) and
+[SN74HC393](https://www.ti.com/lit/ds/symlink/sn74hc393.pdf).
+Their publication dates do not establish initial product launch dates.
+
+Some extended models remain normalized approximations, including DRAM control,
+rate multiplication and bus protocol adapters. The error-correction models use
+an explicitly documented extended-Hamming matrix; they do not reproduce the
+manufacturer's check-bit pin matrix. Passing those tests is not native conformance.

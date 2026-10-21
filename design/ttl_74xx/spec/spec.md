@@ -1,10 +1,10 @@
-# Classic 7400–74299 digital library specification
+# Numbered 74-series digital library specification
 
 ## Scope
 
-Implement the distinct digital functions catalogued between 7400 and 74299,
+Implement the distinct numbered digital functions from 7400 upward, without a numeric upper limit,
 including explicitly different classic family functions (for example 7451 and
-74LS51). The user approved this range on 2026-10-20 and excluded analog/timing
+74LS51). The user extended the range above 74299 on 2026-10-20 and excluded analog/timing
 variants. Exclude 7431 delay elements, 74121/122/123/130/221 monostables and 74124
 VCOs. Keep digital counters, dividers and the digital 74297 filter in scope.
 Do not create devices for unassigned numbers. Schmitt inputs receive ideal
@@ -53,3 +53,14 @@ must have source, specification and executable checks, with explicit exclusion
 status for the seven analog/timing parts. Aggregate commands verify inventory
 integrity before invoking tools. New formal control checks include cover tasks;
 the existing 74181 exhaustive/UVM/prove/cover flow is retained independently.
+
+## Extended catalog coverage
+
+`../catalog_scope.json` freezes every selected part, including pending entries.
+`status: pending` means no usable implementation is supplied. A pending entry is
+not an analog exclusion, and tool success on other parts does not complete it.
+Each new model has `model_level: normalized_function`; its local contract is
+specified separately from package timing. Baseline tests alone do not establish
+full manufacturer-table conformance. All absent or rejected implementations stay
+in the public index with their reason. The full completion gate fails while any
+digital part remains pending.

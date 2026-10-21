@@ -17,12 +17,19 @@ WORK = ROOT / 'work/library'
 
 def inventory():
     entries = json.loads((ROOT / 'manifest.json').read_text())
+    scope = json.loads((ROOT / 'catalog_scope.json').read_text())
+    if len(entries) != len(scope['parts']) or {c['part_number'] for c in entries} != set(scope['parts']):
+        raise ValueError('Catalog coverage changed or a requested part is missing')
+    if {c['part_number']: c['reason'] for c in entries if c['status']=='excluded'} != scope['exclusions']:
+        raise ValueError('Exclusion list changed without scope review')
     modules = set()
     for chip in entries:
-        if chip['status'] == 'excluded':
-            if chip['number'] not in {31, 121, 122, 123, 124, 130, 221}:
-                raise ValueError(f'Unexpected exclusion: {chip["part_number"]}')
+        if chip['status'] in ('excluded', 'pending'):
+            if not chip.get('reason'):
+                raise ValueError(f'Missing reason: {chip["part_number"]}')
             continue
+        if chip['status'] != 'implemented':
+            raise ValueError(f'Invalid status: {chip["part_number"]}')
         module = chip['module']
         if module in modules:
             raise ValueError(f'Duplicate module: {module}')
@@ -39,9 +46,7 @@ def inventory():
     actual = {p.stem for p in (ROOT / 'src').glob('ttl_*.sv')}
     if actual != modules:
         raise ValueError(f'Manifest/source mismatch: {actual ^ modules}')
-    if len(modules) != 289 or len(entries) != 296:
-        raise ValueError('Inventory cardinality changed; review the range and exclusions')
-    return [entry for entry in entries if entry['status'] != 'excluded']
+    return [entry for entry in entries if entry['status'] == 'implemented']
 
 
 def invoke(command, log, *, cwd=None, timeout=180):
@@ -76,7 +81,9 @@ def check(chip, phase):
     elif phase == 'synth':
         command = ['yosys', '-Q', '-T', '-p',
                    'read_verilog -sv ' + ' '.join(sources) +
-                   f'; hierarchy -check -top {module}; synth -top {module}; check -assert; stat']
+                   f'; hierarchy -check -top {module}; synth -top {module}' +
+                   (' -run begin:coarse' if chip.get('synthesis_level')=='memory_inference' else '') +
+                   '; check -assert; stat']
         ok = invoke(command, log)
     else:
         raise ValueError(phase)
@@ -106,9 +113,16 @@ def main():
     parser.add_argument('--chip', help='Only check this manifest module')
     parser.add_argument('--jobs', type=int, default=int(os.getenv('TTL_JOBS', '4')))
     parser.add_argument('--failed', action='store_true', help='Retry missing or failed results only')
+    parser.add_argument('--require-complete', action='store_true', help='Fail if any requested digital part remains pending')
     args = parser.parse_args()
     chips = inventory()
-    print(f'Inventory OK: {len(chips)} digital functions, 7 explicit analog/timing exclusions', flush=True)
+    all_entries = json.loads((ROOT / 'manifest.json').read_text())
+    pending = sum(c['status']=='pending' for c in all_entries)
+    excluded = sum(c['status']=='excluded' for c in all_entries)
+    print(f'Inventory OK: {len(chips)} models, {pending} pending digital parts, {excluded} analog exclusions', flush=True)
+    if args.require_complete and pending:
+        print(f'INCOMPLETE: {pending} requested digital parts have no usable implementation')
+        return 1
     if args.phase == 'inventory':
         return 0
     if args.chip:

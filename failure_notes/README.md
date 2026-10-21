@@ -26,6 +26,9 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-10-20 — extended TTL reference assumptions](2026-10-20-ttl-extended-reference-assumptions.md)
+  Manufacturer review exposed shared counter-edge, ROM and collector-release assumptions above 74299.
+
 - [2026-10-20 — inherited TTL oracle assumptions](2026-10-20-ttl-inherited-oracles.md)
   Manufacturer tables exposed shared strobe/edge assumptions and writable ROM models during library integration.
 

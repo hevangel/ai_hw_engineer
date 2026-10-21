@@ -7,7 +7,7 @@ import subprocess
 import sys
 
 root=Path(__file__).resolve().parents[1]
-families=('truth','counter','memory','fifo','shift')
+families=('truth','counter','memory','fifo','shift','storage')
 
 
 def run(job):

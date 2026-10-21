@@ -1,6 +1,10 @@
 # Classic 7400–74299 implementation plan
 
-## Approved scope
+This records the first completed range milestone. The subsequent
+[extension plan](extended_plan.md) and [current coverage report](../report/extended_report.md)
+govern numbers above 74299; the full expanded catalog remains incomplete.
+
+## Original approved scope
 
 The user approved all classic 7400–74299 digital functions on 2026-10-20, excluding
 analog and timing-only variants. Freeze the 296-entry inventory in `manifest.json`:
