@@ -50,7 +50,7 @@ repository. Current runs are recorded separately under `../report/`.
 
 The manifest drives fail-fast per-part lint, simulation and synthesis. An entry
 must have source, specification and executable checks, with explicit exclusion
-status for the seven analog/timing parts. Aggregate commands verify inventory
+status for analog/timing-only parts. Aggregate commands verify inventory
 integrity before invoking tools. New formal control checks include cover tasks;
 the existing 74181 exhaustive/UVM/prove/cover flow is retained independently.
 
@@ -59,8 +59,17 @@ the existing 74181 exhaustive/UVM/prove/cover flow is retained independently.
 `../catalog_scope.json` freezes every selected part, including pending entries.
 `status: pending` means no usable implementation is supplied. A pending entry is
 not an analog exclusion, and tool success on other parts does not complete it.
-Each new model has `model_level: normalized_function`; its local contract is
+Each model records its interface abstraction in `model_level`; its local contract is
 specified separately from package timing. Baseline tests alone do not establish
 full manufacturer-table conformance. All absent or rejected implementations stay
 in the public index with their reason. The full completion gate fails while any
 digital part remains pending.
+
+## Source-reviewed continuation
+
+New control-heavy models record primary PDF SHA-256, URL and table pages in
+`source_review`. Digital behavior includes logical asynchronous controls, native
+capture-edge polarity, independent banks and weak/passive bus connectivity where
+specified. Analog receiver thresholds may be replaced with classified digital
+inputs; that boundary is explicit in each specification. Absence of analog timing
+does not justify removing a native logical control.

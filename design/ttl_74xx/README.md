@@ -33,6 +33,16 @@ before connecting a board. In particular:
   A disabled data value is ignored; the enable determines whether the bus drives.
   Open-collector logical 1 means release to a pull-up; combine shared OC levels
   with an AND at the board boundary.
+- Passive FET switches resolve connected nets from strong external-driver data
+  and drive masks. They report resolved data, validity, conflicting strong drivers,
+  and weak bias where present. Connect all passive paths in a board-level net
+  graph; resolved observations must not be fed back as new strong drivers.
+  Dedicated bus keepers retain the last externally driven digital level and supply
+  weak-drive indications. Their strength and power-up state remain abstract.
+- Source-reviewed universal drivers and registered transceivers retain documented
+  edge, latch, enable and bank polarity. Per-part source hashes and table pages
+  identify the reviewed manufacturer variant; floating-input bus hold on otherwise
+  driven signal inputs is omitted unless the local contract explicitly models it.
 - ROM/PROM devices are read-only and image-backed. Supply the historical mask
   through `INIT_FILE`; blank defaults and synthetic test images are not historical
   contents. The 74262 exports whole 45-bit character bitmaps.
@@ -40,6 +50,9 @@ before connecting a board. In particular:
   matrix. They cannot be connected to native check-bit wiring without a matrix
   adapter. Some controller models also use simplified transaction interfaces;
   source-table conformance beyond their stated contracts is unreviewed.
+- The [74681 accumulator](spec/chips/ttl_74x681.md) follows the located ALU and
+  register tables, but its carry-lookahead P/G equations and logic-mode carry are
+  explicitly normalized assumptions. Native carry-chain compatibility is unverified.
 - Rate multipliers retain the stated long-run division ratio through a normalized
   accumulator interface. The 74297 has a sampled-clock digital K-counter,
   increment/decrement and phase-detector contract; internal TI pipeline placement
@@ -70,7 +83,9 @@ python3 design/ttl_74xx/scripts/run_library.py all --chip ttl_74x161
 All implemented modules receive strict Verilator RTL lint, xezim simulation and Yosys
 synthesis/structural checks. Independent formal truth tables cover 46 gate modules;
 additional formal contracts cover counter, shift and symbolic-address RAM behavior,
-plus bounded FIFO ordering and reachable full/empty states. These targeted formal
+plus bounded FIFO ordering and reachable full/empty states. Storage-drive,
+universal-driver and passive-switch contracts include independent check and cover
+tasks. Source/configuration fingerprints also protect formal evidence. These targeted formal
 checks are not a claim of exhaustive formal coverage for every catalogued
 device. The original 74181 retains its full exhaustive/UVM/prove/cover flow.
 Source fingerprints prevent successful stale phase results from being reused.
@@ -721,7 +736,7 @@ lists every pending part and its reason.
 | 74x678 | 16-bit address comparator, latch | Unknown | [implemented](spec/chips/ttl_74x678.md) |
 | 74x679 | 12-bit address comparator, latch | Unknown | [implemented](spec/chips/ttl_74x679.md) |
 | 74x680 | 12-bit address comparator, enable | Unknown | [implemented](spec/chips/ttl_74x680.md) |
-| 74x681 | 4-bit parallel binary accumulator | Unknown | [pending](spec/chips/ttl_74x681.md) |
+| 74x681 | 4-bit parallel binary accumulator | Unknown | [implemented](spec/chips/ttl_74x681.md) |
 | 74x682 | 8-bit magnitude comparator, P>Q output | Unknown | [implemented](spec/chips/ttl_74x682.md) |
 | 74x683 | 8-bit magnitude comparator, P>Q output | Unknown | [implemented](spec/chips/ttl_74x683.md) |
 | 74x684 | 8-bit magnitude comparator, P>Q output | Unknown | [implemented](spec/chips/ttl_74x684.md) |
@@ -800,7 +815,7 @@ lists every pending part and its reason.
 | 74x808 | hex 2-input AND drivers | Unknown | [implemented](spec/chips/ttl_74x808.md) |
 | 74x810 | quad 2-input XNOR gates | Unknown | [implemented](spec/chips/ttl_74x810.md) |
 | 74x811 | quad 2-input XNOR gates | Unknown | [implemented](spec/chips/ttl_74x811.md) |
-| 74x817 | GTL+ to LV-TTL 1-to-6 fanout / LV-TTL to GTL+ 1-to-2 fanout driver | Unknown | [pending](spec/chips/ttl_74x817.md) |
+| 74x817 | GTL+ to LV-TTL 1-to-6 fanout / LV-TTL to GTL+ 1-to-2 fanout driver | Unknown | [implemented](spec/chips/ttl_74x817.md) |
 | 74x818 | 8-bit diagnostic register | Unknown | [pending](spec/chips/ttl_74x818.md) |
 | 74x819 | 8-bit diagnostic / pipeline register | Unknown | [pending](spec/chips/ttl_74x819.md) |
 | 74x821 | 10-bit bus interface flip-flop | Unknown | [implemented](spec/chips/ttl_74x821.md) |
@@ -924,19 +939,19 @@ lists every pending part and its reason.
 | 74x1008 | quad 2-input AND gate | Unknown | [implemented](spec/chips/ttl_74x1008.md) |
 | 74x1011 | triple 3-input AND gate | Unknown | [implemented](spec/chips/ttl_74x1011.md) |
 | 74x1017 | 16x16-bit parallel multiplier | Unknown | [pending](spec/chips/ttl_74x1017.md) |
-| 74x1018 | 18-bit Schottky diode R-C bus termination array | Unknown | [pending](spec/chips/ttl_74x1018.md) |
+| 74x1018 | 18-bit Schottky diode R-C bus termination array | Unknown | [excluded](spec/chips/ttl_74x1018.md) |
 | 74x1020 | dual 4-input NAND gate | Unknown | [implemented](spec/chips/ttl_74x1020.md) |
 | 74x1032 | quad 2-input OR gate | Unknown | [implemented](spec/chips/ttl_74x1032.md) |
 | 74x1034 | hex non-inverting buffer | Unknown | [implemented](spec/chips/ttl_74x1034.md) |
 | 74x1035 | hex non-inverting buffer | Unknown | [implemented](spec/chips/ttl_74x1035.md) |
 | 74x1036 | quad 2-input NOR gate | Unknown | [implemented](spec/chips/ttl_74x1036.md) |
-| 74x1050 | 12-bit Schottky diode bus termination array, clamp to GND | Unknown | [pending](spec/chips/ttl_74x1050.md) |
-| 74x1051 | 12-bit Schottky diode bus termination array, clamp to GND/V | Unknown | [pending](spec/chips/ttl_74x1051.md) |
-| 74x1052 | 16-bit Schottky diode bus termination array, clamp to GND | Unknown | [pending](spec/chips/ttl_74x1052.md) |
-| 74x1053 | 16-bit Schottky diode bus termination array, clamp to GND/V | Unknown | [pending](spec/chips/ttl_74x1053.md) |
-| 74x1056 | 8-bit Schottky diode bus termination array, clamp to GND | Unknown | [pending](spec/chips/ttl_74x1056.md) |
-| 74x1071 | 10-bit bus termination array with bus-hold function | Unknown | [pending](spec/chips/ttl_74x1071.md) |
-| 74x1073 | 16-bit bus termination array with bus-hold function | Unknown | [pending](spec/chips/ttl_74x1073.md) |
+| 74x1050 | 12-bit Schottky diode bus termination array, clamp to GND | Unknown | [excluded](spec/chips/ttl_74x1050.md) |
+| 74x1051 | 12-bit Schottky diode bus termination array, clamp to GND/V | Unknown | [excluded](spec/chips/ttl_74x1051.md) |
+| 74x1052 | 16-bit Schottky diode bus termination array, clamp to GND | Unknown | [excluded](spec/chips/ttl_74x1052.md) |
+| 74x1053 | 16-bit Schottky diode bus termination array, clamp to GND/V | Unknown | [excluded](spec/chips/ttl_74x1053.md) |
+| 74x1056 | 8-bit Schottky diode bus termination array, clamp to GND | Unknown | [excluded](spec/chips/ttl_74x1056.md) |
+| 74x1071 | 10-bit bus termination array with bus-hold function | Unknown | [implemented](spec/chips/ttl_74x1071.md) |
+| 74x1073 | 16-bit bus termination array with bus-hold function | Unknown | [implemented](spec/chips/ttl_74x1073.md) |
 | 74x1074 | dual D negative edge triggered flip-flop, asynchronous preset and clear | Unknown | [implemented](spec/chips/ttl_74x1074.md) |
 | 74x1181 | 4-bit arithmetic logic unit | Unknown | [implemented](spec/chips/ttl_74x1181.md) |
 | 74x1240 | octal buffer / line driver, inverting (lower-power version of 74x240) | Unknown | [implemented](spec/chips/ttl_74x1240.md) |
@@ -947,10 +962,10 @@ lists every pending part and its reason.
 | 74x1245 | octal bus transceiver (lower-power version of 74x245) | Unknown | [implemented](spec/chips/ttl_74x1245.md) |
 | 74x1280 | 9-bit parity generator/checker with registered outputs | Unknown | [implemented](spec/chips/ttl_74x1280.md) |
 | 74x1284 | parallel printer interface transceiver / buffer (IEEE 1284) | Unknown | [pending](spec/chips/ttl_74x1284.md) |
-| 74x1394 | 2-bit GTLP transceiver with split LV-TTL port | Unknown | [pending](spec/chips/ttl_74x1394.md) |
-| 74x1395 | Dual 1-bit GTLP transceiver with split LV-TTL port | Unknown | [pending](spec/chips/ttl_74x1395.md) |
+| 74x1394 | 2-bit GTLP transceiver with split LV-TTL port | Unknown | [implemented](spec/chips/ttl_74x1394.md) |
+| 74x1395 | Dual 1-bit GTLP transceiver with split LV-TTL port | Unknown | [implemented](spec/chips/ttl_74x1395.md) |
 | 74x1403 | 8-bit bus receiver plus 4-bit bus driver | Unknown | [implemented](spec/chips/ttl_74x1403.md) |
-| 74x1404 | oscillator driver | Unknown | [pending](spec/chips/ttl_74x1404.md) |
+| 74x1404 | oscillator driver | Unknown | [excluded](spec/chips/ttl_74x1404.md) |
 | 74x1604 | dual 8-bit transparent latch with output multiplexer | Unknown | [implemented](spec/chips/ttl_74x1604.md) |
 | 74x1612 | 18-bit LV-TTL-to-GTLP adjustable-edge-rate universal bus transceiver | Unknown | [pending](spec/chips/ttl_74x1612.md) |
 | 74x1620 | octal bus transceiver, inverting | Unknown | [pending](spec/chips/ttl_74x1620.md) |
@@ -992,17 +1007,17 @@ lists every pending part and its reason.
 | 74x1841 | 10-bit bus interface transparent latches | Unknown | [implemented](spec/chips/ttl_74x1841.md) |
 | 74x1843 | 9-bit bus interface transparent latches with clear | Unknown | [implemented](spec/chips/ttl_74x1843.md) |
 | 74x2000 | direction discriminator with microprocessor interface | Unknown | [pending](spec/chips/ttl_74x2000.md) |
-| 74x2003 | 8-bit level translator | Unknown | [pending](spec/chips/ttl_74x2003.md) |
-| 74x2006 | 13-bit GTL to 3.3V TTL level translator | Unknown | [pending](spec/chips/ttl_74x2006.md) |
-| 74x2007 | 12-bit GTL to 3.3V TTL level translator | Unknown | [pending](spec/chips/ttl_74x2007.md) |
-| 74x2010 | 10-bit level translator | Unknown | [pending](spec/chips/ttl_74x2010.md) |
-| 74x2014 | 4-bit GTL to TTL transceiver | Unknown | [pending](spec/chips/ttl_74x2014.md) |
+| 74x2003 | 8-bit level translator | Unknown | [implemented](spec/chips/ttl_74x2003.md) |
+| 74x2006 | 13-bit GTL to 3.3V TTL level translator | Unknown | [implemented](spec/chips/ttl_74x2006.md) |
+| 74x2007 | 12-bit GTL to 3.3V TTL level translator | Unknown | [implemented](spec/chips/ttl_74x2007.md) |
+| 74x2010 | 10-bit level translator | Unknown | [implemented](spec/chips/ttl_74x2010.md) |
+| 74x2014 | 4-bit GTL to TTL transceiver | Unknown | [implemented](spec/chips/ttl_74x2014.md) |
 | 74x2031 | 9-bit Futurebus address/data transceiver | Unknown | [pending](spec/chips/ttl_74x2031.md) |
 | 74x2032 | 9-bit Futurebus competition transceiver | Unknown | [pending](spec/chips/ttl_74x2032.md) |
 | 74x2034 | 8-bit GTLP adjustable-edge-rate registered transceiver with split LV-TTL I/O | Unknown | [pending](spec/chips/ttl_74x2034.md) |
 | 74x2040 | 8-bit Futurebus transceiver with split TTL I/O | Unknown | [pending](spec/chips/ttl_74x2040.md) |
 | 74x2041 | 7-bit Futurebus transceiver with split TTL I/O | Unknown | [pending](spec/chips/ttl_74x2041.md) |
-| 74x2107 | 12-bit GTL to 3.3V TTL level translator | Unknown | [pending](spec/chips/ttl_74x2107.md) |
+| 74x2107 | 12-bit GTL to 3.3V TTL level translator | Unknown | [implemented](spec/chips/ttl_74x2107.md) |
 | 74x2125 | quad bus buffer | Unknown | [implemented](spec/chips/ttl_74x2125.md) |
 | 74x2140 | 8k x 18 cache data RAM | Unknown | [implemented](spec/chips/ttl_74x2140.md) |
 | 74x2150 | 512 x 8 cache address comparator | Unknown | [pending](spec/chips/ttl_74x2150.md) |
@@ -1037,14 +1052,14 @@ lists every pending part and its reason.
 | 74x2257 | quad 2-line to 1-line multiplexer | Unknown | [implemented](spec/chips/ttl_74x2257.md) |
 | 74x2273 | octal D-type flip-flop, shared clock and clear | Unknown | [implemented](spec/chips/ttl_74x2273.md) |
 | 74x2299 | 8-bit universal shift register | Unknown | [implemented](spec/chips/ttl_74x2299.md) |
-| 74x2323 | dual line receiver | Unknown | [pending](spec/chips/ttl_74x2323.md) |
+| 74x2323 | dual line receiver | Unknown | [implemented](spec/chips/ttl_74x2323.md) |
 | 74x2373 | 8-bit transparent latch | Unknown | [implemented](spec/chips/ttl_74x2373.md) |
 | 74x2374 | octal D-type flip-flop, shared clock | Unknown | [implemented](spec/chips/ttl_74x2374.md) |
 | 74x2377 | 8-bit register, clock enable | Unknown | [implemented](spec/chips/ttl_74x2377.md) |
 | 74x2400 | dual 4-bit buffer, inverting | Unknown | [implemented](spec/chips/ttl_74x2400.md) |
 | 74x2410 | 11-bit MOS memory driver, non-inverting | Unknown | [pending](spec/chips/ttl_74x2410.md) |
 | 74x2411 | 11-bit MOS memory driver, inverting | Unknown | [pending](spec/chips/ttl_74x2411.md) |
-| 74x2414 | dual 2-to-4 line decoder with supply voltage monitor | Unknown | [pending](spec/chips/ttl_74x2414.md) |
+| 74x2414 | dual 2-to-4 line decoder with supply voltage monitor | Unknown | [implemented](spec/chips/ttl_74x2414.md) |
 | 74x2420 | 16-bit NuBus address/data transceiver and register | Unknown | [pending](spec/chips/ttl_74x2420.md) |
 | 74x2423 | 16-bit latched multiplexer/demultiplexer NuBus transceiver, inverting | Unknown | [pending](spec/chips/ttl_74x2423.md) |
 | 74x2424 | 16-bit latched multiplexer/demultiplexer NuBus transceiver, non-inverting | Unknown | [pending](spec/chips/ttl_74x2424.md) |
@@ -1099,23 +1114,23 @@ lists every pending part and its reason.
 | 74x2968 | controller/driver for 16k/64k/256k dRAM | Unknown | [implemented](spec/chips/ttl_74x2968.md) |
 | 74x2969 | memory timing controller for use with EDAC | Unknown | [pending](spec/chips/ttl_74x2969.md) |
 | 74x2970 | memory timing controller for use without EDAC | Unknown | [pending](spec/chips/ttl_74x2970.md) |
-| 74x3004 | selectable GTL voltage reference | Unknown | [pending](spec/chips/ttl_74x3004.md) |
+| 74x3004 | selectable GTL voltage reference | Unknown | [excluded](spec/chips/ttl_74x3004.md) |
 | 74x3037 | quad 2-input NAND gate | Unknown | [implemented](spec/chips/ttl_74x3037.md) |
 | 74x3038 | quad 2-input NAND gate | Unknown | [implemented](spec/chips/ttl_74x3038.md) |
 | 74x3040 | dual 4-input NAND gate | Unknown | [implemented](spec/chips/ttl_74x3040.md) |
-| 74x3125 | quad FET bus switch, output enable active low | Unknown | [pending](spec/chips/ttl_74x3125.md) |
-| 74x3126 | quad FET bus switch, output enable active high | Unknown | [pending](spec/chips/ttl_74x3126.md) |
-| 74x3251 | 8-line to 1-line FET multiplexer / demultiplexer | Unknown | [pending](spec/chips/ttl_74x3251.md) |
-| 74x3253 | dual 4-line to 1-line FET multiplexer / demultiplexer | Unknown | [pending](spec/chips/ttl_74x3253.md) |
-| 74x3257 | quad 2-line to 1-line FET multiplexer / demultiplexer | Unknown | [pending](spec/chips/ttl_74x3257.md) |
+| 74x3125 | quad FET bus switch, output enable active low | Unknown | [implemented](spec/chips/ttl_74x3125.md) |
+| 74x3126 | quad FET bus switch, output enable active high | Unknown | [implemented](spec/chips/ttl_74x3126.md) |
+| 74x3251 | 8-line to 1-line FET multiplexer / demultiplexer | Unknown | [implemented](spec/chips/ttl_74x3251.md) |
+| 74x3253 | dual 4-line to 1-line FET multiplexer / demultiplexer | Unknown | [implemented](spec/chips/ttl_74x3253.md) |
+| 74x3257 | quad 2-line to 1-line FET multiplexer / demultiplexer | Unknown | [implemented](spec/chips/ttl_74x3257.md) |
 | 74x3283 | 32-bit latchable transceiver with parity checker / generator | Unknown | [implemented](spec/chips/ttl_74x3283.md) |
 | 74x3284 | 18-bit synchronous datapath multiplexer | Unknown | [implemented](spec/chips/ttl_74x3284.md) |
-| 74x3305 | dual FET bus switch with extended voltage range | Unknown | [pending](spec/chips/ttl_74x3305.md) |
-| 74x3306 | dual FET bus switch | Unknown | [pending](spec/chips/ttl_74x3306.md) |
-| 74x3345 | octal FET bus switch, dual output enable | Unknown | [pending](spec/chips/ttl_74x3345.md) |
+| 74x3305 | dual FET bus switch with extended voltage range | Unknown | [implemented](spec/chips/ttl_74x3305.md) |
+| 74x3306 | dual FET bus switch | Unknown | [implemented](spec/chips/ttl_74x3306.md) |
+| 74x3345 | octal FET bus switch, dual output enable | Unknown | [implemented](spec/chips/ttl_74x3345.md) |
 | 74x3374 | 8-bit metastable-resistant D-type flip-flop | Unknown | [implemented](spec/chips/ttl_74x3374.md) |
-| 74x3383 | 5-bit 4-port FET bus exchange switch | Unknown | [pending](spec/chips/ttl_74x3383.md) |
-| 74x3384 | dual 5-bit FET bus switch | Unknown | [pending](spec/chips/ttl_74x3384.md) |
+| 74x3383 | 5-bit 4-port FET bus exchange switch | Unknown | [implemented](spec/chips/ttl_74x3383.md) |
+| 74x3384 | dual 5-bit FET bus switch | Unknown | [implemented](spec/chips/ttl_74x3384.md) |
 | 74x3386 | 5-bit 4-port FET bus exchange switch with extended voltage range | Unknown | [pending](spec/chips/ttl_74x3386.md) |
 | 74x3390 | octal 2-line to 1-line FET multiplexer / bus switch | Unknown | [pending](spec/chips/ttl_74x3390.md) |
 | 74x3573 | octal transparent latch | Unknown | [implemented](spec/chips/ttl_74x3573.md) |
@@ -1135,14 +1150,14 @@ lists every pending part and its reason.
 | 74x3708 | 8192-bit PROM (1024x8) | Unknown | [implemented](spec/chips/ttl_74x3708.md) |
 | 74x3807 | 1-to-10 clock driver | Unknown | [pending](spec/chips/ttl_74x3807.md) |
 | 74x3827 | 10-bit buffer | Unknown | [implemented](spec/chips/ttl_74x3827.md) |
-| 74x3861 | 10-bit FET bus switch | Unknown | [pending](spec/chips/ttl_74x3861.md) |
+| 74x3861 | 10-bit FET bus switch | Unknown | [implemented](spec/chips/ttl_74x3861.md) |
 | 74x3862 | 10-bit FET bus switch with dual output enable | Unknown | [pending](spec/chips/ttl_74x3862.md) |
 | 74x3893 | quad Futurebus backplane transceiver | Unknown | [pending](spec/chips/ttl_74x3893.md) |
 | 74x3907 | Pentium clock synthesizer | Unknown | [pending](spec/chips/ttl_74x3907.md) |
 | 74x3932 | PLL-based clock driver | Unknown | [excluded](spec/chips/ttl_74x3932.md) |
 | 74x4002 | dual 4-input NOR gate | Unknown | [implemented](spec/chips/ttl_74x4002.md) |
 | 74x4015 | dual 4-bit shift registers | Unknown | [implemented](spec/chips/ttl_74x4015.md) |
-| 74x4016 | quad bilateral switch | Unknown | [pending](spec/chips/ttl_74x4016.md) |
+| 74x4016 | quad bilateral switch | Unknown | [excluded](spec/chips/ttl_74x4016.md) |
 | 74x4017 | 5-stage ÷10 Johnson counter | Unknown | [implemented](spec/chips/ttl_74x4017.md) |
 | 74x4020 | 14-stage binary counter | Unknown | [implemented](spec/chips/ttl_74x4020.md) |
 | 74x4022 | 4-stage ÷8 Johnson counter | Unknown | [implemented](spec/chips/ttl_74x4022.md) |
@@ -1155,7 +1170,7 @@ lists every pending part and its reason.
 | 74x4051 | high-speed 8-channel analog multiplexer/demultiplexer | Unknown | [excluded](spec/chips/ttl_74x4051.md) |
 | 74x4052 | dual 4-channel analog multiplexer/demultiplexers | Unknown | [excluded](spec/chips/ttl_74x4052.md) |
 | 74x4053 | triple 2-channel analog multiplexer/demultiplexers | Unknown | [excluded](spec/chips/ttl_74x4053.md) |
-| 74x4059 | programmable divide-by-N counter | Unknown | [pending](spec/chips/ttl_74x4059.md) |
+| 74x4059 | programmable divide-by-N counter | Unknown | [implemented](spec/chips/ttl_74x4059.md) |
 | 74x4060 | 14-stage binary ripple counter with oscillator | Unknown | [pending](spec/chips/ttl_74x4060.md) |
 | 74x4061 | 14-stage asynchronous binary counter with oscillator | Unknown | [pending](spec/chips/ttl_74x4061.md) |
 | 74x4066 | quad single-pole single-throw analog switch | Unknown | [excluded](spec/chips/ttl_74x4066.md) |
@@ -1204,10 +1219,10 @@ lists every pending part and its reason.
 | 74x5403 | 12-bit line/memory driver, inverting | Unknown | [implemented](spec/chips/ttl_74x5403.md) |
 | 74x5555 | programmable delay timer with oscillator | Unknown | [pending](spec/chips/ttl_74x5555.md) |
 | 74x5620 | octal bidirectional transceiver | Unknown | [implemented](spec/chips/ttl_74x5620.md) |
-| 74x6000 | logic-to-logic optocoupler, non-inverting | Unknown | [pending](spec/chips/ttl_74x6000.md) |
-| 74x6001 | logic-to-logic optocoupler, inverting | Unknown | [pending](spec/chips/ttl_74x6001.md) |
-| 74x6010 | logic-to-logic optocoupler, non-inverting | Unknown | [pending](spec/chips/ttl_74x6010.md) |
-| 74x6011 | logic-to-logic optocoupler, inverting | Unknown | [pending](spec/chips/ttl_74x6011.md) |
+| 74x6000 | logic-to-logic optocoupler, non-inverting | Unknown | [implemented](spec/chips/ttl_74x6000.md) |
+| 74x6001 | logic-to-logic optocoupler, inverting | Unknown | [implemented](spec/chips/ttl_74x6001.md) |
+| 74x6010 | logic-to-logic optocoupler, non-inverting | Unknown | [implemented](spec/chips/ttl_74x6010.md) |
+| 74x6011 | logic-to-logic optocoupler, inverting | Unknown | [implemented](spec/chips/ttl_74x6011.md) |
 | 74x6300 | programmable dynamic memory refresh timer | Unknown | [pending](spec/chips/ttl_74x6300.md) |
 | 74x6301 | dynamic memory refresh controller, transparent and burst modes, for 16K, 64K, 256K, and 1M dRAM | Unknown | [pending](spec/chips/ttl_74x6301.md) |
 | 74x6302 | dynamic memory refresh controller, transparent and burst modes, for 16K, 64K, 256K, and 1M dRAM | Unknown | [pending](spec/chips/ttl_74x6302.md) |
@@ -1215,8 +1230,8 @@ lists every pending part and its reason.
 | 74x6311 | static column and page mode access detector for dRAM | Unknown | [pending](spec/chips/ttl_74x6311.md) |
 | 74x6323 | programmable ripple counter with oscillator | Unknown | [pending](spec/chips/ttl_74x6323.md) |
 | 74x6364 | 64-bit flow-through error detection and correction circuit | Unknown | [pending](spec/chips/ttl_74x6364.md) |
-| 74x6800 | 10-bit FET bus switch with precharge | Unknown | [pending](spec/chips/ttl_74x6800.md) |
-| 74x6845 | 8-bit FET bus switch with precharge and extended voltage range | Unknown | [pending](spec/chips/ttl_74x6845.md) |
+| 74x6800 | 10-bit FET bus switch with precharge | Unknown | [implemented](spec/chips/ttl_74x6800.md) |
+| 74x6845 | 8-bit FET bus switch with precharge and extended voltage range | Unknown | [implemented](spec/chips/ttl_74x6845.md) |
 | 74x7001 | quad 2-input AND gate | Unknown | [implemented](spec/chips/ttl_74x7001.md) |
 | 74x7002 | quad 2-input NOR gate | Unknown | [implemented](spec/chips/ttl_74x7002.md) |
 | 74x7003 | quad 2-input NAND gate | Unknown | [implemented](spec/chips/ttl_74x7003.md) |
@@ -1349,15 +1364,15 @@ lists every pending part and its reason.
 | 74x40105 | 64-bit FIFO memory (16x4) | Unknown | [implemented](spec/chips/ttl_74x40105.md) |
 | 74x1616 | 17-bit LVTTL-to-GTLP adjustable edge rate universal bus transceiver | Unknown | [pending](spec/chips/ttl_74x1616.md) |
 | 74x1645 | 16-bit LVTTL-to-GTLP adjustable edge rate bus transceiver | Unknown | [pending](spec/chips/ttl_74x1645.md) |
-| 74x16209 | 18-bit FET bus exchange switches | Unknown | [pending](spec/chips/ttl_74x16209.md) |
-| 74x16210 | 20-bit FET bus switch | Unknown | [pending](spec/chips/ttl_74x16210.md) |
-| 74x16211 | 24-bit FET bus switch | Unknown | [pending](spec/chips/ttl_74x16211.md) |
-| 74x16212 | 24-bit FET bus exchange switches | Unknown | [pending](spec/chips/ttl_74x16212.md) |
-| 74x16213 | 24-bit FET bus exchange switches | Unknown | [pending](spec/chips/ttl_74x16213.md) |
-| 74x16214 | 12-bit 1-of-3 FET multiplexer/demultiplexer | Unknown | [pending](spec/chips/ttl_74x16214.md) |
+| 74x16209 | 18-bit FET bus exchange switches | Unknown | [implemented](spec/chips/ttl_74x16209.md) |
+| 74x16210 | 20-bit FET bus switch | Unknown | [implemented](spec/chips/ttl_74x16210.md) |
+| 74x16211 | 24-bit FET bus switch | Unknown | [implemented](spec/chips/ttl_74x16211.md) |
+| 74x16212 | 24-bit FET bus exchange switches | Unknown | [implemented](spec/chips/ttl_74x16212.md) |
+| 74x16213 | 24-bit FET bus exchange switches | Unknown | [implemented](spec/chips/ttl_74x16213.md) |
+| 74x16214 | 12-bit 1-of-3 FET multiplexer/demultiplexer | Unknown | [implemented](spec/chips/ttl_74x16214.md) |
 | 74x16222 | 22-bit voltage clamp | Unknown | [excluded](spec/chips/ttl_74x16222.md) |
-| 74x16232 | synchronous 16-bit 1-of-2 FET multiplexer/demultiplexer | Unknown | [pending](spec/chips/ttl_74x16232.md) |
-| 74x16233 | 16-bit 1-of-2 FET multiplexer/demultiplexer | Unknown | [pending](spec/chips/ttl_74x16233.md) |
+| 74x16232 | synchronous 16-bit 1-of-2 FET multiplexer/demultiplexer | Unknown | [implemented](spec/chips/ttl_74x16232.md) |
+| 74x16233 | 16-bit 1-of-2 FET multiplexer/demultiplexer | Unknown | [implemented](spec/chips/ttl_74x16233.md) |
 | 74x16240 | 16-bit inverting buffer/driver with grouped 4-bit output enables (all active-low) | Unknown | [implemented](spec/chips/ttl_74x16240.md) |
 | 74x16241 | 16-bit non-inverting buffer/driver with grouped 4-bit output enables (1 and 4 active-low) | Unknown | [pending](spec/chips/ttl_74x16241.md) |
 | 74x16244 | 16-bit non-inverting buffer/driver with grouped 4-bit output enables (all active-low) | Unknown | [implemented](spec/chips/ttl_74x16244.md) |
@@ -1368,40 +1383,40 @@ lists every pending part and its reason.
 | 74x16270 | 12-bit to 24-bit registered bus exchanger | Unknown | [pending](spec/chips/ttl_74x16270.md) |
 | 74x16271 | 12-bit to 24-bit multiplexed bus exchanger | Unknown | [pending](spec/chips/ttl_74x16271.md) |
 | 74x16282 | 18-bit to 36-bit registered bus exchanger | Unknown | [pending](spec/chips/ttl_74x16282.md) |
-| 74x16292 | 12-bit 1-of-2 FET multiplexer/demultiplexer | Unknown | [pending](spec/chips/ttl_74x16292.md) |
-| 74x16334 | 16-bit universal bus driver | Unknown | [pending](spec/chips/ttl_74x16334.md) |
-| 74x16344 | 1-bit to 4-bit address driver | Unknown | [pending](spec/chips/ttl_74x16344.md) |
+| 74x16292 | 12-bit 1-of-2 FET multiplexer/demultiplexer | Unknown | [implemented](spec/chips/ttl_74x16292.md) |
+| 74x16334 | 16-bit universal bus driver | Unknown | [implemented](spec/chips/ttl_74x16334.md) |
+| 74x16344 | 1-bit to 4-bit address driver | Unknown | [implemented](spec/chips/ttl_74x16344.md) |
 | 74x16373 | 16-bit transparent D-type latches | Unknown | [implemented](spec/chips/ttl_74x16373.md) |
 | 74x16374 | 16-bit edge-triggered D-type flip-flops | Unknown | [implemented](spec/chips/ttl_74x16374.md) |
 | 74x16377 | 16-bit edge-triggered D-type flip-flops | Unknown | [implemented](spec/chips/ttl_74x16377.md) |
-| 74x16390 | 16-bit to 32-bit FET multiplexer/demultiplexer bus switch | Unknown | [pending](spec/chips/ttl_74x16390.md) |
+| 74x16390 | 16-bit to 32-bit FET multiplexer/demultiplexer bus switch | Unknown | [implemented](spec/chips/ttl_74x16390.md) |
 | 74x16409 | 9-bit 4-port universal bus exchanger | Unknown | [pending](spec/chips/ttl_74x16409.md) |
 | 74x16460 | 4-to-1 multiplexed/demultiplexed registered transceiver | Unknown | [pending](spec/chips/ttl_74x16460.md) |
 | 74x16470 | 16-bit registered transceiver | Unknown | [pending](spec/chips/ttl_74x16470.md) |
-| 74x16500 | 18-bit universal bus transceiver (registered, active low clock) | Unknown | [pending](spec/chips/ttl_74x16500.md) |
-| 74x16501 | 18-bit universal bus transceiver (registered, active high clock) | Unknown | [pending](spec/chips/ttl_74x16501.md) |
+| 74x16500 | 18-bit universal bus transceiver (registered, active low clock) | Unknown | [implemented](spec/chips/ttl_74x16500.md) |
+| 74x16501 | 18-bit universal bus transceiver (registered, active high clock) | Unknown | [implemented](spec/chips/ttl_74x16501.md) |
 | 74x16524 | 18-bit registered bus transceiver | Unknown | [implemented](spec/chips/ttl_74x16524.md) |
 | 74x16525 | 18-bit registered bus transceiver | Unknown | [implemented](spec/chips/ttl_74x16525.md) |
 | 74x16540 | 16-bit inverting buffer/driver with grouped 8-bit output enables (active-low) | Unknown | [implemented](spec/chips/ttl_74x16540.md) |
 | 74x16541 | 16-bit non-inverting buffer/driver with grouped 8-bit output enables (active-low) | Unknown | [implemented](spec/chips/ttl_74x16541.md) |
 | 74x16543 | 16-bit registered tranceiver | Unknown | [implemented](spec/chips/ttl_74x16543.md) |
 | 74x16600 | 18-bit universal bus transceiver (registered, active low clock) | Unknown | [pending](spec/chips/ttl_74x16600.md) |
-| 74x16601 | 18-bit universal bus transceiver (registered, active high clock) | Unknown | [pending](spec/chips/ttl_74x16601.md) |
+| 74x16601 | 18-bit universal bus transceiver (registered, active high clock) | Unknown | [implemented](spec/chips/ttl_74x16601.md) |
 | 74x16612 | 18-bit LVTTL-to-GTL+ universal bus transceiver | Unknown | [pending](spec/chips/ttl_74x16612.md) |
 | 74x16616 | 17-bit LVTTL-to-GTL+ universal bus transceiver | Unknown | [pending](spec/chips/ttl_74x16616.md) |
 | 74x16620 | 16-bit bus transceiver | Unknown | [implemented](spec/chips/ttl_74x16620.md) |
 | 74x16622 | 18-bit LVTTL-to-GTL+ bus transceiver | Unknown | [pending](spec/chips/ttl_74x16622.md) |
 | 74x16623 | 16-bit bus transceiver | Unknown | [implemented](spec/chips/ttl_74x16623.md) |
 | 74x16640 | 16-bit bus transceiver | Unknown | [implemented](spec/chips/ttl_74x16640.md) |
-| 74x16646 | 16-bit bus transceiver and registers | Unknown | [pending](spec/chips/ttl_74x16646.md) |
+| 74x16646 | 16-bit bus transceiver and registers | Unknown | [implemented](spec/chips/ttl_74x16646.md) |
 | 74x16648 | 16-bit bus transceiver and registers | Unknown | [pending](spec/chips/ttl_74x16648.md) |
-| 74x16651 | 16-bit bus transceiver and registers | Unknown | [pending](spec/chips/ttl_74x16651.md) |
-| 74x16652 | 16-bit bus transceiver and registers | Unknown | [pending](spec/chips/ttl_74x16652.md) |
+| 74x16651 | 16-bit bus transceiver and registers | Unknown | [implemented](spec/chips/ttl_74x16651.md) |
+| 74x16652 | 16-bit bus transceiver and registers | Unknown | [implemented](spec/chips/ttl_74x16652.md) |
 | 74x16657 | 16-bit bus transceiver with parity generators/checkers | Unknown | [pending](spec/chips/ttl_74x16657.md) |
 | 74x16721 | 3.3-V 20-bit flip-flop | Unknown | [implemented](spec/chips/ttl_74x16721.md) |
 | 74x16722 | 22-bit flip-flop | Unknown | [implemented](spec/chips/ttl_74x16722.md) |
-| 74x16800 | 20-bit FET bus switch | Unknown | [pending](spec/chips/ttl_74x16800.md) |
-| 74x16811 | 24-bit FET bus switch | Unknown | [pending](spec/chips/ttl_74x16811.md) |
+| 74x16800 | 20-bit FET bus switch | Unknown | [implemented](spec/chips/ttl_74x16800.md) |
+| 74x16811 | 24-bit FET bus switch | Unknown | [implemented](spec/chips/ttl_74x16811.md) |
 | 74x16820 | 3.3-V 10-bit flip-flop with dual outputs | Unknown | [implemented](spec/chips/ttl_74x16820.md) |
 | 74x16821 | 20-bit bus interface flip-flops | Unknown | [implemented](spec/chips/ttl_74x16821.md) |
 | 74x16823 | 18-bit bus interface flip-flops | Unknown | [implemented](spec/chips/ttl_74x16823.md) |
@@ -1412,14 +1427,14 @@ lists every pending part and its reason.
 | 74x16831 | 1-to-4 address register/driver | Unknown | [pending](spec/chips/ttl_74x16831.md) |
 | 74x16832 | 1-to-4 address register/driver | Unknown | [pending](spec/chips/ttl_74x16832.md) |
 | 74x16833 | dual 8-bit to 9-bit parity bus transceivers | Unknown | [pending](spec/chips/ttl_74x16833.md) |
-| 74x16834 | 18-bit universal bus driver | Unknown | [pending](spec/chips/ttl_74x16834.md) |
-| 74x16835 | 18-bit universal bus driver | Unknown | [pending](spec/chips/ttl_74x16835.md) |
+| 74x16834 | 18-bit universal bus driver | Unknown | [implemented](spec/chips/ttl_74x16834.md) |
+| 74x16835 | 18-bit universal bus driver | Unknown | [implemented](spec/chips/ttl_74x16835.md) |
 | 74x16841 | 20-bit bus interface D-type latches | Unknown | [implemented](spec/chips/ttl_74x16841.md) |
 | 74x16843 | 18-bit bus interface D-type latches | Unknown | [implemented](spec/chips/ttl_74x16843.md) |
 | 74x16853 | dual 8-bit to 9-bit parity bus transceiver | Unknown | [pending](spec/chips/ttl_74x16853.md) |
-| 74x16857 | 14-bit registered buffer | Unknown | [pending](spec/chips/ttl_74x16857.md) |
-| 74x16859 | 13-bit to 26-bit registered buffer | Unknown | [pending](spec/chips/ttl_74x16859.md) |
-| 74x16861 | 20-bit FET bus switch | Unknown | [pending](spec/chips/ttl_74x16861.md) |
+| 74x16857 | 14-bit registered buffer | Unknown | [implemented](spec/chips/ttl_74x16857.md) |
+| 74x16859 | 13-bit to 26-bit registered buffer | Unknown | [implemented](spec/chips/ttl_74x16859.md) |
+| 74x16861 | 20-bit FET bus switch | Unknown | [implemented](spec/chips/ttl_74x16861.md) |
 | 74x16863 | 18-bit bus transceiver | Unknown | [implemented](spec/chips/ttl_74x16863.md) |
 | 74x16901 | 18-bit universal bus transceiver with parity generators/checkers | Unknown | [pending](spec/chips/ttl_74x16901.md) |
 | 74x16903 | 3.3-V 12-bit universal bus driver with parity checker | Unknown | [pending](spec/chips/ttl_74x16903.md) |
@@ -1427,43 +1442,43 @@ lists every pending part and its reason.
 | 74x16916 | 17-bit LVTTL-to-GTLP universal bus transceiver | Unknown | [pending](spec/chips/ttl_74x16916.md) |
 | 74x16923 | 18-bit LVTTL-to-GTLP universal bus transceiver | Unknown | [pending](spec/chips/ttl_74x16923.md) |
 | 74x16945 | 16-bit LVTTL-to-GTLP bus transceiver | Unknown | [pending](spec/chips/ttl_74x16945.md) |
-| 74x16952 | 16-bit registered transceiver | Unknown | [pending](spec/chips/ttl_74x16952.md) |
+| 74x16952 | 16-bit registered transceiver | Unknown | [implemented](spec/chips/ttl_74x16952.md) |
 | 74x16973 | 8-bit bus transceiver and transparent D-type latch | Unknown | [implemented](spec/chips/ttl_74x16973.md) |
 | 74x161284 | 19-bit bus interface | Unknown | [implemented](spec/chips/ttl_74x161284.md) |
 | 74x162240 | 3.3-V ABT 16-bit buffer/driver | Unknown | [implemented](spec/chips/ttl_74x162240.md) |
 | 74x162241 | 3.3-V ABT 16-bit buffer/driver | Unknown | [implemented](spec/chips/ttl_74x162241.md) |
 | 74x162244 | 16-bit buffer/driver | Unknown | [implemented](spec/chips/ttl_74x162244.md) |
 | 74x162245 | 16-bit bus transceiver | Unknown | [implemented](spec/chips/ttl_74x162245.md) |
-| 74x162260 | 12-bit to 24-bit multiplexed D-type latch | Unknown | [pending](spec/chips/ttl_74x162260.md) |
-| 74x162268 | 12-bit to 24-bit registered bus exchanger | Unknown | [pending](spec/chips/ttl_74x162268.md) |
+| 74x162260 | 12-bit to 24-bit multiplexed D-type latch | Unknown | [implemented](spec/chips/ttl_74x162260.md) |
+| 74x162268 | 12-bit to 24-bit registered bus exchanger | Unknown | [implemented](spec/chips/ttl_74x162268.md) |
 | 74x162280 | 16-bit to 32-bit registered bus exchanger with byte masks | Unknown | [pending](spec/chips/ttl_74x162280.md) |
 | 74x162282 | 18-bit to 36-bit registered bus exchanger | Unknown | [pending](spec/chips/ttl_74x162282.md) |
-| 74x162292 | 12-bit 1-of-2 FET multiplexer/demultiplexer | Unknown | [pending](spec/chips/ttl_74x162292.md) |
-| 74x162334 | 16-bit universal bus driver | Unknown | [pending](spec/chips/ttl_74x162334.md) |
-| 74x162344 | 1-bit to 4-bit address driver | Unknown | [pending](spec/chips/ttl_74x162344.md) |
+| 74x162292 | 12-bit 1-of-2 FET multiplexer/demultiplexer | Unknown | [implemented](spec/chips/ttl_74x162292.md) |
+| 74x162334 | 16-bit universal bus driver | Unknown | [implemented](spec/chips/ttl_74x162334.md) |
+| 74x162344 | 1-bit to 4-bit address driver | Unknown | [implemented](spec/chips/ttl_74x162344.md) |
 | 74x162373 | 3.3-V ABT 16-bit transparent D-type latch | Unknown | [implemented](spec/chips/ttl_74x162373.md) |
 | 74x162374 | 3.3-V ABT 16-bit edge triggered D-type flip-flop | Unknown | [implemented](spec/chips/ttl_74x162374.md) |
 | 74x162460 | 4-to-1 multiplexed/demultiplexed registered transceiver | Unknown | [pending](spec/chips/ttl_74x162460.md) |
-| 74x162500 | 18-bit universal bus transceiver | Unknown | [pending](spec/chips/ttl_74x162500.md) |
-| 74x162501 | 18-bit registered transceiver | Unknown | [pending](spec/chips/ttl_74x162501.md) |
+| 74x162500 | 18-bit universal bus transceiver | Unknown | [implemented](spec/chips/ttl_74x162500.md) |
+| 74x162501 | 18-bit registered transceiver | Unknown | [implemented](spec/chips/ttl_74x162501.md) |
 | 74x162525 | 18-bit registered bus transceiver | Unknown | [pending](spec/chips/ttl_74x162525.md) |
 | 74x162541 | 3.3-V ABT 16-bit buffers/drivers | Unknown | [implemented](spec/chips/ttl_74x162541.md) |
-| 74x162543 | 16-bit latched transceiver | Unknown | [pending](spec/chips/ttl_74x162543.md) |
-| 74x162601 | 18-bit universal bus tranceiver | Unknown | [pending](spec/chips/ttl_74x162601.md) |
-| 74x162646 | 16-bit registered transceiver | Unknown | [pending](spec/chips/ttl_74x162646.md) |
-| 74x162652 | 16-bit registered transceiver | Unknown | [pending](spec/chips/ttl_74x162652.md) |
+| 74x162543 | 16-bit latched transceiver | Unknown | [implemented](spec/chips/ttl_74x162543.md) |
+| 74x162601 | 18-bit universal bus tranceiver | Unknown | [implemented](spec/chips/ttl_74x162601.md) |
+| 74x162646 | 16-bit registered transceiver | Unknown | [implemented](spec/chips/ttl_74x162646.md) |
+| 74x162652 | 16-bit registered transceiver | Unknown | [implemented](spec/chips/ttl_74x162652.md) |
 | 74x162721 | 3.3-V 20-bit flip-flop | Unknown | [implemented](spec/chips/ttl_74x162721.md) |
 | 74x162820 | 3.3-V 10-bit flip-flop | Unknown | [implemented](spec/chips/ttl_74x162820.md) |
 | 74x162821 | 20-bit bus interface flip-flops | Unknown | [implemented](spec/chips/ttl_74x162821.md) |
 | 74x162823 | 18-bit bus interface flip-flops | Unknown | [implemented](spec/chips/ttl_74x162823.md) |
 | 74x162825 | 18-bit buffer/driver | Unknown | [implemented](spec/chips/ttl_74x162825.md) |
 | 74x162827 | 20-bit buffer/driver | Unknown | [implemented](spec/chips/ttl_74x162827.md) |
-| 74x162830 | 1-bit to 2-bit address driver | Unknown | [pending](spec/chips/ttl_74x162830.md) |
+| 74x162830 | 1-bit to 2-bit address driver | Unknown | [implemented](spec/chips/ttl_74x162830.md) |
 | 74x162831 | 1-bit to 4-bit address register/driver | Unknown | [pending](spec/chips/ttl_74x162831.md) |
 | 74x162832 | 1-bit to 4-bit address register/driver | Unknown | [pending](spec/chips/ttl_74x162832.md) |
-| 74x162834 | 3.3-V CMOS 18-bit universal bus driver | Unknown | [pending](spec/chips/ttl_74x162834.md) |
-| 74x162835 | 18-bit universal bus driver | Unknown | [pending](spec/chips/ttl_74x162835.md) |
-| 74x162836 | 20-bit universal bus driver | Unknown | [pending](spec/chips/ttl_74x162836.md) |
+| 74x162834 | 3.3-V CMOS 18-bit universal bus driver | Unknown | [implemented](spec/chips/ttl_74x162834.md) |
+| 74x162835 | 18-bit universal bus driver | Unknown | [implemented](spec/chips/ttl_74x162835.md) |
+| 74x162836 | 20-bit universal bus driver | Unknown | [implemented](spec/chips/ttl_74x162836.md) |
 | 74x162841 | 20-bit bus interface D-type latch | Unknown | [implemented](spec/chips/ttl_74x162841.md) |
 | 74x164245 | 16-bit dual supply bus transceiver | Unknown | [implemented](spec/chips/ttl_74x164245.md) |
 | 74x18245 | scan test devices with 18-bit bus transceivers | Unknown | [pending](spec/chips/ttl_74x18245.md) |

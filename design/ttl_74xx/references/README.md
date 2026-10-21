@@ -36,3 +36,20 @@ Some extended models remain normalized approximations, including DRAM control,
 rate multiplication and bus protocol adapters. The error-correction models use
 an explicitly documented extended-Hamming matrix; they do not reproduce the
 manufacturer's check-bit pin matrix. Passing those tests is not native conformance.
+
+## Source-reviewed continuation
+
+Continuation models record `source_review` in the manifest: primary artifact URL,
+PDF SHA-256, exact table/diagram pages and review date. Their per-part notes
+identify the manufacturer family, signal mapping and unresolved assumptions.
+Reviewed sources include TI universal bus-driver/transceiver and DIMM tables,
+GTL/GTLP control tables, passive-switch connectivity diagrams, and CD74HC4059
+preset equations plus LE-to-Q timing entries. A primary artifact may be an
+unaltered manufacturer document preserved by an archival host.
+
+Analog-only exclusions added during review require a manufacturer description or
+schematic establishing an electrical network without a digital function. They
+also update the frozen exclusion map. Missing digital functionality stays pending.
+Datasheet publication dates continue to be recorded separately from unknown launch
+dates. Catalog membership is pinned; it is not a claim that every possible
+manufacturer-specific 74-series ordering suffix is represented.

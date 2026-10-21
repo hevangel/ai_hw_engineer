@@ -21,7 +21,22 @@ an unbounded FIFO ordering proof. Covers independently reach full occupancy
 and mixed transactions. The exact checked depths are recorded in the SBY file
 and current report. Long simulation exercises multiple ring wraparounds.
 
-Every family check includes a separately executed cover task. These five
-targeted families supplement simulation of all 289 devices; they do not prove
+Every family check includes a separately executed cover task. These eight
+targeted families supplement simulation of the implemented catalog; they do not prove
 every part's complete native datasheet. Original 74181 BMC, unbounded proof,
 cover, exhaustive simulation and UVM tests remain unchanged.
+
+## Storage, universal drivers and passive switches
+
+The 74574 contract checks registered data and independent drive control. The
+universal-driver contract checks opposite latch-enable polarities in fixed
+registered and transparent modes. The passive 7416213 switch contract uses an
+independently transcribed component-label table for all eight select states,
+arbitrary external data/drive masks, contention and validity. Its covers reach
+three-way transfer, conflicting drivers and full isolation.
+
+Switch topology case tables are lowered with `memory_map` before SMT solving:
+immutable combinational lookup contents must not become arbitrary ROM state in
+induction. This changes the verification representation, not the assertions.
+Formal results include hashes of the runner, configuration and declared sources;
+the report rejects stale or missing family tasks.

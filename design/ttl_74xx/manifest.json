@@ -819,7 +819,7 @@
     "aliases": [],
     "description": "BCD to 7-segment decoder/driver",
     "input_features": "",
-    "output_features": "open-collector, 2 kΩ pull-up",
+    "output_features": "open-collector, 2 k\u03a9 pull-up",
     "datasheet": "SN74LS48",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBookVol2_45945352/page/n244",
     "number": 48,
@@ -2221,7 +2221,7 @@
     "part_number": "74120",
     "aliases": [],
     "description": "dual pulse synchronizer/drivers",
-    "input_features": "15 kΩ pull-up",
+    "input_features": "15 k\u03a9 pull-up",
     "output_features": "",
     "datasheet": "SN74120",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBookVol2_45945352/page/n515",
@@ -2354,7 +2354,7 @@
     "aliases": [],
     "description": "quad 2-input NOR gate",
     "input_features": "",
-    "output_features": "driver 50 Ω",
+    "output_features": "driver 50 \u03a9",
     "datasheet": "SN74128",
     "datasheet_url": "https://www.ti.com/lit/gpn/sn74128",
     "number": 128,
@@ -2540,7 +2540,7 @@
     "aliases": [],
     "description": "dual 4-input NAND gate",
     "input_features": "",
-    "output_features": "driver 50 Ω",
+    "output_features": "driver 50 \u03a9",
     "datasheet": "SN74S140",
     "datasheet_url": "https://www.ti.com/lit/gpn/sn74s140",
     "number": 140,
@@ -4290,7 +4290,7 @@
     "aliases": [],
     "description": "BCD to 7-segment decoder/driver",
     "input_features": "",
-    "output_features": "open-collector, 2 kΩ pull-up",
+    "output_features": "open-collector, 2 k\u03a9 pull-up",
     "datasheet": "SN74LS248",
     "datasheet_url": "https://www.ti.com/lit/gpn/sn74ls247",
     "number": 248,
@@ -5558,7 +5558,7 @@
     "aliases": [],
     "description": "PLA (12 inputs, 50 terms, 6 outputs)",
     "input_features": "",
-    "output_features": "open-collector, 2.5 kΩ pull-up",
+    "output_features": "open-collector, 2.5 k\u03a9 pull-up",
     "datasheet": "SN74S331",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBookcomputerComponentsDataBook_16851665/page/n231",
     "number": 331,
@@ -8321,7 +8321,7 @@
     "part_number": "74x518",
     "aliases": [],
     "description": "8-bit comparator",
-    "input_features": "20 kΩ pull-up",
+    "input_features": "20 k\u03a9 pull-up",
     "output_features": "open-collector",
     "datasheet": "SN74ALS518",
     "datasheet_url": "https://www.ti.com/lit/gpn/sn74als518",
@@ -8359,7 +8359,7 @@
     "part_number": "74x520",
     "aliases": [],
     "description": "8-bit comparator, inverting output",
-    "input_features": "20 kΩ pull-up",
+    "input_features": "20 k\u03a9 pull-up",
     "output_features": "",
     "datasheet": "SN74ALS520",
     "datasheet_url": "https://www.ti.com/lit/gpn/sn74als520",
@@ -8397,7 +8397,7 @@
     "part_number": "74x522",
     "aliases": [],
     "description": "8-bit comparator, inverting output",
-    "input_features": "20 kΩ pull-up",
+    "input_features": "20 k\u03a9 pull-up",
     "output_features": "open-collector",
     "datasheet": "SN74ALS522",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBookVol3_25840031/page/n365",
@@ -10975,23 +10975,31 @@
     "description": "4-bit parallel binary accumulator",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "SN74LS681",
-    "datasheet_url": "https://archive.org/details/bitsavers_tidataBookVol2_45945352/page/n1339",
+    "datasheet": "SN74LS681, TI D2422, revised April 1985",
+    "datasheet_url": "https://archive.org/download/bitsavers_tidataBookVol2_45945352/1985_The_TTL_Data_Book_Vol_2.pdf",
     "number": 681,
     "module": "ttl_74x681",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Datasheet not yet accessible via current sources; specific control-pin layout (shift register variants 671-676, ALS-family address comparators 677-680, accumulator 681) needs confirmation before RTL; Datasheet FOUND and correct: TI SN74LS681 (D2422, tidataBookVol2 n1339). NOT a simple accumulator: it is a 4-bit ALU (16 arithmetic + 16 logic ops) plus Word-A register and Word-B shift/accumulator register, carry look-ahead (Cn/P/G/Cn+4), bus-driving bidirectional I/O, 8 register modes (RS0-2), and serial shift (RI/LO, LI/RO). Implementable but a large multi-table effort (needs Tables 1/2/3) - deferred as a bigger task than the rest of this batch.",
-    "specification": "spec/chips/ttl_74x681.md"
+    "model_level": "manufacturer_tables_with_normalized_carry_lookahead",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x681.md",
+    "rtl": "src/ttl_74x681.sv",
+    "testbench": "tb/tb_ttl_74x681.sv",
+    "conformance_limits": "P/G decomposition and logic-mode carry are documented normalized equations, not verified native TI carry-lookahead behavior.",
+    "source_review": {
+      "url": "https://archive.org/download/bitsavers_tidataBookVol2_45945352/1985_The_TTL_Data_Book_Vol_2.pdf",
+      "sha256": "a7d4502eb7c937ace5d3922ed5842674bcd28aec3f3ad98f52a44d1d2d066d7f",
+      "table_pages": "PDF 1340\u20131343 / printed 3-1289\u20133-1292; function tables PDF 1342 / printed 3-1291",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x682",
     "aliases": [],
     "description": "8-bit magnitude comparator, P>Q output",
-    "input_features": "20 kΩ pull-up",
+    "input_features": "20 k\u03a9 pull-up",
     "output_features": "",
     "datasheet": "SN74LS682",
     "datasheet_url": "https://www.ti.com/lit/gpn/sn74ls682",
@@ -11010,7 +11018,7 @@
     "part_number": "74x683",
     "aliases": [],
     "description": "8-bit magnitude comparator, P>Q output",
-    "input_features": "20 kΩ pull-up",
+    "input_features": "20 k\u03a9 pull-up",
     "output_features": "open-collector",
     "datasheet": "SN74LS683",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBookVol2_45945352/page/n1345",
@@ -11230,7 +11238,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Counter/latch/multiplexer family datasheet not accessible from current sources; needs confirmation of control-pin set (load, count, latch, mux-select, OE) before RTL; Not present in the TI SN54LS690-693 / SN54LS696-699 databook — the family skips 694/695 (690-693, then 696-699). No datasheet found in TI/Signetics/Wikipedia sources; likely a spurious entry in the Wikipedia-derived list. Verify the part actually exists before attempting.",
+    "reason": "Counter/latch/multiplexer family datasheet not accessible from current sources; needs confirmation of control-pin set (load, count, latch, mux-select, OE) before RTL; Not present in the TI SN54LS690-693 / SN54LS696-699 databook \u2014 the family skips 694/695 (690-693, then 696-699). No datasheet found in TI/Signetics/Wikipedia sources; likely a spurious entry in the Wikipedia-derived list. Verify the part actually exists before attempting.",
     "specification": "spec/chips/ttl_74x694.md"
   },
   {
@@ -11248,7 +11256,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Counter/latch/multiplexer family datasheet not accessible from current sources; needs confirmation of control-pin set (load, count, latch, mux-select, OE) before RTL; Not present in the TI SN54LS690-693 / SN54LS696-699 databook — the family skips 694/695. No datasheet found; likely a spurious entry in the Wikipedia-derived list. Verify existence before attempting.",
+    "reason": "Counter/latch/multiplexer family datasheet not accessible from current sources; needs confirmation of control-pin set (load, count, latch, mux-select, OE) before RTL; Not present in the TI SN54LS690-693 / SN54LS696-699 databook \u2014 the family skips 694/695. No datasheet found; likely a spurious entry in the Wikipedia-derived list. Verify existence before attempting.",
     "specification": "spec/chips/ttl_74x695.md"
   },
   {
@@ -11798,7 +11806,7 @@
     "part_number": "74x746",
     "aliases": [],
     "description": "octal buffer / line driver, inverting",
-    "input_features": "20 kΩ pull-up",
+    "input_features": "20 k\u03a9 pull-up",
     "output_features": "three-state",
     "datasheet": "SN74ALS746",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBooktaBook_60160366/page/n623",
@@ -11817,7 +11825,7 @@
     "part_number": "74x747",
     "aliases": [],
     "description": "octal buffer / line driver, non-inverting",
-    "input_features": "20 kΩ pull-up",
+    "input_features": "20 k\u03a9 pull-up",
     "output_features": "three-state",
     "datasheet": "SN74ALS747",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBooktaBook_60160366/page/n623",
@@ -12450,16 +12458,23 @@
     "input_features": "",
     "output_features": "three-state and open-collector",
     "datasheet": "SN74GTLP817",
-    "datasheet_url": "https://www.ti.com/lit/gpn/SN74GTLP817",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74gtlp817.pdf",
     "number": 817,
     "module": "ttl_74x817",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized part (readback register / clock driver / GTLP fanout / diagnostic register / bus-interface flop) requires datasheet for control-pin layout",
-    "specification": "spec/chips/ttl_74x817.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x817.md",
+    "rtl": "src/ttl_74x817.sv",
+    "testbench": "tb/tb_ttl_74x817.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74gtlp817.pdf",
+      "sha256": "1115affce8e3f7598d0eadd2883a4e466bc082c44d0525b96f0ca89d76bb23f1",
+      "table_pages": "2\u20133",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x818",
@@ -13170,7 +13185,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter — needs datasheet study before RTL",
+    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter \u2014 needs datasheet study before RTL",
     "specification": "spec/chips/ttl_74x870.md"
   },
   {
@@ -13188,7 +13203,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter — needs datasheet study before RTL",
+    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter \u2014 needs datasheet study before RTL",
     "specification": "spec/chips/ttl_74x871.md"
   },
   {
@@ -13263,7 +13278,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter — needs datasheet study before RTL",
+    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter \u2014 needs datasheet study before RTL",
     "specification": "spec/chips/ttl_74x877.md"
   },
   {
@@ -13395,7 +13410,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter — needs datasheet study before RTL",
+    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter \u2014 needs datasheet study before RTL",
     "specification": "spec/chips/ttl_74x887.md"
   },
   {
@@ -13413,7 +13428,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter — needs datasheet study before RTL",
+    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter \u2014 needs datasheet study before RTL",
     "specification": "spec/chips/ttl_74x888.md"
   },
   {
@@ -13431,7 +13446,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter — needs datasheet study before RTL",
+    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter \u2014 needs datasheet study before RTL",
     "specification": "spec/chips/ttl_74x889.md"
   },
   {
@@ -13449,7 +13464,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter — needs datasheet study before RTL",
+    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter \u2014 needs datasheet study before RTL",
     "specification": "spec/chips/ttl_74x890.md"
   },
   {
@@ -13467,7 +13482,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter — needs datasheet study before RTL",
+    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter \u2014 needs datasheet study before RTL",
     "specification": "spec/chips/ttl_74x891.md"
   },
   {
@@ -13485,7 +13500,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter — needs datasheet study before RTL",
+    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter \u2014 needs datasheet study before RTL",
     "specification": "spec/chips/ttl_74x895.md"
   },
   {
@@ -13503,7 +13518,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter — needs datasheet study before RTL",
+    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter \u2014 needs datasheet study before RTL",
     "specification": "spec/chips/ttl_74x897.md"
   },
   {
@@ -13521,7 +13536,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter — needs datasheet study before RTL",
+    "reason": "Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter \u2014 needs datasheet study before RTL",
     "specification": "spec/chips/ttl_74x899.md"
   },
   {
@@ -13596,7 +13611,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized (SAR / voltage comparator analog / RAM / display controllers) — needs dedicated datasheet study",
+    "reason": "Specialized (SAR / voltage comparator analog / RAM / display controllers) \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x905.md"
   },
   {
@@ -13709,7 +13724,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized (SAR / voltage comparator analog / RAM / display controllers) — needs dedicated datasheet study",
+    "reason": "Specialized (SAR / voltage comparator analog / RAM / display controllers) \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x911.md"
   },
   {
@@ -13727,7 +13742,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized (SAR / voltage comparator analog / RAM / display controllers) — needs dedicated datasheet study",
+    "reason": "Specialized (SAR / voltage comparator analog / RAM / display controllers) \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x912.md"
   },
   {
@@ -13745,7 +13760,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study",
+    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x913.md"
   },
   {
@@ -13801,7 +13816,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study",
+    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x917.md"
   },
   {
@@ -13878,7 +13893,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study",
+    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x922.md"
   },
   {
@@ -13896,7 +13911,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study",
+    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x923.md"
   },
   {
@@ -13914,7 +13929,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study",
+    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x925.md"
   },
   {
@@ -13932,7 +13947,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study",
+    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x926.md"
   },
   {
@@ -13950,7 +13965,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study",
+    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x927.md"
   },
   {
@@ -13968,7 +13983,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study",
+    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x928.md"
   },
   {
@@ -14026,7 +14041,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study",
+    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x932.md"
   },
   {
@@ -14191,7 +14206,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study",
+    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x942.md"
   },
   {
@@ -14209,7 +14224,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study",
+    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x943.md"
   },
   {
@@ -14227,7 +14242,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study",
+    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x945.md"
   },
   {
@@ -14245,7 +14260,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study",
+    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x946.md"
   },
   {
@@ -14263,7 +14278,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study",
+    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x947.md"
   },
   {
@@ -14335,7 +14350,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study; Datasheet FOUND: National DM74LS952 (TL/F/6437; syntax.com.tw/upload/pdf/IC-74LS952.pdf). NOT a simple shift register: dual-rank (upper register A + lower shift register B) with 8 bidirectional TRI-STATE I/O, 6 active-low control lines, and a ~20-row function table including a Data-OR (DOR) function (ORs I/O with reg B), simultaneous transfer-up+down = synchronous clear, and combined shift+transfer modes. Complex multi-mode part - deferred (high mis-model risk), like 681/870/871.",
+    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant \u2014 needs dedicated datasheet study; Datasheet FOUND: National DM74LS952 (TL/F/6437; syntax.com.tw/upload/pdf/IC-74LS952.pdf). NOT a simple shift register: dual-rank (upper register A + lower shift register B) with 8 bidirectional TRI-STATE I/O, 6 active-low control lines, and a ~20-row function table including a Data-OR (DOR) function (ORs I/O with reg B), simultaneous transfer-up+down = synchronous clear, and combined shift+transfer modes. Complex multi-mode part - deferred (high mis-model risk), like 681/870/871.",
     "specification": "spec/chips/ttl_74x952.md"
   },
   {
@@ -14753,7 +14768,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Wide multiplier/accumulator or passive termination array — needs dedicated datasheet",
+    "reason": "Wide multiplier/accumulator or passive termination array \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x1017.md"
   },
   {
@@ -14770,9 +14785,15 @@
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Wide multiplier/accumulator or passive termination array — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x1018.md"
+    "status": "excluded",
+    "reason": "Schottky diode and R-C bus-termination network; analog-only behavior outside the user-requested pure-digital scope.",
+    "specification": "spec/chips/ttl_74x1018.md",
+    "source_review": {
+      "url": "https://datasheet.datasheetarchive.com/originals/distributors/Datasheets-36/DSA-706945.pdf",
+      "sha256": "1be0925db672e7b20c32e93173693d84d4eef3af215df7ab78655d10f9838818",
+      "table_pages": "TI SDFS094 page 1 description and schematic",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x1020",
@@ -14876,16 +14897,22 @@
     "input_features": "",
     "output_features": "",
     "datasheet": "SN74S1050",
-    "datasheet_url": "https://www.ti.com/lit/gpn/sn74s1050",
+    "datasheet_url": "https://www.ti.com/jp/lit/sg/jajt001d/jajt001d.pdf",
     "number": 1050,
     "module": "ttl_74x1050",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Termination array / IEEE 1284 / GTLP transceiver / wider parity register — needs datasheet",
-    "specification": "spec/chips/ttl_74x1050.md"
+    "status": "excluded",
+    "reason": "Schottky diode bus-termination clamp array; analog-only behavior outside the user-requested pure-digital scope.",
+    "specification": "spec/chips/ttl_74x1050.md",
+    "source_review": {
+      "url": "https://www.ti.com/jp/lit/sg/jajt001d/jajt001d.pdf",
+      "sha256": "eebc578f093ced277287a47677b4ea3f3c912bd072c0e3cdc49491613d0799d4",
+      "table_pages": "PDF page 65, BTA series table",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x1051",
@@ -14901,9 +14928,15 @@
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Termination array / IEEE 1284 / GTLP transceiver / wider parity register — needs datasheet",
-    "specification": "spec/chips/ttl_74x1051.md"
+    "status": "excluded",
+    "reason": "Schottky bus-termination diode clamps; analog-only behavior outside the user-requested pure-digital scope.",
+    "specification": "spec/chips/ttl_74x1051.md",
+    "source_review": {
+      "url": "https://www.ti.com/lit/gpn/sn74s1051",
+      "sha256": "c418268cd1bb1607640086bec49e8c03585c1a7282bd80a462385e0d402cc184",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x1052",
@@ -14912,16 +14945,22 @@
     "input_features": "",
     "output_features": "",
     "datasheet": "SN74S1052",
-    "datasheet_url": "https://archive.org/details/TexasInstruments-TI-Data-AdvancedLogicandBusInterfaceLogic1991OCR/page/n471",
+    "datasheet_url": "https://www.ti.com/jp/lit/sg/jajt001d/jajt001d.pdf",
     "number": 1052,
     "module": "ttl_74x1052",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Termination array / IEEE 1284 / GTLP transceiver / wider parity register — needs datasheet",
-    "specification": "spec/chips/ttl_74x1052.md"
+    "status": "excluded",
+    "reason": "Schottky diode bus-termination clamp array; analog-only behavior outside the user-requested pure-digital scope.",
+    "specification": "spec/chips/ttl_74x1052.md",
+    "source_review": {
+      "url": "https://www.ti.com/jp/lit/sg/jajt001d/jajt001d.pdf",
+      "sha256": "eebc578f093ced277287a47677b4ea3f3c912bd072c0e3cdc49491613d0799d4",
+      "table_pages": "PDF page 65, BTA series table",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x1053",
@@ -14937,9 +14976,15 @@
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Termination array / IEEE 1284 / GTLP transceiver / wider parity register — needs datasheet",
-    "specification": "spec/chips/ttl_74x1053.md"
+    "status": "excluded",
+    "reason": "Schottky bus-termination diode clamps; analog-only behavior outside the user-requested pure-digital scope.",
+    "specification": "spec/chips/ttl_74x1053.md",
+    "source_review": {
+      "url": "https://www.ti.com/lit/gpn/sn74s1053",
+      "sha256": "b147847aca9fe0d95aca993db8a1b2d42d54aa57b4a55ecd3d4f84c0073fe467",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x1056",
@@ -14955,9 +15000,15 @@
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Termination array / IEEE 1284 / GTLP transceiver / wider parity register — needs datasheet",
-    "specification": "spec/chips/ttl_74x1056.md"
+    "status": "excluded",
+    "reason": "Schottky bus-termination diode clamps; analog-only behavior outside the user-requested pure-digital scope.",
+    "specification": "spec/chips/ttl_74x1056.md",
+    "source_review": {
+      "url": "https://www.ti.com/lit/gpn/sn74f1056",
+      "sha256": "6af64b7fef194881d67f5027ac8a89ab397e369a2174deb9e4dadede6df04691",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x1071",
@@ -14972,10 +15023,17 @@
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Termination array / IEEE 1284 / GTLP transceiver / wider parity register — needs datasheet",
-    "specification": "spec/chips/ttl_74x1071.md"
+    "model_level": "resolved_digital_bus_keeper",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x1071.md",
+    "rtl": "src/ttl_74x1071.sv",
+    "testbench": "tb/tb_ttl_74x1071.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/gpn/sn74act1071",
+      "sha256": "bdc2dc7c0e116a701f99f409206abd89ab437fdccc9e23d5a38e4cf57090abe0",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x1073",
@@ -14990,10 +15048,17 @@
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Termination array / IEEE 1284 / GTLP transceiver / wider parity register — needs datasheet",
-    "specification": "spec/chips/ttl_74x1073.md"
+    "model_level": "resolved_digital_bus_keeper",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x1073.md",
+    "rtl": "src/ttl_74x1073.sv",
+    "testbench": "tb/tb_ttl_74x1073.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/gpn/sn74act1073",
+      "sha256": "2688fe7aa1a48f686748276c4c1ec99611406505a012882b66223a01ac67a059",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x1074",
@@ -15181,7 +15246,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Termination array / IEEE 1284 / GTLP transceiver / wider parity register — needs datasheet",
+    "reason": "Termination array / IEEE 1284 / GTLP transceiver / wider parity register \u2014 needs datasheet",
     "specification": "spec/chips/ttl_74x1284.md"
   },
   {
@@ -15197,10 +15262,24 @@
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Termination array / IEEE 1284 / GTLP transceiver / wider parity register — needs datasheet",
-    "specification": "spec/chips/ttl_74x1394.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x1394.md",
+    "rtl": "src/ttl_74x1394.sv",
+    "testbench": "tb/tb_ttl_74x1394.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/gpn/sn74gtlp1394",
+      "sha256": "e7403dad8a68d771c7601ee1faf1afe38e682987385e88f6c68196f3f22924e4",
+      "table_pages": {
+        "pin_configuration": [
+          1
+        ],
+        "functional_description_and_control_erc_tables_and_logic_diagram": [
+          3
+        ]
+      },
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x1395",
@@ -15215,10 +15294,24 @@
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Termination array / IEEE 1284 / GTLP transceiver / wider parity register — needs datasheet",
-    "specification": "spec/chips/ttl_74x1395.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x1395.md",
+    "rtl": "src/ttl_74x1395.sv",
+    "testbench": "tb/tb_ttl_74x1395.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/gpn/sn74gtlp1395",
+      "sha256": "274d732aedb6b5ae2d390063ee5d2f3f8ea8ffb0da05017c5bbefe02d7cc5016",
+      "table_pages": {
+        "pin_configuration": [
+          1
+        ],
+        "functional_description_control_erc_tables": [
+          3
+        ]
+      },
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x1403",
@@ -15253,9 +15346,15 @@
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Oscillator driver; physical/analog crystal-oscillator buffer with no clocked logic to model",
-    "specification": "spec/chips/ttl_74x1404.md"
+    "status": "excluded",
+    "reason": "Crystal/resonator oscillator driver; analog-only behavior outside the user-requested pure-digital scope.",
+    "specification": "spec/chips/ttl_74x1404.md",
+    "source_review": {
+      "url": "https://www.ti.com/lit/gpn/sn74lvc1404",
+      "sha256": "908d6eedcf2535f74bc6c22d5375dfb2cfdd2d51713c2062b41796c58368b926",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x1604",
@@ -15291,7 +15390,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
+    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x1612.md"
   },
   {
@@ -15309,7 +15408,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
+    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x1620.md"
   },
   {
@@ -15327,7 +15426,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
+    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x1621.md"
   },
   {
@@ -15345,7 +15444,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
+    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x1622.md"
   },
   {
@@ -15363,7 +15462,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
+    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x1623.md"
   },
   {
@@ -15381,7 +15480,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
+    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x1627.md"
   },
   {
@@ -15399,7 +15498,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
+    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x1631.md"
   },
   {
@@ -15550,7 +15649,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
+    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x1650.md"
   },
   {
@@ -15568,7 +15667,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
+    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x1651.md"
   },
   {
@@ -15586,7 +15685,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
+    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x1653.md"
   },
   {
@@ -15604,7 +15703,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
+    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x1655.md"
   },
   {
@@ -16012,7 +16111,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2000.md"
   },
   {
@@ -16028,10 +16127,30 @@
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x2003.md"
+    "model_level": "resolved_digital_switch_with_valid_bias",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x2003.md",
+    "rtl": "src/ttl_74x2003.sv",
+    "testbench": "tb/tb_ttl_74x2003.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/gpn/sn74gtl2003",
+      "sha256": "d59069f5fece5173b1887c89a5159df2a5a749c49582066b656b742c1d68db5f",
+      "table_pages": {
+        "pin_description": [
+          3
+        ],
+        "functional_overview_and_block_diagram": [
+          8
+        ],
+        "functional_mode_tables": [
+          9
+        ],
+        "application_bias_network": [
+          10
+        ]
+      },
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x2006",
@@ -16046,10 +16165,27 @@
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x2006.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x2006.md",
+    "rtl": "src/ttl_74x2006.sv",
+    "testbench": "tb/tb_ttl_74x2006.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/gpn/sn74gtl2006",
+      "sha256": "e37c0c4e05c20151195af441ed8f52b20e8fe96156cd020d55bf33138c01c839",
+      "table_pages": {
+        "pin_description": [
+          1
+        ],
+        "function_tables": [
+          2
+        ],
+        "logic_symbol": [
+          3
+        ]
+      },
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x2007",
@@ -16064,10 +16200,27 @@
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x2007.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x2007.md",
+    "rtl": "src/ttl_74x2007.sv",
+    "testbench": "tb/tb_ttl_74x2007.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/gpn/sn74gtl2007",
+      "sha256": "09f62f4fde263b3a1477e06cb9d42f5a2b8be7f7080ba32e6f4328ffbcb180da",
+      "table_pages": {
+        "pin_description": [
+          1
+        ],
+        "function_tables": [
+          2
+        ],
+        "logic_symbol": [
+          3
+        ]
+      },
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x2010",
@@ -16082,10 +16235,30 @@
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x2010.md"
+    "model_level": "resolved_digital_switch_with_valid_bias",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x2010.md",
+    "rtl": "src/ttl_74x2010.sv",
+    "testbench": "tb/tb_ttl_74x2010.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/gpn/sn74gtl2010",
+      "sha256": "9abbafd1f198454d42e1af0d74192721af79b80165cd6f917e6076faaa253ddb",
+      "table_pages": {
+        "pin_description": [
+          1,
+          2
+        ],
+        "functional_mode_tables_and_clamp_schematic": [
+          3
+        ],
+        "application_bias_network": [
+          8,
+          9,
+          10
+        ]
+      },
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x2014",
@@ -16100,10 +16273,24 @@
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x2014.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x2014.md",
+    "rtl": "src/ttl_74x2014.sv",
+    "testbench": "tb/tb_ttl_74x2014.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/gpn/sn74gtl2014",
+      "sha256": "9ed0085fb4ab79e196a8cee8282d70c9bc08a20b2ffb7ff98717d4a9eb0ea889",
+      "table_pages": {
+        "pin_configuration_and_functions": [
+          3
+        ],
+        "functional_block_diagram_and_modes": [
+          8
+        ]
+      },
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x2031",
@@ -16120,7 +16307,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2031.md"
   },
   {
@@ -16138,7 +16325,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2032.md"
   },
   {
@@ -16156,7 +16343,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2034.md"
   },
   {
@@ -16174,7 +16361,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2040.md"
   },
   {
@@ -16192,7 +16379,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2041.md"
   },
   {
@@ -16208,17 +16395,34 @@
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x2107.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x2107.md",
+    "rtl": "src/ttl_74x2107.sv",
+    "testbench": "tb/tb_ttl_74x2107.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/gpn/sn74gtl2107",
+      "sha256": "a5ca5c00aef371686ab93c718d824022612a93851c9eb2994991538df4d31ebd",
+      "table_pages": {
+        "pin_description": [
+          1
+        ],
+        "function_tables": [
+          2
+        ],
+        "logic_symbol": [
+          3
+        ]
+      },
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x2125",
     "aliases": [],
     "description": "quad bus buffer",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "TC74VCX2125",
     "datasheet_url": "https://datasheet.datasheetarchive.com/originals/distributors/Datasheets-2/DSA-33230.pdf",
     "number": 2125,
@@ -16267,7 +16471,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2150.md"
   },
   {
@@ -16285,7 +16489,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2152.md"
   },
   {
@@ -16303,7 +16507,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2154.md"
   },
   {
@@ -16321,7 +16525,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2155.md"
   },
   {
@@ -16339,7 +16543,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2156.md"
   },
   {
@@ -16357,7 +16561,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2158.md"
   },
   {
@@ -16375,7 +16579,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2159.md"
   },
   {
@@ -16393,7 +16597,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2160.md"
   },
   {
@@ -16401,7 +16605,7 @@
     "aliases": [],
     "description": "synchronous presettable 4-bit binary counter, asynchronous clear",
     "input_features": "",
-    "output_features": "25 Ω series resistor",
+    "output_features": "25 \u03a9 series resistor",
     "datasheet": "QS74FCT2161T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n313",
     "number": 2161,
@@ -16430,7 +16634,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2164.md"
   },
   {
@@ -16448,7 +16652,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2166.md"
   },
   {
@@ -16456,7 +16660,7 @@
     "aliases": [],
     "description": "synchronous presettable 4-bit binary up/down counter, up/down direction pin",
     "input_features": "",
-    "output_features": "25 Ω series resistor",
+    "output_features": "25 \u03a9 series resistor",
     "datasheet": "QS74FCT2191T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n321",
     "number": 2191,
@@ -16475,7 +16679,7 @@
     "aliases": [],
     "description": "synchronous presettable 4-bit binary counter, separate up/down clocks",
     "input_features": "",
-    "output_features": "25 Ω series resistor",
+    "output_features": "25 \u03a9 series resistor",
     "datasheet": "QS74FCT2193T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n329",
     "number": 2193,
@@ -16674,7 +16878,7 @@
     "aliases": [],
     "description": "dual 4-bit bidirectional buffer / line driver, inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "SN74BCT2240",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBookerfaceLogicDataBook_4501982/page/n81",
     "number": 2240,
@@ -16693,7 +16897,7 @@
     "aliases": [],
     "description": "dual 4-bit bidirectional buffer / line driver, non-inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "SN74BCT2241",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBookerfaceLogicDataBook_4501982/page/n85",
     "number": 2241,
@@ -16712,7 +16916,7 @@
     "aliases": [],
     "description": "4-bit bus transceiver, inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "SN74ALS2242",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBooktaBook_60160366/page/n951",
     "number": 2242,
@@ -16731,7 +16935,7 @@
     "aliases": [],
     "description": "4-bit bus transceiver, non-inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "74F2243",
     "datasheet_url": "https://datasheet.datasheetarchive.com/originals/distributors/Datasheets-11/DSA-209724.pdf",
     "number": 2243,
@@ -16750,7 +16954,7 @@
     "aliases": [],
     "description": "dual 4-bit buffer / line driver, non-inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "SN74BCT2244",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBookerfaceLogicDataBook_4501982/page/n89",
     "number": 2244,
@@ -16769,7 +16973,7 @@
     "aliases": [],
     "description": "octal bus transceiver",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "SN74ABT2245",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBookiCMOSTechnologyDataBook_40217042/page/n599",
     "number": 2245,
@@ -16788,7 +16992,7 @@
     "aliases": [],
     "description": "dual 4-line to 1-line multiplexer",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "CD74FCT2253",
     "datasheet_url": "https://archive.org/details/bitsavers_harrisdataCTLogic_25505286/page/n191",
     "number": 2253,
@@ -16807,7 +17011,7 @@
     "aliases": [],
     "description": "quad 2-line to 1-line multiplexer",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "CD74FCT2257",
     "datasheet_url": "https://archive.org/details/bitsavers_harrisdataCTLogic_25505286/page/n197",
     "number": 2257,
@@ -16826,7 +17030,7 @@
     "aliases": [],
     "description": "octal D-type flip-flop, shared clock and clear",
     "input_features": "",
-    "output_features": "25 Ω series resistor",
+    "output_features": "25 \u03a9 series resistor",
     "datasheet": "CD74FCT2273",
     "datasheet_url": "https://archive.org/details/bitsavers_harrisdataCTLogic_25505286/page/n215",
     "number": 2273,
@@ -16845,7 +17049,7 @@
     "aliases": [],
     "description": "8-bit universal shift register",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "QS74FCT2299T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n363",
     "number": 2299,
@@ -16866,23 +17070,30 @@
     "input_features": "",
     "output_features": "",
     "datasheet": "SN74LS2323",
-    "datasheet_url": "http://www.ti.com/lit/gpn/sn74ls2323",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74ls2323.pdf",
     "number": 2323,
     "module": "ttl_74x2323",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x2323.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x2323.md",
+    "rtl": "src/ttl_74x2323.sv",
+    "testbench": "tb/tb_ttl_74x2323.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74ls2323.pdf",
+      "sha256": "bbd80a1f705d5f090e68a2ede0d843dc0329fe8b519bba0240b2a5422b9c9485",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x2373",
     "aliases": [],
     "description": "8-bit transparent latch",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "CD74FCT2373",
     "datasheet_url": "https://archive.org/details/bitsavers_harrisdataCTLogic_25505286/page/n219",
     "number": 2373,
@@ -16901,7 +17112,7 @@
     "aliases": [],
     "description": "octal D-type flip-flop, shared clock",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "CD74FCT2374",
     "datasheet_url": "https://archive.org/details/bitsavers_harrisdataCTLogic_25505286/page/n227",
     "number": 2374,
@@ -16920,7 +17131,7 @@
     "aliases": [],
     "description": "8-bit register, clock enable",
     "input_features": "",
-    "output_features": "25 Ω series resistor",
+    "output_features": "25 \u03a9 series resistor",
     "datasheet": "QS74FCT2377T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n381",
     "number": 2377,
@@ -16958,7 +17169,7 @@
     "aliases": [],
     "description": "11-bit MOS memory driver, non-inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "SN74BCT2410",
     "datasheet_url": "https://archive.org/details/TexasInstruments-TI-Data-AdvancedLogicandBusInterfaceLogic1991OCR/page/n747",
     "number": 2410,
@@ -16968,7 +17179,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2410.md"
   },
   {
@@ -16976,7 +17187,7 @@
     "aliases": [],
     "description": "11-bit MOS memory driver, inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "SN74BCT2411",
     "datasheet_url": "https://archive.org/details/TexasInstruments-TI-Data-AdvancedLogicandBusInterfaceLogic1991OCR/page/n749",
     "number": 2411,
@@ -16986,7 +17197,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2411.md"
   },
   {
@@ -16996,16 +17207,23 @@
     "input_features": "",
     "output_features": "",
     "datasheet": "SN74BCT2414",
-    "datasheet_url": "https://datasheet.datasheetarchive.com/originals/distributors/Datasheets-17/DSA-337707.pdf",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74bct2414.pdf",
     "number": 2414,
     "module": "ttl_74x2414",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x2414.md"
+    "model_level": "digital_decoder_with_normalized_supply_detector",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x2414.md",
+    "rtl": "src/ttl_74x2414.sv",
+    "testbench": "tb/tb_ttl_74x2414.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74bct2414.pdf",
+      "sha256": "b2e5436ceee24dcd7c403d806b9674bdbd5267dde6ed46ed29890cbfe9606509",
+      "table_pages": "1\u20133; positive logic diagram printed 2-3",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x2420",
@@ -17022,7 +17240,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2420.md"
   },
   {
@@ -17040,7 +17258,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2423.md"
   },
   {
@@ -17058,7 +17276,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2424.md"
   },
   {
@@ -17076,7 +17294,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2425.md"
   },
   {
@@ -17094,7 +17312,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2440.md"
   },
   {
@@ -17112,7 +17330,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2441.md"
   },
   {
@@ -17130,7 +17348,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2442.md"
   },
   {
@@ -17184,7 +17402,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2525.md"
   },
   {
@@ -17202,7 +17420,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2526.md"
   },
   {
@@ -17210,7 +17428,7 @@
     "aliases": [],
     "description": "8-bit bus interface latch, inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "QS74FCT2533T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n369",
     "number": 2533,
@@ -17229,7 +17447,7 @@
     "aliases": [],
     "description": "8-bit bus interface register, inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "QS74FCT2534T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n375",
     "number": 2534,
@@ -17248,7 +17466,7 @@
     "aliases": [],
     "description": "8-bit buffer / line driver, inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "SN74ALS2540",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBooktaBook_60160366/page/n955",
     "number": 2540,
@@ -17267,7 +17485,7 @@
     "aliases": [],
     "description": "8-bit buffer / line driver, non-inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "SN74ALS2541",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBooktaBook_60160366/page/n955",
     "number": 2541,
@@ -17286,7 +17504,7 @@
     "aliases": [],
     "description": "8-bit latched transceiver, non-inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "QS74FCT2543T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n399",
     "number": 2543,
@@ -17305,7 +17523,7 @@
     "aliases": [],
     "description": "8-bit latched transceiver, inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "QS74FCT2544T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n399",
     "number": 2544,
@@ -17324,7 +17542,7 @@
     "aliases": [],
     "description": "8-bit transparent latch",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "QS74FCT2573T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n407",
     "number": 2573,
@@ -17343,7 +17561,7 @@
     "aliases": [],
     "description": "octal D-type flip-flop, shared clock",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "QS74FCT2574T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n413",
     "number": 2574,
@@ -17362,7 +17580,7 @@
     "aliases": [],
     "description": "octal bus transceiver / MOS driver, inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "SN74AS2620",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBookVol3_25840031/page/n763",
     "number": 2620,
@@ -17372,7 +17590,7 @@
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet",
+    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x2620.md"
   },
   {
@@ -17380,7 +17598,7 @@
     "aliases": [],
     "description": "octal bus transceiver / MOS driver, non-inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "SN74AS2623",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBookVol3_25840031/page/n763",
     "number": 2623,
@@ -17399,7 +17617,7 @@
     "aliases": [],
     "description": "octal bus transceiver / MOS driver, inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "SN74AS2640",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBookVol3_25840031/page/n767",
     "number": 2640,
@@ -17418,7 +17636,7 @@
     "aliases": [],
     "description": "octal bus transceiver, mix of inverting and non-inverting outputs",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "74F2643",
     "datasheet_url": "https://datasheet.datasheetarchive.com/originals/distributors/Datasheets-22/DSA-425742.pdf",
     "number": 2643,
@@ -17437,7 +17655,7 @@
     "aliases": [],
     "description": "octal bus transceiver / MOS driver, non-inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "SN74AS2645",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBookVol3_25840031/page/n767",
     "number": 2645,
@@ -17456,7 +17674,7 @@
     "aliases": [],
     "description": "octal registered transceiver, non-inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "QS74FCT2646T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n419",
     "number": 2646,
@@ -17475,7 +17693,7 @@
     "aliases": [],
     "description": "octal registered transceiver, inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "QS74FCT2648T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n419",
     "number": 2648,
@@ -17494,7 +17712,7 @@
     "aliases": [],
     "description": "octal registered transceiver, inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "QS74FCT2651T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n427",
     "number": 2651,
@@ -17513,7 +17731,7 @@
     "aliases": [],
     "description": "octal registered transceiver, non-inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "QS74FCT2652T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n427",
     "number": 2652,
@@ -17592,7 +17810,7 @@
     "aliases": [],
     "description": "10-bit D-type flip-flop",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "QS74FCT2821T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n435",
     "number": 2821,
@@ -17611,7 +17829,7 @@
     "aliases": [],
     "description": "9-bit D-type flip-flop with clear",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "QS74FCT2823T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n435",
     "number": 2823,
@@ -17630,7 +17848,7 @@
     "aliases": [],
     "description": "8-bit D-type flip-flop with clear and clock enable",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "QS74FCT2825T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n435",
     "number": 2825,
@@ -17649,7 +17867,7 @@
     "aliases": [],
     "description": "10-bit buffer, non-inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "SN74BCT2827A",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBookerfaceLogicDataBook_4501982/page/n93",
     "number": 2827,
@@ -17668,7 +17886,7 @@
     "aliases": [],
     "description": "10-bit buffer, inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "SN74BCT2828A",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBookerfaceLogicDataBook_4501982/page/n93",
     "number": 2828,
@@ -17687,7 +17905,7 @@
     "aliases": [],
     "description": "8-bit bus transceiver with parity error flip-flop",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "QS74FCT2833T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n451",
     "number": 2833,
@@ -17706,7 +17924,7 @@
     "aliases": [],
     "description": "10-bit transparent latch",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "QS74FCT2841T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n453",
     "number": 2841,
@@ -17725,7 +17943,7 @@
     "aliases": [],
     "description": "9-bit transparent latch with asynchronous reset",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "QS74FCT2843T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n453",
     "number": 2843,
@@ -17744,7 +17962,7 @@
     "aliases": [],
     "description": "8-bit transparent latch with asynchronous reset and multiple output enable",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "QS74FCT2845T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n453",
     "number": 2845,
@@ -17763,7 +17981,7 @@
     "aliases": [],
     "description": "8-bit bus transceiver with parity error latch",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "QS74FCT2853T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n451",
     "number": 2853,
@@ -17782,7 +18000,7 @@
     "aliases": [],
     "description": "10-bit non-inverting bus transceiver",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "QS74FCT2861T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n463",
     "number": 2861,
@@ -17801,7 +18019,7 @@
     "aliases": [],
     "description": "10-bit inverting bus transceiver",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "QS74FCT2862T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n463",
     "number": 2862,
@@ -17820,7 +18038,7 @@
     "aliases": [],
     "description": "9-bit non-inverting bus transceiver with dual output enable",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "QS74FCT2863T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n463",
     "number": 2863,
@@ -17839,7 +18057,7 @@
     "aliases": [],
     "description": "9-bit inverting bus transceiver with dual output enable",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "QS74FCT2864T",
     "datasheet_url": "https://archive.org/details/QualitySemiconductor-1991DatabookOCR/page/n463",
     "number": 2864,
@@ -18035,16 +18253,22 @@
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "GTL voltage reference; analog 1.0V/1.2V reference generator with no digital logic",
-    "specification": "spec/chips/ttl_74x3004.md"
+    "status": "excluded",
+    "reason": "Selectable analog GTL reference voltage; analog-only behavior outside the user-requested pure-digital scope.",
+    "specification": "spec/chips/ttl_74x3004.md",
+    "source_review": {
+      "url": "https://www.ti.com/lit/gpn/sn74gtl3004",
+      "sha256": "5bd97d5f2d3e8e5836c89e669fd8bf85f6e195553bfc567223327e66af6a2caa",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x3037",
     "aliases": [],
     "description": "quad 2-input NAND gate",
     "input_features": "",
-    "output_features": "driver 30 Ω",
+    "output_features": "driver 30 \u03a9",
     "datasheet": "74F3037",
     "datasheet_url": "https://archive.org/details/bitsavers_signeticsdaManual_57966640/page/n951",
     "number": 3037,
@@ -18063,7 +18287,7 @@
     "aliases": [],
     "description": "quad 2-input NAND gate",
     "input_features": "",
-    "output_features": "open-collector driver 30 Ω",
+    "output_features": "open-collector driver 30 \u03a9",
     "datasheet": "74F3038",
     "datasheet_url": "https://archive.org/details/bitsavers_signeticsdaManual_57966640/page/n955",
     "number": 3038,
@@ -18082,7 +18306,7 @@
     "aliases": [],
     "description": "dual 4-input NAND gate",
     "input_features": "",
-    "output_features": "driver 30 Ω",
+    "output_features": "driver 30 \u03a9",
     "datasheet": "74F3040",
     "datasheet_url": "https://archive.org/details/bitsavers_signeticsdaManual_57966640/page/n959",
     "number": 3040,
@@ -18103,16 +18327,23 @@
     "input_features": "",
     "output_features": "",
     "datasheet": "SN74CBT3125",
-    "datasheet_url": "https://archive.org/details/TexasInstruments-TI-Data-CBT5-VandCBTLV3.3-VBusSwitches1998OCR/page/n45",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt3125.pdf",
     "number": 3125,
     "module": "ttl_74x3125",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Quad FET bus switch; physical switch with no logical model, like 74CBT3245",
-    "specification": "spec/chips/ttl_74x3125.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x3125.md",
+    "rtl": "src/ttl_74x3125.sv",
+    "testbench": "tb/tb_ttl_74x3125.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt3125.pdf",
+      "sha256": "eedb0fbb7e5d69f10d8bd14b365a7bbb0dd0bfc2e27289cb397551f589859744",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x3126",
@@ -18121,16 +18352,23 @@
     "input_features": "",
     "output_features": "",
     "datasheet": "SN74CBT3126",
-    "datasheet_url": "https://archive.org/details/TexasInstruments-TI-Data-CBT5-VandCBTLV3.3-VBusSwitches1998OCR/page/n49",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt3126.pdf",
     "number": 3126,
     "module": "ttl_74x3126",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Quad FET bus switch, OE active high; physical switch with no logical model",
-    "specification": "spec/chips/ttl_74x3126.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x3126.md",
+    "rtl": "src/ttl_74x3126.sv",
+    "testbench": "tb/tb_ttl_74x3126.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt3126.pdf",
+      "sha256": "d5b05b648fe51612730fafa44da88d30620c7f97487b3c9de0224ef5c6bbbb30",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x3251",
@@ -18139,16 +18377,23 @@
     "input_features": "",
     "output_features": "",
     "datasheet": "SN74CBT3251",
-    "datasheet_url": "https://archive.org/details/TexasInstruments-TI-Data-CBT5-VandCBTLV3.3-VBusSwitches1998OCR/page/n69",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt3251.pdf",
     "number": 3251,
     "module": "ttl_74x3251",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "8-to-1 FET multiplexer/demultiplexer; analog FET switch, not modeled",
-    "specification": "spec/chips/ttl_74x3251.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x3251.md",
+    "rtl": "src/ttl_74x3251.sv",
+    "testbench": "tb/tb_ttl_74x3251.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt3251.pdf",
+      "sha256": "517489c113579e8c785f11b701a117e72ea27b1652ff3a32fa4ecb67f3664a97",
+      "table_pages": "7",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x3253",
@@ -18157,16 +18402,23 @@
     "input_features": "",
     "output_features": "",
     "datasheet": "SN74CBT3253",
-    "datasheet_url": "https://archive.org/details/TexasInstruments-TI-Data-CBT5-VandCBTLV3.3-VBusSwitches1998OCR/page/n73",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt3253.pdf",
     "number": 3253,
     "module": "ttl_74x3253",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Dual 4-to-1 FET multiplexer/demultiplexer; analog FET switch, not modeled",
-    "specification": "spec/chips/ttl_74x3253.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x3253.md",
+    "rtl": "src/ttl_74x3253.sv",
+    "testbench": "tb/tb_ttl_74x3253.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt3253.pdf",
+      "sha256": "e6985bcba97d587dacd05d8953af8ab97a02819429ecca1c337e9889eb1e8f99",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x3257",
@@ -18174,17 +18426,24 @@
     "description": "quad 2-line to 1-line FET multiplexer / demultiplexer",
     "input_features": "",
     "output_features": "",
-    "datasheet": "IDT74FST3257",
-    "datasheet_url": "https://archive.org/details/bitsavers_idtdataBoomanceLogicDataBook_51362967/page/n651",
+    "datasheet": "SN74CBT3257",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt3257.pdf",
     "number": 3257,
     "module": "ttl_74x3257",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Quad 2-to-1 FET multiplexer/demultiplexer; analog FET switch, not modeled",
-    "specification": "spec/chips/ttl_74x3257.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x3257.md",
+    "rtl": "src/ttl_74x3257.sv",
+    "testbench": "tb/tb_ttl_74x3257.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt3257.pdf",
+      "sha256": "71e61043466ffef3bd8725988d2140eb9b751f8ab3fa261129ce725c89cdff6b",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x3283",
@@ -18231,16 +18490,23 @@
     "input_features": "",
     "output_features": "",
     "datasheet": "SN74CBT3305C",
-    "datasheet_url": "https://www.ti.com/lit/gpn/sn74cbt3305c",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt3305c.pdf",
     "number": 3305,
     "module": "ttl_74x3305",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Dual FET bus switch with extended voltage range; analog FET switch",
-    "specification": "spec/chips/ttl_74x3305.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x3305.md",
+    "rtl": "src/ttl_74x3305.sv",
+    "testbench": "tb/tb_ttl_74x3305.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt3305c.pdf",
+      "sha256": "96456caabbbe6397aa8b58d7e99f5a512c936084c86b868c375eda41ec667450",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x3306",
@@ -18249,16 +18515,23 @@
     "input_features": "",
     "output_features": "",
     "datasheet": "SN74CBT3306",
-    "datasheet_url": "https://archive.org/details/TexasInstruments-TI-Data-CBT5-VandCBTLV3.3-VBusSwitches1998OCR/page/n85",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt3306.pdf",
     "number": 3306,
     "module": "ttl_74x3306",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Dual FET bus switch; analog FET switch",
-    "specification": "spec/chips/ttl_74x3306.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x3306.md",
+    "rtl": "src/ttl_74x3306.sv",
+    "testbench": "tb/tb_ttl_74x3306.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt3306.pdf",
+      "sha256": "305f77732da9137498eaabc5909df2ee413298199434a9463197b8efd6a3a8af",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x3345",
@@ -18267,16 +18540,23 @@
     "input_features": "",
     "output_features": "",
     "datasheet": "SN74CBT3345",
-    "datasheet_url": "https://archive.org/details/TexasInstruments-TI-Data-CBT5-VandCBTLV3.3-VBusSwitches1998OCR/page/n89",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt3345.pdf",
     "number": 3345,
     "module": "ttl_74x3345",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Octal FET bus switch with dual OE; analog FET switch",
-    "specification": "spec/chips/ttl_74x3345.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x3345.md",
+    "rtl": "src/ttl_74x3345.sv",
+    "testbench": "tb/tb_ttl_74x3345.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt3345.pdf",
+      "sha256": "e654e5603a0327803247707f9f4bea43fee8d7c457a85bf49a08951fcd95da10",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x3374",
@@ -18303,17 +18583,24 @@
     "description": "5-bit 4-port FET bus exchange switch",
     "input_features": "",
     "output_features": "",
-    "datasheet": "IDT74FST3383",
-    "datasheet_url": "https://archive.org/details/bitsavers_idtdataBoomanceLogicDataBook_51362967/page/n655",
+    "datasheet": "SN74CBT3383",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt3383.pdf",
     "number": 3383,
     "module": "ttl_74x3383",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "5-bit 4-port FET bus exchange switch; analog FET switch crossbar",
-    "specification": "spec/chips/ttl_74x3383.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x3383.md",
+    "rtl": "src/ttl_74x3383.sv",
+    "testbench": "tb/tb_ttl_74x3383.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt3383.pdf",
+      "sha256": "7b570c6029a0dda5367a71ab3722960dbe9a9ef837847dc04351c97e96df77d9",
+      "table_pages": "7",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x3384",
@@ -18321,17 +18608,24 @@
     "description": "dual 5-bit FET bus switch",
     "input_features": "",
     "output_features": "",
-    "datasheet": "IDT74FST3384",
-    "datasheet_url": "https://archive.org/details/bitsavers_idtdataBoomanceLogicDataBook_51362967/page/n509",
+    "datasheet": "SN74CBT3384A",
+    "datasheet_url": "https://www.ti.com/lit/ug/scdd003a/scdd003a.pdf",
     "number": 3384,
     "module": "ttl_74x3384",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Dual 5-bit FET bus switch; analog FET switch",
-    "specification": "spec/chips/ttl_74x3384.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x3384.md",
+    "rtl": "src/ttl_74x3384.sv",
+    "testbench": "tb/tb_ttl_74x3384.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ug/scdd003a/scdd003a.pdf",
+      "sha256": "69680932598374d1b7ebce96c19ed4879b2fad4753b566ede5eca36d0012f390",
+      "table_pages": "PDF 537\u2013538 / printed 5-53\u20135-54",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x3386",
@@ -18709,16 +19003,23 @@
     "input_features": "",
     "output_features": "",
     "datasheet": "SN74CBT3861",
-    "datasheet_url": "https://archive.org/details/TexasInstruments-TI-Data-CBT5-VandCBTLV3.3-VBusSwitches1998OCR/page/n121",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt3861.pdf",
     "number": 3861,
     "module": "ttl_74x3861",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "10-bit FET bus switch; analog FET switch",
-    "specification": "spec/chips/ttl_74x3861.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x3861.md",
+    "rtl": "src/ttl_74x3861.sv",
+    "testbench": "tb/tb_ttl_74x3861.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt3861.pdf",
+      "sha256": "6f31e09b5779967fad11d7339f05db0046fcf98b7da7f88e24e67fcddc165af2",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x3862",
@@ -18844,14 +19145,20 @@
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Quad bilateral analog switch; CMOS transmission gates, not modeled digitally",
-    "specification": "spec/chips/ttl_74x4016.md"
+    "status": "excluded",
+    "reason": "Bilateral analog switches; analog-only behavior outside the user-requested pure-digital scope.",
+    "specification": "spec/chips/ttl_74x4016.md",
+    "source_review": {
+      "url": "https://www.ti.com/lit/gpn/cd74hc4016",
+      "sha256": "ca0ef8d9f9f47dc00e7ca9aa4c99550efb4c402ddefc1c1746ebd9403ac9c4b9",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x4017",
     "aliases": [],
-    "description": "5-stage ÷10 Johnson counter",
+    "description": "5-stage \u00f710 Johnson counter",
     "input_features": "",
     "output_features": "",
     "datasheet": "CD74HC4017",
@@ -18889,7 +19196,7 @@
   {
     "part_number": "74x4022",
     "aliases": [],
-    "description": "4-stage ÷8 Johnson counter",
+    "description": "4-stage \u00f78 Johnson counter",
     "input_features": "",
     "output_features": "",
     "datasheet": "SN74HC4022",
@@ -19078,17 +19385,37 @@
     "description": "programmable divide-by-N counter",
     "input_features": "",
     "output_features": "",
-    "datasheet": "CD74HC4059",
+    "datasheet": "TI CD74HC4059, SCHS206B, revised May 2003",
     "datasheet_url": "https://www.ti.com/lit/gpn/cd74hc4059",
     "number": 4059,
     "module": "ttl_74x4059",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Reference generic binary divider omits the programmed BCD/mode decoding.",
-    "specification": "spec/chips/ttl_74x4059.md"
+    "model_level": "manufacturer_digital_counter_with_native_latch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x4059.md",
+    "rtl": "src/ttl_74x4059.sv",
+    "testbench": "tb/tb_ttl_74x4059.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/gpn/cd74hc4059",
+      "sha256": "978743573F24A3801075948B497C3E73E13BE0E0CCC00A3DEBBF234DC971F175",
+      "table_pages": {
+        "mode_select_and_counter_ranges": 2,
+        "preset_equation_and_jam_example": 3,
+        "operating_and_master_preset_behavior": [
+          1,
+          2
+        ],
+        "clock_and_output_timing": [
+          2,
+          5
+        ],
+        "latch_enable_hold_description": 2,
+        "latch_enable_to_q_propagation_delay": 5
+      },
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x4060",
@@ -19877,7 +20204,7 @@
     "aliases": [],
     "description": "11-bit line/memory driver, non-inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "SN74ABT5400",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBookiCMOSTechnologyDataBook_40217042/page/n605",
     "number": 5400,
@@ -19896,7 +20223,7 @@
     "aliases": [],
     "description": "11-bit line/memory driver, inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "SN74ABT5401",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBookiCMOSTechnologyDataBook_40217042/page/n609",
     "number": 5401,
@@ -19915,7 +20242,7 @@
     "aliases": [],
     "description": "12-bit line/memory driver, non-inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "SN74ABT5402",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBookiCMOSTechnologyDataBook_40217042/page/n613",
     "number": 5402,
@@ -19934,7 +20261,7 @@
     "aliases": [],
     "description": "12-bit line/memory driver, inverting",
     "input_features": "",
-    "output_features": "three-state, 25 Ω series resistor",
+    "output_features": "three-state, 25 \u03a9 series resistor",
     "datasheet": "SN74ABT5403",
     "datasheet_url": "https://archive.org/details/bitsavers_tidataBookiCMOSTechnologyDataBook_40217042/page/n617",
     "number": 5403,
@@ -19998,10 +20325,30 @@
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Logic-to-logic optocoupler; opto-isolator physical device",
-    "specification": "spec/chips/ttl_74x6000.md"
+    "model_level": "manufacturer_boolean_opto_function",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x6000.md",
+    "rtl": "src/ttl_74x6000.sv",
+    "testbench": "tb/tb_ttl_74x6000.sv",
+    "source_review": {
+      "url": "https://datasheet.datasheetarchive.com/originals/distributors/Datasheets-12/DSA-229129.pdf",
+      "sha256": "e679d900d8703c47300897723a4bc37b366d09627dff0b668525de760e3bdebf",
+      "table_pages": {
+        "device_description_and_internal_input_amplifier_led": [
+          1
+        ],
+        "package_pin_map_and_device_configuration_table": [
+          2
+        ],
+        "ttl_output_test_conditions": [
+          4
+        ],
+        "cmos_open_collector_output_characteristics": [
+          5
+        ]
+      },
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x6001",
@@ -20016,10 +20363,30 @@
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Logic-to-logic optocoupler (inverting); opto-isolator physical device",
-    "specification": "spec/chips/ttl_74x6001.md"
+    "model_level": "manufacturer_boolean_opto_function",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x6001.md",
+    "rtl": "src/ttl_74x6001.sv",
+    "testbench": "tb/tb_ttl_74x6001.sv",
+    "source_review": {
+      "url": "https://datasheet.datasheetarchive.com/originals/distributors/Datasheets-12/DSA-229129.pdf",
+      "sha256": "e679d900d8703c47300897723a4bc37b366d09627dff0b668525de760e3bdebf",
+      "table_pages": {
+        "device_description_and_internal_input_amplifier_led": [
+          1
+        ],
+        "package_pin_map_and_device_configuration_table": [
+          2
+        ],
+        "ttl_output_test_conditions": [
+          4
+        ],
+        "cmos_open_collector_output_characteristics": [
+          5
+        ]
+      },
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x6010",
@@ -20034,10 +20401,30 @@
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Logic-to-logic optocoupler; opto-isolator physical device",
-    "specification": "spec/chips/ttl_74x6010.md"
+    "model_level": "manufacturer_boolean_opto_function",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x6010.md",
+    "rtl": "src/ttl_74x6010.sv",
+    "testbench": "tb/tb_ttl_74x6010.sv",
+    "source_review": {
+      "url": "https://datasheet.datasheetarchive.com/originals/distributors/Datasheets-12/DSA-229129.pdf",
+      "sha256": "e679d900d8703c47300897723a4bc37b366d09627dff0b668525de760e3bdebf",
+      "table_pages": {
+        "device_description_and_internal_input_amplifier_led": [
+          1
+        ],
+        "package_pin_map_and_device_configuration_table": [
+          2
+        ],
+        "ttl_output_test_conditions": [
+          4
+        ],
+        "cmos_open_collector_output_characteristics": [
+          5
+        ]
+      },
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x6011",
@@ -20052,10 +20439,30 @@
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Logic-to-logic optocoupler (inverting); opto-isolator physical device",
-    "specification": "spec/chips/ttl_74x6011.md"
+    "model_level": "manufacturer_boolean_opto_function",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x6011.md",
+    "rtl": "src/ttl_74x6011.sv",
+    "testbench": "tb/tb_ttl_74x6011.sv",
+    "source_review": {
+      "url": "https://datasheet.datasheetarchive.com/originals/distributors/Datasheets-12/DSA-229129.pdf",
+      "sha256": "e679d900d8703c47300897723a4bc37b366d09627dff0b668525de760e3bdebf",
+      "table_pages": {
+        "device_description_and_internal_input_amplifier_led": [
+          1
+        ],
+        "package_pin_map_and_device_configuration_table": [
+          2
+        ],
+        "ttl_output_test_conditions": [
+          4
+        ],
+        "cmos_open_collector_output_characteristics": [
+          5
+        ]
+      },
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x6300",
@@ -20189,17 +20596,24 @@
     "description": "10-bit FET bus switch with precharge",
     "input_features": "",
     "output_features": "",
-    "datasheet": "IDT74FST6800",
-    "datasheet_url": "https://archive.org/details/bitsavers_idtdataBoomanceLogicDataBook_51362967/page/n671",
+    "datasheet": "SN74CBT6800A",
+    "datasheet_url": "https://www.ti.com/lit/ug/scdd003a/scdd003a.pdf",
     "number": 6800,
     "module": "ttl_74x6800",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "10-bit FET bus switch with precharge; analog FET switch",
-    "specification": "spec/chips/ttl_74x6800.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x6800.md",
+    "rtl": "src/ttl_74x6800.sv",
+    "testbench": "tb/tb_ttl_74x6800.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ug/scdd003a/scdd003a.pdf",
+      "sha256": "69680932598374d1b7ebce96c19ed4879b2fad4753b566ede5eca36d0012f390",
+      "table_pages": "PDF 561\u2013562 / printed 5-77\u20135-78",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x6845",
@@ -20208,16 +20622,23 @@
     "input_features": "",
     "output_features": "",
     "datasheet": "SN74CBT6845C",
-    "datasheet_url": "https://datasheet.datasheetarchive.com/originals/distributors/Datasheets-36/DSA-711566.pdf",
+    "datasheet_url": "https://www.ti.com/lit/ug/scdd003a/scdd003a.pdf",
     "number": 6845,
     "module": "ttl_74x6845",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "8-bit FET bus switch with precharge; analog FET switch",
-    "specification": "spec/chips/ttl_74x6845.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x6845.md",
+    "rtl": "src/ttl_74x6845.sv",
+    "testbench": "tb/tb_ttl_74x6845.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ug/scdd003a/scdd003a.pdf",
+      "sha256": "69680932598374d1b7ebce96c19ed4879b2fad4753b566ede5eca36d0012f390",
+      "table_pages": "PDF 389\u2013390 / printed 4-57\u20134-58",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x7001",
@@ -20355,7 +20776,7 @@
   {
     "part_number": "74x7022",
     "aliases": [],
-    "description": "4-stage ÷8 Johnson counter with power-up clear",
+    "description": "4-stage \u00f78 Johnson counter with power-up clear",
     "input_features": "",
     "output_features": "",
     "datasheet": "SN74HC7022",
@@ -22557,7 +22978,7 @@
   {
     "part_number": "74x9510",
     "aliases": [],
-    "description": "16×16-bit multiplier/accumulator (compatible to Am29510 and TDC1010)",
+    "description": "16\u00d716-bit multiplier/accumulator (compatible to Am29510 and TDC1010)",
     "input_features": "",
     "output_features": "three-state",
     "datasheet": "534}}",
@@ -22702,7 +23123,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
+    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x1616.md"
   },
   {
@@ -22720,7 +23141,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
+    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x1645.md"
   },
   {
@@ -22729,17 +23150,24 @@
     "description": "18-bit FET bus exchange switches",
     "input_features": "",
     "output_features": "",
-    "datasheet": "CBT",
-    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt16209a.pdf",
+    "datasheet": "SN74CBT16209",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt16209.pdf",
     "number": 16209,
     "module": "ttl_74x16209",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x16209.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16209.md",
+    "rtl": "src/ttl_74x16209.sv",
+    "testbench": "tb/tb_ttl_74x16209.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt16209.pdf",
+      "sha256": "3b6a3eb1ec910bb5e8c72c5cce9ab43687f1f91afeecbc60f6e8db05fe7f92ce",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16210",
@@ -22747,17 +23175,24 @@
     "description": "20-bit FET bus switch",
     "input_features": "",
     "output_features": "",
-    "datasheet": "CBT",
+    "datasheet": "SN74CBT16210",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt16210.pdf",
     "number": 16210,
     "module": "ttl_74x16210",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x16210.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16210.md",
+    "rtl": "src/ttl_74x16210.sv",
+    "testbench": "tb/tb_ttl_74x16210.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt16210.pdf",
+      "sha256": "f23b228674fd125f307698b11a75e28b56b3ea5c2ab16c0c02a52bff4e150fd7",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16211",
@@ -22765,17 +23200,24 @@
     "description": "24-bit FET bus switch",
     "input_features": "",
     "output_features": "",
-    "datasheet": "CBT",
-    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt16211c.pdf",
+    "datasheet": "SN74CBT16211",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt16211.pdf",
     "number": 16211,
     "module": "ttl_74x16211",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x16211.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16211.md",
+    "rtl": "src/ttl_74x16211.sv",
+    "testbench": "tb/tb_ttl_74x16211.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt16211.pdf",
+      "sha256": "e4381f88431514dfa9a2410f356c344a1781e02005c6f8784c437b304e297884",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16212",
@@ -22783,17 +23225,24 @@
     "description": "24-bit FET bus exchange switches",
     "input_features": "",
     "output_features": "",
-    "datasheet": "CBT",
-    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt16212c.pdf",
+    "datasheet": "SN74CBT16212",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt16212.pdf",
     "number": 16212,
     "module": "ttl_74x16212",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x16212.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16212.md",
+    "rtl": "src/ttl_74x16212.sv",
+    "testbench": "tb/tb_ttl_74x16212.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt16212.pdf",
+      "sha256": "d39acd653e1ad4eb45e68cd0ae754b51e95f97458977dcabd389db7c6ca11310",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16213",
@@ -22801,17 +23250,24 @@
     "description": "24-bit FET bus exchange switches",
     "input_features": "",
     "output_features": "",
-    "datasheet": "CBT",
+    "datasheet": "SN74CBT16213",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt16213.pdf",
     "number": 16213,
     "module": "ttl_74x16213",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x16213.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16213.md",
+    "rtl": "src/ttl_74x16213.sv",
+    "testbench": "tb/tb_ttl_74x16213.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt16213.pdf",
+      "sha256": "ab183d765e1ac5ceb14e35a1c0213df80f03532a799af9a3cb257b7617790468",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16214",
@@ -22819,17 +23275,24 @@
     "description": "12-bit 1-of-3 FET multiplexer/demultiplexer",
     "input_features": "",
     "output_features": "",
-    "datasheet": "CBT",
+    "datasheet": "SN74CBT16214",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt16214.pdf",
     "number": 16214,
     "module": "ttl_74x16214",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x16214.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16214.md",
+    "rtl": "src/ttl_74x16214.sv",
+    "testbench": "tb/tb_ttl_74x16214.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt16214.pdf",
+      "sha256": "9f430a89feb17b18c1aa2b385a1279ca8ae5e337db174db2f5d38c965d27bea8",
+      "table_pages": "9",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16222",
@@ -22855,17 +23318,24 @@
     "description": "synchronous 16-bit 1-of-2 FET multiplexer/demultiplexer",
     "input_features": "",
     "output_features": "",
-    "datasheet": "CBT",
+    "datasheet": "SN74CBT16232",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt16232.pdf",
     "number": 16232,
     "module": "ttl_74x16232",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x16232.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16232.md",
+    "rtl": "src/ttl_74x16232.sv",
+    "testbench": "tb/tb_ttl_74x16232.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt16232.pdf",
+      "sha256": "e4e64ca034894475daf44b1c35495173960d2f4862e82de14a08c0fe5079a20a",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16233",
@@ -22873,17 +23343,24 @@
     "description": "16-bit 1-of-2 FET multiplexer/demultiplexer",
     "input_features": "",
     "output_features": "",
-    "datasheet": "CBT",
+    "datasheet": "SN74CBT16233",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt16233.pdf",
     "number": 16233,
     "module": "ttl_74x16233",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x16233.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16233.md",
+    "rtl": "src/ttl_74x16233.sv",
+    "testbench": "tb/tb_ttl_74x16233.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt16233.pdf",
+      "sha256": "204c0cc9cd6ba93edc2b1b1a4f118c6e7d0695706eb860d04e51417a27bfede1",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16240",
@@ -22919,7 +23396,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
+    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x16241.md"
   },
   {
@@ -22975,7 +23452,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
+    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x16246.md"
   },
   {
@@ -22993,7 +23470,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
+    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x16260.md"
   },
   {
@@ -23011,7 +23488,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
+    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x16269.md"
   },
   {
@@ -23029,7 +23506,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
+    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x16270.md"
   },
   {
@@ -23047,7 +23524,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
+    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x16271.md"
   },
   {
@@ -23065,7 +23542,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
+    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x16282.md"
   },
   {
@@ -23074,17 +23551,24 @@
     "description": "12-bit 1-of-2 FET multiplexer/demultiplexer",
     "input_features": "",
     "output_features": "",
-    "datasheet": "CBT",
+    "datasheet": "SN74CBT16292",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt16292.pdf",
     "number": 16292,
     "module": "ttl_74x16292",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x16292.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16292.md",
+    "rtl": "src/ttl_74x16292.sv",
+    "testbench": "tb/tb_ttl_74x16292.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt16292.pdf",
+      "sha256": "83934dc3fd6defb5f4a9f820047fee89b6c9d5353e3785e2f6289a6de02929b3",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16334",
@@ -23092,17 +23576,24 @@
     "description": "16-bit universal bus driver",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ALVC",
+    "datasheet": "SN74ALVC16334",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74alvc16334.pdf",
     "number": 16334,
     "module": "ttl_74x16334",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x16334.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16334.md",
+    "rtl": "src/ttl_74x16334.sv",
+    "testbench": "tb/tb_ttl_74x16334.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74alvc16334.pdf",
+      "sha256": "66ab6c9b7ceb0dada6378f5df12f004301bc42d444928b158add2e1e685d768d",
+      "table_pages": "1\u20133",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16344",
@@ -23110,17 +23601,24 @@
     "description": "1-bit to 4-bit address driver",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ALVCH",
+    "datasheet": "SN74ALVCH16344",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74alvch16344.pdf",
     "number": 16344,
     "module": "ttl_74x16344",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x16344.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16344.md",
+    "rtl": "src/ttl_74x16344.sv",
+    "testbench": "tb/tb_ttl_74x16344.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74alvch16344.pdf",
+      "sha256": "63ddbd2a5bbdfe3b92426a53df51bb03991144c7cc0bf96d851ecbca4b915706",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16373",
@@ -23185,17 +23683,24 @@
     "description": "16-bit to 32-bit FET multiplexer/demultiplexer bus switch",
     "input_features": "",
     "output_features": "",
-    "datasheet": "CBT",
+    "datasheet": "SN74CBT16390",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt16390.pdf",
     "number": 16390,
     "module": "ttl_74x16390",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x16390.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16390.md",
+    "rtl": "src/ttl_74x16390.sv",
+    "testbench": "tb/tb_ttl_74x16390.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt16390.pdf",
+      "sha256": "a352d5fca8b7df9693d35e63fe8dc107c0a73a52e87de3c138dfdbbb82b839de",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16409",
@@ -23212,7 +23717,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
+    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x16409.md"
   },
   {
@@ -23230,7 +23735,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
+    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x16460.md"
   },
   {
@@ -23248,7 +23753,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
+    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
     "specification": "spec/chips/ttl_74x16470.md"
   },
   {
@@ -23257,17 +23762,24 @@
     "description": "18-bit universal bus transceiver (registered, active low clock)",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ABT",
-    "datasheet_url": "",
+    "datasheet": "SN74ALVCH16500",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74alvch16500.pdf",
     "number": 16500,
     "module": "ttl_74x16500",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x16500.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16500.md",
+    "rtl": "src/ttl_74x16500.sv",
+    "testbench": "tb/tb_ttl_74x16500.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74alvch16500.pdf",
+      "sha256": "949f177ed6400535480efc8de8a11f5acb5f298a3aca536e437d70e9022350ef",
+      "table_pages": "1\u20133; function table page 2",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16501",
@@ -23275,17 +23787,24 @@
     "description": "18-bit universal bus transceiver (registered, active high clock)",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ABT",
-    "datasheet_url": "",
+    "datasheet": "SN74ABT16501",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74abt16501.pdf",
     "number": 16501,
     "module": "ttl_74x16501",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x16501.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16501.md",
+    "rtl": "src/ttl_74x16501.sv",
+    "testbench": "tb/tb_ttl_74x16501.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74abt16501.pdf",
+      "sha256": "44536ef466810e1ee821858d43f443d327e47bad9146fd2a39a76882bb4df4d7",
+      "table_pages": "1\u20133",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16524",
@@ -23397,7 +23916,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
+    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x16600.md"
   },
   {
@@ -23406,17 +23925,24 @@
     "description": "18-bit universal bus transceiver (registered, active high clock)",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ABT",
-    "datasheet_url": "",
+    "datasheet": "SN74ABT16601",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74abt16601.pdf",
     "number": 16601,
     "module": "ttl_74x16601",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x16601.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16601.md",
+    "rtl": "src/ttl_74x16601.sv",
+    "testbench": "tb/tb_ttl_74x16601.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74abt16601.pdf",
+      "sha256": "a0a3c1926b51d4b6b1c13b10ee741dfa4716c0243413b77652b47a5c63fda6ee",
+      "table_pages": "1\u20133",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16612",
@@ -23433,7 +23959,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
+    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x16612.md"
   },
   {
@@ -23451,7 +23977,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
+    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x16616.md"
   },
   {
@@ -23488,7 +24014,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
+    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x16622.md"
   },
   {
@@ -23535,17 +24061,26 @@
     "description": "16-bit bus transceiver and registers",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ABT",
-    "datasheet_url": "",
+    "datasheet": "74ACT16646",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/74act16646.pdf",
     "number": 16646,
     "module": "ttl_74x16646",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x16646.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16646.md",
+    "rtl": "src/ttl_74x16646.sv",
+    "testbench": "tb/tb_ttl_74x16646.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/74act16646.pdf",
+      "sha256": "b356a016e07dc7a9e92307541d366aa066a0b9243b6735e53c4884d5815fc31a",
+      "table_pages": [
+        3
+      ],
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16648",
@@ -23562,7 +24097,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
+    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x16648.md"
   },
   {
@@ -23571,17 +24106,26 @@
     "description": "16-bit bus transceiver and registers",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ABT",
-    "datasheet_url": "",
+    "datasheet": "74ACT16651",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/74act16651.pdf",
     "number": 16651,
     "module": "ttl_74x16651",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x16651.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16651.md",
+    "rtl": "src/ttl_74x16651.sv",
+    "testbench": "tb/tb_ttl_74x16651.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/74act16651.pdf",
+      "sha256": "59a9a157309c245b669bd0f3e8e459adf98e9e1591063cb01603960d640ba26c",
+      "table_pages": [
+        2
+      ],
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16652",
@@ -23589,17 +24133,26 @@
     "description": "16-bit bus transceiver and registers",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ABT",
-    "datasheet_url": "",
+    "datasheet": "74ACT16652",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/74act16652.pdf",
     "number": 16652,
     "module": "ttl_74x16652",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x16652.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16652.md",
+    "rtl": "src/ttl_74x16652.sv",
+    "testbench": "tb/tb_ttl_74x16652.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/74act16652.pdf",
+      "sha256": "78e7d5ff8e9e9202cb638d6b8e9cc750b04219f8b599b0a2913787e268bbd0b8",
+      "table_pages": [
+        2
+      ],
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16657",
@@ -23616,7 +24169,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
+    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x16657.md"
   },
   {
@@ -23663,17 +24216,24 @@
     "description": "20-bit FET bus switch",
     "input_features": "",
     "output_features": "",
-    "datasheet": "CBT",
+    "datasheet": "SN74CBT16800C",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt16800c.pdf",
     "number": 16800,
     "module": "ttl_74x16800",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x16800.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16800.md",
+    "rtl": "src/ttl_74x16800.sv",
+    "testbench": "tb/tb_ttl_74x16800.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt16800c.pdf",
+      "sha256": "6b12c9fcc365fd55e7cac779416127d8ffcf790be8145f65b8208752d3d5fb5e",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16811",
@@ -23681,17 +24241,24 @@
     "description": "24-bit FET bus switch",
     "input_features": "",
     "output_features": "",
-    "datasheet": "CBT",
+    "datasheet": "SN74CBT16811C",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt16811c.pdf",
     "number": 16811,
     "module": "ttl_74x16811",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x16811.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16811.md",
+    "rtl": "src/ttl_74x16811.sv",
+    "testbench": "tb/tb_ttl_74x16811.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt16811c.pdf",
+      "sha256": "4840c7fd76ae68c0236217b6bda323f58986776c5f79bfad029da93e2ff493d3",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16820",
@@ -23841,7 +24408,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
+    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x16831.md"
   },
   {
@@ -23859,7 +24426,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
+    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x16832.md"
   },
   {
@@ -23877,7 +24444,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
+    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x16833.md"
   },
   {
@@ -23886,17 +24453,24 @@
     "description": "18-bit universal bus driver",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "AVC",
+    "datasheet": "SN74AVC16834",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74avc16834.pdf",
     "number": 16834,
     "module": "ttl_74x16834",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x16834.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16834.md",
+    "rtl": "src/ttl_74x16834.sv",
+    "testbench": "tb/tb_ttl_74x16834.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74avc16834.pdf",
+      "sha256": "595e7528e4eb264a4540356066e5670b31ceba392fa7cdf3abdd8e85cff19bb1",
+      "table_pages": "1\u20133",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16835",
@@ -23904,17 +24478,24 @@
     "description": "18-bit universal bus driver",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ALVC",
+    "datasheet": "SN74ALVC16835",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74alvc16835.pdf",
     "number": 16835,
     "module": "ttl_74x16835",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x16835.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16835.md",
+    "rtl": "src/ttl_74x16835.sv",
+    "testbench": "tb/tb_ttl_74x16835.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74alvc16835.pdf",
+      "sha256": "fe59b932702a932a7f9ffc3746a25760e89804744c3734d9f8a26d18022fa37a",
+      "table_pages": "1\u20133",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16841",
@@ -23969,7 +24550,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
+    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x16853.md"
   },
   {
@@ -23978,17 +24559,24 @@
     "description": "14-bit registered buffer",
     "input_features": "",
     "output_features": "",
-    "datasheet": "SSTVF",
+    "datasheet": "SN74SSTVF16857",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74sstvf16857.pdf",
     "number": 16857,
     "module": "ttl_74x16857",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x16857.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16857.md",
+    "rtl": "src/ttl_74x16857.sv",
+    "testbench": "tb/tb_ttl_74x16857.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74sstvf16857.pdf",
+      "sha256": "9068369cfe88dbfcba99f6aa5da03b2ba5fde95d5df34024f716d4d717c13893",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16859",
@@ -23996,17 +24584,24 @@
     "description": "13-bit to 26-bit registered buffer",
     "input_features": "",
     "output_features": "",
-    "datasheet": "SSTVF",
+    "datasheet": "SN74SSTVF16859",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74sstvf16859.pdf",
     "number": 16859,
     "module": "ttl_74x16859",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x16859.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16859.md",
+    "rtl": "src/ttl_74x16859.sv",
+    "testbench": "tb/tb_ttl_74x16859.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74sstvf16859.pdf",
+      "sha256": "162d2dbee853f57888d2ac0f4a4a9613a3d391c35a4cc1d232f6b23d7fa68fbd",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16861",
@@ -24014,17 +24609,24 @@
     "description": "20-bit FET bus switch",
     "input_features": "",
     "output_features": "",
-    "datasheet": "CBT",
+    "datasheet": "SN74CBT16861",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt16861.pdf",
     "number": 16861,
     "module": "ttl_74x16861",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x16861.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16861.md",
+    "rtl": "src/ttl_74x16861.sv",
+    "testbench": "tb/tb_ttl_74x16861.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt16861.pdf",
+      "sha256": "0497d6ac2b41d4909853758e20187442a3383d2582c79d5235a28349fde990f1",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16863",
@@ -24060,7 +24662,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
+    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x16901.md"
   },
   {
@@ -24078,7 +24680,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
+    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x16903.md"
   },
   {
@@ -24096,7 +24698,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
+    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x16912.md"
   },
   {
@@ -24114,7 +24716,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
+    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x16916.md"
   },
   {
@@ -24132,7 +24734,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
+    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x16923.md"
   },
   {
@@ -24150,7 +24752,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
+    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x16945.md"
   },
   {
@@ -24159,17 +24761,26 @@
     "description": "16-bit registered transceiver",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ABT",
+    "datasheet": "SN74ABT16952",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74abt16952.pdf",
     "number": 16952,
     "module": "ttl_74x16952",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x16952.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16952.md",
+    "rtl": "src/ttl_74x16952.sv",
+    "testbench": "tb/tb_ttl_74x16952.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74abt16952.pdf",
+      "sha256": "e4616cf00282cb074aa8dc1702b99e72ebd4ef579ea8089fa29523e483dbc372",
+      "table_pages": [
+        2
+      ],
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16973",
@@ -24195,7 +24806,7 @@
     "aliases": [],
     "description": "19-bit bus interface",
     "input_features": "",
-    "output_features": "open-drain with internal 1.4-kΩ pull up resistors",
+    "output_features": "open-drain with internal 1.4-k\u03a9 pull up resistors",
     "datasheet": "LVC",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74lvc161284.pdf",
     "number": 161284,
@@ -24291,17 +24902,26 @@
     "description": "12-bit to 24-bit multiplexed D-type latch",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ALVCH",
+    "datasheet": "SN74ALVCH162260",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74alvch162260.pdf",
     "number": 162260,
     "module": "ttl_74x162260",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus 3.3-V part — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x162260.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x162260.md",
+    "rtl": "src/ttl_74x162260.sv",
+    "testbench": "tb/tb_ttl_74x162260.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74alvch162260.pdf",
+      "sha256": "64accee30e8102520c12cb6f54ad1066dfc10c91582a44c420a80ba948ed1c5f",
+      "table_pages": [
+        2
+      ],
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x162268",
@@ -24309,17 +24929,26 @@
     "description": "12-bit to 24-bit registered bus exchanger",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ALVCH",
+    "datasheet": "SN74ALVCH162268",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74alvch162268.pdf",
     "number": 162268,
     "module": "ttl_74x162268",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus 3.3-V part — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x162268.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x162268.md",
+    "rtl": "src/ttl_74x162268.sv",
+    "testbench": "tb/tb_ttl_74x162268.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74alvch162268.pdf",
+      "sha256": "8d72561ad84438def9b71b18a834cf85c495dd1b5524de14e1bc4da8c17d3d86",
+      "table_pages": [
+        3
+      ],
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x162280",
@@ -24336,7 +24965,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus 3.3-V part — needs dedicated datasheet",
+    "reason": "Specialized Widebus 3.3-V part \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x162280.md"
   },
   {
@@ -24354,7 +24983,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus 3.3-V part — needs dedicated datasheet",
+    "reason": "Specialized Widebus 3.3-V part \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x162282.md"
   },
   {
@@ -24362,18 +24991,25 @@
     "aliases": [],
     "description": "12-bit 1-of-2 FET multiplexer/demultiplexer",
     "input_features": "",
-    "output_features": "internal 500-Ω pull down resistors",
-    "datasheet": "CBT",
+    "output_features": "internal 500-\u03a9 pull down resistors",
+    "datasheet": "SN74CBT162292",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74cbt162292.pdf",
     "number": 162292,
     "module": "ttl_74x162292",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus 3.3-V part — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x162292.md"
+    "model_level": "resolved_digital_switch",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x162292.md",
+    "rtl": "src/ttl_74x162292.sv",
+    "testbench": "tb/tb_ttl_74x162292.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74cbt162292.pdf",
+      "sha256": "d5f9d3734f156a6b4d5e0a64d0b929cf8be2323b9a456f038c3e7a54d6ffe8a0",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x162334",
@@ -24381,17 +25017,24 @@
     "description": "16-bit universal bus driver",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ALVC",
+    "datasheet": "SN74ALVC162334",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74alvc162334.pdf",
     "number": 162334,
     "module": "ttl_74x162334",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus 3.3-V part — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x162334.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x162334.md",
+    "rtl": "src/ttl_74x162334.sv",
+    "testbench": "tb/tb_ttl_74x162334.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74alvc162334.pdf",
+      "sha256": "697b2491553431537b1ff7f41c9ab8b2835bec0193e4c8c0d6bae47d4b6e8da6",
+      "table_pages": "1\u20133",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x162344",
@@ -24399,17 +25042,26 @@
     "description": "1-bit to 4-bit address driver",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ALVCH",
+    "datasheet": "SN74ALVCH162344",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74alvch162344.pdf",
     "number": 162344,
     "module": "ttl_74x162344",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus 3.3-V part — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x162344.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x162344.md",
+    "rtl": "src/ttl_74x162344.sv",
+    "testbench": "tb/tb_ttl_74x162344.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74alvch162344.pdf",
+      "sha256": "7050efb7927c59481f3418c41a8e769ca36e8447e1b4b530f78d28a53ea1be0f",
+      "table_pages": [
+        2
+      ],
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x162373",
@@ -24464,7 +25116,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus 3.3-V part — needs dedicated datasheet",
+    "reason": "Specialized Widebus 3.3-V part \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x162460.md"
   },
   {
@@ -24473,17 +25125,24 @@
     "description": "18-bit universal bus transceiver",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ABT",
+    "datasheet": "SN74ABT162500",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74abt162500.pdf",
     "number": 162500,
     "module": "ttl_74x162500",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus 3.3-V part — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x162500.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x162500.md",
+    "rtl": "src/ttl_74x162500.sv",
+    "testbench": "tb/tb_ttl_74x162500.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74abt162500.pdf",
+      "sha256": "56c56ab1beb4d425a5e4147a74feaed71d9e1923a0c02f212dbc556fc0d48d37",
+      "table_pages": "1\u20133",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x162501",
@@ -24491,17 +25150,24 @@
     "description": "18-bit registered transceiver",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "FCT",
+    "datasheet": "CY74FCT162501T",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/cy74fct162501t.pdf",
     "number": 162501,
     "module": "ttl_74x162501",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus 3.3-V part — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x162501.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x162501.md",
+    "rtl": "src/ttl_74x162501.sv",
+    "testbench": "tb/tb_ttl_74x162501.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/cy74fct162501t.pdf",
+      "sha256": "bd4b64641d0793203e608e0594d3fae3de984b803819acd2043a47eb4ca9803c",
+      "table_pages": "1\u20133",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x162525",
@@ -24518,7 +25184,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized Widebus 3.3-V part — needs dedicated datasheet",
+    "reason": "Specialized Widebus 3.3-V part \u2014 needs dedicated datasheet",
     "specification": "spec/chips/ttl_74x162525.md"
   },
   {
@@ -24546,17 +25212,26 @@
     "description": "16-bit latched transceiver",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "FCT",
+    "datasheet": "CY74FCT162543T",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/cy74fct162543t.pdf",
     "number": 162543,
     "module": "ttl_74x162543",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus 3.3-V part — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x162543.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x162543.md",
+    "rtl": "src/ttl_74x162543.sv",
+    "testbench": "tb/tb_ttl_74x162543.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/cy74fct162543t.pdf",
+      "sha256": "2048235cfcbd08f612775146aba8ee35fb6e1e519c080c82aa1ec6c3169162be",
+      "table_pages": [
+        2
+      ],
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x162601",
@@ -24564,17 +25239,24 @@
     "description": "18-bit universal bus tranceiver",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ALVCH",
+    "datasheet": "SN74ALVCH162601",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74alvch162601.pdf",
     "number": 162601,
     "module": "ttl_74x162601",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus 3.3-V part — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x162601.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x162601.md",
+    "rtl": "src/ttl_74x162601.sv",
+    "testbench": "tb/tb_ttl_74x162601.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74alvch162601.pdf",
+      "sha256": "7546a1f35513219c1d9495d689eee5dc282f8d3fbeef839f07bb448be6a38626",
+      "table_pages": "1\u20133",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x162646",
@@ -24582,17 +25264,26 @@
     "description": "16-bit registered transceiver",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "FCT",
+    "datasheet": "CY74FCT162646T",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/cy74fct162646t.pdf",
     "number": 162646,
     "module": "ttl_74x162646",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus 3.3-V part — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x162646.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x162646.md",
+    "rtl": "src/ttl_74x162646.sv",
+    "testbench": "tb/tb_ttl_74x162646.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/cy74fct162646t.pdf",
+      "sha256": "3d19d2a48634ade76534fca403487c9465844108cb534f16266c7cf07e34061d",
+      "table_pages": [
+        3
+      ],
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x162652",
@@ -24600,17 +25291,26 @@
     "description": "16-bit registered transceiver",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "FCT",
+    "datasheet": "CY74FCT162652T",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/cy74fct162652t.pdf",
     "number": 162652,
     "module": "ttl_74x162652",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus 3.3-V part — needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x162652.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x162652.md",
+    "rtl": "src/ttl_74x162652.sv",
+    "testbench": "tb/tb_ttl_74x162652.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/cy74fct162652t.pdf",
+      "sha256": "462819f154bd7d755cce4b5da0c07f5c476e5804f24f08779ccd9c12d6e9866e",
+      "table_pages": [
+        3
+      ],
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x162721",
@@ -24732,17 +25432,24 @@
     "description": "1-bit to 2-bit address driver",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ALVCH",
+    "datasheet": "SN74ALVCH162830",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74alvch162830.pdf",
     "number": 162830,
     "module": "ttl_74x162830",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized address driver / universal bus driver / scan-test part — needs datasheet",
-    "specification": "spec/chips/ttl_74x162830.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x162830.md",
+    "rtl": "src/ttl_74x162830.sv",
+    "testbench": "tb/tb_ttl_74x162830.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74alvch162830.pdf",
+      "sha256": "96e684844687150b44d3491a76c2032f2cb97892a6a0d0f4d59fb8d406abea6a",
+      "table_pages": "1\u20132",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x162831",
@@ -24759,7 +25466,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized address driver / universal bus driver / scan-test part — needs datasheet",
+    "reason": "Specialized address driver / universal bus driver / scan-test part \u2014 needs datasheet",
     "specification": "spec/chips/ttl_74x162831.md"
   },
   {
@@ -24777,7 +25484,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized address driver / universal bus driver / scan-test part — needs datasheet",
+    "reason": "Specialized address driver / universal bus driver / scan-test part \u2014 needs datasheet",
     "specification": "spec/chips/ttl_74x162832.md"
   },
   {
@@ -24786,17 +25493,24 @@
     "description": "3.3-V CMOS 18-bit universal bus driver",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ALVCF",
+    "datasheet": "SN74ALVCF162834",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74alvcf162834.pdf",
     "number": 162834,
     "module": "ttl_74x162834",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized address driver / universal bus driver / scan-test part — needs datasheet",
-    "specification": "spec/chips/ttl_74x162834.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x162834.md",
+    "rtl": "src/ttl_74x162834.sv",
+    "testbench": "tb/tb_ttl_74x162834.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74alvcf162834.pdf",
+      "sha256": "15ad1e0f9ff8352a26829b1dc6a1920127549dc554b4a55277add4d43703488d",
+      "table_pages": "1\u20133",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x162835",
@@ -24804,17 +25518,24 @@
     "description": "18-bit universal bus driver",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ALVC",
+    "datasheet": "SN74ALVC162835",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74alvc162835.pdf",
     "number": 162835,
     "module": "ttl_74x162835",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized address driver / universal bus driver / scan-test part — needs datasheet",
-    "specification": "spec/chips/ttl_74x162835.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x162835.md",
+    "rtl": "src/ttl_74x162835.sv",
+    "testbench": "tb/tb_ttl_74x162835.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74alvc162835.pdf",
+      "sha256": "1d5c72bd577ceef30ab61d7ed30fd2936ec6c105f13a6566c5a8d214ad5fb871",
+      "table_pages": "1\u20133",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x162836",
@@ -24822,17 +25543,24 @@
     "description": "20-bit universal bus driver",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ALVCH",
+    "datasheet": "SN74ALVCH162836",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74alvch162836.pdf",
     "number": 162836,
     "module": "ttl_74x162836",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized address driver / universal bus driver / scan-test part — needs datasheet",
-    "specification": "spec/chips/ttl_74x162836.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x162836.md",
+    "rtl": "src/ttl_74x162836.sv",
+    "testbench": "tb/tb_ttl_74x162836.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74alvch162836.pdf",
+      "sha256": "1bbddacb5eaff2c0f3641b3130ec2dc5d8d494dd076988937ed0c3a4cb869fc6",
+      "table_pages": "1\u20133",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x162841",
@@ -24887,7 +25615,7 @@
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
     "status": "pending",
-    "reason": "Specialized address driver / universal bus driver / scan-test part — needs datasheet",
+    "reason": "Specialized address driver / universal bus driver / scan-test part \u2014 needs datasheet",
     "specification": "spec/chips/ttl_74x18245.md"
   },
   {
@@ -25147,7 +25875,7 @@
   {
     "part_number": "74x25244",
     "aliases": [],
-    "description": "25-Ω octal bus transceiver",
+    "description": "25-\u03a9 octal bus transceiver",
     "input_features": "",
     "output_features": "three-state",
     "datasheet": "BCT",
@@ -25166,7 +25894,7 @@
   {
     "part_number": "74x25245",
     "aliases": [],
-    "description": "25-Ω octal bus transceiver",
+    "description": "25-\u03a9 octal bus transceiver",
     "input_features": "",
     "output_features": "three-state",
     "datasheet": "BCT",
@@ -25185,7 +25913,7 @@
   {
     "part_number": "74x25642",
     "aliases": [],
-    "description": "25-Ω octal bus transceiver",
+    "description": "25-\u03a9 octal bus transceiver",
     "input_features": "",
     "output_features": "",
     "datasheet": "ABT",

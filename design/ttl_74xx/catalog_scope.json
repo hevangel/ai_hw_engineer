@@ -1432,9 +1432,15 @@
     "74x948": "Analog/electrical function outside the user-requested pure-digital scope.",
     "74x949": "Analog/electrical function outside the user-requested pure-digital scope.",
     "74x950": "Analog/electrical function outside the user-requested pure-digital scope.",
+    "74x1051": "Schottky bus-termination diode clamps; analog-only behavior outside the user-requested pure-digital scope.",
+    "74x1053": "Schottky bus-termination diode clamps; analog-only behavior outside the user-requested pure-digital scope.",
+    "74x1056": "Schottky bus-termination diode clamps; analog-only behavior outside the user-requested pure-digital scope.",
+    "74x1404": "Crystal/resonator oscillator driver; analog-only behavior outside the user-requested pure-digital scope.",
     "74x2509": "Analog/electrical function outside the user-requested pure-digital scope.",
     "74x2510": "Analog/electrical function outside the user-requested pure-digital scope.",
+    "74x3004": "Selectable analog GTL reference voltage; analog-only behavior outside the user-requested pure-digital scope.",
     "74x3932": "Analog/electrical function outside the user-requested pure-digital scope.",
+    "74x4016": "Bilateral analog switches; analog-only behavior outside the user-requested pure-digital scope.",
     "74x4046": "Analog/electrical function outside the user-requested pure-digital scope.",
     "74x4051": "Analog/electrical function outside the user-requested pure-digital scope.",
     "74x4052": "Analog/electrical function outside the user-requested pure-digital scope.",
@@ -1453,6 +1459,9 @@
     "74x7046": "Analog/electrical function outside the user-requested pure-digital scope.",
     "74x7132": "Analog/electrical function outside the user-requested pure-digital scope.",
     "74x9046": "Analog/electrical function outside the user-requested pure-digital scope.",
-    "74x16222": "Analog/electrical function outside the user-requested pure-digital scope."
+    "74x16222": "Analog/electrical function outside the user-requested pure-digital scope.",
+    "74x1018": "Schottky diode and R-C bus-termination network; analog-only behavior outside the user-requested pure-digital scope.",
+    "74x1050": "Schottky diode bus-termination clamp array; analog-only behavior outside the user-requested pure-digital scope.",
+    "74x1052": "Schottky diode bus-termination clamp array; analog-only behavior outside the user-requested pure-digital scope."
   }
 }

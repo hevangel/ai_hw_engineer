@@ -26,6 +26,9 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-10-21 — 4059 asynchronous latch release](2026-10-21-ttl4059-asynchronous-latch-release.md)
+  Stopped-clock source review exposed LE release incorrectly sampled only on CP edges.
+
 - [2026-10-20 — extended TTL reference assumptions](2026-10-20-ttl-extended-reference-assumptions.md)
   Manufacturer review exposed shared counter-edge, ROM and collector-release assumptions above 74299.
 
