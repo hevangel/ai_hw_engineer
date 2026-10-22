@@ -166,6 +166,7 @@ design/ttl_74xx/src/ttl_74x162344.sv
 design/ttl_74xx/src/ttl_74x162373.sv
 design/ttl_74xx/src/ttl_74x162374.sv
 design/ttl_74xx/src/ttl_74x16240.sv
+design/ttl_74xx/src/ttl_74x16241.sv
 design/ttl_74xx/src/ttl_74x16244.sv
 design/ttl_74xx/src/ttl_74x16245.sv
 design/ttl_74xx/src/ttl_74x16246.sv
@@ -214,11 +215,13 @@ design/ttl_74xx/src/ttl_74x16540.sv
 design/ttl_74xx/src/ttl_74x16541.sv
 design/ttl_74xx/src/ttl_74x16543.sv
 design/ttl_74xx/src/ttl_74x166.sv
+design/ttl_74xx/src/ttl_74x16600.sv
 design/ttl_74xx/src/ttl_74x16601.sv
 design/ttl_74xx/src/ttl_74x16620.sv
 design/ttl_74xx/src/ttl_74x16623.sv
 design/ttl_74xx/src/ttl_74x16640.sv
 design/ttl_74xx/src/ttl_74x16646.sv
+design/ttl_74xx/src/ttl_74x16648.sv
 design/ttl_74xx/src/ttl_74x16651.sv
 design/ttl_74xx/src/ttl_74x16652.sv
 design/ttl_74xx/src/ttl_74x167.sv

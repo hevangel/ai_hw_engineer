@@ -1374,7 +1374,7 @@ lists every pending part and its reason.
 | 74x16232 | synchronous 16-bit 1-of-2 FET multiplexer/demultiplexer | Unknown | [implemented](spec/chips/ttl_74x16232.md) |
 | 74x16233 | 16-bit 1-of-2 FET multiplexer/demultiplexer | Unknown | [implemented](spec/chips/ttl_74x16233.md) |
 | 74x16240 | 16-bit inverting buffer/driver with grouped 4-bit output enables (all active-low) | Unknown | [implemented](spec/chips/ttl_74x16240.md) |
-| 74x16241 | 16-bit non-inverting buffer/driver with grouped 4-bit output enables (1 and 4 active-low) | Unknown | [pending](spec/chips/ttl_74x16241.md) |
+| 74x16241 | 16-bit non-inverting buffer/driver with grouped 4-bit output enables (1 and 4 active-low) | Unknown | [implemented](spec/chips/ttl_74x16241.md) |
 | 74x16244 | 16-bit non-inverting buffer/driver with grouped 4-bit output enables (all active-low) | Unknown | [implemented](spec/chips/ttl_74x16244.md) |
 | 74x16245 | 16-bit bus transceiver | Unknown | [implemented](spec/chips/ttl_74x16245.md) |
 | 74x16246 | 11-bit incident wave switching bus transceiver | Unknown | [implemented](spec/chips/ttl_74x16246.md) |
@@ -1400,7 +1400,7 @@ lists every pending part and its reason.
 | 74x16540 | 16-bit inverting buffer/driver with grouped 8-bit output enables (active-low) | Unknown | [implemented](spec/chips/ttl_74x16540.md) |
 | 74x16541 | 16-bit non-inverting buffer/driver with grouped 8-bit output enables (active-low) | Unknown | [implemented](spec/chips/ttl_74x16541.md) |
 | 74x16543 | 16-bit registered tranceiver | Unknown | [implemented](spec/chips/ttl_74x16543.md) |
-| 74x16600 | 18-bit universal bus transceiver (registered, active low clock) | Unknown | [pending](spec/chips/ttl_74x16600.md) |
+| 74x16600 | 18-bit universal bus transceiver (registered, active low clock) | Unknown | [implemented](spec/chips/ttl_74x16600.md) |
 | 74x16601 | 18-bit universal bus transceiver (registered, active high clock) | Unknown | [implemented](spec/chips/ttl_74x16601.md) |
 | 74x16612 | 18-bit LVTTL-to-GTL+ universal bus transceiver | Unknown | [pending](spec/chips/ttl_74x16612.md) |
 | 74x16616 | 17-bit LVTTL-to-GTL+ universal bus transceiver | Unknown | [pending](spec/chips/ttl_74x16616.md) |
@@ -1409,7 +1409,7 @@ lists every pending part and its reason.
 | 74x16623 | 16-bit bus transceiver | Unknown | [implemented](spec/chips/ttl_74x16623.md) |
 | 74x16640 | 16-bit bus transceiver | Unknown | [implemented](spec/chips/ttl_74x16640.md) |
 | 74x16646 | 16-bit bus transceiver and registers | Unknown | [implemented](spec/chips/ttl_74x16646.md) |
-| 74x16648 | 16-bit bus transceiver and registers | Unknown | [pending](spec/chips/ttl_74x16648.md) |
+| 74x16648 | 16-bit bus transceiver and registers | Unknown | [implemented](spec/chips/ttl_74x16648.md) |
 | 74x16651 | 16-bit bus transceiver and registers | Unknown | [implemented](spec/chips/ttl_74x16651.md) |
 | 74x16652 | 16-bit bus transceiver and registers | Unknown | [implemented](spec/chips/ttl_74x16652.md) |
 | 74x16657 | 16-bit bus transceiver with parity generators/checkers | Unknown | [pending](spec/chips/ttl_74x16657.md) |

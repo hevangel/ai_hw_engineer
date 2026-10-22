@@ -55,6 +55,19 @@ up-transfer, parallel-down/serial-shift priority, synchronous two-rank clear,
 serial order and all control combinations using source-derived transitions.
 Native asynchronous output enables remain live while storage operates.
 
+## Native wide-buffer and registered-transceiver batch (16241, 16600, 16648)
+
+Review TI SCBS096G (ABT16241A), TI SCBS209B (ABT16600) and the 1993 TI Advanced
+CMOS Logic Data Book SCAS188 pages (74ACT16648) before RTL. The 16241 keeps the
+mixed native enable polarity: groups 1 and 4 active low, groups 2 and 3 active
+high. The 16600 keeps falling-edge capture on the overbarred clock pins with
+active-low clock enables and LE-high transparency in both directions. The 16648
+keeps per-section inversion, real-time versus stored multiplexing, and the
+source-table limit that stored outputs require the selected source clock pin low;
+combinations absent from the TI table stay outside the conformance contract and
+model as not driving. Three-state outputs use explicit drive flags. Run strict
+lint, simulation and complete generic synthesis for each part.
+
 ## Native incident-wave bus interface (16246)
 
 Review TI SCBS227J table and diagram before implementation. Preserve eight

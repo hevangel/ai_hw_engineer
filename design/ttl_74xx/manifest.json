@@ -24002,17 +24002,27 @@
     "description": "16-bit non-inverting buffer/driver with grouped 4-bit output enables (1 and 4 active-low)",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ABT",
-    "datasheet_url": "",
+    "datasheet": "TI SN54ABT16241A/SN74ABT16241A SCBS096G, February 1991 / revised October 1998",
+    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74abt16241a.pdf",
     "number": 16241,
     "module": "ttl_74x16241",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x16241.md"
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16241.md",
+    "rtl": "src/ttl_74x16241.sv",
+    "testbench": "tb/tb_ttl_74x16241.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74abt16241a.pdf",
+      "sha256": "ea6756e68e237fe5539ef254f15af2e5fa79c3a8b2135e10ced9f3b353bd900a",
+      "table_pages": [
+        1,
+        2
+      ],
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16244",
@@ -24546,17 +24556,28 @@
     "description": "18-bit universal bus transceiver (registered, active low clock)",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ABT",
-    "datasheet_url": "",
+    "datasheet": "TI SN54ABT16600/SN74ABT16600 SCBS209B, June 1992 / revised January 1997",
+    "datasheet_url": "https://media.digikey.com/pdf/Data%20Sheets/Texas%20Instruments%20PDFs/SN%2854%2C74%29ABT16600.pdf",
     "number": 16600,
     "module": "ttl_74x16600",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x16600.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16600.md",
+    "rtl": "src/ttl_74x16600.sv",
+    "testbench": "tb/tb_ttl_74x16600.sv",
+    "source_review": {
+      "url": "https://media.digikey.com/pdf/Data%20Sheets/Texas%20Instruments%20PDFs/SN%2854%2C74%29ABT16600.pdf",
+      "sha256": "c678468ddc18b90367007a2aaf7c064efcbe368cd2493fd51c1e6b67b310267b",
+      "table_pages": [
+        1,
+        2,
+        3
+      ],
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16601",
@@ -24727,17 +24748,39 @@
     "description": "16-bit bus transceiver and registers",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "ABT",
-    "datasheet_url": "",
+    "datasheet": "TI 74ACT16648 SCAS188, May 1991 / revised April 1993 (1993 TI Advanced CMOS Logic Data Book, printed pages 3-177 to 3-181)",
+    "datasheet_url": "https://bitsavers.trailing-edge.com/components/ti/_dataBooks/1993_TI_Advanced_CMOS_Logic_Data_Book.pdf",
     "number": 16648,
     "module": "ttl_74x16648",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x16648.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16648.md",
+    "rtl": "src/ttl_74x16648.sv",
+    "testbench": "tb/tb_ttl_74x16648.sv",
+    "conformance_limits": "Function-table combinations absent from the TI table are outside the conformance contract and are modeled as not driving; register contents power up unspecified, and a stored-mode output additionally requires its selected source clock pin low.",
+    "source_review": {
+      "url": "https://bitsavers.trailing-edge.com/components/ti/_dataBooks/1993_TI_Advanced_CMOS_Logic_Data_Book.pdf",
+      "sha256": "e422216c8d0fdc5aa0a853a9fdb6526dfb09de135de26179ec86ad86960159ff",
+      "table_pages": [
+        850,
+        851,
+        852,
+        853,
+        854
+      ],
+      "printed_pages": [
+        "3-177",
+        "3-178",
+        "3-179",
+        "3-180",
+        "3-181"
+      ],
+      "page_numbering": "table_pages are one-based 1993 Advanced CMOS Logic Data Book PDF pages; the function table for each 8-bit section is on PDF page 854 (printed 3-181)",
+      "review_date": "2026-10-21"
+    }
   },
   {
     "part_number": "74x16651",
