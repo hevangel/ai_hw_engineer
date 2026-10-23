@@ -68,6 +68,44 @@ combinations absent from the TI table stay outside the conformance contract and
 model as not driving. Three-state outputs use explicit drive flags. Run strict
 lint, simulation and complete generic synthesis for each part.
 
+## National display controllers and key encoders (911, 912, 913, 917, 922, 923)
+
+Review the 1984 National Logic Databook Volume 1 and the 1977 National CMOS
+Databook scans before RTL; record book PDF pages and SHA-256 hashes. The
+internal RC oscillators are normalized to an external digital scan clock per
+the 4060 house precedent, and the encoders' KBM debounce mask becomes a
+parameterized consecutive-visit count. Keep the CPU write protocol (CE/WE
+transparency and latch edges), the multiplexed digit/segment scanning with
+interdigit blanking, the 912 BCD versus 917 hex character fonts, the cascade
+master/slave digit-direction behavior of the 911, and the encoders' column
+scan, row sense, debounce, DATA AVAILABLE handshake and two-key rollover
+exactly as the printed tables and waveforms state. The MM74C913 exists only in
+the 1977 advance-information datasheet; its font is an explicit assumption.
+Run strict lint, simulation and complete generic synthesis for each part.
+
+## GTL/GTLP and Futurebus batches (1612..22033, FB2031..FB3893)
+
+Review each device's own section in the official TI GTLP design guide SCED004A
+(or the standalone SCBS673F/SCBS674G/SCES354C PDFs and the Motorola FAST book)
+before RTL; record book PDF pages and hashes. The five GTLPH universal bus
+transceivers (1612, 1616, 16612, 16912, 16916) share the SCES function table:
+active-low output enables, clock-enable inhibit, LE-high transparency,
+rising-edge capture, open-drain B port as low-only sink masks. The 16616 adds
+the open-drain CLKOUT copy of CLKAB under OEAB and treats CLKIN strictly as the
+resolved external clock-bus observation. The 1627 (PRODUCT PREVIEW) models all
+nine source table rows including the SYSCLK/SSCLK forwarding paths; FSTA stays
+analog and unmodeled. The 16622 keeps per-bank clock enables with common clocks
+and output enables; the 16923 (located in the design guide after its catalog
+download proved to contain 16912 content) keeps individual per-bank output
+enables with common qualified storage. The 22033 keeps per-path buffer,
+flip-flop and latch selection, the dual-polarity OEAB pair, inverted data paths
+and the LOOPBACK diagnostics connection. The Futurebus parts are PRODUCT
+PREVIEW pages: the FB2032's copied LCA/LCB/SEL tables contradict its pinout and
+are rejected; arbitration uses only the pinned controls with the two-DUT
+wired-AND bus bench proving winner/loser behavior. The FB3893 keeps the
+NAND(D,DE) open-collector driver and the independently three-stated inverting
+receivers. ERC/VREF/BIAS-supply analog behavior is omitted throughout.
+
 ## Native incident-wave bus interface (16246)
 
 Review TI SCBS227J table and diagram before implementation. Preserve eight

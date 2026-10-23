@@ -1,14 +1,14 @@
 # Numbered 74-series coverage and verification
 
-Updated 2026-10-22 07:54 UTC.
+Updated 2026-10-23 06:19 UTC.
 
 **Requested scope is incomplete.** 1393 catalog entries:
-1138 normalized digital function models, **188 pending digital
+1161 normalized digital function models, **165 pending digital
 parts**, and 67 analog/electrical exclusions. Numbers above 74299
 have no artificial upper limit; wide-bus functions are included. Distinct family
 functions retain their letters. Unknown historical introduction years are not guessed.
 
-Implemented-subset tool results: **3414/3414**
+Implemented-subset tool results: **3483/3483**
 current-source checks passed. Family formal check/cover tasks: 16/16.
 Tool success is not full manufacturer-table or native pin compatibility certification.
 See the [original range evidence](classic_range_report.md) for the preserved
@@ -46,17 +46,27 @@ See the [original range evidence](classic_range_report.md) for the preserved
 - [74x758](../spec/chips/ttl_74x758.md): Feedback-mode conformance is claimed only when entered from an established directional transfer, with no external contention. Do not enter feedback from an isolated/floating bus or externally overwrite a driven feedback bus. The model captures the source transparently in directional modes and holds the pair in latch mode. Its retained internal state through isolation is a deterministic model choice; re-entry after isolation is outside conformance. The product preview gives the latch relationship and feedback diagram but does not specify a separate latch timing/state-transition table. Exact silicon capture/re-entry behavior remains uncertified.
 - [74x759](../spec/chips/ttl_74x759.md): Feedback-mode conformance is claimed only when entered from an established directional transfer, with no external contention. Do not enter feedback from an isolated/floating bus or externally overwrite a driven feedback bus. The model captures the source transparently in directional modes and holds the pair in latch mode. Its retained internal state through isolation is a deterministic model choice; re-entry after isolation is outside conformance. The product preview gives the latch relationship and feedback diagram but does not specify a separate latch timing/state-transition table. Exact silicon capture/re-entry behavior remains uncertified.
 - [74x779](../spec/chips/ttl_74x779.md): S1:S0=11 is absent from the published function table; hold/TC-inactive behavior is an explicit model assumption. S1:S0=00 with OE_n low is absent; hold behavior is an explicit model assumption. Split digital driver masks abstract three-state electrical behavior; analog voltage levels, strength resolution, decode spikes and delays are outside scope.
+- [74x913](../spec/chips/ttl_74x913.md): The MM74C913 appears only in the 1977 advance-information datasheet; the source asserts identity with the MM74C912 but prints no character font, so the BCD font is an explicit assumption. Oscillator scan behavior is normalized to an external digital clock.
 - [74x1284](../spec/chips/ttl_74x1284.md): Analog voltage/current, input hysteresis, overvoltage protection, electrical timing, output slew, and bus contention are omitted; this is not an electrical IEEE 1284 model.
+- [74x1612](../spec/chips/ttl_74x1612.md): Modeled with the shared library UBT abstraction: transparent and stored paths collapse into one state element per direction, so native qualified LE transitions are not separately observable; register contents power up unspecified and the open-drain B port uses explicit low-only sink masks.
 - [74x1620](../spec/chips/ttl_74x1620.md): Feedback mode is qualified only after an established directional transfer, with all external data sources released. Re-entry from isolation and overwriting driven feedback buses are uncertified; retained state through isolation is a deterministic model choice.
 - [74x1621](../spec/chips/ttl_74x1621.md): Feedback mode is qualified only after an established directional transfer, with all external data sources released. Re-entry from isolation and overwriting driven feedback buses are uncertified; retained state through isolation is a deterministic model choice.
 - [74x1622](../spec/chips/ttl_74x1622.md): Feedback mode is qualified only after an established directional transfer, with all external data sources released. Re-entry from isolation and overwriting driven feedback buses are uncertified; retained state through isolation is a deterministic model choice.
 - [74x1623](../spec/chips/ttl_74x1623.md): Feedback mode is qualified only after an established directional transfer, with all external data sources released. Re-entry from isolation and overwriting driven feedback buses are uncertified; retained state through isolation is a deterministic model choice.
+- [74x1627](../spec/chips/ttl_74x1627.md): PRODUCT PREVIEW source: behavior is limited to the printed function tables; the FSTA setup-time adjustment, ERC and register power-up contents are outside the contract, and the bidirectional SSCLK bus observation must be resolved by the board model.
+- [74x2032](../spec/chips/ttl_74x2032.md): The source page-702 STORAGE MODE (LCA, LCB) and SELECT FUNCTION (SEL1, SEL0) tables reference pins that do not exist on the FB2032 pinout and are rejected as preview copy errors from the FB2031 entry; only the physically pinned controls OEA, OEB, OEB_n, LE, COMPETE, AP, BP and WIN are modeled, with the arbitration chain and tie behavior as documented assumptions.
+- [74x2041](../spec/chips/ttl_74x2041.md): Pin 25 is printed without an overbar on the pinout page but is modeled as active-low 2OEB_n from the logic-symbol polarity indicator, the inverting input buffer in the block diagram and the shared function table.
 - [74x2410](../spec/chips/ttl_74x2410.md): Analog output drive, resistor voltage drop, timing, supply behavior, and bus contention are omitted. The product preview page supplies description and positive-logic diagram rather than a separate function table.
 - [74x2411](../spec/chips/ttl_74x2411.md): Analog output drive, resistor voltage drop, timing, supply behavior, and bus contention are omitted. The product preview page supplies description and positive-logic diagram rather than a separate function table.
 - [74x2620](../spec/chips/ttl_74x2620.md): Feedback mode is qualified only after an established directional transfer, with all external data sources released. Re-entry from isolation and overwriting driven feedback buses are uncertified; retained state through isolation is a deterministic model choice.
 - [74x4060](../spec/chips/ttl_74x4060.md): External digital CLKI only. Analog RC/crystal oscillation and ripple propagation are omitted; clock-output Boolean levels and settled divider outputs are modeled.
+- [74x1616](../spec/chips/ttl_74x1616.md): Modeled with the shared library UBT abstraction: transparent and stored paths collapse into one state element per direction, so native qualified LE transitions are not separately observable; register contents power up unspecified and the open-drain B port uses explicit low-only sink masks.
 - [74x16246](../spec/chips/ttl_74x16246.md): Valid externally resolved logic inputs are required. Analog bus-hold, live-insertion precharge and incident-wave drive characteristics are omitted; the first eight A outputs retain native open-collector low-only drive.
+- [74x16612](../spec/chips/ttl_74x16612.md): Modeled with the shared library UBT abstraction: transparent and stored paths collapse into one state element per direction, so native qualified LE transitions are not separately observable; register contents power up unspecified and the open-drain B port uses explicit low-only sink masks.
+- [74x16616](../spec/chips/ttl_74x16616.md): CLKIN is modeled as the observation of the resolved external GTL clock bus only; its internal LVTTL destination is not separately pinned in the function table. UBT abstraction limits and open-drain sink masks as in the specification.
 - [74x16648](../spec/chips/ttl_74x16648.md): Function-table combinations absent from the TI table are outside the conformance contract and are modeled as not driving; register contents power up unspecified, and a stored-mode output additionally requires its selected source clock pin low.
+- [74x16912](../spec/chips/ttl_74x16912.md): Modeled with the shared library UBT abstraction: transparent and stored paths collapse into one state element per direction, so native qualified LE transitions are not separately observable; register contents power up unspecified and the open-drain B port uses explicit low-only sink masks.
+- [74x16916](../spec/chips/ttl_74x16916.md): Modeled with the shared library UBT abstraction: transparent and stored paths collapse into one state element per direction, so native qualified LE transitions are not separately observable; register contents power up unspecified and the open-drain B port uses explicit low-only sink masks.
 
 ## Pending digital functions
 
@@ -103,12 +113,6 @@ The full run_all.sh completion gate returns nonzero while this table is nonempty
 | [74x897](../spec/chips/ttl_74x897.md) | 16-bit parallel/serial barrel shifter | Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter — needs datasheet study before RTL |
 | [74x899](../spec/chips/ttl_74x899.md) | 9-bit latchable transceiver with parity generator / checker | Complex bit-slice / processor / sequencer / wide register file / programmable counter / barrel shifter — needs datasheet study before RTL |
 | [74x905](../spec/chips/ttl_74x905.md) | 12-bit successive approximation register | Specialized (SAR / voltage comparator analog / RAM / display controllers) — needs dedicated datasheet study |
-| [74x911](../spec/chips/ttl_74x911.md) | 4-digit expandable display controller | Specialized (SAR / voltage comparator analog / RAM / display controllers) — needs dedicated datasheet study |
-| [74x912](../spec/chips/ttl_74x912.md) | 6-digit BCD display controller and driver | Specialized (SAR / voltage comparator analog / RAM / display controllers) — needs dedicated datasheet study |
-| [74x913](../spec/chips/ttl_74x913.md) | 6-digit BCD display controller and driver, no decimal point | Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study |
-| [74x917](../spec/chips/ttl_74x917.md) | 6-digit hex display controller and driver | Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study |
-| [74x922](../spec/chips/ttl_74x922.md) | 16-key encoder | Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study |
-| [74x923](../spec/chips/ttl_74x923.md) | 20-key encoder | Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study |
 | [74x925](../spec/chips/ttl_74x925.md) | 4-digit counter/display driver | Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study |
 | [74x926](../spec/chips/ttl_74x926.md) | 4-digit decade counter/display driver, carry out and latch (up to 9999) | Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study |
 | [74x927](../spec/chips/ttl_74x927.md) | 4-digit timer counter/display driver (up to 9599, intended as time elapsed, i.e. 9:59.9 min) | Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study |
@@ -120,8 +124,6 @@ The full run_all.sh completion gate returns nonzero while this table is nonempty
 | [74x946](../spec/chips/ttl_74x946.md) | 4.5-digit counter, decoder and LCD driver, leading zero blanking | Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study |
 | [74x947](../spec/chips/ttl_74x947.md) | 4-digit up/down counter, decoder and LCD driver, leading zero blanking | Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant — needs dedicated datasheet study |
 | [74x1017](../spec/chips/ttl_74x1017.md) | 16x16-bit parallel multiplier | Wide multiplier/accumulator or passive termination array — needs dedicated datasheet |
-| [74x1612](../spec/chips/ttl_74x1612.md) | 18-bit LV-TTL-to-GTLP adjustable-edge-rate universal bus transceiver | Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study |
-| [74x1627](../spec/chips/ttl_74x1627.md) | 18-bit LV-TTL-to-GTLP adjustable-edge-rate bus transceiver with source synchronous clock outputs | Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study |
 | [74x1631](../spec/chips/ttl_74x1631.md) | quad bus driver with complementary outputs | No primary manufacturer pinout and function table were located. TI's direct legacy and current symlink endpoints return 404; the inspected 1984 TI Volume 3 pages cover ALS1638/1639, not ALS1631. Secondary references and patent mentions are insufficient to establish exact enable polarity and native pin mapping. |
 | [74x1650](../spec/chips/ttl_74x1650.md) | dual 9-bit Futurebus universal storage transceiver with split TTL I/O | Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study |
 | [74x1651](../spec/chips/ttl_74x1651.md) | 9-bit and 8-bit Futurebus universal storage transceivers with delayed buffered clock with split TTL I/O | Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study |
@@ -137,11 +139,7 @@ The full run_all.sh completion gate returns nonzero while this table is nonempty
 | [74x1811](../spec/chips/ttl_74x1811.md) | FM, MFM, and DM encoder / decoder, data rates up to 20 MHz | FM/MFM/DM disk encoder/decoder (faster); same blocker as 74x1801 |
 | [74x1812](../spec/chips/ttl_74x1812.md) | SerDes with ECC and CRC, data rates up to 30 MHz | SerDes with ECC and CRC (faster); same blocker as 74x1802 |
 | [74x2000](../spec/chips/ttl_74x2000.md) | direction discriminator with microprocessor interface | Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet |
-| [74x2031](../spec/chips/ttl_74x2031.md) | 9-bit Futurebus address/data transceiver | Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet |
-| [74x2032](../spec/chips/ttl_74x2032.md) | 9-bit Futurebus competition transceiver | Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet |
 | [74x2034](../spec/chips/ttl_74x2034.md) | 8-bit GTLP adjustable-edge-rate registered transceiver with split LV-TTL I/O | Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet |
-| [74x2040](../spec/chips/ttl_74x2040.md) | 8-bit Futurebus transceiver with split TTL I/O | Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet |
-| [74x2041](../spec/chips/ttl_74x2041.md) | 7-bit Futurebus transceiver with split TTL I/O | Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet |
 | [74x2150](../spec/chips/ttl_74x2150.md) | 512 x 8 cache address comparator | Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet |
 | [74x2152](../spec/chips/ttl_74x2152.md) | 2k x 8 cache address comparator | Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet |
 | [74x2154](../spec/chips/ttl_74x2154.md) | 2k x 8 cache address comparator | Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator — needs dedicated datasheet |
@@ -163,7 +161,6 @@ The full run_all.sh completion gate returns nonzero while this table is nonempty
 | [74x2960](../spec/chips/ttl_74x2960.md) | error detection and correction (EDAC), equivalent to Am2960 | EDAC equivalent to Am2960; complex syndrome generation/decode and check-bit ALU requires Am2960 datasheet |
 | [74x2969](../spec/chips/ttl_74x2969.md) | memory timing controller for use with EDAC | Memory timing controller for EDAC use; complex state machine requires SN74F2969 datasheet |
 | [74x2970](../spec/chips/ttl_74x2970.md) | memory timing controller for use without EDAC | Memory timing controller (non-EDAC); complex state machine requires SN74F2970 datasheet |
-| [74x3893](../spec/chips/ttl_74x3893.md) | quad Futurebus backplane transceiver | Quad Futurebus backplane transceiver; specialized backplane physical-layer transceiver requires datasheet |
 | [74x3907](../spec/chips/ttl_74x3907.md) | Pentium clock synthesizer | Pentium clock synthesizer; PLL-based clock multiplier with frequency synthesis |
 | [74x4061](../spec/chips/ttl_74x4061.md) | 14-stage asynchronous binary counter with oscillator | 14-stage async binary counter with on-chip oscillator; same blocker as 74x4060 |
 | [74x4503](../spec/chips/ttl_74x4503.md) | controller for 64k/256k/1M dynamic RAM | Programmable DRAM controller for 64k/256k/1M; complex state machine requires datasheet |
@@ -209,8 +206,6 @@ The full run_all.sh completion gate returns nonzero while this table is nonempty
 | [74x9000](../spec/chips/ttl_74x9000.md) | programmable timer with oscillator | Programmable timer with on-chip oscillator; oscillator portion is analog |
 | [74x9323](../spec/chips/ttl_74x9323.md) | programmable ripple counter with oscillator | Programmable ripple counter with oscillator; oscillator portion is analog |
 | [74x9510](../spec/chips/ttl_74x9510.md) | 16×16-bit multiplier/accumulator (compatible to Am29510 and TDC1010) | 16x16-bit MAC (Am29510/TDC1010-equivalent); complex pipelined multiplier-accumulator |
-| [74x1616](../spec/chips/ttl_74x1616.md) | 17-bit LVTTL-to-GTLP adjustable edge rate universal bus transceiver | Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study |
-| [74x1645](../spec/chips/ttl_74x1645.md) | 16-bit LVTTL-to-GTLP adjustable edge rate bus transceiver | Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study |
 | [74x16260](../spec/chips/ttl_74x16260.md) | 12-bit to 24-bit multiplexed D-type latches | Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study |
 | [74x16269](../spec/chips/ttl_74x16269.md) | 12-bit to 24-bit registered bus exchanger | Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study |
 | [74x16270](../spec/chips/ttl_74x16270.md) | 12-bit to 24-bit registered bus exchanger | Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study |
@@ -218,9 +213,6 @@ The full run_all.sh completion gate returns nonzero while this table is nonempty
 | [74x16282](../spec/chips/ttl_74x16282.md) | 18-bit to 36-bit registered bus exchanger | Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study |
 | [74x16409](../spec/chips/ttl_74x16409.md) | 9-bit 4-port universal bus exchanger | Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study |
 | [74x16460](../spec/chips/ttl_74x16460.md) | 4-to-1 multiplexed/demultiplexed registered transceiver | Specialized Widebus/FET/GTLP/Futurebus part — needs dedicated datasheet study |
-| [74x16612](../spec/chips/ttl_74x16612.md) | 18-bit LVTTL-to-GTL+ universal bus transceiver | Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet |
-| [74x16616](../spec/chips/ttl_74x16616.md) | 17-bit LVTTL-to-GTL+ universal bus transceiver | Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet |
-| [74x16622](../spec/chips/ttl_74x16622.md) | 18-bit LVTTL-to-GTL+ bus transceiver | Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet |
 | [74x16657](../spec/chips/ttl_74x16657.md) | 16-bit bus transceiver with parity generators/checkers | Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet |
 | [74x16831](../spec/chips/ttl_74x16831.md) | 1-to-4 address register/driver | Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet |
 | [74x16832](../spec/chips/ttl_74x16832.md) | 1-to-4 address register/driver | Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet |
@@ -228,10 +220,6 @@ The full run_all.sh completion gate returns nonzero while this table is nonempty
 | [74x16853](../spec/chips/ttl_74x16853.md) | dual 8-bit to 9-bit parity bus transceiver | Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet |
 | [74x16901](../spec/chips/ttl_74x16901.md) | 18-bit universal bus transceiver with parity generators/checkers | Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet |
 | [74x16903](../spec/chips/ttl_74x16903.md) | 3.3-V 12-bit universal bus driver with parity checker | Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet |
-| [74x16912](../spec/chips/ttl_74x16912.md) | 18-bit LVTTL-to-GTLP universal bus transceiver | Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet |
-| [74x16916](../spec/chips/ttl_74x16916.md) | 17-bit LVTTL-to-GTLP universal bus transceiver | Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet |
-| [74x16923](../spec/chips/ttl_74x16923.md) | 18-bit LVTTL-to-GTLP universal bus transceiver | Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet |
-| [74x16945](../spec/chips/ttl_74x16945.md) | 16-bit LVTTL-to-GTLP bus transceiver | Widebus registered/parity/FET/GTLP transceiver — needs dedicated datasheet |
 | [74x162280](../spec/chips/ttl_74x162280.md) | 16-bit to 32-bit registered bus exchanger with byte masks | Specialized Widebus 3.3-V part — needs dedicated datasheet |
 | [74x162282](../spec/chips/ttl_74x162282.md) | 18-bit to 36-bit registered bus exchanger | Specialized Widebus 3.3-V part — needs dedicated datasheet |
 | [74x162460](../spec/chips/ttl_74x162460.md) | 4-to-1 multiplexed/demultiplexed registered transceiver | Specialized Widebus 3.3-V part — needs dedicated datasheet |
@@ -250,7 +238,6 @@ The full run_all.sh completion gate returns nonzero while this table is nonempty
 | [74x182512](../spec/chips/ttl_74x182512.md) | scan test devices with 18-bit universal bus transceivers | Scan test device 18-bit universal transceiver; scan logic requires datasheet |
 | [74x182646](../spec/chips/ttl_74x182646.md) | scan test devices with 18-bit transceivers and registers | Scan test device 18-bit transceiver+registers; scan logic requires datasheet |
 | [74x182652](../spec/chips/ttl_74x182652.md) | scan test devices with 18-bit transceivers and registers | Scan test device 18-bit transceiver+registers; scan logic requires datasheet |
-| [74x22033](../spec/chips/ttl_74x22033.md) | 8-bit LVTTL-to-GTLP adjustable edge rate registered transceiver | LVTTL-to-GTLP adjustable edge rate transceiver; physical signaling-level translation |
 | [74x32316](../spec/chips/ttl_74x32316.md) | 16-bit tri-port universal bus exchangers | 16-bit tri-port universal bus exchanger; specialized 3-way exchange requires datasheet |
 | [74x32318](../spec/chips/ttl_74x32318.md) | 18-bit tri-port universal bus exchangers | 18-bit tri-port universal bus exchanger; specialized 3-way exchange requires datasheet |
 
@@ -1016,11 +1003,17 @@ The full run_all.sh completion gate returns nonzero while this table is nonempty
 | [ttl_74x907](../spec/chips/ttl_74x907.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x908](../spec/chips/ttl_74x908.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x910](../spec/chips/ttl_74x910.md) | PASS | PASS | PASS | memory_inference |
+| [ttl_74x911](../spec/chips/ttl_74x911.md) | PASS | PASS | PASS | generic gates |
+| [ttl_74x912](../spec/chips/ttl_74x912.md) | PASS | PASS | PASS | generic gates |
+| [ttl_74x913](../spec/chips/ttl_74x913.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x914](../spec/chips/ttl_74x914.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x915](../spec/chips/ttl_74x915.md) | PASS | PASS | PASS | generic gates |
+| [ttl_74x917](../spec/chips/ttl_74x917.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x918](../spec/chips/ttl_74x918.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x920](../spec/chips/ttl_74x920.md) | PASS | PASS | PASS | memory_inference |
 | [ttl_74x921](../spec/chips/ttl_74x921.md) | PASS | PASS | PASS | memory_inference |
+| [ttl_74x922](../spec/chips/ttl_74x922.md) | PASS | PASS | PASS | generic gates |
+| [ttl_74x923](../spec/chips/ttl_74x923.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x929](../spec/chips/ttl_74x929.md) | PASS | PASS | PASS | memory_inference |
 | [ttl_74x930](../spec/chips/ttl_74x930.md) | PASS | PASS | PASS | memory_inference |
 | [ttl_74x933](../spec/chips/ttl_74x933.md) | PASS | PASS | PASS | generic gates |
@@ -1069,10 +1062,12 @@ The full run_all.sh completion gate returns nonzero while this table is nonempty
 | [ttl_74x1395](../spec/chips/ttl_74x1395.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x1403](../spec/chips/ttl_74x1403.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x1604](../spec/chips/ttl_74x1604.md) | PASS | PASS | PASS | generic gates |
+| [ttl_74x1612](../spec/chips/ttl_74x1612.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x1620](../spec/chips/ttl_74x1620.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x1621](../spec/chips/ttl_74x1621.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x1622](../spec/chips/ttl_74x1622.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x1623](../spec/chips/ttl_74x1623.md) | PASS | PASS | PASS | generic gates |
+| [ttl_74x1627](../spec/chips/ttl_74x1627.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x1638](../spec/chips/ttl_74x1638.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x1639](../spec/chips/ttl_74x1639.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x1640](../spec/chips/ttl_74x1640.md) | PASS | PASS | PASS | generic gates |
@@ -1097,6 +1092,10 @@ The full run_all.sh completion gate returns nonzero while this table is nonempty
 | [ttl_74x2007](../spec/chips/ttl_74x2007.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x2010](../spec/chips/ttl_74x2010.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x2014](../spec/chips/ttl_74x2014.md) | PASS | PASS | PASS | generic gates |
+| [ttl_74x2031](../spec/chips/ttl_74x2031.md) | PASS | PASS | PASS | generic gates |
+| [ttl_74x2032](../spec/chips/ttl_74x2032.md) | PASS | PASS | PASS | generic gates |
+| [ttl_74x2040](../spec/chips/ttl_74x2040.md) | PASS | PASS | PASS | generic gates |
+| [ttl_74x2041](../spec/chips/ttl_74x2041.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x2107](../spec/chips/ttl_74x2107.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x2125](../spec/chips/ttl_74x2125.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x2140](../spec/chips/ttl_74x2140.md) | PASS | PASS | PASS | memory_inference |
@@ -1208,6 +1207,7 @@ The full run_all.sh completion gate returns nonzero while this table is nonempty
 | [ttl_74x3827](../spec/chips/ttl_74x3827.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x3861](../spec/chips/ttl_74x3861.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x3862](../spec/chips/ttl_74x3862.md) | PASS | PASS | PASS | generic gates |
+| [ttl_74x3893](../spec/chips/ttl_74x3893.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x4002](../spec/chips/ttl_74x4002.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x4015](../spec/chips/ttl_74x4015.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x4017](../spec/chips/ttl_74x4017.md) | PASS | PASS | PASS | generic gates |
@@ -1352,6 +1352,8 @@ The full run_all.sh completion gate returns nonzero while this table is nonempty
 | [ttl_74x40103](../spec/chips/ttl_74x40103.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x40104](../spec/chips/ttl_74x40104.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x40105](../spec/chips/ttl_74x40105.md) | PASS | PASS | PASS | memory_inference |
+| [ttl_74x1616](../spec/chips/ttl_74x1616.md) | PASS | PASS | PASS | generic gates |
+| [ttl_74x1645](../spec/chips/ttl_74x1645.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x16209](../spec/chips/ttl_74x16209.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x16210](../spec/chips/ttl_74x16210.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x16211](../spec/chips/ttl_74x16211.md) | PASS | PASS | PASS | generic gates |
@@ -1382,7 +1384,10 @@ The full run_all.sh completion gate returns nonzero while this table is nonempty
 | [ttl_74x16543](../spec/chips/ttl_74x16543.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x16600](../spec/chips/ttl_74x16600.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x16601](../spec/chips/ttl_74x16601.md) | PASS | PASS | PASS | generic gates |
+| [ttl_74x16612](../spec/chips/ttl_74x16612.md) | PASS | PASS | PASS | generic gates |
+| [ttl_74x16616](../spec/chips/ttl_74x16616.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x16620](../spec/chips/ttl_74x16620.md) | PASS | PASS | PASS | generic gates |
+| [ttl_74x16622](../spec/chips/ttl_74x16622.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x16623](../spec/chips/ttl_74x16623.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x16640](../spec/chips/ttl_74x16640.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x16646](../spec/chips/ttl_74x16646.md) | PASS | PASS | PASS | generic gates |
@@ -1408,6 +1413,10 @@ The full run_all.sh completion gate returns nonzero while this table is nonempty
 | [ttl_74x16859](../spec/chips/ttl_74x16859.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x16861](../spec/chips/ttl_74x16861.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x16863](../spec/chips/ttl_74x16863.md) | PASS | PASS | PASS | generic gates |
+| [ttl_74x16912](../spec/chips/ttl_74x16912.md) | PASS | PASS | PASS | generic gates |
+| [ttl_74x16916](../spec/chips/ttl_74x16916.md) | PASS | PASS | PASS | generic gates |
+| [ttl_74x16923](../spec/chips/ttl_74x16923.md) | PASS | PASS | PASS | generic gates |
+| [ttl_74x16945](../spec/chips/ttl_74x16945.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x16952](../spec/chips/ttl_74x16952.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x16973](../spec/chips/ttl_74x16973.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x161284](../spec/chips/ttl_74x161284.md) | PASS | PASS | PASS | generic gates |
@@ -1442,6 +1451,7 @@ The full run_all.sh completion gate returns nonzero while this table is nonempty
 | [ttl_74x162841](../spec/chips/ttl_74x162841.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x164245](../spec/chips/ttl_74x164245.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x20245](../spec/chips/ttl_74x20245.md) | PASS | PASS | PASS | generic gates |
+| [ttl_74x22033](../spec/chips/ttl_74x22033.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x22501](../spec/chips/ttl_74x22501.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x25244](../spec/chips/ttl_74x25244.md) | PASS | PASS | PASS | generic gates |
 | [ttl_74x25245](../spec/chips/ttl_74x25245.md) | PASS | PASS | PASS | generic gates |

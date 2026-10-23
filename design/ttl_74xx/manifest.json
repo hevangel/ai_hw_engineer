@@ -14128,17 +14128,43 @@
     "description": "4-digit expandable display controller",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "MM74C911",
-    "datasheet_url": "https://archive.org/details/bitsavers_nationaldaCMOSDatabook_23595721/page/n135",
+    "datasheet": "National Semiconductor MM74C911, 1984 National Logic Databook Volume 1, printed pages 6-173 to 6-178",
+    "datasheet_url": "https://bitsavers.org/components/national/_dataBooks/1984_National_Logic_Databook_Volume_1.pdf",
     "number": 911,
     "module": "ttl_74x911",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized (SAR / voltage comparator analog / RAM / display controllers) \u2014 needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x911.md"
+    "model_level": "manufacturer_scan_logic_with_normalized_external_clock",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x911.md",
+    "rtl": "src/ttl_74x911.sv",
+    "testbench": "tb/tb_ttl_74x911.sv",
+    "source_review": {
+      "url": "https://bitsavers.org/components/national/_dataBooks/1984_National_Logic_Databook_Volume_1.pdf",
+      "sha256": "9d487da7c77326e8e6578fb8c7680643e400044f05d8a74ec152a56c8e3af252",
+      "table_pages": [
+        1328,
+        1330,
+        1331,
+        1333
+      ],
+      "page_numbering": "one-based book PDF pages: connection diagram and control truth tables 1328, write and tri-state waveforms 1330, multiplexing waveforms and block diagram 1331, segment expansion 1333",
+      "review_date": "2026-10-22",
+      "additional_sources": [
+        {
+          "url": "https://bitsavers.org/components/national/_dataBooks/1977_National_CMOS_Databook.pdf",
+          "document": "1977 National CMOS Databook advance-information datasheet, PDF pages 137-139",
+          "sha256": "3e8c5ec749791505ac253578b0a12aeb0411f7f33272dfb8df35bd7f5e684227",
+          "pdf_pages": [
+            137,
+            138,
+            139
+          ],
+          "content": "same device; consistency cross-check"
+        }
+      ]
+    }
   },
   {
     "part_number": "74x912",
@@ -14146,17 +14172,30 @@
     "description": "6-digit BCD display controller and driver",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "MM74C912",
-    "datasheet_url": "https://archive.org/details/bitsavers_nationaldaCMOSDatabook_23595721/page/n135",
+    "datasheet": "National Semiconductor MM74C912, 1984 National Logic Databook Volume 1, printed pages 6-180 to 6-185",
+    "datasheet_url": "https://bitsavers.org/components/national/_dataBooks/1984_National_Logic_Databook_Volume_1.pdf",
     "number": 912,
     "module": "ttl_74x912",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized (SAR / voltage comparator analog / RAM / display controllers) \u2014 needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x912.md"
+    "model_level": "manufacturer_scan_logic_with_normalized_external_clock",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x912.md",
+    "rtl": "src/ttl_74x912.sv",
+    "testbench": "tb/tb_ttl_74x912.sv",
+    "source_review": {
+      "url": "https://bitsavers.org/components/national/_dataBooks/1984_National_Logic_Databook_Volume_1.pdf",
+      "sha256": "9d487da7c77326e8e6578fb8c7680643e400044f05d8a74ec152a56c8e3af252",
+      "table_pages": [
+        1335,
+        1336,
+        1337,
+        1338
+      ],
+      "page_numbering": "one-based book PDF pages: connection diagram and control truth tables 1335, write/multiplexing waveforms 1336-1337, font table and block diagram 1338",
+      "review_date": "2026-10-22"
+    }
   },
   {
     "part_number": "74x913",
@@ -14164,17 +14203,30 @@
     "description": "6-digit BCD display controller and driver, no decimal point",
     "input_features": "",
     "output_features": "",
-    "datasheet": "MM74C913",
-    "datasheet_url": "https://archive.org/details/bitsavers_nationaldaCMOSDatabook_23595721/page/n135",
+    "datasheet": "National Semiconductor MM74C913, 1977 National CMOS Databook advance-information datasheet, printed pages 1-122 to 1-124",
+    "datasheet_url": "https://bitsavers.org/components/national/_dataBooks/1977_National_CMOS_Databook.pdf",
     "number": 913,
     "module": "ttl_74x913",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant \u2014 needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x913.md"
+    "model_level": "manufacturer_scan_logic_with_normalized_external_clock",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x913.md",
+    "rtl": "src/ttl_74x913.sv",
+    "testbench": "tb/tb_ttl_74x913.sv",
+    "conformance_limits": "The MM74C913 appears only in the 1977 advance-information datasheet; the source asserts identity with the MM74C912 but prints no character font, so the BCD font is an explicit assumption. Oscillator scan behavior is normalized to an external digital clock.",
+    "source_review": {
+      "url": "https://bitsavers.org/components/national/_dataBooks/1977_National_CMOS_Databook.pdf",
+      "sha256": "3e8c5ec749791505ac253578b0a12aeb0411f7f33272dfb8df35bd7f5e684227",
+      "table_pages": [
+        137,
+        138,
+        139
+      ],
+      "page_numbering": "one-based book PDF pages: 911/912/913 combined advance-information datasheet",
+      "review_date": "2026-10-22"
+    }
   },
   {
     "part_number": "74x914",
@@ -14220,17 +14272,60 @@
     "description": "6-digit hex display controller and driver",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "MM74C917",
-    "datasheet_url": "https://archive.org/details/bitsavers_nationaldaLogicDatabookVolume1_95500749/page/n1333",
+    "datasheet": "National Semiconductor MM74C917, 1984 National Logic Databook Volume 1, printed pages 6-180 to 6-185",
+    "datasheet_url": "https://bitsavers.org/components/national/_dataBooks/1984_National_Logic_Databook_Volume_1.pdf",
     "number": 917,
     "module": "ttl_74x917",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant \u2014 needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x917.md"
+    "model_level": "manufacturer_scan_logic_with_normalized_external_clock",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x917.md",
+    "rtl": "src/ttl_74x917.sv",
+    "testbench": "tb/tb_ttl_74x917.sv",
+    "source_review": {
+      "url": "https://bitsavers.org/components/national/_dataBooks/1984_National_Logic_Databook_Volume_1.pdf",
+      "sha256": "9d487da7c77326e8e6578fb8c7680643e400044f05d8a74ec152a56c8e3af252",
+      "table_pages": [
+        1335,
+        1336,
+        1337,
+        1338
+      ],
+      "page_numbering": "one-based book PDF pages: shared MM74C912/MM74C917 datasheet; hex font table on PDF page 1338",
+      "review_date": "2026-10-22",
+      "additional_sources": [
+        {
+          "url": "https://bitsavers.org/components/national/_dataBooks/1981_Natonal_CMOS_Databook.pdf",
+          "document": "1981 National CMOS Databook, PDF pages 873-892",
+          "sha256": "7330b1a886d14e2c9037679942d911972219990be182661f786f633bad457ae6",
+          "pdf_pages": [
+            873,
+            874,
+            875,
+            876,
+            877,
+            878,
+            879,
+            880,
+            881,
+            882,
+            883,
+            884,
+            885,
+            886,
+            887,
+            888,
+            889,
+            890,
+            891,
+            892
+          ],
+          "content": "full MM74C917 section; consistency cross-check"
+        }
+      ]
+    }
   },
   {
     "part_number": "74x918",
@@ -14297,17 +14392,29 @@
     "description": "16-key encoder",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "MM74C922",
-    "datasheet_url": "https://archive.org/details/bitsavers_nationaldaCMOSDatabook_23595721/page/n149",
+    "datasheet": "National Semiconductor MM54C922/MM74C922, 1977 National CMOS Databook, printed pages 1-136 to 1-139",
+    "datasheet_url": "https://bitsavers.org/components/national/_dataBooks/1977_National_CMOS_Databook.pdf",
     "number": 922,
     "module": "ttl_74x922",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant \u2014 needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x922.md"
+    "model_level": "manufacturer_scan_logic_with_normalized_external_clock",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x922.md",
+    "rtl": "src/ttl_74x922.sv",
+    "testbench": "tb/tb_ttl_74x922.sv",
+    "source_review": {
+      "url": "https://bitsavers.org/components/national/_dataBooks/1977_National_CMOS_Databook.pdf",
+      "sha256": "3e8c5ec749791505ac253578b0a12aeb0411f7f33272dfb8df35bd7f5e684227",
+      "table_pages": [
+        151,
+        153,
+        154
+      ],
+      "page_numbering": "one-based book PDF pages: connection diagram 151, debounce/output-enable waveform figures 153, block diagram and 20-position truth table 154",
+      "review_date": "2026-10-22"
+    }
   },
   {
     "part_number": "74x923",
@@ -14315,17 +14422,29 @@
     "description": "20-key encoder",
     "input_features": "",
     "output_features": "three-state",
-    "datasheet": "MM74C923",
-    "datasheet_url": "https://archive.org/details/bitsavers_nationaldaCMOSDatabook_23595721/page/n149",
+    "datasheet": "National Semiconductor MM54C923/MM74C923, 1977 National CMOS Databook, printed pages 1-136 to 1-139",
+    "datasheet_url": "https://bitsavers.org/components/national/_dataBooks/1977_National_CMOS_Databook.pdf",
     "number": 923,
     "module": "ttl_74x923",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Display controller / RAM / key encoder / counter+display / ADC / modem / LCD driver / shift register variant \u2014 needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x923.md"
+    "model_level": "manufacturer_scan_logic_with_normalized_external_clock",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x923.md",
+    "rtl": "src/ttl_74x923.sv",
+    "testbench": "tb/tb_ttl_74x923.sv",
+    "source_review": {
+      "url": "https://bitsavers.org/components/national/_dataBooks/1977_National_CMOS_Databook.pdf",
+      "sha256": "3e8c5ec749791505ac253578b0a12aeb0411f7f33272dfb8df35bd7f5e684227",
+      "table_pages": [
+        151,
+        153,
+        154
+      ],
+      "page_numbering": "one-based book PDF pages: connection diagram 151, waveform figures 153, block diagram and 20-position truth table 154",
+      "review_date": "2026-10-22"
+    }
   },
   {
     "part_number": "74x925",
@@ -15812,17 +15931,30 @@
     "description": "18-bit LV-TTL-to-GTLP adjustable-edge-rate universal bus transceiver",
     "input_features": "",
     "output_features": "three-state and open-collector",
-    "datasheet": "SN74GTLPH1612",
-    "datasheet_url": "https://e2e.ti.com/cfs-file/__key/communityserver-discussions-components-files/151/SN74GTLPH1612-Rev2005.pdf",
+    "datasheet": "TI SN74GTLPH1612 SCES287D, October 1999 / revised August 2001 (GTLP design guide SCED004A, printed pages 3-69 to 3-82)",
+    "datasheet_url": "https://www.ti.com/lit/ug/sced004a/sced004a.pdf",
     "number": 1612,
     "module": "ttl_74x1612",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x1612.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x1612.md",
+    "rtl": "src/ttl_74x1612.sv",
+    "testbench": "tb/tb_ttl_74x1612.sv",
+    "conformance_limits": "Modeled with the shared library UBT abstraction: transparent and stored paths collapse into one state element per direction, so native qualified LE transitions are not separately observable; register contents power up unspecified and the open-drain B port uses explicit low-only sink masks.",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ug/sced004a/sced004a.pdf",
+      "sha256": "414fb09c44deff6897c9fdf90ea9b59f9f592e5f78067cb4d65d80018799a995",
+      "table_pages": [
+        134,
+        137,
+        138
+      ],
+      "page_numbering": "one-based book PDF pages: package pinout 134, function table 137 (printed 3-72), logic diagram 138",
+      "review_date": "2026-10-22"
+    }
   },
   {
     "part_number": "74x1620",
@@ -15946,17 +16078,30 @@
     "description": "18-bit LV-TTL-to-GTLP adjustable-edge-rate bus transceiver with source synchronous clock outputs",
     "input_features": "",
     "output_features": "three-state and open-collector",
-    "datasheet": "SN74GTLPH1627",
-    "datasheet_url": "https://media.digikey.com/pdf/Data%20Sheets/Texas%20Instruments%20PDFs/sn74gtlph1627%5b1%5d.pdf",
+    "datasheet": "TI SN74GTLPH1627 SCES356B, June 2001 / revised September 2001 (GTLP design guide SCED004A, printed pages 3-97 to 3-102; PRODUCT PREVIEW)",
+    "datasheet_url": "https://www.ti.com/lit/ug/sced004a/sced004a.pdf",
     "number": 1627,
     "module": "ttl_74x1627",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x1627.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x1627.md",
+    "rtl": "src/ttl_74x1627.sv",
+    "testbench": "tb/tb_ttl_74x1627.sv",
+    "conformance_limits": "PRODUCT PREVIEW source: behavior is limited to the printed function tables; the FSTA setup-time adjustment, ERC and register power-up contents are outside the contract, and the bidirectional SSCLK bus observation must be resolved by the board model.",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ug/sced004a/sced004a.pdf",
+      "sha256": "414fb09c44deff6897c9fdf90ea9b59f9f592e5f78067cb4d65d80018799a995",
+      "table_pages": [
+        160,
+        163,
+        164
+      ],
+      "page_numbering": "one-based book PDF pages: package pinout 160, logic diagram 163, complete function tables 164 (printed 3-101)",
+      "review_date": "2026-10-22"
+    }
   },
   {
     "part_number": "74x1631",
@@ -16773,17 +16918,27 @@
     "description": "9-bit Futurebus address/data transceiver",
     "input_features": "",
     "output_features": "three-state and open-collector",
-    "datasheet": "SN74FB2031",
-    "datasheet_url": "https://archive.org/details/bitsavers_tidataBookiCMOSTechnologyDataBook_40217042/page/n695",
+    "datasheet": "TI SN54FB2031/SN74FB2031, November 1991, revised October 1992, 9-Bit TTL/BTL Address/Data Transceivers, in the 1992 ABT Advanced BiCMOS Technology Data Book (PRODUCT PREVIEW)",
+    "datasheet_url": "https://archive.org/details/bitsavers_tidataBookiCMOSTechnologyDataBook_40217042",
     "number": 2031,
     "module": "ttl_74x2031",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x2031.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x2031.md",
+    "rtl": "src/ttl_74x2031.sv",
+    "testbench": "tb/tb_ttl_74x2031.sv",
+    "source_review": {
+      "url": "https://archive.org/details/bitsavers_tidataBookiCMOSTechnologyDataBook_40217042",
+      "sha256": "1605f2416d37ec4f244a19d294e519a42398cde2e8e180ab64c8fae762f2433a",
+      "table_pages": [
+        696
+      ],
+      "page_numbering": "one-based book PDF pages; 695: Description and package pinout (printed 7-9).; 696: Transceiver function table, storage mode table, select function table (printed 7-10).; 697: Functional block diagram (printed 7-11); contains preview pin-number typos (A1 shown as 20 instead of RC pin 50).",
+      "review_date": "2026-10-22"
+    }
   },
   {
     "part_number": "74x2032",
@@ -16791,17 +16946,28 @@
     "description": "9-bit Futurebus competition transceiver",
     "input_features": "",
     "output_features": "three-state and open-collector",
-    "datasheet": "SN74FB2032",
-    "datasheet_url": "https://archive.org/details/bitsavers_tidataBookiCMOSTechnologyDataBook_40217042/page/n701",
+    "datasheet": "TI SN54FB2032/SN74FB2032, November 1991, revised October 1992, 9-Bit TTL/BTL Competition Transceivers, in the 1992 ABT Advanced BiCMOS Technology Data Book (PRODUCT PREVIEW)",
+    "datasheet_url": "https://archive.org/details/bitsavers_tidataBookiCMOSTechnologyDataBook_40217042",
     "number": 2032,
     "module": "ttl_74x2032",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x2032.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x2032.md",
+    "rtl": "src/ttl_74x2032.sv",
+    "testbench": "tb/tb_ttl_74x2032.sv",
+    "source_review": {
+      "url": "https://archive.org/details/bitsavers_tidataBookiCMOSTechnologyDataBook_40217042",
+      "sha256": "1605f2416d37ec4f244a19d294e519a42398cde2e8e180ab64c8fae762f2433a",
+      "table_pages": [
+        702
+      ],
+      "page_numbering": "one-based book PDF pages; 701: Description and package pinout (printed 7-15).; 702: Transceiver function table plus STORAGE MODE and SELECT FUNCTION tables copied from the 'FB2031 (printed 7-16).; 703: Functional block diagram with arbitration chain (printed 7-17).",
+      "review_date": "2026-10-22"
+    },
+    "conformance_limits": "The source page-702 STORAGE MODE (LCA, LCB) and SELECT FUNCTION (SEL1, SEL0) tables reference pins that do not exist on the FB2032 pinout and are rejected as preview copy errors from the FB2031 entry; only the physically pinned controls OEA, OEB, OEB_n, LE, COMPETE, AP, BP and WIN are modeled, with the arbitration chain and tie behavior as documented assumptions."
   },
   {
     "part_number": "74x2034",
@@ -16827,17 +16993,27 @@
     "description": "8-bit Futurebus transceiver with split TTL I/O",
     "input_features": "",
     "output_features": "three-state and open-collector",
-    "datasheet": "SN74FB2040",
-    "datasheet_url": "https://archive.org/details/bitsavers_tidataBookiCMOSTechnologyDataBook_40217042/page/n719",
+    "datasheet": "TI SN54FB2040/SN74FB2040, November 1991, revised October 1992, 8-Bit TTL/BTL Transceivers, in the 1992 ABT Advanced BiCMOS Technology Data Book (PRODUCT PREVIEW)",
+    "datasheet_url": "https://archive.org/details/bitsavers_tidataBookiCMOSTechnologyDataBook_40217042",
     "number": 2040,
     "module": "ttl_74x2040",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x2040.md"
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x2040.md",
+    "rtl": "src/ttl_74x2040.sv",
+    "testbench": "tb/tb_ttl_74x2040.sv",
+    "source_review": {
+      "url": "https://archive.org/details/bitsavers_tidataBookiCMOSTechnologyDataBook_40217042",
+      "sha256": "1605f2416d37ec4f244a19d294e519a42398cde2e8e180ab64c8fae762f2433a",
+      "table_pages": [
+        720
+      ],
+      "page_numbering": "one-based book PDF pages; 719: Description and package pinout (printed 7-33).; 720: Function table and logic symbol (printed 7-34).; 721: Functional block diagram (printed 7-35).",
+      "review_date": "2026-10-22"
+    }
   },
   {
     "part_number": "74x2041",
@@ -16845,17 +17021,28 @@
     "description": "7-bit Futurebus transceiver with split TTL I/O",
     "input_features": "",
     "output_features": "three-state and open-collector",
-    "datasheet": "SN74FB2041",
-    "datasheet_url": "https://archive.org/details/bitsavers_tidataBookiCMOSTechnologyDataBook_40217042/page/n725",
+    "datasheet": "TI SN74FB2041 (commercial only; no SN54 version listed), November 1991, revised June 1992, 7-Bit TTL/BTL Transceiver, in the 1992 ABT Advanced BiCMOS Technology Data Book (PRODUCT PREVIEW)",
+    "datasheet_url": "https://archive.org/details/bitsavers_tidataBookiCMOSTechnologyDataBook_40217042",
     "number": 2041,
     "module": "ttl_74x2041",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized cache comparator / NuBus / GTL / clock driver / FIFO / level translator \u2014 needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x2041.md"
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x2041.md",
+    "rtl": "src/ttl_74x2041.sv",
+    "testbench": "tb/tb_ttl_74x2041.sv",
+    "source_review": {
+      "url": "https://archive.org/details/bitsavers_tidataBookiCMOSTechnologyDataBook_40217042",
+      "sha256": "1605f2416d37ec4f244a19d294e519a42398cde2e8e180ab64c8fae762f2433a",
+      "table_pages": [
+        726
+      ],
+      "page_numbering": "one-based book PDF pages; 725: Description and RC pinout (printed 7-39).; 726: Function table and ANSI/IEEE-91 logic symbol (printed 7-40).; 727: Functional block diagram (printed 7-41).",
+      "review_date": "2026-10-22"
+    },
+    "conformance_limits": "Pin 25 is printed without an overbar on the pinout page but is modeled as active-low 2OEB_n from the logic-symbol polarity indicator, the inverting input buffer in the block diagram and the shared function table."
   },
   {
     "part_number": "74x2107",
@@ -19649,17 +19836,27 @@
     "description": "quad Futurebus backplane transceiver",
     "input_features": "",
     "output_features": "three-state and open-collector",
-    "datasheet": "MC74F3893A",
-    "datasheet_url": "https://archive.org/details/bitsavers_motoroladaFASTandLSTTLData_35934218/page/n313",
+    "datasheet": "Motorola MC74F3893A (FAST Schottky TTL; pin/function compatible with NSC DS3893A and Signetics 74F3893), 1992 data book edition, Quad Futurebus Backplane Transceiver (3 State + Open Collector), in the 1992 FAST and LS TTL Data book",
+    "datasheet_url": "https://archive.org/details/bitsavers_motoroladaFASTandLSTTLData_35934218",
     "number": 3893,
     "module": "ttl_74x3893",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Larger footprints",
     "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Quad Futurebus backplane transceiver; specialized backplane physical-layer transceiver requires datasheet",
-    "specification": "spec/chips/ttl_74x3893.md"
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x3893.md",
+    "rtl": "src/ttl_74x3893.sv",
+    "testbench": "tb/tb_ttl_74x3893.sv",
+    "source_review": {
+      "url": "https://archive.org/details/bitsavers_motoroladaFASTandLSTTLData_35934218",
+      "sha256": "96ee048026e187ffe3ca9179b01e06149a8970566bbf52cbdaa1c01988b543e9",
+      "table_pages": [
+        315
+      ],
+      "page_numbering": "one-based book PDF pages; 314: Description, pinout and logic symbol (printed 4-276).; 315: Logic diagram (NAND driver, inverting receivers) and function table (printed 4-277).",
+      "review_date": "2026-10-22"
+    }
   },
   {
     "part_number": "74x3907",
@@ -23729,17 +23926,30 @@
     "description": "17-bit LVTTL-to-GTLP adjustable edge rate universal bus transceiver",
     "input_features": "",
     "output_features": "three-state, open-collector",
-    "datasheet": "GTLPH",
-    "datasheet_url": "https://www.ti.com/lit/ug/sced004a/sced004a.pdf#page=147",
+    "datasheet": "TI SN74GTLPH1616 SCES346C, January 2001 / revised August 2001 (GTLP design guide SCED004A, printed pages 3-83 to 3-96)",
+    "datasheet_url": "https://www.ti.com/lit/ug/sced004a/sced004a.pdf",
     "number": 1616,
     "module": "ttl_74x1616",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x1616.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x1616.md",
+    "rtl": "src/ttl_74x1616.sv",
+    "testbench": "tb/tb_ttl_74x1616.sv",
+    "conformance_limits": "Modeled with the shared library UBT abstraction: transparent and stored paths collapse into one state element per direction, so native qualified LE transitions are not separately observable; register contents power up unspecified and the open-drain B port uses explicit low-only sink masks.",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ug/sced004a/sced004a.pdf",
+      "sha256": "414fb09c44deff6897c9fdf90ea9b59f9f592e5f78067cb4d65d80018799a995",
+      "table_pages": [
+        147,
+        150,
+        151
+      ],
+      "page_numbering": "one-based book PDF pages: package pinout 147, function table 150, logic diagram 151",
+      "review_date": "2026-10-22"
+    }
   },
   {
     "part_number": "74x1645",
@@ -23747,17 +23957,29 @@
     "description": "16-bit LVTTL-to-GTLP adjustable edge rate bus transceiver",
     "input_features": "",
     "output_features": "three-state, open-collector",
-    "datasheet": "GTLPH",
-    "datasheet_url": "https://www.ti.com/lit/ug/sced004a/sced004a.pdf#page=176",
+    "datasheet": "TI SN74GTLPH1645 SCES290D, October 1999 / revised September 2001 (GTLP design guide SCED004A, printed pages 3-113 to 3-124)",
+    "datasheet_url": "https://www.ti.com/lit/ug/sced004a/sced004a.pdf",
     "number": 1645,
     "module": "ttl_74x1645",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Specialized Widebus/FET/GTLP/Futurebus part \u2014 needs dedicated datasheet study",
-    "specification": "spec/chips/ttl_74x1645.md"
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x1645.md",
+    "rtl": "src/ttl_74x1645.sv",
+    "testbench": "tb/tb_ttl_74x1645.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ug/sced004a/sced004a.pdf",
+      "sha256": "414fb09c44deff6897c9fdf90ea9b59f9f592e5f78067cb4d65d80018799a995",
+      "table_pages": [
+        176,
+        178,
+        179
+      ],
+      "page_numbering": "one-based book PDF pages: package pinout 176, function table 178, logic diagram 179",
+      "review_date": "2026-10-22"
+    }
   },
   {
     "part_number": "74x16209",
@@ -24610,17 +24832,29 @@
     "description": "18-bit LVTTL-to-GTL+ universal bus transceiver",
     "input_features": "",
     "output_features": "three-state, open-collector",
-    "datasheet": "GTL",
-    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74gtl16612.pdf",
+    "datasheet": "TI SN74GTLPH16612 SCES326C, March 2000 / revised August 2001 (GTLP design guide SCED004A, printed pages 3-213 to 3-220)",
+    "datasheet_url": "https://www.ti.com/lit/ug/sced004a/sced004a.pdf",
     "number": 16612,
     "module": "ttl_74x16612",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x16612.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16612.md",
+    "rtl": "src/ttl_74x16612.sv",
+    "testbench": "tb/tb_ttl_74x16612.sv",
+    "conformance_limits": "Modeled with the shared library UBT abstraction: transparent and stored paths collapse into one state element per direction, so native qualified LE transitions are not separately observable; register contents power up unspecified and the open-drain B port uses explicit low-only sink masks.",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ug/sced004a/sced004a.pdf",
+      "sha256": "414fb09c44deff6897c9fdf90ea9b59f9f592e5f78067cb4d65d80018799a995",
+      "table_pages": [
+        270,
+        272
+      ],
+      "page_numbering": "one-based book PDF pages: package pinout 270, function table and logic diagram 272",
+      "review_date": "2026-10-22"
+    }
   },
   {
     "part_number": "74x16616",
@@ -24628,17 +24862,41 @@
     "description": "17-bit LVTTL-to-GTL+ universal bus transceiver",
     "input_features": "",
     "output_features": "three-state, open-collector",
-    "datasheet": "GTL",
-    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74gtl16616.pdf",
+    "datasheet": "TI SN74GTL16616 SCBS481H, June 1994 / revised August 2001 (GTLP design guide SCED004A, printed pages 2-23 to 2-34)",
+    "datasheet_url": "https://www.ti.com/lit/ug/sced004a/sced004a.pdf",
     "number": 16616,
     "module": "ttl_74x16616",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x16616.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16616.md",
+    "rtl": "src/ttl_74x16616.sv",
+    "testbench": "tb/tb_ttl_74x16616.sv",
+    "conformance_limits": "CLKIN is modeled as the observation of the resolved external GTL clock bus only; its internal LVTTL destination is not separately pinned in the function table. UBT abstraction limits and open-drain sink masks as in the specification.",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ug/sced004a/sced004a.pdf",
+      "sha256": "414fb09c44deff6897c9fdf90ea9b59f9f592e5f78067cb4d65d80018799a995",
+      "table_pages": [
+        44,
+        45,
+        46
+      ],
+      "page_numbering": "one-based book PDF pages: package pinout 44, function table 45, logic diagram 46 (printed 2-25)",
+      "review_date": "2026-10-22",
+      "additional_sources": [
+        {
+          "url": "https://www.ti.com/lit/ds/symlink/sn74gtl16616.pdf",
+          "document": "TI SN74GTL16616 SCBS481H standalone datasheet",
+          "sha256": "c045a77e0e90b063576bb084fc210a7393b8ad5db459871408cabfd8848e4b9b",
+          "pdf_pages": [
+            3
+          ],
+          "content": "standalone logic diagram confirming CLKOUT (pin 31) open-drain from CLKAB under OEAB and CLKIN (pin 26) as the resolved clock-bus observation"
+        }
+      ]
+    }
   },
   {
     "part_number": "74x16620",
@@ -24665,17 +24923,29 @@
     "description": "18-bit LVTTL-to-GTL+ bus transceiver",
     "input_features": "",
     "output_features": "three-state, open-collector",
-    "datasheet": "GTL",
+    "datasheet": "TI SN74GTL16622A SCBS673F, August 1996 / revised April 2005",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74gtl16622a.pdf",
     "number": 16622,
     "module": "ttl_74x16622",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x16622.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16622.md",
+    "rtl": "src/ttl_74x16622.sv",
+    "testbench": "tb/tb_ttl_74x16622.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74gtl16622a.pdf",
+      "sha256": "d17649898935f53b6a01b3387615d70e0370e8e76ca3a6a02116c9564228ff29",
+      "table_pages": [
+        1,
+        2,
+        3
+      ],
+      "page_numbering": "one-based device PDF pages: description/pinout 1, function table 2, logic diagram 3",
+      "review_date": "2026-10-22"
+    }
   },
   {
     "part_number": "74x16623",
@@ -25371,17 +25641,29 @@
     "description": "18-bit LVTTL-to-GTLP universal bus transceiver",
     "input_features": "",
     "output_features": "three-state, open-collector",
-    "datasheet": "GTLPH",
-    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74gtlph16912.pdf",
+    "datasheet": "TI SN74GTLPH16912 SCES288C, October 1999 / revised July 2001 (GTLP design guide SCED004A, printed pages 3-221 to 3-232)",
+    "datasheet_url": "https://www.ti.com/lit/ug/sced004a/sced004a.pdf",
     "number": 16912,
     "module": "ttl_74x16912",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x16912.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16912.md",
+    "rtl": "src/ttl_74x16912.sv",
+    "testbench": "tb/tb_ttl_74x16912.sv",
+    "conformance_limits": "Modeled with the shared library UBT abstraction: transparent and stored paths collapse into one state element per direction, so native qualified LE transitions are not separately observable; register contents power up unspecified and the open-drain B port uses explicit low-only sink masks.",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ug/sced004a/sced004a.pdf",
+      "sha256": "414fb09c44deff6897c9fdf90ea9b59f9f592e5f78067cb4d65d80018799a995",
+      "table_pages": [
+        278,
+        280
+      ],
+      "page_numbering": "one-based book PDF pages: package pinout 278, function table 280",
+      "review_date": "2026-10-22"
+    }
   },
   {
     "part_number": "74x16916",
@@ -25389,17 +25671,30 @@
     "description": "17-bit LVTTL-to-GTLP universal bus transceiver",
     "input_features": "",
     "output_features": "three-state, open-collector",
-    "datasheet": "GTLPH",
-    "datasheet_url": "https://www.ti.com/lit/ug/sced004a/sced004a.pdf#page=289",
+    "datasheet": "TI SN74GTLPH16916 SCES347B, January 2001 / revised August 2001 (GTLP design guide SCED004A, printed pages 3-233 to 3-244)",
+    "datasheet_url": "https://www.ti.com/lit/ug/sced004a/sced004a.pdf",
     "number": 16916,
     "module": "ttl_74x16916",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x16916.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16916.md",
+    "rtl": "src/ttl_74x16916.sv",
+    "testbench": "tb/tb_ttl_74x16916.sv",
+    "conformance_limits": "Modeled with the shared library UBT abstraction: transparent and stored paths collapse into one state element per direction, so native qualified LE transitions are not separately observable; register contents power up unspecified and the open-drain B port uses explicit low-only sink masks.",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ug/sced004a/sced004a.pdf",
+      "sha256": "414fb09c44deff6897c9fdf90ea9b59f9f592e5f78067cb4d65d80018799a995",
+      "table_pages": [
+        289,
+        292,
+        293
+      ],
+      "page_numbering": "one-based book PDF pages: package pinout 289, function table 292, logic diagram 293",
+      "review_date": "2026-10-22"
+    }
   },
   {
     "part_number": "74x16923",
@@ -25407,17 +25702,29 @@
     "description": "18-bit LVTTL-to-GTLP universal bus transceiver",
     "input_features": "",
     "output_features": "three-state, open-collector",
-    "datasheet": "GTL",
-    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74gtlph16912.pdf",
+    "datasheet": "TI SN74GTL16923 SCBS674G, August 1996 / revised August 2001 (GTLP design guide SCED004A, printed pages 2-41 to 2-50)",
+    "datasheet_url": "https://www.ti.com/lit/ug/sced004a/sced004a.pdf",
     "number": 16923,
     "module": "ttl_74x16923",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x16923.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16923.md",
+    "rtl": "src/ttl_74x16923.sv",
+    "testbench": "tb/tb_ttl_74x16923.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ug/sced004a/sced004a.pdf",
+      "sha256": "414fb09c44deff6897c9fdf90ea9b59f9f592e5f78067cb4d65d80018799a995",
+      "table_pages": [
+        62,
+        63,
+        64
+      ],
+      "page_numbering": "one-based book PDF pages: package pinout 62, function table 63, logic diagram 64; the earlier catalog download for this number contained 16912 content",
+      "review_date": "2026-10-22"
+    }
   },
   {
     "part_number": "74x16945",
@@ -25425,17 +25732,28 @@
     "description": "16-bit LVTTL-to-GTLP bus transceiver",
     "input_features": "",
     "output_features": "three-state, open-collector",
-    "datasheet": "GTLPH",
-    "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74gtlph16945.pdf",
+    "datasheet": "TI SN74GTLPH16945 SCES292C, October 1999 / revised September 2001 (GTLP design guide SCED004A, printed pages 3-245 to 3-256)",
+    "datasheet_url": "https://www.ti.com/lit/ug/sced004a/sced004a.pdf",
     "number": 16945,
     "module": "ttl_74x16945",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
     "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "Widebus registered/parity/FET/GTLP transceiver \u2014 needs dedicated datasheet",
-    "specification": "spec/chips/ttl_74x16945.md"
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x16945.md",
+    "rtl": "src/ttl_74x16945.sv",
+    "testbench": "tb/tb_ttl_74x16945.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ug/sced004a/sced004a.pdf",
+      "sha256": "414fb09c44deff6897c9fdf90ea9b59f9f592e5f78067cb4d65d80018799a995",
+      "table_pages": [
+        301,
+        303
+      ],
+      "page_numbering": "one-based book PDF pages: package pinout 301, description and function table 303",
+      "review_date": "2026-10-22"
+    }
   },
   {
     "part_number": "74x16952",
@@ -26523,17 +26841,29 @@
     "description": "8-bit LVTTL-to-GTLP adjustable edge rate registered transceiver",
     "input_features": "",
     "output_features": "three-state, open-collector",
-    "datasheet": "GTLP",
+    "datasheet": "TI SN74GTLP22033 SCES354C, June 2001 / revised September 2001",
     "datasheet_url": "https://www.ti.com/lit/ds/symlink/sn74gtlp22033.pdf",
     "number": 22033,
     "module": "ttl_74x22033",
     "introduction_year": null,
     "date_note": "Exact first-introduced year not established; see linked manufacturer source.",
     "source_section": "Widebus devices",
-    "model_level": "normalized_function",
-    "status": "pending",
-    "reason": "LVTTL-to-GTLP adjustable edge rate transceiver; physical signaling-level translation",
-    "specification": "spec/chips/ttl_74x22033.md"
+    "model_level": "manufacturer_logic_with_split_outputs",
+    "status": "implemented",
+    "specification": "spec/chips/ttl_74x22033.md",
+    "rtl": "src/ttl_74x22033.sv",
+    "testbench": "tb/tb_ttl_74x22033.sv",
+    "source_review": {
+      "url": "https://www.ti.com/lit/ds/symlink/sn74gtlp22033.pdf",
+      "sha256": "5ae9deee9c4f622aca8e3207c2dbe6ff8919ee36c02d6736f9ea865f95e50602",
+      "table_pages": [
+        1,
+        4,
+        5
+      ],
+      "page_numbering": "one-based device PDF pages: package pinout 1, complete function tables 4-5 (visually verified against rendered images)",
+      "review_date": "2026-10-22"
+    }
   },
   {
     "part_number": "74x22501",
