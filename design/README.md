@@ -64,6 +64,7 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1983 | Apple IIe MMU (341-0266) | Full-custom memory mapper: main/aux/bank-switched RAM selection, soft switches, ROM decode and multiplexed DRAM address | [apple_iie_mmu](apple_iie_mmu/) |
 | 1983 | Apple IIe IOU (341-0267) | Full-custom video machine: display scanner and interleaved display-address fold, video-mode soft switches, keyboard strobe/auto-repeat, annunciator/speaker/cassette outputs | [apple_iie_iou](apple_iie_iou/) |
 | 1983 | Apple IIe timing PAL (PAL16R8) | Apple-programmed timing generator: φ0/φ1 CPU clocks, asymmetric Q3 strobe, PRAS'/PCAS' DRAM strobes with CAS gating, LDPS' video load and the 7 MHz dot clock | [apple_iie_pal](apple_iie_pal/) |
+| By 1986* (bibliographic evidence; launch unconfirmed) | MOS Technology 8520 CIA | Amiga peripheral controller: 6526 core with binary 24-bit TOD event counter and 8520 timer/interrupt timing; matches MAME except nine classified residuals; Amiga software pending | [mos_8520](mos_8520/) |
 
 ## Date provenance notes
 

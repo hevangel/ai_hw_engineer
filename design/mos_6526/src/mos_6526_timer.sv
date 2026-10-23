@@ -1,5 +1,11 @@
 // Original cycle-completion timer; see spec/spec.md for oracle/phase contract.
-module mos_6526_timer (
+module mos_6526_timer #(
+    // 8520: a high-byte write in one-shot mode force-loads and starts.
+    parameter bit HIGH_WRITE_STARTS_ONESHOT = 1'b0,
+    // 8520 (pinned MAME/vAmigaTS model): a high-byte write to a stopped
+    // timer reloads the counter one cycle later than the VICE 6526 profile.
+    parameter bit DELAYED_STOPPED_LOAD = 1'b0
+) (
     input logic clk, rst_n, phi2_mode_i, pulse_i,
     input logic write_low_i, write_high_i, write_control_i,
     input logic [7:0] data_i,
@@ -10,7 +16,7 @@ module mos_6526_timer (
     logic started_q, started_next, oneshot_q;
     logic enable_early_q, enable_late_q, enable_early_next, enable_late_next;
     logic load_request_q, load_delay_q, load_next;
-    logic oneshot_early_q, underflow_next;
+    logic oneshot_early_q, underflow_next, stopped_high_load;
     assign count_o = count_q;
     assign latch_o = latch_q;
     assign started_o = started_q;
@@ -26,6 +32,7 @@ module mos_6526_timer (
     // profile; this is not a claim about every subcycle physical race.
     always_comb begin
         latch_next = latch_q;
+        stopped_high_load = 0;
         if (write_low_i) latch_next[7:0] = data_i;
         if (write_high_i) latch_next[15:8] = data_i;
         count_next = count_q;
@@ -45,8 +52,14 @@ module mos_6526_timer (
         end
         // Boundary writes occur after the old cycle completes. In particular,
         // a write coincident with reload affects the counter as well as latch.
-        if (write_high_i && (load_next || !started_next)) count_next = latch_next;
+        stopped_high_load = DELAYED_STOPPED_LOAD && write_high_i && !load_next && !started_next;
+        if (write_high_i && (load_next || (!started_next && !DELAYED_STOPPED_LOAD))) count_next = latch_next;
         if (write_low_i && load_next) count_next[7:0] = data_i;
+        if (HIGH_WRITE_STARTS_ONESHOT && write_high_i && oneshot_q) begin
+            if (!DELAYED_STOPPED_LOAD) count_next = latch_next;
+            else stopped_high_load = 1;
+            started_next = 1;
+        end
         if (write_control_i) started_next = data_i[0];
     end
     always_ff @(posedge clk) begin
@@ -61,7 +74,7 @@ module mos_6526_timer (
             count_q <= count_next; latch_q <= latch_next; started_q <= started_next;
             enable_early_q <= enable_early_next; enable_late_q <= enable_late_next;
             load_delay_q <= load_request_q;
-            load_request_q <= write_control_i && data_i[4];
+            load_request_q <= (write_control_i && data_i[4]) || stopped_high_load;
             oneshot_early_q <= oneshot_q;
             if (write_control_i) oneshot_q <= data_i[3];
             underflow_o <= underflow_next;

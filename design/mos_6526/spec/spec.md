@@ -53,6 +53,9 @@ PB output is a one-cycle positive pulse or toggle, set high when started.
 Force-load bit reads zero. High-latch writes reload a stopped counter;
 latch writes coincident with reload retain the externally established behavior.
 
+Two parameters, both off for the 6526, serve the 8520: `HIGH_WRITE_STARTS_ONESHOT`
+and `DELAYED_STOPPED_LOAD` (see `design/mos_8520`).
+
 The isolated `mos_6526_timer` uses a cycle-completion clock, decoded low/
 high/control write strobes, continuous-count enable or external step pulse,
 and read-only counter/latch/start/underflow outputs. Each cycle advances the
