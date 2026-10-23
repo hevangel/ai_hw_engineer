@@ -6,8 +6,8 @@ module raster_pair (
     output logic [63:0] pal_state_o, ntsc_state_o
 );
     for (genvar p = 0; p < 2; p++) begin : profiles
-        logic [6:0] h, pos;
-        logic [8:0] line_count, raster, lines;
+        logic [6:0] h, pos, unused_next_pos;
+        logic [8:0] line_count, raster, lines, unused_next_raster, unused_next_lines;
         logic field_bit, lace, line_end, frame_end;
         logic [7:0] bus_data;
         logic oe;
@@ -16,7 +16,8 @@ module raster_pair (
         mos_6560_raster #(.PAL(p == 0)) timing (
             .clk, .rst_n, .ce_i, .interlace_i, .scan_h_o(h),
             .scan_line_o(line_count), .raster_o(raster), .raster_pos_o(pos),
-            .frame_lines_o(lines), .field_o(field_bit), .interlace_o(lace),
+            .raster_next_o(unused_next_raster), .raster_pos_next_o(unused_next_pos),
+            .frame_lines_o(lines), .frame_lines_next_o(unused_next_lines), .field_o(field_bit), .interlace_o(lace),
             .line_end_o(line_end), .frame_end_o(frame_end)
         );
         mos_6560_regs registers (

@@ -6,6 +6,10 @@ always_ff @(posedge clk) begin
         assert (h_q < CYCLES);
         assert (line_q < frame_lines_q);
         assert (raster_pos_o < CYCLES);
+        // The light-pen lookahead must be exactly the readback after the edge.
+        assert (raster_o == $past(raster_next_o));
+        assert (raster_pos_o == $past(raster_pos_next_o));
+        assert (frame_lines_q == $past(frame_lines_next_o));
         assert (frame_lines_q == LINES ||
                 (!PAL && (frame_lines_q == LINES + 1 || frame_lines_q == LINES + 2)));
         assert (interlace_q || (!field_q && frame_lines_q == LINES));

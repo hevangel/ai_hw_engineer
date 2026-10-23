@@ -20,11 +20,20 @@ FUNCTIONS = (
     "device_reset", "raster_line", "last_line_cycles",
     "end_of_line", "end_of_frame", "cycle",
 )
+# The display adapter compiles the complete per-cycle state machine,
+# register access, light-pen and sound functions, again byte-preserved.
+DISPLAY_FUNCTIONS = (
+    "device_reset", "raster_line", "last_line_cycles",
+    "open_v", "close_v", "open_h", "handle_vmc", "count_vmc",
+    "end_of_line", "end_of_frame", "fetch_byte", "fetch", "output_pixels",
+    "trigger_light_pen", "cycle", "read", "write", "lp_w",
+    "sound_stream_update",
+)
 
 
 def extract_function(source: str, name: str) -> str:
     """Select a complete, byte-preserved function from the pinned artifact."""
-    pattern = rf"^(?:void|int) mos6560_device::{re.escape(name)}\([^\n]*\)(?: const)?\n\{{"
+    pattern = rf"^(?:void|int|uint8_t) mos6560_device::{re.escape(name)}\([^\n]*\)(?: const)?\n\{{"
     matches = list(re.finditer(pattern, source, re.MULTILINE))
     if len(matches) != 1:
         raise SystemExit(f"Expected exactly one original function: {name}")
@@ -70,7 +79,16 @@ def main() -> None:
     (ROOT / "mame_raster_functions.inc").write_bytes(
         (header + "\n".join(selected)).encode("utf-8")
     )
-    print("Verified pinned original MAME VIC source/header; extracted six unchanged raster functions")
+    display = [extract_function(source, name) for name in DISPLAY_FUNCTIONS]
+    # output_pixels uses this original file-scope constant; copy its line.
+    delay = re.findall(r"^constexpr int OUTPUT_DELAY = \d+;\n", source, re.MULTILINE)
+    if len(delay) != 1:
+        raise SystemExit("Expected exactly one original OUTPUT_DELAY definition")
+    (ROOT / "mame_display_functions.inc").write_bytes(
+        (header + delay[0] + "\n" + "\n".join(display)).encode("utf-8")
+    )
+    print("Verified pinned original MAME VIC source/header; extracted six unchanged raster "
+          f"functions and {len(display)} unchanged display/bus/sound functions")
 
 
 if __name__ == "__main__":

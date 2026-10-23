@@ -30,3 +30,14 @@ profile and cover early line transitions, then check every request phase
 against the oracles and replay contiguous full frames, pauses and
 initialization in both SV simulators. Sync,
 PHI1 fetch and pixel sequencing remain separate subsequent work.
+
+The third bounded implementation (2026-10-23) covers steps 3 and the digital
+parts of step 4: display sequencer, light pen and sound, integrated in
+mos_6560. Plan followed: review both independent references and record
+their disagreements before RTL; extract the selected MAME functions
+unchanged; compare every clock of both profiles (fetch kind/address,
+pixels, reads, sound) under standard screens, random register programs,
+random bus traffic, light-pen sweeps, holds, resets and interlace; prove
+sequencer invariants with reachable covers; kill seeded mutants; replay in
+both SV simulators; synthesize both profiles. Remaining: analog outputs,
+POT conversion, idle-cycle bus and original VIC-20 software (step 5).

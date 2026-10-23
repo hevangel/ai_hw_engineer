@@ -4,9 +4,11 @@
 
 The complete target is a phase-separated VIC bus, NTSC/PAL raster and sync,
 matrix/character/color fetches, pixels, three tones/noise/volume, POT and
-light-pen capture. Implemented components are the common CPU register file
-and sampled raster timing/readback. No analog converter, pixel or audio
-generator is implied by their external interfaces. See the [source review](../../../plans/mos_vic_source_review.md)
+light-pen capture. The digital chip is implemented: register file, sampled
+raster timing/readback, display fetch and pixel sequencing, light-pen
+capture and the digital sound generator (see "Complete digital VIC"
+below). Composite sync/colour, the DAC curve, RC POT conversion and other
+analog behavior are not implemented. See the [source review](../../../plans/mos_vic_source_review.md)
 for the pinned manufacturer and independent sources and timing discrepancies.
 
 ## Register block contract
@@ -100,3 +102,84 @@ and registers 3/4. No original firmware qualification is claimed yet.
   base frame length, following reference startup. MAME's physical device
   reset callback does not reset raster timing. Do not connect CPU reset to
   this signal without establishing the actual mask-option/board wiring.
+
+## Complete digital VIC (`mos_6560`)
+
+`mos_6560` (parameter `PAL`, default 1) connects the register block, raster
+component, display sequencer (`mos_6560_video`), light-pen capture
+(`mos_6560_lightpen`) and sound generator (`mos_6560_audio`). One enabled
+`clk` edge is one VIC system clock and, on the VIC-20, one CPU cycle.
+Register 0 bit 7 drives the raster interlace request. Behavior follows the
+unchanged MAME per-cycle functions selected in the
+[fetch source review](../../../plans/mos_vic_fetch_review.md); preserved
+floooh/chips disagreements are listed there.
+
+Ordering within one enabled clock, matching MAME's `read`/`lp_w`/`cycle`/
+`write` sequence: a selected CPU read returns the state before the edge;
+the light-pen level is applied; the cycle advances raster, display, pen and
+sound; a selected CPU write then updates registers. A register write is
+therefore visible to the following cycle. Holds (`ce_i=0`) freeze all
+sequencing; reads, writes and light-pen edges still apply.
+
+### Display fetch and pixels
+
+| Port | Meaning |
+|---|---|
+| `fetch_o` | A phase-one display fetch occurs this clock |
+| `fetch_matrix_o` | The fetch is a video-matrix (character code/color) access; otherwise a character-generator access |
+| `fetch_addr_o[13:0]` | Fourteen-bit VIC address; board mapping is external |
+| `fetch_data_i[11:0]` | Bits 7..0 data bus, bits 11..8 color nibble, returned in the same clock |
+| `pixel_o[15:0]` | Four 4-bit color indices, first pixel in bits 3..0 |
+
+The display opens when register 1 equals the pre-advance line divided by
+two and the row count sampled at line 0, cycle 2 is nonzero. Each line
+opens fetching when register 0 bits 6..0 equal the post-advance clock;
+four clocks later, matrix and character fetches alternate for
+`min(R2 & 0x7f, 31 NTSC / 32 PAL)` columns, sampled at cycle 1. The matrix
+address is `{R5[7:4], R2[7], 0..0} + vmc[11:1]`; the character address is
+`{R5[3:0], 0..0} + code * height + (row & 7 or & 15)`, both truncated to
+14 bits. Character data reaches the shifter two clocks after its fetch.
+Hi-res and multicolor decode, the row/matrix counters (including the matrix
+carry quirk) and the delayed effect of register 14/15 writes inside the
+next four-pixel group follow the pinned reference. Pixel indices are
+digital color numbers; palette RGB and composite video are not generated.
+
+- ASSUMPTION: `fetch_o` is asserted only for matrix/character fetches. The
+  physical VIC owns the bus on every PHI1; its idle-cycle address and the
+  open-bus value seen by the CPU remain unspecified by both references.
+- ASSUMPTION: display-sequencer initialization equals MAME `device_start`
+  values (idle area/fetch, empty shifter at border, zero output colors).
+
+### Light pen
+
+`lightpen_n_i` is active low. An active edge requests capture by the next
+executed cycle; capture stores `X = 2 * ((cycle + 1) mod clocks/line) +
+extra` and `Y = line / 2` from the next readback position, once per frame.
+The lock reopens at readback line 0, position 1, when a held pen captures
+again one clock later. An edge exactly two clocks before the end of the
+final readback line clears the extra X bit for that capture. Registers 6/7
+read the captured bytes.
+
+- ASSUMPTION: synchronous level sampling at each `clk` edge stands for the
+  reference's asynchronous `lp_w` event; pin filtering and the pin-37 mask
+  option are not modeled.
+
+### Sound
+
+Every second enabled clock produces a sample (`audio_sample_o`). Voices
+0..2 advance at 1/8, 1/4 and 1/2 of the sample rate and noise at the
+sample rate; each has a 7-bit counter reloaded with `R + 1` and an 8-bit
+shift register toggling a square wave when enabled. Noise clocks its shift
+register on rising edges of bit 0 of a 16-bit LFSR with taps 3, 12, 14
+and 15. `audio_voices_o` gives the four voice bits (noise gated by register
+13 bit 7) and `audio_level_o = (voices * 7 + 1) * volume` is the digital
+DAC index of the reference.
+
+- ASSUMPTION: the sample phase counts from platform initialization; the
+  reference's DAC curve, analog filtering and output stage are not modeled.
+
+### POT inputs
+
+`pot_x_i`/`pot_y_i` are external sampled conversion results, as in the
+reference's callbacks. The RC charge/discharge converter is analog and
+remains open.
