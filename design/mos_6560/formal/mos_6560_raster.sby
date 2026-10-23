@@ -1,0 +1,25 @@
+[tasks]
+pal_bmc pal bmc
+pal_prove pal prove
+pal_cover pal cover
+ntsc_bmc ntsc bmc
+ntsc_prove ntsc prove
+ntsc_cover ntsc cover
+[options]
+bmc: mode bmc
+bmc: depth 20
+prove: mode prove
+cover: mode cover
+cover: depth 80
+[engines]
+bmc: abc bmc3
+prove: abc pdr
+cover: smtbmc --syn --nopresat yices
+[script]
+read -formal -D FORMAL -I . mos_6560_raster.sv
+pal: chparam -set PAL 1 mos_6560_raster
+ntsc: chparam -set PAL 0 mos_6560_raster
+prep -top mos_6560_raster
+[files]
+../src/mos_6560_raster.sv
+mos_6560_raster_props.sv

@@ -2,8 +2,9 @@
 
 The VIC combined character graphics, color, three tones, noise and game
 inputs, making it a key integrated peripheral in the VIC-20. The 6560 is
-the NTSC variant and the 6561 is PAL. This reconstruction currently contains
-only their shared CPU register interface, not a working video/sound chip.
+the NTSC variant and the 6561 is PAL. This reconstruction contains their
+shared CPU register interface and sampled raster timing/readback, including
+NTSC interlace. Display fetch, pixels, sound and input capture remain open.
 
 First-introduced year: **by 1983, exact launch year unconfirmed** for both
 variants. Commodore's [VIC-20 Programmer's Reference Guide, first edition,
@@ -22,6 +23,7 @@ No independent full-chip comparison has passed yet.
 - [Specification and assumptions](spec/spec.md)
 - [Implementation plan](plans/implementation_plan.md)
 - [Measured report and remaining work](report/final_report.md)
+- [Independent raster reference provenance](report/raster_reference.md)
 - [Detailed source review](../../plans/mos_vic_source_review.md)
 - [Full chip/system queue](../../plans/mos_historical_series.md)
 

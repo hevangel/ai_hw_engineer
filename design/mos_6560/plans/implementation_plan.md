@@ -20,3 +20,13 @@
    and the wider catalog in the series ledger.
 
 Step 1 is a bounded component milestone; it does not complete the VIC.
+
+The second bounded implementation is the sampled raster component specified
+in `spec/spec.md`: internal scan counters plus the distinct readback epoch,
+frame-boundary interlace sampling and gated integration enable. First
+verify it against unchanged extracted MAME functions and the complete PAL
+callback model. Prove counter/hold/reset/transition invariants for each
+profile and cover early line transitions, then check every request phase
+against the oracles and replay contiguous full frames, pauses and
+initialization in both SV simulators. Sync,
+PHI1 fetch and pixel sequencing remain separate subsequent work.

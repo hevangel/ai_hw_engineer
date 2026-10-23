@@ -2,9 +2,10 @@
 
 This prepares the next chip in the [MOS series](mos_historical_series.md).
 It is a source/verification inventory, not a completed VIC. The shared CPU
-register component now has a [specification](../design/mos_6560/spec/spec.md)
-and [measured report](../design/mos_6560/report/final_report.md). Raster,
-video fetch, pixels, sound and input capture remain to be implemented.
+register and sampled raster components now have a
+[specification](../design/mos_6560/spec/spec.md) and
+[measured report](../design/mos_6560/report/final_report.md).
+Video fetch, sync waveform, pixels, sound and input capture remain open.
 
 ## Primary evidence
 
