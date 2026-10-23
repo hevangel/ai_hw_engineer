@@ -60,6 +60,7 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1982 | Intel 80286 | Work in progress: 24-bit register-execution core, ALU/shifts/branches, independent instruction vectors and original IBM AT flags-test regression | [intel_80286](intel_80286/) |
 | By 1983* (dated manufacturer description; launch unconfirmed) | MOS Technology 6560 / 6561 VIC | VIC-20 video/sound; complete digital chip (registers, PAL/NTSC raster/interlace, fetch/pixels, light pen, sound) matches MAME per clock and boots original VIC-20 firmware; analog outputs/POT conversion and physical validation pending | [mos_6560](mos_6560/) |
 | By 1983* (dated manufacturer description; launch unconfirmed) | MOS Technology 6567 / 6569 VIC-II | C64 video controller; dot-level digital chip for 6569, 6567R8, 6567R56A, 8565 and 8562 matches MAME per fetch, bus cycle and pixel; original C64 software and physical validation pending | [mos_6567](mos_6567/) |
+| By 1983* (dated manufacturer description; launch unconfirmed) | MOS Technology 6581 / 8580 SID | C64 sound; digital core (oscillators, noise, envelopes, sync/ring, OSC3/ENV3/POT, bus latch) matches reSIDfp per clock for both models; analog DAC/filter stage and original software pending | [mos_6581](mos_6581/) |
 | 1983 | Apple IIe MMU (341-0266) | Full-custom memory mapper: main/aux/bank-switched RAM selection, soft switches, ROM decode and multiplexed DRAM address | [apple_iie_mmu](apple_iie_mmu/) |
 | 1983 | Apple IIe IOU (341-0267) | Full-custom video machine: display scanner and interleaved display-address fold, video-mode soft switches, keyboard strobe/auto-repeat, annunciator/speaker/cassette outputs | [apple_iie_iou](apple_iie_iou/) |
 | 1983 | Apple IIe timing PAL (PAL16R8) | Apple-programmed timing generator: φ0/φ1 CPU clocks, asymmetric Q3 strobe, PRAS'/PCAS' DRAM strobes with CAS gating, LDPS' video load and the 7 MHz dot clock | [apple_iie_pal](apple_iie_pal/) |
@@ -75,6 +76,8 @@ The 6522 entry uses a **by 1977** bound from the [November 1977 MOS preliminary 
 The 6530 entry uses **by 1976** from the manufacturer's [August 1976 KIM-1 User Manual](https://bitsavers.org/components/mosTechnology/kim-1/6500-15B_KIM-1_Users_Manual_197608.pdf). Its October 1975 firmware revision does not establish an exact chip launch date; see the [RRIOT history and mask-specific reconstruction](mos_6530/README.md).
 
 The 6532 year is an availability bound from the [1982 MOS Data Catalog](https://bitsavers.trailing-edge.com/components/mosTechnology/_dataBooks/1982_MOS_Technology_Data_Catalog.pdf), not a claim that it launched in 1982. The archived datasheet is assigned 1976 by a secondary catalog, but the date is not established on the scan; see the [chip history](mos_6532/README.md). The requested sequential chip reconstructions followed by Atari 2600, Commodore 64, NES and Super Nintendo are tracked in the [MOS series ledger](../plans/mos_historical_series.md).
+
+The 6560/6561, 6567/6569 and 6581 entries are bounded by later printings of Commodore manuals that are explicitly dated 1983 (the VIC-20 Programmer's Reference Guide sixth printing and the C64 Programmer's Reference Guide eighth printing); no earlier dated primary document was located, and the 6569 and 8580 revisions are not dated by them. See each chip README.
 
 ### AMD — Am9300
 
