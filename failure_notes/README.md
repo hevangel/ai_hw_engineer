@@ -26,6 +26,15 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-10-21 — 4059 asynchronous latch release](2026-10-21-ttl4059-asynchronous-latch-release.md)
+  Stopped-clock source review exposed LE release incorrectly sampled only on CP edges.
+
+- [2026-10-20 — extended TTL reference assumptions](2026-10-20-ttl-extended-reference-assumptions.md)
+  Manufacturer review exposed shared counter-edge, ROM and collector-release assumptions above 74299.
+
+- [2026-10-20 — inherited TTL oracle assumptions](2026-10-20-ttl-inherited-oracles.md)
+  Manufacturer tables exposed shared strobe/edge assumptions and writable ROM models during library integration.
+
 - [2026-10-18 — Model 30 MCGA mode 6](2026-10-18-model30-mcga-mode6.md)
   Original BASICA exposed high-resolution-only graphics decoded as text.
 
@@ -94,3 +103,5 @@ author is the same agent in every session — the useful question is never
 
 - [2026-10-19 — Apple IIe coverage-sensitive simulation](2026-10-19-apple-iie-xezim-coverage.md)
   Board RAM readback changes under xezim coverage instrumentation; strict functional tests remain and Verilator supplies coverage.
+
+- [74HC4060 oscillator-output pin swap](2026-10-21-ttl4060-oscillator-output-pin-swap.md): complementary pin branches were reversed; caught before publication.
