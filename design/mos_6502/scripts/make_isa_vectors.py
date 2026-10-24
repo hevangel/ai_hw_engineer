@@ -13,34 +13,43 @@ The RTL is never consulted here.
 """
 import re
 import sys
-import os
+import importlib.util
+from pathlib import Path
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-REF = os.path.normpath(os.path.join(HERE, '..', 'references'))
-OUT = os.path.normpath(os.path.join(HERE, '..', 'work', 'sim'))
-os.makedirs(OUT, exist_ok=True)
+DESIGN = Path(__file__).resolve().parents[1]
+REF = DESIGN / 'references'
+OUT = DESIGN / 'work' / 'sim'
+OUT.mkdir(parents=True, exist_ok=True)
 
 # ---- import the vendored py65 with a local package shim -------------------
+def _load_module(name, path):
+    # Load a repository-local module file through importlib (the sanctioned
+    # API) instead of exec of compiled source.
+    spec = importlib.util.spec_from_file_location(name, str(path))
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
 def load_py65():
-    src = open(os.path.join(REF, 'py65_mpu6502.py')).read()
+    src = (REF / 'py65_mpu6502.py').read_text()
     src = src.replace('from py65.utils.conversions import itoa',
                       'from py65_utils_conversions import itoa')
     src = src.replace('from py65.utils.devices import make_instruction_decorator',
                       'from py65_utils_devices import make_instruction_decorator')
+    conv = _load_module('py65_utils_conversions', REF / 'py65_utils_conversions.py')
+    dev = _load_module('py65_utils_devices', REF / 'py65_utils_devices.py')
     import types
-    pkg = types.ModuleType('py65_shim')
-    conv = types.ModuleType('py65_utils_conversions')
-    dev = types.ModuleType('py65_utils_devices')
-    exec(compile(open(os.path.join(REF, 'py65_utils_conversions.py')).read(),
-                 'py65_utils_conversions.py', 'exec'), conv.__dict__)
-    exec(compile(open(os.path.join(REF, 'py65_utils_devices.py')).read(),
-                 'py65_utils_devices.py', 'exec'), dev.__dict__)
-    sys.modules['py65_utils_conversions'] = conv
-    sys.modules['py65_utils_devices'] = dev
     mpu_mod = types.ModuleType('py65_shim.mpu')
     mpu_mod.__dict__['itoa'] = conv.itoa
     mpu_mod.__dict__['make_instruction_decorator'] = dev.make_instruction_decorator
-    exec(compile(src, 'py65_mpu6502.py', 'exec'), mpu_mod.__dict__)
+    # The import-rewritten py65 source is materialized under work/ and
+    # loaded through importlib - byte-for-byte the vendored module apart
+    # from the two rewritten import lines.
+    shim_path = OUT / 'py65_mpu6502_shim.py'
+    shim_path.write_text(src)
+    shim_mod = _load_module('py65_mpu6502_shim', shim_path)
+    mpu_mod.MPU = shim_mod.MPU
     return mpu_mod.MPU
 
 MPU = load_py65()
@@ -405,22 +414,14 @@ while mpu.pc != p.labels['done'] or steps == 0:
 records.append((mpu.pc, mpu.a, mpu.x, mpu.y, (mpu.p & 0xEF) | 0x20, mpu.sp))
 print('ISS instructions:', steps)
 
-with open(os.path.join(OUT, 'nvec.hex'), 'w') as f:
-    f.write('%04x\n' % len(records))
-with open(os.path.join(OUT, 'window.hex'), 'w') as f:
-    f.write('%04x\n' % irq_win_start)
-with open(os.path.join(OUT, 'nmiwin.hex'), 'w') as f:
-    f.write('%04x\n' % (p.labels['nmi_test'] + 1))
-with open(os.path.join(OUT, 'handler.hex'), 'w') as f:
-    f.write('%04x\n' % 0x8000)
-with open(os.path.join(OUT, 'vectors.hex'), 'w') as f:
-    for r in records:
-        f.write(' '.join('%04x' % v for v in r) + '\n')
-with open(os.path.join(OUT, 'mem.hex'), 'w') as f:
-    for v in mem:
-        f.write('%02x\n' % v)
+# Generated vector files always land in this design's own work/sim tree.
+(OUT / 'nvec.hex').write_text('%04x\n' % len(records))
+(OUT / 'window.hex').write_text('%04x\n' % irq_win_start)
+(OUT / 'nmiwin.hex').write_text('%04x\n' % (p.labels['nmi_test'] + 1))
+(OUT / 'handler.hex').write_text('%04x\n' % 0x8000)
+(OUT / 'vectors.hex').write_text(
+    ''.join(' '.join('%04x' % v for v in r) + '\n' for r in records))
+(OUT / 'mem.hex').write_text(''.join('%02x\n' % v for v in mem))
 gold = mpu.memory[:]
-with open(os.path.join(OUT, 'gold_mem.hex'), 'w') as f:
-    for v in gold:
-        f.write('%02x\n' % v)
+(OUT / 'gold_mem.hex').write_text(''.join('%02x\n' % v for v in gold))
 print('vectors:', len(records))

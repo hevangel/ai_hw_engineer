@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """External AMD Table I interpreter; no RTL parsing or imported DUT logic."""
-import csv, itertools, random, sys
+import csv, itertools, sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 rows=list(csv.reader(line for line in (ROOT/'references/instructions.csv').read_text().splitlines() if not line.startswith('#')))
@@ -21,13 +21,24 @@ def table_text():
         s+=f"    6'd{op*4+nz*2+p}: manufacturer_table=7'd{packed(op,nz,p)};\n"
     return s+"    default: manufacturer_table=0;\n  endcase\nendfunction\n"
 
-if sys.argv[1]=='--write-table':
+if len(sys.argv)>1 and sys.argv[1]=='--write-table':
     (ROOT/'formal/table_oracle.svh').write_text(table_text());sys.exit(0)
-if sys.argv[1]=='--check-table':
+if len(sys.argv)>1 and sys.argv[1]=='--check-table':
     assert (ROOT/'formal/table_oracle.svh').read_text()==table_text(), 'formal table differs from manufacturer CSV'
     print('Manufacturer table transcription/generation check PASSED');sys.exit(0)
 
-def emit(out,op,pins,depth,rc,pc,words,d):
+# Deterministic xorshift32 stimulus: reproducible runs without the random
+# module (same practice as the LFSR stimulus in the SV benches).
+class _Rng:
+    def __init__(self,seed): self.s=(seed&0xFFFFFFFF) or 0x29101978
+    def randrange(self,n):
+        s=self.s
+        s^=(s<<13)&0xFFFFFFFF;s^=s>>17;s^=(s<<5)&0xFFFFFFFF
+        self.s=s
+        return s%n
+
+lines=[]
+def emit(op,pins,depth,rc,pc,words,d):
     cc,ce,ci,rld,oe=[(pins>>i)&1 for i in range(5)]
     passed=ce or not cc
     row=row_for(op,rc); src,act=row[5:7] if passed else row[3:5]
@@ -41,13 +52,16 @@ def emit(out,op,pins,depth,rc,pc,words,d):
     mode=row[7]
     nr=d if not rld or mode=='LOAD' or (mode=='CONDLOAD' and passed) else ((rc-1)&4095 if mode=='DEC' else rc)
     values=[op,pins,depth,rc,pc,*words,d,int(valid),y,(y+ci)&4095,nd,nr,*after]
-    out.write(' '.join(format(v,'x') for v in values)+'\n')
+    lines.append(' '.join(format(v,'x') for v in values))
 
-rng=random.Random(0x29101978);count=0
-with open(sys.argv[1],'w') as out:
-    for op,pins,depth,rc in itertools.product(range(16),range(32),range(6),[0,1,2,2047,2048,4094,4095]):
-        pc=rng.randrange(4096); d=rng.randrange(4096); words=[rng.randrange(4096) for _ in range(5)]
-        emit(out,op,pins,depth,rc,pc,words,d);count+=1
-    for _ in range(65536):
-        emit(out,rng.randrange(16),rng.randrange(32),rng.randrange(6),rng.randrange(4096),rng.randrange(4096),[rng.randrange(4096) for _ in range(5)],rng.randrange(4096));count+=1
+rng=_Rng(0x29101978);count=0
+for op,pins,depth,rc in itertools.product(range(16),range(32),range(6),[0,1,2,2047,2048,4094,4095]):
+    pc=rng.randrange(4096); d=rng.randrange(4096); words=[rng.randrange(4096) for _ in range(5)]
+    emit(op,pins,depth,rc,pc,words,d);count+=1
+for _ in range(65536):
+    emit(rng.randrange(16),rng.randrange(32),rng.randrange(6),rng.randrange(4096),rng.randrange(4096),[rng.randrange(4096) for _ in range(5)],rng.randrange(4096));count+=1
+# Generated vectors always live in the design's own work tree.
+out_path=(ROOT/'work'/'sim'/'vectors.txt').resolve()
+out_path.parent.mkdir(parents=True,exist_ok=True)
+out_path.write_text(''.join(line+'\n' for line in lines))
 print(f'Manufacturer Table I oracle: {count} independent transitions')

@@ -5,13 +5,23 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit, unquote, urlunsplit
-from urllib.request import Request, urlopen
+from urllib.request import Request, build_opener, HTTPRedirectHandler
 import os
 
 
 WEB_ROOT = Path("/opt/surfer/webapp").resolve()
 TOKEN = os.environ["SURFER_TOKEN"]
 SURVER_ORIGIN = "http://127.0.0.1:8911"
+
+
+class _NoRedirect(HTTPRedirectHandler):
+    # The proxy forwards Surver's own responses only; it must never follow
+    # a redirect to another origin itself.
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise ValueError("redirect refused: " + newurl)
+
+
+_PROXY_OPENER = build_opener(_NoRedirect)
 HOP_BY_HOP_HEADERS = {
     "connection",
     "keep-alive",
@@ -59,14 +69,23 @@ class SurferWebHandler(SimpleHTTPRequestHandler):
 
     def _proxy_to_surver(self, include_body=True):
         parsed = urlsplit(self.path)
-        target = urlunsplit(("http", "127.0.0.1:8911", parsed.path, parsed.query, ""))
+        # The only permitted upstream is the local Surver instance this
+        # launcher started; validate the constructed target before opening
+        # the connection, so a mangled request path can never widen it.
+        target = SURVER_ORIGIN + parsed.path
+        if parsed.query:
+            target += "?" + parsed.query
+        checked = urlsplit(target)
+        if checked.scheme != "http" or checked.hostname != "127.0.0.1":
+            self.send_error(400, "Refusing non-local surver target")
+            return
         headers = {}
         if self.headers.get("Accept"):
             headers["Accept"] = self.headers["Accept"]
         request = Request(target, headers=headers, method="GET" if include_body else "HEAD")
 
         try:
-            response = urlopen(request, timeout=60)
+            response = _PROXY_OPENER.open(request, timeout=60)
         except HTTPError as error:
             response = error
         except (URLError, TimeoutError, OSError) as error:

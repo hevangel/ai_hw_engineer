@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Pinned unmodified firmware/media. Never overwrite the persistent hard disk."""
-import hashlib,json,re,struct,urllib.request
+import hashlib,ipaddress,json,re,socket,struct
+import urllib.parse,urllib.request
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 DEST=ROOT/'work/reference'
+HOST='raw.githubusercontent.com'
 PCJS='1a91d38eb12e5fdf91116b21ad9ef1935710a496'
 DISKS='cd3433748b09837a4c60ca7066f3642772b2d711'
 ARTIFACTS=[
@@ -14,12 +16,30 @@ ARTIFACTS=[
  ('jeffpar/pcjs-diskettes',DISKS,'pcx86/sys/dos/ibm/2.00/PCDOS200-DISK1.json','0e834efc93bf0c720bbbfa73aef6964f9b20a477','pcdos200.img'),
  ('jeffpar/pcjs-diskettes',DISKS,'pcx86/sys/dos/ibm/2.00/PCDOS200-DISK2.json','f728ce4968f6a0cb9aa75aa473b280696665d426','tools200.img'),
 ]
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+ def redirect_request(self,req,fp,code,msg,headers,newurl):
+  raise ValueError('redirect refused: '+newurl)
+
+_OPENER=urllib.request.build_opener(_NoRedirect)
+
+def open_pinned(url,timeout=60):
+ # Downloads only from the pinned GitHub raw host; the host is resolved up
+ # front with non-global addresses refused (DNS-rebinding guard; TLS pins
+ # the connection), redirects refused, and every artifact blob-hash
+ # verified before use.
+ parsed=urllib.parse.urlsplit(url)
+ if parsed.scheme!='https' or parsed.hostname!=HOST:raise ValueError('download host not allowed: '+url)
+ for info in socket.getaddrinfo(parsed.hostname,443):
+  address=ipaddress.ip_address(info[4][0])
+  if not address.is_global:raise ValueError('resolved address is not global: '+str(address))
+ return _OPENER.open(url,timeout=timeout)
+
 def main():
  DEST.mkdir(parents=True,exist_ok=True);manifest=[]
  for repo,rev,path,blob,name in ARTIFACTS:
   url=f'https://raw.githubusercontent.com/{repo}/{rev}/{path}';cache=DEST/Path(path).name
   if not cache.exists():
-   with urllib.request.urlopen(url,timeout=60) as r:cache.write_bytes(r.read())
+   with open_pinned(url) as r:cache.write_bytes(r.read())
   raw=cache.read_bytes()
   if hashlib.sha1(f'blob {len(raw)}\0'.encode()+raw).hexdigest()!=blob:raise ValueError('archive integrity: '+path)
   data=raw

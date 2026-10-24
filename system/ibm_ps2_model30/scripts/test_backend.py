@@ -8,18 +8,34 @@ import subprocess
 import struct
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 ROOT=Path(__file__).resolve().parents[1]
 BASE='http://127.0.0.1:18530'
 
+def _checked_base():
+    # The backend under test is the local server this script just spawned;
+    # refuse any edited non-loopback target before opening connections.
+    parsed=urllib.parse.urlsplit(BASE)
+    if parsed.scheme!='http' or parsed.hostname not in ('localhost','127.0.0.1','::1'):
+        raise ValueError('backend base URL must be loopback http: '+BASE)
+    return BASE
+
 def request(path='/api/state',body=None,raw=False):
     data=json.dumps(body).encode() if isinstance(body,dict) else body
     headers={'Content-Type':'application/json'} if isinstance(body,dict) else {}
-    req=urllib.request.Request(BASE+path,data,headers)
+    req=urllib.request.Request(_checked_base()+path,data,headers)
     with urllib.request.urlopen(req,timeout=30) as response:
         content=response.read()
         return content if raw else json.loads(content)
+
+def open_local(url,timeout=30,method='GET'):
+    # Same loopback-only contract as request(), for direct file fetches.
+    parsed=urllib.parse.urlsplit(url)
+    if parsed.scheme!='http' or parsed.hostname not in ('localhost','127.0.0.1','::1'):
+        raise ValueError('backend URL must be loopback http: '+url)
+    return urllib.request.urlopen(urllib.request.Request(url,method=method),timeout=timeout)
 
 def control(action,**kwargs):
     return request('/api/control',{'action':action,**kwargs})
@@ -71,7 +87,7 @@ def main():
             assert len(waveform)>128 and waveform[0]==0
             assert struct.unpack_from('>QQ',waveform,9)==(0,1024*125000)
             assert struct.unpack_from('b',waveform,73)[0]==-12
-            with urllib.request.urlopen(urllib.request.Request(BASE+'/waveform.fst',method='HEAD')) as response:
+            with open_local(BASE+'/waveform.fst',method='HEAD') as response:
                 assert int(response.headers['Content-Length'])==len(waveform)
                 assert response.headers['X-Waveform-Version']=='1' and not response.read()
             assert request()['cycles']==captured['cycles']
@@ -80,7 +96,7 @@ def main():
             second_waveform=request('/waveform.fst',raw=True)
             assert struct.unpack_from('>QQ',second_waveform,9)==(0,4096*125000)
             assert b'Surfer' in request('/surfer/',raw=True)
-            with urllib.request.urlopen(BASE+'/surfer/surfer_bg.wasm') as response:
+            with open_local(BASE+'/surfer/surfer_bg.wasm') as response:
                 assert response.headers['Content-Type']=='application/wasm'
                 assert response.read(4)==b'\0asm'
             reject('/surfer/%2e%2e/%2e%2e/AGENTS.md',None,404)

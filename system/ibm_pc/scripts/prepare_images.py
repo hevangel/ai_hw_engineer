@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """Fetch pinned original IBM artifacts; convert their containers without patching."""
 import hashlib
+import ipaddress
 import json
 from pathlib import Path
 import re
+import socket
 import struct
+import urllib.parse
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
 DEST = ROOT / 'work/reference'
+HOST = 'raw.githubusercontent.com'
 PCJS = '1a91d38eb12e5fdf91116b21ad9ef1935710a496'
 DISKS = 'cd3433748b09837a4c60ca7066f3642772b2d711'
 ARTIFACTS = [
@@ -18,6 +22,29 @@ ARTIFACTS = [
     ('jeffpar/pcjs-diskettes', DISKS, 'pcx86/sys/dos/ibm/1.00/PCDOS100.json', '0328d7419a74f74ce45fc0a6cdd006f9350e2711', 'pcdos100.img'),
 ]
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise ValueError('redirect refused: ' + newurl)
+
+
+_OPENER = urllib.request.build_opener(_NoRedirect)
+
+
+def open_pinned(url, timeout=90):
+    # Downloads only from the pinned GitHub raw host; the host is resolved
+    # up front with non-global addresses refused (DNS-rebinding guard; TLS
+    # pins the connection), redirects refused, and every artifact is
+    # blob-hash verified before use.
+    parsed = urllib.parse.urlsplit(url)
+    if parsed.scheme != 'https' or parsed.hostname != HOST:
+        raise ValueError('download host not allowed: ' + url)
+    for info in socket.getaddrinfo(parsed.hostname, 443):
+        address = ipaddress.ip_address(info[4][0])
+        if not address.is_global:
+            raise ValueError('resolved address is not global: ' + str(address))
+    return _OPENER.open(url, timeout=timeout)
+
+
 def main():
     DEST.mkdir(parents=True, exist_ok=True)
     manifest = []
@@ -25,7 +52,7 @@ def main():
         url = f'https://raw.githubusercontent.com/{repo}/{revision}/{source}'
         cached = DEST / Path(source).name
         if not cached.exists():
-            with urllib.request.urlopen(url, timeout=90) as response:
+            with open_pinned(url) as response:
                 cached.write_bytes(response.read())
         raw = cached.read_bytes()
         actual = hashlib.sha1(f'blob {len(raw)}\0'.encode() + raw).hexdigest()
