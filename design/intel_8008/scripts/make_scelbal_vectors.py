@@ -3,12 +3,19 @@
 
 The instruction semantics below follow references/simh_i8008.c (SIMH), not
 the RTL. The input is the SCELBAL binary referenced by SIMH's SCELBI guide.
+
+The run also emits an opcode histogram (build/scelbal_opcount.txt) and a
+family coverage summary, so the claim "200,000 authentic instructions" carries
+measured opcode coverage with it (review F3, 2026-10-23). With
+--strict-coverage the script fails when any defined instruction family is
+absent from the trace.
 """
 from pathlib import Path
 import sys
 
 root = Path(__file__).resolve().parents[1]
-out = Path(sys.argv[1]) if len(sys.argv) > 1 else root / "build"
+strict = "--strict-coverage" in sys.argv
+out = Path(sys.argv[1]) if len(sys.argv) > 1 and not sys.argv[1].startswith("-") else root / "build"
 out.mkdir(parents=True, exist_ok=True)
 mem = [0] * 0x4000
 program = (root / "references/scelbal_sc1.bin").read_bytes()
@@ -24,6 +31,7 @@ stack = [0] * 8
 sp = pc = 0
 c = z = s = p = 0
 io_inputs = io_outputs = 0
+opcount = {}
 
 def szp(v):
     global z, s, p
@@ -68,6 +76,7 @@ def pop():
 def step():
     global pc, c, io_inputs, io_outputs
     op = byte()
+    opcount[op] = opcount.get(op, 0) + 1
     hl = ((regs[5] << 8) | regs[6]) & 0x3fff
     if op in (0, 1, 255):
         return False
@@ -83,8 +92,13 @@ def step():
         regs[(op >> 3) & 7] = byte()
     elif op & 0xc7 in (0, 1): # INr / DCr
         i = (op >> 3) & 7
-        regs[i] = (regs[i] + (1 if op & 1 == 0 else -1)) & 255
-        szp(regs[i])
+        if i == 7:
+            pass  # INr/DCr M is undefined; the RTL spec models it as a NOP.
+                  # SIMH instead updates the flags with no register write, a
+                  # divergence documented in spec/spec.md.
+        else:
+            regs[i] = (regs[i] + (1 if op & 1 == 0 else -1)) & 255
+            szp(regs[i])
     elif op & 0xc0 == 0x80:   # accumulator with register or memory
         alu((op >> 3) & 7, mem[hl] if op & 7 == 7 else regs[op & 7])
     elif op & 0xc7 == 0x44:   # unconditional JMP aliases
@@ -146,5 +160,59 @@ with (out / "scelbal_expected.hex").open("w") as trace:
         value = (value << 3) | sp
         trace.write(f"{value:020x}\n")
 (out / "scelbal_final_mem.hex").write_text("".join(f"{v:02x}\n" for v in mem))
+
+# Opcode family coverage of the executed trace (review F3). Every family the
+# spec defines must be visible somewhere in the design's verification; this
+# report shows which families authentic SCELBAL execution covers and which are
+# left to the directed tests.
+FAMILIES = {
+    "HLT (000/001/377)": lambda op: op in (0x00, 0x01, 0xFF),
+    "Lds move (11dddsss)": lambda op: op & 0xC0 == 0xC0,
+    "LdI immediate (00ddd110)": lambda op: op & 0xC7 == 0x06,
+    "INr (00ddd000, ddd#7)": lambda op: op & 0xC7 == 0x00 and op not in (0x00, 0x38),
+    "DCr (00ddd001, ddd#7)": lambda op: op & 0xC7 == 0x01 and op not in (0x01, 0x39),
+    "ALU register (10ooosss, sss#7)": lambda op: op & 0xC0 == 0x80 and op & 7 != 7,
+    "ALU memory (10ooo111)": lambda op: op & 0xC0 == 0x80 and op & 7 == 7,
+    "ALU immediate (00ooo100)": lambda op: op & 0xC7 == 0x04,
+    "Rotates (02/0a/12/1a)": lambda op: op in (0x02, 0x0A, 0x12, 0x1A),
+    "JMP unconditional": lambda op: op & 0xC7 == 0x44,
+    "JMP conditional": lambda op: op & 0xE7 in (0x40, 0x60),
+    "CAL unconditional": lambda op: op & 0xC7 == 0x46,
+    "CAL conditional": lambda op: op & 0xE7 in (0x42, 0x62),
+    "RET unconditional": lambda op: op & 0xC7 == 0x07,
+    "RET conditional false (RFc)": lambda op: op & 0xE7 == 0x03,
+    "RET conditional true (RTc)": lambda op: op & 0xE7 == 0x23,
+    "RST (00eee101)": lambda op: op & 0xC7 == 0x05,
+    "INP (input group)": lambda op: op & 0xC1 == 0x41 and (op >> 1) & 0x1F < 8,
+    "OUT (output latch)": lambda op: op & 0xC1 == 0x41 and (op >> 1) & 0x1F >= 8,
+}
+covered = {}
+for op, count in sorted(opcount.items()):
+    for name, matches in FAMILIES.items():
+        if matches(op):
+            covered.setdefault(name, [0, set()])
+            covered[name][0] += count
+            covered[name][1].add(op)
+            break
+
+with (out / "scelbal_opcount.txt").open("w") as hist:
+    hist.write("# opcode execution counts over the 200000-instruction SCELBAL trace\n")
+    for op, count in sorted(opcount.items()):
+        hist.write(f"{op:02x} {count}\n")
+
+absent = [name for name in FAMILIES if name not in covered]
 print(f"Generated 200000 SCELBAL instruction vectors; final PC={pc:04x}; "
       f"HL={regs[5]:02x}{regs[6]:02x}; inputs={io_inputs}, outputs={io_outputs}")
+print(f"Opcode families executed: {len(covered)}/{len(FAMILIES)}; "
+      f"distinct opcodes: {len(opcount)}")
+for name in FAMILIES:
+    if name in covered:
+        count, ops = covered[name]
+        print(f"  covered  {name}: {count}x ({len(ops)} opcodes)")
+    else:
+        print(f"  ABSENT   {name}")
+if absent:
+    message = "opcode families absent from the SCELBAL trace: " + "; ".join(absent)
+    if strict:
+        raise SystemExit(message)
+    print(f"WARNING ({message}); rerun with --strict-coverage to fail on this")

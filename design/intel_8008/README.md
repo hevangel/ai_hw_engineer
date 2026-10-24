@@ -2,7 +2,7 @@
 
 Intel introduced the 8008 in **April 1972**, according to [Intel's historical account](https://www.intel.com/content/www/us/en/history/virtual-vault/articles/the-8008.html). It was Intel's first 8-bit microprocessor and the processor behind early systems including the Micral N and SCELBI. Its 14-bit program counter addresses 16 KiB, while an eight-entry internal address stack supports seven nested subroutines.
 
-The repository core is a synthesizable, synchronous functional reconstruction. It implements the 8008 instruction families, flags, stack, interrupts, memory, and 32 I/O ports. It presents separate memory and I/O handshakes instead of the original time-multiplexed 18-pin electrical interface. See the [specification](spec/spec.md), [implementation plan](plans/implementation_plan.md), and [verification report](report/final_report.md).
+The repository core is a synthesizable, synchronous functional reconstruction. It implements the 8008 instruction families, flags, stack, interrupts, memory, and 32 I/O ports. It presents separate memory and I/O handshakes instead of the original time-multiplexed 18-pin electrical interface. See the [specification](spec/spec.md), [implementation plan](plans/implementation_plan.md), [test plan](plans/testplan.md), [formal plan](plans/formal_plan.md), [verification report](report/final_report.md), and [coverage report](report/coverage_report.md).
 
 ## Sources and local copies
 
@@ -14,4 +14,4 @@ The SCELBI Museum's separate `scelbal.hex` was inspected but contains two malfor
 
 ## Verification
 
-From the repository root in the project tool image, run `sh design/intel_8008/scripts/run_all.sh`. This runs strict Verilator lint, formal proof and cover, a directed exact-PC test, a 200,000-instruction comparison against authentic SCELBAL, and Yosys synthesis. The SCELBAL run compares PC, all seven registers, all flags, stack depth, and final memory, with 475 input and 637 output transfers in the fixed regression.
+From the repository root in the project tool image, run `sh design/intel_8008/scripts/run_all.sh`. This runs strict Verilator lint, formal proof and cover, a directed exact-PC test, a 200,000-instruction comparison against authentic SCELBAL, and Yosys synthesis. The SCELBAL run compares PC, all seven registers, all flags, stack depth, and final memory, with 475 input and 637 output transfers in the fixed regression, and emits an opcode histogram with a family-coverage report (`build/scelbal_opcount.txt`); 15 of the 19 defined instruction families come from the authentic trace, and the directed test closes the rest.
