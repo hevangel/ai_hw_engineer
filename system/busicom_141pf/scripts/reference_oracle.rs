@@ -41,6 +41,15 @@ fn main() {
                     row.fill(" "); red=false;
                 }
                 if previous&2==0 && p&2!=0 {
+                    // Drum phase convention: character 0 sits in the print
+                    // position at the index pulse (spin==26, Kintli 3.3);
+                    // this adapter derives the printed character from its
+                    // sector counter as (spin/2 - 1) mod 13, i.e. evaluated
+                    // at the sector tick. The RTL captures the equivalent
+                    // drum_pos_i one half-spin higher at the hammer edge
+                    // itself (see tb_top.sv); the two conventions were
+                    // aligned against the scanned manual examples, not
+                    // derived from a shared formula.
                     let pos=(spin/2+12)%13;
                     let bits=shifts[1].read_parallel() as u32 | ((shifts[2].read_parallel() as u32)<<10);
                     for i in 0..15 {if bits&(1<<(i+3))!=0 {row[i]=digits[pos];}}

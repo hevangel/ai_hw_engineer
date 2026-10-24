@@ -699,11 +699,11 @@ static void handle_client(int fd)
          strncmp(path, "/waveform.fst", plen) == 0)) {
         if (plen == 1 && path[0] == '/') {
             respond_file(fd, "index.html", CT_HTML);
-        } else if (plen >= 5 && strncmp(path, "/state.json", plen) == 0) {
+        } else if (plen == 11 && strncmp(path, "/state.json", plen) == 0) {
             respond_state(fd);
         } else if (plen == 13 && strncmp(path, "/waveform.fst", plen) == 0) {
             respond_waveform(fd, strcmp(method, "HEAD") == 0);
-        } else if (plen >= 5 && strncmp(path, "/app.js", plen) == 0) {
+        } else if (plen == 7 && strncmp(path, "/app.js", plen) == 0) {
             respond_file(fd, "app.js", CT_JS);
         } else if (plen == 10 && strncmp(path, "/replay.js", plen) == 0) {
             respond_file(fd, "replay.js", CT_JS);
@@ -713,7 +713,7 @@ static void handle_client(int fd)
             respond_file(fd, "view.js", CT_JS);
         } else if (plen == 21 && strncmp(path, "/manual-examples.json", plen) == 0) {
             respond_file(fd, "../../spec/reference/Unicom_141P_examples.json", CT_JSON);
-        } else if (plen >= 5 && strncmp(path, "/style.css", plen) == 0) {
+        } else if (plen == 10 && strncmp(path, "/style.css", plen) == 0) {
             respond_file(fd, "style.css", CT_CSS);
         } else {
             respond_text(fd, "not found");
@@ -722,7 +722,7 @@ static void handle_client(int fd)
     }
 
     if (strcmp(method, "POST") == 0) {
-        if (plen >= 4 && strncmp(path, "/press", plen) == 0) {
+        if (plen == 6 && strncmp(path, "/press", plen) == 0) {
             int code = 0;
             int accepted = 0;
             json_int(body, "code", &code);
@@ -744,7 +744,7 @@ static void handle_client(int fd)
             pthread_mutex_unlock(&g_lock);
             const char *reply = accepted ? "{\"ok\":true}" : "{\"ok\":false}";
             respond(fd, CT_JSON, reply, strlen(reply));
-        } else if (plen >= 4 && strncmp(path, "/advance", plen) == 0) {
+        } else if (plen == 8 && strncmp(path, "/advance", plen) == 0) {
             pthread_mutex_lock(&g_lock);
             advance_ticks = ADVANCE_TICKS;
             busy = 1;
@@ -754,7 +754,7 @@ static void handle_client(int fd)
             pthread_cond_signal(&work_cond);
             pthread_mutex_unlock(&g_lock);
             respond(fd, CT_JSON, "{\"ok\":true}", 11);
-        } else if (plen >= 4 && strncmp(path, "/switches", plen) == 0) {
+        } else if (plen == 9 && strncmp(path, "/switches", plen) == 0) {
             int v;
             pthread_mutex_lock(&g_lock);
             if (json_int(body, "precision", &v)) {
@@ -795,6 +795,10 @@ static void *http_thread(void *arg)
         exit(EXIT_FAILURE);
     }
     listen(srv, 8);
+    /* Operational note: the listener covers every local interface and the
+     * responses are readable from any browser origin - the intended setup
+     * for the containerized panel (the published port is the boundary).
+     * When running directly on a shared host, keep the port firewalled. */
     fprintf(stderr, "[panel-bridge] web front panel on http://0.0.0.0:%d/\n",
             port);
     for (;;) {

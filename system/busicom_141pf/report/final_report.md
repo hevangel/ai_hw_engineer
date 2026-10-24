@@ -57,8 +57,11 @@ All 4004 verification passes with the corrected semantics.
   proving the divergence was in shared *protocol* assumptions, then in the
   4004 itself.
 - **Firmware disassembly** (4004.com, Kintli 1.0.1) as the authoritative
-  contract: port nibble aliasing (SRC nibble mod 5), RAM strapping (both
-  4002s on CM-RAM line 0, P0 straps 0/1), sector/index printer timing.
+  contract: RAM strapping (both 4002s on CM-RAM line 0, P0 straps 0/1),
+  sector/index printer timing, and — established by the 2026-10-23 review
+  (see `failure_notes/2026-10-23-busicom-src-port-alias.md`) — exact
+  full-nibble ROM-port chip select (the earlier "SRC nibble mod 5" board
+  translator had no hardware basis and was functionally inert; removed).
 
 ## Current status (2026-09-27)
 

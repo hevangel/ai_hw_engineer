@@ -63,6 +63,19 @@ and use distinct P0 straps.
 4003 #2 is clocked from the same line as #1; its serial input is the
 `so` (serial out) of 4003 #1 — a 20-bit printer shift chain.
 
+The 4001s compare the **full SRC X2 nibble** against their strapped chip
+number (0-4); the board applies no translation. Tracing the Kintli
+disassembly, the firmware addresses every functionally relevant ROM port
+with the exact chip number: shifter clocking (WRR) with nibble 0, keyboard
+and switch reads (RDR) with nibble 1, drum-index and paper-button reads
+(RDR) with nibble 2 (addresses and rationale in
+`failure_notes/2026-10-23-busicom-src-port-alias.md`). Stray selects
+(e.g. the WRR at $243 goes out with the leftover pointer value) select no
+ROM, as on the real hardware and in the independent Ilmer reference, whose
+4001 model compares the whole nibble. An earlier build rewrote SRC X2
+nibbles > 4 mod 5 before the 4001s saw them; that translator had no source
+and was functionally inert — removed 2026-10-23.
+
 ### 3.2 RAM output ports
 
 | RAM port | Bit | Signal |
@@ -131,6 +144,13 @@ decimal point and sign.
 
 * Hammer fires on the RAM0-bit1 rising edge, printing the current drum
   character into every selected column of the current paper line.
+* Drum phase convention: the index pulse marks character 0 in the print
+  position (Kintli §3.3). The testbench advances `drum_pos` one character
+  per TEST-high half-spin and the board captures it at the hammer edge;
+  the independent reference oracle derives the position from its sector
+  counter as `(spin/2 - 1) mod 13`, evaluated at the sector tick — one
+  reference-edge choice each for the same drum, aligned against the
+  scanned manual examples rather than derived from a shared formula.
 * Paper advance (RAM0-bit3 rising edge, or the Move Up button) shifts the
   7-line paper window up and starts a fresh line (clears the red latch).
 * Pacing (virtual drum): one drum half-spin per 1481 machine cycles
@@ -197,7 +217,7 @@ and key rollover remain outside the model.
 * User operating manual: *Unicom 141 Series Calculator Operating
   Instructions* (Unicom Systems, Inc., Cupertino) —
   `spec/reference/Unicom_141P_manual.md` (extracted from
-  `spec/reference/Unicom_141P_manual_text.pdf`, via
+  `../../../references/Unicom_141P_manual_text.pdf`, via
   https://archive.org/details/Unicom141PManual). Unicom was the US
   brand name for Busicom machines; the manual covers the 141 series
   including the 141-PF. It is the authority for key functions, print
