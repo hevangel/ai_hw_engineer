@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
 from pathlib import Path
-import json,os,struct,subprocess,time,urllib.request,urllib.error,zlib
+import json,os,struct,subprocess,time,urllib.request,urllib.error,urllib.parse,zlib
 ROOT=Path(__file__).resolve().parents[1];BASE='http://127.0.0.1:18084'
-def get(path):return urllib.request.urlopen(BASE+path,timeout=5).read()
+def _checked(url):
+    # The panel under test is the local simulator this script launches;
+    # refuse any non-loopback target before opening the connection.
+    parsed=urllib.parse.urlsplit(url)
+    if parsed.scheme!='http' or parsed.hostname not in ('localhost','127.0.0.1','::1'):
+        raise ValueError('panel URL must be loopback http: '+url)
+    return url
+def get(path):return urllib.request.urlopen(_checked(BASE+path),timeout=5).read()
 def post(path,obj=None,origin=None):
     headers={'Content-Type':'application/json'}
     if origin:headers['Origin']=origin
-    return urllib.request.urlopen(urllib.request.Request(BASE+path,data=json.dumps(obj or {}).encode(),headers=headers),timeout=5)
+    return urllib.request.urlopen(urllib.request.Request(_checked(BASE+path),data=json.dumps(obj or {}).encode(),headers=headers),timeout=5)
 def wait_for(test,label,seconds=int(os.environ.get("PANEL_TIMEOUT","90"))):
     end=time.monotonic()+seconds
     while time.monotonic()<end:

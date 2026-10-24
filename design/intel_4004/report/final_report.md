@@ -17,6 +17,58 @@ expectations remain available as a separate strict profile. The older numerical
 results below are historical; mutual RTL/local-model agreement was insufficient
 to detect these escaped defects.
 
+## Review remediation: 2026-10-23
+
+Addressing the external review of issue #57:
+
+- **Independent PC anchor (TB):** every non-branch instruction's
+  post-instruction PC is now asserted directly from the raw fetch bus
+  against the manual's advance rule, independent of the ISS; the FIN
+  post-mortem's "no land-tolerant tests" rule is applied — the page-straddle
+  FIN case lands on an exact `JUN` at word 0x200 with the landing pinned by
+  the anchor (no landing-NOP field, no marker-as-instruction). Simulation
+  passes: 169,890 cycles, 20,192 boundaries, 46/46 instructions.
+- **Assumption ledger (spec section 12):** `ASSUMPTION:` markers added to
+  the RTL for FIN's PC advance, the inverted-carry subtracts, TCS, DAA's
+  carry-out, the DCL multi-line decode, the CM-ROM phase placement, and the
+  index-register reset sweep, each with its external pinning source.
+- **Spec corrections:** section 4.1 previously contradicted section 6.4 and
+  the RTL about index-register reset; the datasheet's RESET description
+  ("64 clock cycles (8 machine cycles)" to completely clear address and
+  index registers) settles it — index registers are cleared, and 4.1 now
+  says so with the citation. Section 6.3's `cm_rom` sentence now matches the
+  RTL, and the unsourced "as on the historical part" claim is replaced by a
+  documented reconstruction choice.
+- **Formal claim scope:** the "proves the complete ISA transition function
+  for every opcode encoding and start state" statements (here and in the
+  property-file header) are corrected to what the `anyconst` word-pair
+  assumptions actually prove: every single-instruction behavior and every
+  adjacent instruction pair, not arbitrary longer sequences.
+- **Reference-model independence:** the co-authored ISS/golden-model
+  limitation is documented in spec section 12.1 with a regeneration plan in
+  `plans/intel4004_independent_oracle.md`; the TB PC anchor is the first
+  independent-oracle element in place.
+
+Re-verified after these changes: Verilator/Verible lint, xezim simulation,
+SBY BMC + PDR prove + 59/59 covers, Yosys synthesis.
+
+## Follow-up verification: 2026-09-27
+
+The real Busicom firmware exposed TCS and DAA defects shared by the RTL and its
+earlier local reference models. Corrected semantics are independently grounded
+in MAME's MCS-40 implementation; see the
+[failure note](../../../failure_notes/2026-09-27-busicom-manual-regression.md).
+The updated xezim 0.11.0 regression passes 166,754 cycles and 20,192 instruction
+boundaries, including all 46 instruction classes. Verilator 5.052 lint, Verible
+lint, SBY BMC/prove/cover with Yosys 0.69 and Z3 5.1.0, and synthesis pass.
+
+The [42-example manual regression](../../../system/busicom_141pf/report/manual_regression.md)
+adds historical-software coverage. `run_all.sh` now runs it using the documented
+recovered-ROM profile, with Verilator by default for speed. The original scan
+expectations remain available as a separate strict profile. The older numerical
+results below are historical; mutual RTL/local-model agreement was insufficient
+to detect these escaped defects.
+
 ## 1. Executive summary
 
 The Intel 4004 — the first commercially available microprocessor (MCS-4,
@@ -30,14 +82,19 @@ addressing, BCD arithmetic support, SRC/DCL memory and bank selection, the
 ROM I/O ports, and the documented page-straddle, stack-overflow, and
 undefined-opcode behaviors.
 
-Strict lint passes without warnings. A 165,778-cycle xezim regression
+Strict lint passes without warnings. A 169,890-cycle xezim regression
 compares 20,192 instruction boundaries of architectural state against an
 independent instruction-set simulator with zero mismatches, exercises all 46
 instructions, and includes a fixed-seed random stress phase. Formal
-verification proves the complete ISA transition function for every opcode
-encoding and start state (bounded and unbounded), all sequencer and bus
-safety properties, and 59/59 reachability covers. Yosys generic synthesis
-reports zero structural problems and 1,539 cells.
+verification proves every single-instruction behavior (any opcode encoding,
+arbitrary operand data, any state reachable from reset) and every adjacent
+pair of instructions, for bounded and unbounded time, plus all sequencer and
+bus safety properties and 59/59 reachability covers; arbitrary
+three-or-more-instruction sequences are exercised by the directed and
+random-simulation programs and the Busicom firmware regression rather than
+by formal (the `anyconst` instruction-word assumptions pin one word pair per
+trace). Yosys generic synthesis reports zero structural problems and 1,539
+cells.
 
 ## 2. Design overview
 
@@ -101,10 +158,13 @@ signal (`data_o`/`data_oe`/`sync`/`cm_rom`/`cm_ram`) at every clock, against
 expectations derived from the reference model.
 
 ```text
-4004 simulation result: 165778 cycles, 20192 instruction boundaries
+4004 simulation result: 169890 cycles, 20192 instruction boundaries
 Phase A boundaries: 12000 (46/46 instructions seen), Phase B boundaries: 8192
 TEST PASSED
 ```
+
+(Numbers from the 2026-10-23 bench with the independent PC anchor; the
+pre-anchor bench reported 165778 cycles over the same 20192 boundaries.)
 
 The directed program covers reset, every instruction with its corner values
 (ADD/SUB/ADM/SBM carry and borrow cases under the inverted-carry subtract
@@ -127,13 +187,16 @@ Result: **PASS**.
 The property module embeds a golden instruction-set simulator written from
 spec sections 5-6. Bus assumptions deliver `anyconst` instruction words at
 M1/M2 and `anyconst` memory data at X3; the golden model and the DUT are
-asserted equal on every architectural register at every clock, for every
-opcode encoding and every start state — proving the complete ISA transition
-function rather than sampled cases. Additional properties re-derive every
-output combinationally, check sequencer validity, and confirm fetch-latch
-equivalence. Reset is assumed only in the initial cycle; later reset and all
-free inputs remain unconstrained, and the golden model mirrors reset
-semantics.
+asserted equal on every architectural register at every clock. Because one
+`anyconst` word pair is fixed per trace, the proof covers every single
+instruction with arbitrary operands and state, and every adjacent pair of
+instructions (the second word is unconstrained), but not arbitrary
+sequences of three or more distinct instructions — those are covered by the
+simulation regression and the Busicom firmware regression. Additional
+properties re-derive every output combinationally, check sequencer
+validity, and confirm fetch-latch equivalence. Reset is assumed only in the
+initial cycle; later reset and all free inputs remain unconstrained, and the
+golden model mirrors reset semantics.
 
 | Task | Engine | Result |
 |---|---|---|

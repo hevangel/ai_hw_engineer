@@ -61,6 +61,9 @@ module tb_intel_4001;
   logic [3:0] port1_in = 4'h0;
   logic [3:0] dut0_port_o, dut1_port_o;
   logic [3:0] dut0_port_oe, dut1_port_oe;
+  // port-read strobes: asserted exactly while each chip drives its port
+  // value onto the bus; kept observably connected for waveforms
+  logic dut0_port_read, dut1_port_read;
 
   // Bus value seen by every chip: the single enabled driver wins.
   always_comb begin
@@ -86,7 +89,8 @@ module tb_intel_4001;
       .cm_rom  (cm_rom),
       .port_i  (4'h0),
       .port_o  (dut0_port_o),
-      .port_oe (dut0_port_oe)
+      .port_oe (dut0_port_oe),
+      .port_read_o (dut0_port_read)
   );
 
   // Mask B: word(a) = (13*a + 137) mod 256, checked against the mask_b()
@@ -106,7 +110,8 @@ module tb_intel_4001;
       .cm_rom  (cm_rom),
       .port_i  (port1_in),
       .port_o  (dut1_port_o),
-      .port_oe (dut1_port_oe)
+      .port_oe (dut1_port_oe),
+      .port_read_o (dut1_port_read)
   );
 
   // ------------------------------------------------------------------
@@ -283,6 +288,22 @@ module tb_intel_4001;
       if (d1_data_o !== e1_d) begin
         inc_fail();
         $display("FAIL d1_data ph=%0d got=%h exp=%h", ph, d1_data_o, e1_d);
+      end
+
+      // port_read_o contract: high exactly while the chip drives its port
+      // value onto the bus (snooped RDR, io_selected, phases X2-X3)
+      checks = checks + 2;
+      if (dut0_port_read !== ((g_io_sel == 4'h0) && s_rdr_g &&
+                              ((ph == 3'd6) || (ph == 3'd7)))) begin
+        inc_fail();
+        $display("FAIL port0_read ph=%0d got=%b (iosel=%h rdr=%b)",
+                 ph, dut0_port_read, g_io_sel, s_rdr_g);
+      end
+      if (dut1_port_read !== ((g_io_sel == 4'h1) && s_rdr_g &&
+                              ((ph == 3'd6) || (ph == 3'd7)))) begin
+        inc_fail();
+        $display("FAIL port1_read ph=%0d got=%b (iosel=%h rdr=%b)",
+                 ph, dut1_port_read, g_io_sel, s_rdr_g);
       end
 
       checks = checks + 6;

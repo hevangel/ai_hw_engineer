@@ -67,9 +67,13 @@ contract and its sources.
   (behavioral 4001/4002 models) against an independent instruction-set
   simulator: 20,192 instruction boundaries compared with zero mismatches,
   all 46 instructions exercised, plus a fixed-seed random stress phase.
-- Formal verification proves the complete ISA transition function for every
-  opcode encoding and start state (bounded and unbounded), all sequencer
-  safety properties, and reachability covers for every instruction class.
+- Formal verification proves every single-instruction behavior (any opcode
+  encoding, arbitrary operand data, any state reachable from reset) and
+  every adjacent pair of instructions, bounded and unbounded, plus all
+  sequencer safety properties and reachability covers for every instruction
+  class; arbitrary three-plus-instruction sequences are exercised by the
+  simulation regression and the Busicom firmware regression (see the final
+  report's formal section for the exact scope).
 - Yosys generic synthesis completes with zero structural problems.
 
 ## Documentation

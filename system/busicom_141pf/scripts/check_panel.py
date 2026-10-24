@@ -5,6 +5,7 @@ import re
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 
@@ -15,6 +16,11 @@ KEYS = {"C": 160, "0": 156, "1": 155, "2": 151, "3": 147,
 
 
 def request(path, body=None):
+    # The panel under test is the local simulator's own bridge; refuse any
+    # non-loopback target before opening the connection.
+    parsed = urllib.parse.urlsplit(BASE)
+    if parsed.scheme != "http" or parsed.hostname not in ("localhost", "127.0.0.1", "::1"):
+        raise ValueError("panel base URL must be loopback http: " + BASE)
     data = None if body is None else json.dumps(body).encode()
     req = urllib.request.Request(BASE + path, data,
                                  {"Content-Type": "application/json"})

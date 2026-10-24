@@ -16,10 +16,17 @@ accepted for the Intel 8259 design).
 ## Reference Model
 
 The ISS in the testbench is written from `spec/spec.md` independently of the
-RTL structure: it steps one instruction per call over the same ROM image and
-maintains its own PC, stack, ACC, CY, index registers, SRC pointer, CMD, and
-its own copy of RAM/ROM-port state. At every `sync` boundary the TB compares
-all of it, including hierarchical reads of DUT internals.
+RTL *structure* — it steps one instruction per call over the same ROM image
+and maintains its own PC, stack, ACC, CY, index registers, SRC pointer, CMD,
+and its own copy of RAM/ROM-port state. At every `sync` boundary the TB
+compares all of it, including hierarchical reads of DUT internals. Note
+(review 2026-10-23): the ISS and the formal golden model are co-authored
+with the spec reading, not derived from an external artifact, so the
+agreement checks implementation consistency, not specification correctness;
+the bench therefore also carries the independent PC anchor (raw-bus
+post-instruction PC assertions) and the real-software Busicom regression,
+and full external-table regeneration of the models is tracked in
+`plans/intel4004_independent_oracle.md`.
 
 ## Verification Goals
 

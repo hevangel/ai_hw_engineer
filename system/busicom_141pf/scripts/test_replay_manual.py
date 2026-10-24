@@ -35,7 +35,8 @@ class ReplayTests(unittest.TestCase):
     def test_duplicate_lines_are_not_deduplicated(self):
         cells = list('             11') + [' ', ' ', '*', 0]
         empty = [' ']*18 + [0]
-        panel = Panel('', 1)
+        # Loopback placeholder: request() is stubbed below, no network use.
+        panel = Panel('http://127.0.0.1:1', 1)
         snapshots = iter({'paper_sequence': seq, 'paper':[empty]*6+[cells],
                           'ready':True,'busy':False} for seq in (1,2))
         panel.request = lambda _: next(snapshots)

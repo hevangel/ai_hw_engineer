@@ -39,8 +39,9 @@ state. Section 11 lists what is deliberately out of scope.
 - RAM/ROM port I/O instructions with the SRC register-pair pointer protocol and
   the DCL command-line (RAM bank) register.
 - The historical 8-period instruction cycle (A1 A2 A3 M1 M2 X1 X2 X3) with
-  multiplexed 4-bit bus operation, `sync` pulse at A1, `cm_rom` during A1-A3,
-  and bank-decoded `cm_ram` lines during X2-X3 of RAM instructions and SRC.
+  multiplexed 4-bit bus operation, `sync` pulse at A1, `cm_rom` during A1-A3
+  plus the ROM-port I/O operations (6.3), and bank-decoded `cm_ram` lines
+  during X2-X3 of RAM instructions and SRC.
 - The documented page-boundary quirks of JCN, JIN, FIN, and ISZ emerge from
   the faithful PC-increment-at-A1 timing rather than being special-cased.
 - Undefined opcode combinations execute as NOPs (documented reconstruction
@@ -105,8 +106,10 @@ ordering: fetch (M1/M2), bus I/O (X2/X3), then state update.
 | SRC pointer | 8 | 0 | Latched SRC pair content selecting RAM chip/register/character or ROM chip |
 | CMD | 3 | 0 | DCL command register selecting the active CM-RAM bank line(s) |
 
-Index registers are deliberately **not** cleared by `rst_n`: the historical
-RESET pin does not affect them. Everything else in the table is cleared. The
+Index registers **are** cleared by `rst_n`: this core models the historical
+part's long-reset behavior, in which RESET "must be applied for 64 clock
+cycles (8 machine cycles)" to "completely clear all address and index
+registers" (Intel 4004 datasheet, RESET pin description; see 6.4). The
 program counter value is `stack[SP]`; 12 bits address 4096 program words as
 {ROM chip 4 bits, ROM word 8 bits}.
 
@@ -315,18 +318,26 @@ behavior:
 
 `cm_ram` = DCL decode of CMD during X2-X3 of SRC and all OPR = 1110
 instructions except WRR/RDR (which use the ROM port) and WPM/reserved (no
-activity). `cm_rom` is asserted only during A1-A3 (all cycles), as on the
-historical part.
+activity). `cm_rom` is asserted during A1-A3 of every instruction cycle and
+additionally during X2-X3 of the ROM-port operations WRR, WPM, and RDR
+(6.1, 6.2). The Intel 4004 datasheet defines CM-ROM only as "the ROM
+selection signal sent out by the processor when data is required from
+program memory"; the part's exact phase-by-phase CM-ROM waveform is not
+pinned by the sources at hand, so the phase placement here is a documented
+reconstruction choice (11), not a claim about the historical waveform.
 
 ### 6.4 Reset
 
 `rst_n` low (synchronous) clears ACC, CY, SP, the four stack registers, the
 sixteen index registers, the SRC pointer, and CMD (bank 0 active). The
-historical RESET pin likewise clears all registers and flip-flops — held long
-enough (at least eight instruction cycles) it also sweeps the dynamic
-index-register array clear. On release the CPU starts fetching from PC = 0.
-The phase counter resets to A1 and `sync` asserts on the first cycle after
-release.
+historical RESET pin "clears all flags and status registers and forces the
+program counter to zero"; held long enough — "for 64 clock cycles (8 machine
+cycles)" — it also "completely clear[s] all address and index registers"
+(Intel 4004 datasheet, RESET pin description, whose dynamic index-register
+array needs the long level to sweep clear). This core models the long-reset
+result on a synchronous reset. On release the CPU starts fetching from
+PC = 0. The phase counter resets to A1 and `sync` asserts on the first cycle
+after release.
 
 ## 7. Error Handling
 
@@ -352,9 +363,14 @@ the 740 kHz maximum clock; this core has no clock gating or power domains.
 - MCS-4 Micro Computer Set user manual (scanned original, including the
   instruction repertoire tables, JCN condition-code note, DCL/SRC command
   line operation, stack description, and the WPM description for
-  4008/4009 systems): <http://codeabbey.github.io/heavy-data-1/msc4-manual.pdf>;
+  4008/4009-based systems): <http://codeabbey.github.io/heavy-data-1/msc4-manual.pdf>;
   instruction repertoire and timing also transcribed at the e4004 project,
   <http://e4004.szyc.org/iset.html>.
+- Intel 4004 datasheet (pin descriptions: RESET "clears all flags and status
+  registers and forces the program counter to zero", index registers
+  "completely clear[ed]" after "64 clock cycles (8 machine cycles)"; CM-ROM
+  defined as the ROM selection signal; TEST sampled by JCN):
+  <https://datasheets.chipdb.org/Intel/MCS-4/datashts/intel-4004.pdf>.
 - Launch date, architecture summary, register diagram, and instruction
   count: Intel 4004 historical summary,
   <https://en.wikipedia.org/wiki/Intel_4004>.
@@ -388,3 +404,40 @@ source text is reproduced verbatim beyond signal names and mnemonics.
 - Interrupts and bank switching: introduced by the 4040, not the 4004.
 - Cycle-exact CPU-internal micro-operation ordering; only the externally
   visible bus protocol and architectural state are specified.
+
+## 12. Assumption Ledger and Reference-Model Independence
+
+Behaviors the primary documentation does not explicitly state carry an
+`ASSUMPTION:` comment in `src/intel_4004.sv` (rule from
+`failure_notes/2026-09-02-intel4004-fin-pc-advance.md`, prevention plan item
+3). Current entries, each with the external artifact that pins them:
+
+| Behavior | Where | Pinned by |
+|---|---|---|
+| FIN advances PC by one (one word, two cycles) | `pc_next` FIN override | Kintli disassembly of the Busicom firmware (live code directly follows every FIN); Busicom 141-PF regression |
+| SUB/SBM inverted-carry sense | `OprSub`, `SBM` case | MCS-4 manual's SBM equation; MAME `mcs40.cpp`; Busicom regression |
+| TCS: ACC = 9 + CY, CY cleared | `TCS` case | MAME `mcs40.cpp` TCS; Busicom manual regression |
+| DAA carry-out: set on overflow, otherwise retained | `DAA` case | MAME `mcs40.cpp` DAA; Busicom manual regression |
+| DCL multi-line decode (line 0 with no bits, 1-3 from CMD bits) | `cm_ram_sel` | manual's single-line rows; corrupted combination rows stated explicitly (5.3); Busicom firmware DCL usage |
+| Undefined opcodes execute as NOPs | 5.6 | reconstruction choice, stated in 5.6 |
+| CM-ROM phase placement (A1-A3 plus X2-X3 of WRR/WPM/RDR) | `cm_rom` assign | datasheet's functional definition only; reconstruction choice (6.3, 11) |
+| Index-register reset sweep | reset block | 4004 datasheet RESET pin description (64 clock cycles) |
+
+### 12.1 Reference-model independence
+
+The TB instruction-set simulator and the formal golden model were both
+originally written from the same reading of this spec, so they share the
+RTL's decode structure and could repeat a shared misreading (the FIN bug
+escaped exactly this way; see the failure note above, prevention plan item
+2). Two mitigations are in place; the full remedy is tracked as open work:
+
+- **Independent PC anchors (in the TB since 2026-10-23):** the testbench
+  asserts each non-branch instruction's post-instruction PC directly from
+  the raw fetch bus against the manual's documented advance rule (one word
+  per instruction, two words for FIM; FIN's one-word exception), without
+  consulting the simulator. It fails on any wrong landing, including ones
+  the simulator mirrors.
+- **Open (tracked in `plans/intel4004_independent_oracle.md`):** regenerate
+  the ISS and formal golden model from an external opcode-semantics table
+  (MAME `mcs40.cpp` or the Pyntel4004 opcode list) rather than by
+  re-deriving the spec, so the equivalence checks gain independent teeth.

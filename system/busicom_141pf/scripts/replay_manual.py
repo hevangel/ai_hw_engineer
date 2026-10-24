@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import re
 import time
+import urllib.parse
 import urllib.request
 
 DEFAULT = Path(__file__).resolve().parents[1] / 'spec/reference/Unicom_141P_examples.json'
@@ -23,6 +24,11 @@ def decode_row(cells):
 
 class Panel:
     def __init__(self, url, timeout):
+        # The panel under replay is the local simulator's own bridge;
+        # refuse any non-loopback target before the first request.
+        parsed = urllib.parse.urlsplit(url)
+        if parsed.scheme != 'http' or parsed.hostname not in ('localhost', '127.0.0.1', '::1'):
+            raise ValueError('panel URL must be loopback http: ' + url)
         self.url, self.timeout = url.rstrip('/'), timeout
         self.rows = {}
     def request(self, path, data=None):

@@ -57,64 +57,28 @@ module busicom_141pf (
                     | (ram1_data_oe ? ram1_data_o : 4'h0);
 
     // ------------------------------------------------------------------------
-    // ROM-port select alias translator.
+    // ROM-port select decoding (review finding B1, 2026-10-23).
     //
-    // The firmware addresses the five 4001 I/O ports by (SRC X2 nibble
-    // mod 5): trace shows it selects nibbles 0/1/2/4/5/7, where 5 aliases
-    // to port 0 (shifter clocks) and 7 aliases to port 2 (drum index /
-    // paper button). The stock 4001 compares the whole nibble against its
-    // strapped chip number, so the board rewrites ROM-port SRC operands
-    // (nibble mod 5) before the chips snoop them. Only SRC-X2 words under
-    // CM-ROM are translated; fetch bytes, WRR data and RAM selects pass
-    // through untouched.
+    // The 4001s compare the FULL SRC X2 nibble against their strapped chip
+    // number, and the firmware addresses every functionally-relevant ROM
+    // port with the exact chip number, so the chips see the raw bus. Trace
+    // of the Kintli disassembly (rel-1-0-1, addresses per Kintli's own
+    // comments):
+    //   $065/$068  src 4< + wrr  X2 = R8 = 0  -> ROM0 (shifter clocks/data)
+    //   $02e/$033/$0c0  src 3< + rdr  X2 = R6 = 1 -> ROM1 (keyboard/switches)
+    //   $06d/$06e  fim 1< $20 + src 1< + rdr  X2 = R2 = 2 -> ROM2 (drum index)
+    //   $01e-$020  inc 6 + src 3< + rdr  X2 = R6 = 2 -> ROM2 (paper button)
+    // All RAM-side SRC selects pass through unmodified as well (they carry
+    // chip/register fields the 4001s ignore). SRC nibbles 3-15 occur only on
+    // stray selects (e.g. the WRR at $243 goes out with the leftover R8=1);
+    // they simply select no ROM, exactly as in the independent Ilmer
+    // reference, whose 4001 model compares the whole nibble with no
+    // aliasing. An earlier build rewrote SRC X2 nibbles > 4 mod 5 before the
+    // 4001s saw them; that translator had no hardware basis (nothing in the
+    // Kintli disassembly or the replica documentation describes it) and is
+    // functionally inert for this firmware - removed. See
+    // failure_notes/2026-10-23-busicom-src-port-alias.md.
     // ------------------------------------------------------------------------
-    localparam logic [2:0] PhA1 = 3'd0;
-    localparam logic [2:0] PhM1 = 3'd3;
-    localparam logic [2:0] PhM2 = 3'd4;
-    localparam logic [2:0] PhX2 = 3'd6;
-    localparam logic [2:0] PhX3 = 3'd7;
-
-    logic [2:0] xlate_phase;
-    logic [3:0] xlate_opr, xlate_opa;
-
-    always_ff @(posedge clk) begin
-        if (!rst_n) begin
-            xlate_phase <= PhA1;
-            xlate_opr   <= 4'h0;
-            xlate_opa   <= 4'h0;
-        end else begin
-            if (sync) xlate_phase <= PhA1 + 3'd1;
-            else if (xlate_phase == PhX3) xlate_phase <= PhA1;
-            else xlate_phase <= xlate_phase + 3'd1;
-
-            if (xlate_phase == PhM1) xlate_opr <= data_bus;
-            if (xlate_phase == PhM2) xlate_opa <= data_bus;
-        end
-    end
-
-    wire xlate_src_x2 = (xlate_phase == PhX2) &&
-                        (xlate_opr == 4'h2) && xlate_opa[0];
-
-    wire [3:0] xlate_raw = data_bus;
-    wire       xlate_remap = xlate_src_x2 && (xlate_raw > 4'd4);
-
-    logic [3:0] data_chips;
-    always_comb begin
-        case ({xlate_remap, xlate_raw})
-            default: data_chips = xlate_raw;
-            5'b1_0101: data_chips = 4'h0;  // 5 -> 0
-            5'b1_0110: data_chips = 4'h1;  // 6 -> 1
-            5'b1_0111: data_chips = 4'h2;  // 7 -> 2
-            5'b1_1000: data_chips = 4'h3;  // 8 -> 3
-            5'b1_1001: data_chips = 4'h4;  // 9 -> 4
-            5'b1_1010: data_chips = 4'h0;  // 10 -> 0
-            5'b1_1011: data_chips = 4'h1;  // 11 -> 1
-            5'b1_1100: data_chips = 4'h2;  // 12 -> 2
-            5'b1_1101: data_chips = 4'h3;  // 13 -> 3
-            5'b1_1110: data_chips = 4'h4;  // 14 -> 4
-            5'b1_1111: data_chips = 4'h0;  // 15 -> 0
-        endcase
-    end
 
     // ------------------------------------------------------------------------
     // CPU
@@ -150,13 +114,17 @@ module busicom_141pf (
         .ROM_FILE ("src/rom/rom_4001_0.hex")
     ) u_rom0 (
         .clk(clk), .rst_n(rst_n), .clr_n(clr_n),
-        .data_i(data_chips), .data_o(rom_data_o[0]), .data_oe(rom_data_oe[0]),
+        .data_i(data_bus), .data_o(rom_data_o[0]), .data_oe(rom_data_oe[0]),
         .sync(sync), .cm_rom(cm_rom),
-        .port_i(4'h0), .port_o(rom0_port), .port_oe()
+        .port_i(4'h0), .port_o(rom0_port), .port_oe(), .port_read_o()
     );
 
     // keyboard matrix columns are decoded below (front-panel section)
     logic [3:0] kb_col;
+
+    // strobe from the keyboard ROM: high while ROM1 drives its (input) port
+    // value onto the bus, i.e. the firmware is sampling the matrix columns
+    logic rom1_port_read;
 
     intel_4001 #(
         .CHIP_NO  (4'h1),
@@ -164,9 +132,9 @@ module busicom_141pf (
         .ROM_FILE ("src/rom/rom_4001_1.hex")
     ) u_rom1 (
         .clk(clk), .rst_n(rst_n), .clr_n(clr_n),
-        .data_i(data_chips), .data_o(rom_data_o[1]), .data_oe(rom_data_oe[1]),
+        .data_i(data_bus), .data_o(rom_data_o[1]), .data_oe(rom_data_oe[1]),
         .sync(sync), .cm_rom(cm_rom),
-        .port_i(kb_col), .port_o(), .port_oe()
+        .port_i(kb_col), .port_o(), .port_oe(), .port_read_o(rom1_port_read)
     );
 
     // ROM2 port pins: bit3 = paper button, bit0 = drum index pulse
@@ -177,9 +145,10 @@ module busicom_141pf (
         .ROM_FILE ("src/rom/rom_4001_2.hex")
     ) u_rom2 (
         .clk(clk), .rst_n(rst_n), .clr_n(clr_n),
-        .data_i(data_chips), .data_o(rom_data_o[2]), .data_oe(rom_data_oe[2]),
+        .data_i(data_bus), .data_o(rom_data_o[2]), .data_oe(rom_data_oe[2]),
         .sync(sync), .cm_rom(cm_rom),
-        .port_i({paper_btn_i, 2'b00, drum_idx_i}), .port_o(), .port_oe()
+        .port_i({paper_btn_i, 2'b00, drum_idx_i}), .port_o(), .port_oe(),
+        .port_read_o()
     );
     intel_4001 #(
         .CHIP_NO  (4'h3),
@@ -187,9 +156,9 @@ module busicom_141pf (
         .ROM_FILE ("src/rom/rom_4001_3.hex")
     ) u_rom3 (
         .clk(clk), .rst_n(rst_n), .clr_n(clr_n),
-        .data_i(data_chips), .data_o(rom_data_o[3]), .data_oe(rom_data_oe[3]),
+        .data_i(data_bus), .data_o(rom_data_o[3]), .data_oe(rom_data_oe[3]),
         .sync(sync), .cm_rom(cm_rom),
-        .port_i(4'h0), .port_o(), .port_oe()
+        .port_i(4'h0), .port_o(), .port_oe(), .port_read_o()
     );
     intel_4001 #(
         .CHIP_NO  (4'h4),
@@ -197,9 +166,9 @@ module busicom_141pf (
         .ROM_FILE ("src/rom/rom_4001_4.hex")
     ) u_rom4 (
         .clk(clk), .rst_n(rst_n), .clr_n(clr_n),
-        .data_i(data_chips), .data_o(rom_data_o[4]), .data_oe(rom_data_oe[4]),
+        .data_i(data_bus), .data_o(rom_data_o[4]), .data_oe(rom_data_oe[4]),
         .sync(sync), .cm_rom(cm_rom),
-        .port_i(4'h0), .port_o(), .port_oe()
+        .port_i(4'h0), .port_o(), .port_oe(), .port_read_o()
     );
 
     // ------------------------------------------------------------------------
@@ -298,6 +267,19 @@ module busicom_141pf (
     // print window). Hammer and paper-advance are RAM0 port rising edges;
     // they latch a one-shot event that survives until the host bridge
     // acknowledges it with a panel tick.
+    //
+    // Drum phase convention (review finding B2): the index pulse marks
+    // character 0 in the print position (Kintli section 3.3). This board
+    // captures `drum_pos_i` at the instant the hammer edge arrives; the
+    // host testbench advances `drum_pos_i` at each TEST-high half-spin so
+    // that value is the character in the print window at hammer time. The
+    // independent reference oracle instead derives the position from its
+    // sector counter as (spin/2 - 1) mod 13, i.e. one lower than the
+    // half-spin count, because it evaluates at the sector tick rather than
+    // at the hammer edge. The two conventions are two reference-edge
+    // choices for the same drum; they were aligned against the scanned
+    // manual examples (42-example regression prints identical tapes), not
+    // derived from a shared formula.
     logic [1:0] ram0_prev;
     logic [1:0] tick_prev;
     logic key_seen;
@@ -305,8 +287,9 @@ module busicom_141pf (
     wire hammer_edge  = (ram0_prev[0] == 1'b0) && (ram0_port[1] == 1'b1);
     wire advance_edge = (ram0_prev[1] == 1'b0) && (ram0_port[3] == 1'b1);
     wire tick_pulse   = (panel_tick_i != tick_prev[0]);
-    wire kbd_sampled  = u_rom1.s_rdr && u_rom1.io_selected &&
-                        u_rom1.phase >= 6 && kb_col != 4'h0;
+    // The firmware samples the matrix by RDR through ROM1's port; the 4001's
+    // port_read_o strobe (spec 7.4) marks exactly those bus periods.
+    wire kbd_sampled  = rom1_port_read && kb_col != 4'h0;
 
     always_ff @(posedge clk) begin
         if (!rst_n) begin
@@ -349,38 +332,50 @@ module busicom_141pf (
     assign key_seen_o = key_seen;
 
     `ifdef DEBUG_TRACE
-    // Keyboard-read visibility: the firmware reads ROM1's port (RDR) to
-    // sample the matrix. Trace every visit to key row 6 (zero or not) with
-    // the bus value the CPU actually sees, plus every SRC port select so
-    // the firmware's port usage can be mapped.
-    logic [3:0] prev_iosel = 4'hF;
+    // Board-level debug traces (review finding B3): everything below uses
+    // only this module's own signals - the keyboard ROM's port_read strobe
+    // and a debug-only fetch snoop - with no hierarchical references into
+    // the chip instances. CPU-internal breakpoints (e.g. the pseudo-engine
+    // checkpoints at PC $029/$037) live in tb_top.sv, which may reach into
+    // the DUT hierarchy.
+    logic [2:0] dbg_phase;
+    logic [3:0] dbg_opr, dbg_opa;
+    logic [3:0] dbg_prev_sel = 4'hF;  // driven only by the trace block below
+    always_ff @(posedge clk) begin
+        if (!rst_n) begin
+            dbg_phase    <= 3'd0;
+            dbg_opr      <= 4'h0;
+            dbg_opa      <= 4'h0;
+        end else begin
+            if (sync) dbg_phase <= 3'd1;
+            else if (dbg_phase == 3'd7) dbg_phase <= 3'd0;
+            else dbg_phase <= dbg_phase + 3'd1;
+            if (dbg_phase == 3'd3) dbg_opr <= data_bus;
+            if (dbg_phase == 3'd4) dbg_opa <= data_bus;
+        end
+    end
     always @(posedge clk) begin
         if (rst_n) begin
-            if (u_rom1.io_sel_q != prev_iosel) begin
-                prev_iosel <= u_rom1.io_sel_q;
-                `ifdef DEBUG_XLATE
-                $display("[%0t] SRCSEL raw=%0d xphase=%0d cm=%b opr=%h opa=%h src=%b",
-                         $time, u_rom1.io_sel_q, xlate_phase, cm_rom,
-                         xlate_opr, xlate_opa, xlate_src_x2);
-                `endif
-            end
-            if (u_rom1.s_rdr && u_rom1.io_selected &&
-                u_rom1.phase >= 6 && kb_scan_o == 10'b0001000000)
-                $display("[%0t] KBDROW6 col=%b bus=%b acc=%b keys=%08h",
-                         $time, u_rom1.rdr_value, data_bus, u_cpu.acc,
-                         keys_mask_i);
-            // RAM0 I/O commands (WMP/WR0/RD0/WRM/RDM/ADM) with bus value
-            if (dut.u_ram0.selected && dut.u_ram0.cmd_opr == 4'he &&
-                dut.u_ram0.phase >= 6)
-                $display("[%0t] RAM0IO opa=%h bus=%b addr=%b",
-                         $time, dut.u_ram0.cmd_opa, data_bus, dut.u_ram0.addr);
-            // pseudo-engine key translation checkpoints
-            if (u_cpu.pc == 12'h029)
-                $display("[%0t] KEYPROC pc=029 R0R1=%h%h acc=%h",
-                         $time, u_cpu.idx[0], u_cpu.idx[1], u_cpu.acc);
-            if (u_cpu.pc == 12'h037)
-                $display("[%0t] KEYPROC pc=037 R4=%h R5=%h (param,func)",
-                         $time, u_cpu.idx[4], u_cpu.idx[5]);
+            // SRC port selects: the X2 nibble of every SRC word, so the
+            // firmware's port usage can be mapped from the log.
+            if (dbg_phase == 3'd6 && dbg_opr == 4'h2 && dbg_opa[0] &&
+                data_bus != dbg_prev_sel)
+                dbg_prev_sel <= data_bus;
+            `ifdef DEBUG_XLATE
+            if (dbg_phase == 3'd6 && dbg_opr == 4'h2 && dbg_opa[0] &&
+                data_bus != 4'hF)
+                $display("[%0t] SRCSEL x2=%0d cm_rom=%b",
+                         $time, data_bus, cm_rom);
+            `endif            // keyboard-port reads that land on key row 6 (zero or not)
+            if (rom1_port_read && kb_scan_o == 10'b0001000000)
+                $display("[%0t] KBDROW6 col=%b bus=%b keys=%08h",
+                         $time, kb_col, data_bus, keys_mask_i);
+            // RAM I/O commands (WRM/WMP/WR0-3/RDM/RD0-3/ADM/SBM) with the
+            // bus value, while a CM-RAM line 0 pointer is active
+            if (cm_ram[0] && dbg_opr == 4'he && dbg_phase >= 3'd6 &&
+                dbg_opa != 4'h2 && dbg_opa != 4'h3 && dbg_opa != 4'ha)
+                $display("[%0t] RAMIO opa=%h bus=%b",
+                         $time, dbg_opa, data_bus);
         end
     end
     `endif

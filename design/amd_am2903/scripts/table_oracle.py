@@ -1,17 +1,49 @@
 #!/usr/bin/env python3
-"""Interpret primary manufacturer expressions. Authored before RTL."""
+"""Interpret primary manufacturer expressions. Authored before RTL.
+
+Table cells are evaluated with a whitelisted AST walker (no eval); the
+deterministic xorshift stimulus and generated vectors stay inside this
+design's work/sim tree.
+"""
+import ast
 import csv
+import operator
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 def read(name):
     return {int(row[0],16):row[1:] for row in csv.reader(line for line in (ROOT/'references'/name).read_text().splitlines() if not line.startswith('#'))}
 COMPILED={}
+# Manufacturer-table expressions are restricted to integer arithmetic,
+# bitwise operators, "x if c else y", "not", and the b1/b2/b3 bit-select
+# helpers - evaluated by walking the parsed AST instead of eval(), so a
+# malformed or edited table cell cannot execute arbitrary code.
+_SAFE_BIN={ast.Add:operator.add,ast.Sub:operator.sub,ast.Mult:operator.mul,
+           ast.BitAnd:operator.and_,ast.BitOr:operator.or_,ast.BitXor:operator.xor,
+           ast.LShift:operator.lshift,ast.RShift:operator.rshift}
+_SAFE_UN={ast.USub:operator.neg,ast.UAdd:operator.pos,ast.Invert:operator.invert,ast.Not:operator.not_}
+def _eval_node(node,ctx):
+    if isinstance(node,ast.Expression): return _eval_node(node.body,ctx)
+    if isinstance(node,ast.Constant) and isinstance(node.value,int) and not isinstance(node.value,bool):
+        return node.value
+    if isinstance(node,ast.Name):
+        if node.id not in ctx: raise ValueError('unknown table symbol: '+node.id)
+        return ctx[node.id]
+    if isinstance(node,ast.BinOp) and type(node.op) in _SAFE_BIN:
+        return _SAFE_BIN[type(node.op)](_eval_node(node.left,ctx),_eval_node(node.right,ctx))
+    if isinstance(node,ast.UnaryOp) and type(node.op) in _SAFE_UN:
+        return _SAFE_UN[type(node.op)](_eval_node(node.operand,ctx))
+    if isinstance(node,ast.IfExp):
+        return _eval_node(node.body,ctx) if _eval_node(node.test,ctx) else _eval_node(node.orelse,ctx)
+    if isinstance(node,ast.Call) and isinstance(node.func,ast.Name) \
+            and node.func.id in ('b1','b2','b3') and len(node.args)==1 and not node.keywords:
+        return ctx[node.func.id](_eval_node(node.args[0],ctx))
+    raise ValueError('unsupported table expression form: '+ast.dump(node))
 ALU=read('alu.csv');SPECIAL=read('special.csv');DEST=read('destinations.csv')
 def bit(v,n): return (v>>n)&1
 def oracle(word,r,s,q,sc,role,cn,z,shift,oe_y,y_in,ien):
     dst=word>>5;fn=(word>>1)&15;special=(word&31)==0
     ctx=dict(r=r,s=s,q=q,cn=cn,z=z,mss=role==2,lss=role==0,si0=bit(shift,0),si3=bit(shift,1),b3=lambda v:bit(v,3),b2=lambda v:bit(v,2),b1=lambda v:bit(v,1))
-    def ex(expr): return eval(COMPILED[expr] if expr in COMPILED else COMPILED.setdefault(expr,compile(expr,'manufacturer-table','eval')),{'__builtins__':{}},ctx)
+    def ex(expr): return _eval_node(COMPILED.setdefault(expr,ast.parse(expr,mode='eval')),ctx)
     if special:
         row=SPECIAL[dst];fe,ge,pe=row[:3]
     else: fe,ge,pe,arithmetic=ALU[fn]
@@ -52,27 +84,41 @@ def oracle(word,r,s,q,sc,role,cn,z,shift,oe_y,y_in,ien):
     return [y,qn,sc_next,cn4,n if role==2 else gn,ovr if role==2 else pn,int(z_en and not zv),write,sum(v<<i for i,v in enumerate(so)),sum(v<<i for i,v in enumerate(en))]
 
 if __name__=='__main__':
-    import itertools,random,sys
-    rng=random.Random(0x29031978);count=0
-    with open(sys.argv[1],'w') as out:
-        def emit(word,role,a,b,q,sc,da,db,exty,pins,shift,aa,bb,seed):
-            global count
-            sc&=1
-            ea=pins&1;ob=(pins>>1)&1;oy=(pins>>2)&1;cn=(pins>>3)&1;z=(pins>>4)&1;ien=(pins>>5)&1;we=(pins>>6)&1
-            # a,b are independently set before read; alias gets one physical value.
-            if aa==bb:b=a
-            rr=da if ea else a;ss=q if word&1 else db if ob else b
-            expected=oracle(word,rr,ss,q,sc,role,cn,z,shift,oy,exty,ien)
-            out.write(' '.join(format(v,'x') for v in [word,role,a,b,q,sc,da,db,exty,pins,shift,aa,bb,seed,*expected])+'\n');count+=1
-        words=[w for w in range(512) if w&31 or (w>>5) in SPECIAL]
-        for w,role,source,iteration in itertools.product(words,range(3),range(8),range(16)):
-            pins=source|((iteration&1)<<3)|(((iteration>>1)&1)<<4)|(((iteration>>2)&1)<<5)|(((iteration>>3)&1)<<6)
-            vals=[rng.randrange(16) for _ in range(9)]
-            emit(w,role,*vals[:7],pins,rng.randrange(16),*vals[7:],rng.randrange(0x100000000))
-        # Every normal ALU function with all 4-bit R/S/Cn for all roles.
-        for fn,role,a,b,cn in itertools.product(range(16),range(3),range(16),range(16),range(2)):
-            emit((12<<5)|(fn<<1)|1,role,a,b,b,0,a,b,0,3|(cn<<3)|64,0,1,2,0)
-        # Every F/Q/shift-pin combination and normal destination/role.
-        for dst,role,f,q,shift in itertools.product(range(16),range(3),range(16),range(16),range(16)):
-            emit((dst<<5)|12,role,f,0,q,1,f,0,0,3|64,shift,1,2,0)
+    import itertools
+    # Deterministic xorshift32 stimulus: reproducible runs without the
+    # random module (same practice as the LFSR stimulus in the SV bench).
+    class _Rng:
+        def __init__(self,seed): self.s=(seed&0xFFFFFFFF) or 0x29031978
+        def randrange(self,n):
+            s=self.s
+            s^=(s<<13)&0xFFFFFFFF;s^=s>>17;s^=(s<<5)&0xFFFFFFFF
+            self.s=s
+            return s%n
+    rng=_Rng(0x29031978);count=0
+    # Generated vectors always live in the design's own work tree; the
+    # generator takes no output argument (run_sim.sh already points there).
+    out_path=(ROOT/'work'/'sim'/'vectors.txt').resolve()
+    lines=[]
+    def emit(word,role,a,b,q,sc,da,db,exty,pins,shift,aa,bb,seed):
+        global count
+        sc&=1
+        ea=pins&1;ob=(pins>>1)&1;oy=(pins>>2)&1;cn=(pins>>3)&1;z=(pins>>4)&1;ien=(pins>>5)&1;we=(pins>>6)&1
+        # a,b are independently set before read; alias gets one physical value.
+        if aa==bb:b=a
+        rr=da if ea else a;ss=q if word&1 else db if ob else b
+        expected=oracle(word,rr,ss,q,sc,role,cn,z,shift,oy,exty,ien)
+        lines.append(' '.join(format(v,'x') for v in [word,role,a,b,q,sc,da,db,exty,pins,shift,aa,bb,seed,*expected]));count+=1
+    words=[w for w in range(512) if w&31 or (w>>5) in SPECIAL]
+    for w,role,source,iteration in itertools.product(words,range(3),range(8),range(16)):
+        pins=source|((iteration&1)<<3)|(((iteration>>1)&1)<<4)|(((iteration>>2)&1)<<5)|(((iteration>>3)&1)<<6)
+        vals=[rng.randrange(16) for _ in range(9)]
+        emit(w,role,*vals[:7],pins,rng.randrange(16),*vals[7:],rng.randrange(0x100000000))
+    # Every normal ALU function with all 4-bit R/S/Cn for all roles.
+    for fn,role,a,b,cn in itertools.product(range(16),range(3),range(16),range(16),range(2)):
+        emit((12<<5)|(fn<<1)|1,role,a,b,b,0,a,b,0,3|(cn<<3)|64,0,1,2,0)
+    # Every F/Q/shift-pin combination and normal destination/role.
+    for dst,role,f,q,shift in itertools.product(range(16),range(3),range(16),range(16),range(16)):
+        emit((dst<<5)|12,role,f,0,q,1,f,0,0,3|64,shift,1,2,0)
+    out_path.parent.mkdir(parents=True,exist_ok=True)
+    out_path.write_text(''.join(line+'\n' for line in lines))
     print(f'AMD Tables1–5 oracle: {count} vectors, {len(words)} documented words')

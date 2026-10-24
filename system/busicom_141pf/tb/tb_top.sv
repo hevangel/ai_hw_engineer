@@ -10,7 +10,11 @@
 // 0.10.3 mis-schedules testbench processes that resume on @(posedge clk)
 // once a DPI import is in the build, so no testbench process waits on the
 // clock. One machine cycle is 8 clocks = 80ns; machine-cycle boundaries
-// land at t = 305ns + 80ns*k.
+// land at t = 305ns + 80ns*k. Keep this alignment if the reset/CL schedule
+// changes. The mis-schedule was observed on xezim 0.10.3; the validated
+// build is recorded in docs/toolchain-releases.md - re-check the constraint
+// against the current version before converting any process back to
+// @(posedge clk).
 //
 // xezim 0.10.3 DPI calls also cost ~0.2ms wall each, so the host bridge is
 // NOT called per cycle: the board latches one-shot print/advance events in
@@ -53,6 +57,10 @@ module tb_top;
     logic        key_seen;
     logic [9:0]  kb_scan;
 
+    // drum index sensor (drives ROM2 bit 0); declared before the DUT so
+    // the port connection below can reference it
+    logic drum_idx = 1'b0;
+
     busicom_141pf dut (
         .clk            (clk),
         .rst_n          (rst_n),
@@ -88,6 +96,15 @@ module tb_top;
     // Machine-cycle loop: counters and drum pacing.
     // +spin=N shrinks the half-spin length for faster-than-real-time tests;
     // all drum timings scale together, so firmware behaviour is unchanged.
+    //
+    // Drum phase convention (see also busicom_141pf.sv): the index pulse
+    // (spin_cnt == SPINS_PER_INDEX) marks character 0 in the print
+    // position; drum_pos then advances one character per TEST-high
+    // (even-spin) half-spin. `drum_pos` presented to the board is the
+    // character in the print window at each hammer edge; the independent
+    // reference oracle derives the same quantity one half-spin lower
+    // ((spin/2 - 1) mod 13) because it evaluates at the sector tick. The
+    // conventions were aligned against the scanned manual examples.
     // ------------------------------------------------------------------------
     longint mcycle = 0;
     int drum_cnt = 0;
@@ -127,8 +144,6 @@ module tb_top;
             end
         end
     end
-
-    logic drum_idx = 1'b0;
 
     // ------------------------------------------------------------------------
     // Headless self-check: firmware aliveness = keyboard scan sweeps all rows

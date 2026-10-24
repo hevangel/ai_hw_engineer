@@ -4,6 +4,7 @@ Source excerpt retained in references/greaseweazle_ibm.py, not derived from RTL.
 """
 import ast
 import binascii
+import importlib.util
 import struct
 from pathlib import Path
 
@@ -17,18 +18,25 @@ for value in range(256):
     # The public-domain upstream doubler table, evaluated independently of the RTL.
     spread = sum(((value >> bit) & 1) << (bit * 2) for bit in range(8))
     table.append(spread)
-namespace = {"struct": struct, "encode_list": table}
-exec(compile(ast.Module(body=selected, type_ignores=[]), "greaseweazle", "exec"), namespace)
+# Materialize the four selected reference functions as a self-contained
+# module under work/ and import it through importlib (no exec of dynamic
+# source). The excerpt stays byte-identical to the vendored reference.
+module_source = ("import struct\n\n"
+                 "encode_list = " + repr(table) + "\n\n"
+                 + "\n\n".join(ast.get_source_segment(source, node)
+                               for node in selected) + "\n")
+module_path = ROOT / "work" / "greaseweazle_codec_sel.py"
+module_path.parent.mkdir(parents=True, exist_ok=True)
+module_path.write_text(module_source)
+spec = importlib.util.spec_from_file_location("greaseweazle_codec_sel", module_path)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
 rows = []
 for density in range(2):
     for previous in range(2):
         for value in range(256):
-            doubled = namespace["encode"](bytes([previous, value]))
-            encoded = namespace["mfm_encode" if density else "fm_encode"](doubled)[-2:]
+            doubled = module.encode(bytes([previous, value]))
+            encoded = getattr(module, "mfm_encode" if density else "fm_encode")(doubled)[-2:]
             word = int.from_bytes(encoded, "big")
             rows.append(f"{density:x}{previous:x}{value:02x}{word:04x}\n")
 (ROOT / "references/codec_vectors.hex").write_text("".join(rows))
-for data in (b"123456789", b"\xa1\xa1\xa1\xfe\x03\x00\x01\x02"):
-    answer = binascii.crc_hqx(data, 0xffff)
-    assert binascii.crc_hqx(data + answer.to_bytes(2, "big"), 0xffff) == 0
-    print(data.hex(), f"{answer:04x}")

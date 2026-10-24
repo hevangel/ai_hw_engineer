@@ -1,5 +1,5 @@
 """Exercise the HTTP panel against a separate real RTL process."""
-import json,os,subprocess,time,urllib.request,urllib.error
+import json,os,subprocess,time,urllib.request,urllib.error,urllib.parse
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 def main():
@@ -7,8 +7,14 @@ def main():
  log=(ROOT/'work/backend.log').open('w')
  p=subprocess.Popen(['python3',str(ROOT/'host/server.py')],env=env,stdout=log,stderr=log)
  def request(path,body=None):
+  # The panel under test is the local server spawned just above; refuse
+  # any non-loopback target before opening the connection.
+  url='http://127.0.0.1:8090'+path
+  parsed=urllib.parse.urlsplit(url)
+  if parsed.scheme!='http' or parsed.hostname not in ('localhost','127.0.0.1','::1'):
+   raise ValueError('panel URL must be loopback http: '+url)
   data=None if body is None else json.dumps(body).encode()
-  return urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8090'+path,data=data),timeout=30)
+  return urllib.request.urlopen(urllib.request.Request(url,data=data),timeout=30)
  def control(action,**kw):return json.load(request('/api/control',dict(action=action,**kw)))
  try:
   for _ in range(100):

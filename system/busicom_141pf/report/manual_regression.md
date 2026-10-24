@@ -26,6 +26,10 @@ The `paper_sequence` counter preserves identical consecutive tape rows.
 - **Recovered-ROM profile on Verilator:** the five changed cases were replayed
   with their explicit overrides and all five passed. Combined with the 37
   unchanged cases from the full run, all 42 match the documented ROM expectations.
+- **Re-validated 2026-10-23** after removing the board's SRC-port "mod 5"
+  translator (see `failure_notes/2026-10-23-busicom-src-port-alias.md`):
+  the full recovered-ROM profile passes again, 42/42, on Verilator 5.052 —
+  the translator was functionally inert for this firmware.
 - **Independent V. Ilmer CPU emulator:** all 42 pass the recovered-ROM profile.
   It reproduces exactly the same five differences from the manual. Its complete
   printed tape matches the Verilator tape for every example, including the

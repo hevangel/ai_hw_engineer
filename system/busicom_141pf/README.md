@@ -74,11 +74,15 @@ phase accurate but slower than the historical hardware. `paceLagTicks` in
 with `XEZIM_JIT=1 XEZIM_AOT=1`. Verilator provides a faster interactive panel.
 `BUSICOM_PORT` selects the internal HTTP port; `BUSICOM_SPIN` defaults to 1481.
 Build outputs are separated by backend and port. Wait for startup to finish.
+The panel bridge listens on every interface and serves permissive CORS by
+design (the container port publishing is the trust boundary) — when launching
+outside Docker, keep `BUSICOM_PORT` firewalled to local users; the bridge
+prints a startup note to that effect.
 
 ## Manual and replay
 
 - [Readable manual](spec/reference/Unicom_141P_manual.md)
-- [Original OCR extraction](spec/reference/Unicom_141P_manual_ocr.md)
+- [Original OCR extraction](../../references/Unicom_141P_manual_ocr.md)
 - [All 42 examples in JSON](spec/reference/Unicom_141P_examples.json)
 - [Replay format and instructions](spec/reference/README.md)
 - [Regression results and five scan/ROM differences](report/manual_regression.md)

@@ -3,9 +3,12 @@
 import concurrent.futures
 import gzip
 import hashlib
+import ipaddress
 import json
+import socket
 from pathlib import Path
 import struct
+import urllib.parse
 import urllib.request
 
 COMMIT = 'e71c68d215a6bb8c356bd4cb3842de3bef345ca9'
@@ -14,6 +17,15 @@ CACHE = ROOT / 'work/reference'
 REGS = 'ax cx dx bx sp bp si di es cs ss ds ip flags'.split()
 PREFIXES = {0x26, 0x2e, 0x36, 0x3e, 0xf0, 0xf2, 0xf3}
 SUPPORTED = set(range(256))
+ALLOWED_HOSTS = {'raw.githubusercontent.com', 'api.github.com'}
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise ValueError('redirect refused: ' + newurl)
+
+
+_OPENER = urllib.request.build_opener(_NoRedirect)
 
 
 def memory_writes(cycles):
@@ -37,7 +49,17 @@ def memory_writes(cycles):
 
 
 def retrieve(url):
-    with urllib.request.urlopen(url, timeout=90) as response:
+    # Downloads only from the pinned GitHub fixture hosts, with the host
+    # resolved up front and non-global addresses refused (DNS-rebinding
+    # guard; TLS pins the connection), redirects refused.
+    parsed = urllib.parse.urlsplit(url)
+    if parsed.scheme != 'https' or parsed.hostname not in ALLOWED_HOSTS:
+        raise ValueError('download host not allowed: ' + url)
+    for info in socket.getaddrinfo(parsed.hostname, 443):
+        address = ipaddress.ip_address(info[4][0])
+        if not address.is_global:
+            raise ValueError('resolved address is not global: ' + str(address))
+    with _OPENER.open(url, timeout=90) as response:
         return response.read()
 
 

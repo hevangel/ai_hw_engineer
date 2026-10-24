@@ -4,19 +4,28 @@ from pathlib import Path
 import json
 import subprocess
 import time
+import urllib.parse
 import urllib.request
 
 system = Path(__file__).resolve().parents[1]
 logfile = system / "build/backend_test.log"
 logfile.parent.mkdir(parents=True, exist_ok=True)
 
+def _checked(url):
+    # The panel under test is the local simulator this script launches;
+    # refuse any non-loopback target before opening the connection.
+    parsed = urllib.parse.urlsplit(url)
+    if parsed.scheme != "http" or parsed.hostname not in ("localhost", "127.0.0.1", "::1"):
+        raise ValueError("panel URL must be loopback http: " + url)
+    return url
+
 def get():
-    with urllib.request.urlopen("http://127.0.0.1:8080/api/state", timeout=5) as response:
+    with urllib.request.urlopen(_checked("http://127.0.0.1:8080/api/state"), timeout=5) as response:
         return json.load(response)
 
 def post(action, **kwargs):
     payload = json.dumps({"action": action, **kwargs}).encode()
-    request = urllib.request.Request("http://127.0.0.1:8080/api/control", payload,
+    request = urllib.request.Request(_checked("http://127.0.0.1:8080/api/control"), payload,
                                      {"Content-Type": "application/json"})
     with urllib.request.urlopen(request, timeout=5) as response:
         return json.load(response)

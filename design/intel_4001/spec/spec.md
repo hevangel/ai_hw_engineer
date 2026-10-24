@@ -74,6 +74,7 @@ lists what is deliberately out of scope.
 | `port_i` | input | 4 | Values present on the four external I/O pins (input pins feed RDR) |
 | `port_o` | output | 4 | Output values for the four external I/O pins (from the port latch) |
 | `port_oe` | output | 4 | Per-pin output enable = `IO_DIR` mask (1 = output pin) |
+| `port_read_o` | output | 1 | 1 while this chip drives its I/O port value onto the bus (snooped RDR with `io_selected`, phases X2-X3) — lets board integrations detect port reads without hierarchical references |
 
 The historical 16-pin DIP carries Vdd/Vss, φ1/φ2, SYNC, CM-ROM, RESET, CL,
 the shared D0-D3 data bus, and the four I/O lines. In a pin-accurate
@@ -239,6 +240,10 @@ evaluated continuously while driving X2/X3.
 | Phase M2 and `fetch_selected` and `cm_rom_seen` | ROM word [3:0] | 1 |
 | Phase X2 or X3, snooped RDR, `io_selected` | `rdr_value` | 1 |
 | Anything else | 4'h0 | 0 |
+
+`port_read_o` is 1 exactly under the third row's condition (snooped RDR,
+`io_selected`, phases X2-X3), i.e. whenever this chip drives the bus with
+its port value and otherwise 0.
 
 At most one chip in a system drives the bus in any period; with several
 4001 instances sharing a bus, integration ORs each `data_o` gated by its

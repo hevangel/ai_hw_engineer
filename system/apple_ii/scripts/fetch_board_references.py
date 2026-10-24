@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Fetch hash-pinned, optional reference artifacts into ignored work/ only."""
 import hashlib
+import ipaddress
+import socket
 from pathlib import Path
+import urllib.parse
 import urllib.request
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -15,13 +18,30 @@ FILES={
     'netlist_sim.h':'fe483a7f43f973dfc388b02410a711ceb5b492ab08970429cc16a7cd0caf70bb',
     'types.h':'484747d5c63f0b4c1c8ed897ea52606bd7521b08f78a469582603e85a678f3bc',
 }
+HOST='raw.githubusercontent.com'
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self,req,fp,code,msg,headers,newurl):
+        raise ValueError('redirect refused: '+newurl)
+
+_OPENER=urllib.request.build_opener(_NoRedirect)
 
 def fetch(url,path,digest,text=False):
     if path.exists():data=path.read_bytes()
     else:
+        # Only the pinned GitHub raw host, resolved up front with
+        # non-global addresses refused (DNS-rebinding guard; TLS pins the
+        # connection); every artifact is hash-checked before use.
+        parsed=urllib.parse.urlsplit(url)
+        if parsed.scheme!='https' or parsed.hostname!=HOST:
+            raise ValueError('download host not allowed: '+url)
+        for info in socket.getaddrinfo(parsed.hostname,443):
+            address=ipaddress.ip_address(info[4][0])
+            if not address.is_global:
+                raise ValueError('resolved address is not global: '+str(address))
         print(f'Downloading {url}')
         request=urllib.request.Request(url,headers={'User-Agent':'Apple-II-board-reference-check'})
-        with urllib.request.urlopen(request,timeout=60) as response:data=response.read()
+        with _OPENER.open(request,timeout=60) as response:data=response.read()
     # Text-only canonicalization is specified so Windows staging preserves hashes.
     if text:data=(data.decode('utf-8-sig').replace('\r\n','\n').rstrip()+'\n').encode()
     actual=hashlib.sha256(data).hexdigest()
