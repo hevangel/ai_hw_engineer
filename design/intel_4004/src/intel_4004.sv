@@ -170,11 +170,22 @@ module intel_4004 (
   end
 
   assign sync   = (phase == PhA1);
+  // ASSUMPTION (reconstruction choice): CM-ROM is asserted for all of
+  // A1-A3 (so the ROMs latch the multiplexed address) and during X2-X3 of
+  // the ROM-port operations WRR/WPM/RDR. The 4004 datasheet defines
+  // CM-ROM only as "the ROM selection signal sent out by the processor
+  // when data is required from program memory"; the part's exact
+  // phase-by-phase CM-ROM waveform is not pinned by the sources at hand
+  // (spec 6.3, 11). The Busicom board integration runs the original
+  // firmware against this contract.
   assign cm_rom = (phase <= PhA3) ||
                   ((phase == PhX2 || phase == PhX3) && io_romport);
 
-  // DCL command-line decode (spec 5.3): line 0 with no bits set, lines 1-3
-  // follow CMD bits 0-2 directly.
+  // DCL command-line decode (spec 5.3). ASSUMPTION: line 0 with no bits
+  // set, lines 1-3 following CMD bits 0-2 directly; the manual's table
+  // covers the single-line rows only (its combination rows are corrupted
+  // in the surviving scans), and this decode is validated against the
+  // Busicom firmware's DCL usage.
   logic [3:0] cm_ram_sel;
   assign cm_ram_sel = {cmd[2], cmd[1], cmd[0], ~|cmd};
   assign cm_ram = (phase == PhX2 || phase == PhX3) && (src_word || io_ram)
@@ -200,10 +211,13 @@ module intel_4004 (
   logic [11:0] pc_next;
   always_comb begin
     pc_next = cycle2 ? pc_plus2 : pc_plus1;
-    // FIN is a one-word instruction executed over two cycles: the program
-    // counter advances by one, past the FIN itself. (Its second cycle
-    // reuses the increment to present the pair-0 indirect address, so no
-    // second word follows.)
+    // ASSUMPTION: FIN is one word over two cycles, so the program counter
+    // advances by one, past the FIN itself. The MCS-4 manual describes
+    // FIN's addressing but not the resulting PC; the increment-at-A1
+    // timing of the real part yields a net +1. Pinned externally by the
+    // Kintli disassembly of the Busicom firmware (live code directly
+    // follows every FIN) and validated by the Busicom 141-PF regression.
+    // (Escaped-defect post-mortem: failure_notes/2026-09-02.)
     if (fin_word)
       pc_next = pc_plus1;
     unique case (opr)
@@ -230,7 +244,6 @@ module intel_4004 (
     endcase
   end
 
-  integer i;
   always_ff @(posedge clk) begin
     if (!rst_n) begin
       phase    <= PhA1;
@@ -244,14 +257,16 @@ module intel_4004 (
       opa      <= 4'h0;
       word2_hi <= 4'h0;
       word2_lo <= 4'h0;
-      for (i = 0; i < 4; i++) begin
+      for (int i = 0; i < 4; i++) begin
         stack[i] <= 12'h0;
       end
-      for (i = 0; i < 16; i++) begin
+      // The historical RESET pin clears all registers including the index
+      // register array when held long enough to refresh it (spec 6.4;
+      // Intel 4004 datasheet: "To completely clear all address and index
+      // registers, RESET must be applied for 64 clock cycles").
+      for (int i = 0; i < 16; i++) begin
         idx[i] <= 4'h0;
       end
-      // The historical RESET pin clears all registers including the index
-      // register array when held long enough to refresh it (spec 6.4).
     end else begin
       // Phase and cycle sequencing
       if (phase == PhX3) begin
@@ -311,7 +326,11 @@ module intel_4004 (
             {cy, acc} <= acc + idx[opa] + {3'b000, cy};
           end
           OprSub: begin
-            // Subtract adds the inverted carry: CY=0 means a pending borrow
+            // ASSUMPTION: inverted-carry subtract (ACC + ~op + ~CY, CY=1 =
+            // no borrow) for SUB, following the manual's printed SBM
+            // equation; the manual's SUB row omits the inversion (spec 5.7
+            // documents the discrepancy). Pinned by MAME mcs40.cpp and the
+            // Busicom firmware regression.
             {cy, acc} <= acc + {1'b0, ~idx[opa]} + {3'b000, ~cy};
           end
           OprLd: begin
@@ -330,7 +349,7 @@ module intel_4004 (
           end
           OprIo: begin
             case (opa)
-              4'h8: begin  // SBM: inverted carry, same sense as SUB
+              4'h8: begin  // SBM: inverted carry, same sense as SUB (spec 5.7)
                 {cy, acc} <= acc + {1'b0, ~data_i} + {3'b000, ~cy};
               end
               4'h9, 4'ha: begin  // RDM, RDR
@@ -367,14 +386,20 @@ module intel_4004 (
                 {cy, acc} <= acc + 4'hf;
               end
               4'h9: begin  // TCS
-                // Independent oracle: MAME mcs40.cpp TCS, ACC = 9 + CY.
+                // ASSUMPTION: ACC = 9 + CY, CY cleared. The manual names
+                // TCS without stating the transfer value; pinned by MAME
+                // mcs40.cpp TCS and validated by the Busicom manual
+                // regression (failure_notes/2026-09-27).
                 acc <= cy ? 4'ha : 4'h9;
                 cy  <= 1'b0;
               end
               4'ha: cy <= 1'b1;  // STC
               4'hb: begin  // DAA
                 if (cy || acc > 4'd9) begin
-                  // MAME DAA sets carry on overflow and otherwise retains it.
+                  // ASSUMPTION: carry is set on overflow and otherwise
+                  // retained (never cleared). The manual's DAA description
+                  // leaves the carry-out unstated; pinned by MAME mcs40.cpp
+                  // DAA and validated by the Busicom manual regression.
                   acc <= acc + 4'd6;
                   cy <= cy || acc > 4'd9;
                 end

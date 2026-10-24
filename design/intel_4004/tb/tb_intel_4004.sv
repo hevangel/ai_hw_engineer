@@ -7,8 +7,12 @@
 // instruction-set simulator with its own shadow memories steps one
 // instruction per commit. Architectural state is compared at every
 // instruction boundary, bus behavior at every clock, and model memories at
-// the end of each phase. A directed program exercises all 46 instructions
-// including the page-straddle quirks, and a fixed-seed random program
+// the end of each phase. In addition - because the ISS shares this bench's
+// reading of the spec (failure_notes/2026-09-02) - an independent PC anchor
+// asserts every non-branch instruction's post-instruction PC straight from
+// the raw fetch bus against the manual's advance rule, and a directed
+// program exercises all 46 instructions including the page-straddle quirks
+// with no land-tolerant padding, and a fixed-seed random program
 // stresses the 1-word instruction set. The memory models decode the current
 // opcode by snooping the fetch bus (a behavioral-model choice; the real
 // chips qualify the command lines instead), and, like the ISS, select the
@@ -110,7 +114,7 @@ module tb_intel_4004;
   logic [3:0] m_opr, m_opa;
   logic       m_cycle2;
   logic [7:0] m_srcptr;
-  logic [3:0] m_bank;
+  logic [1:0] m_bank;
 
   logic m_two, m_src, m_io;
   assign m_two = (m_opr == 4'h1) || (m_opr == 4'h4) || (m_opr == 4'h5) ||
@@ -119,10 +123,10 @@ module tb_intel_4004;
   assign m_src = (m_opr == 4'h2) && m_opa[0];
   assign m_io  = (m_opr == 4'he);
 
-  logic [3:0] bank_of;
-  assign bank_of = cap_cm_ram[0] ? 4'd0 :
-                   cap_cm_ram[1] ? 4'd1 :
-                   cap_cm_ram[2] ? 4'd2 : 4'd3;
+  logic [1:0] bank_of;
+  assign bank_of = cap_cm_ram[0] ? 2'd0 :
+                   cap_cm_ram[1] ? 2'd1 :
+                   cap_cm_ram[2] ? 2'd2 : 2'd3;
 
   // Memory-side address wires
   logic [9:0] main_addr;
@@ -423,6 +427,42 @@ module tb_intel_4004;
   logic [63:0] dut_idx_flat;
   logic [63:0] iss_idx_flat;
 
+  // ------------------------------------------------------------------
+  // Independent PC anchor (failure_notes/2026-09-02 prevention plan
+  // items 3-4): every non-branch instruction's post-instruction PC is
+  // asserted directly from the raw fetch bus against the manual's
+  // documented advance rule - one word per instruction, two for FIM,
+  // FIN's one-word exception - without consulting the ISS. A wrong
+  // landing fails here even when the ISS mirrors it. The anchor state
+  // is derived only from the observed bus: the cycle-1 fetch address
+  // (latched during A1-A3, never overwritten by a second-cycle address)
+  // and the snooped opcode of the instruction that just committed.
+  // ------------------------------------------------------------------
+  logic [11:0] raw_c1_addr;
+  logic        anchor_armed;  // first post-reset cycle completed; the
+                              // anchor state reflects a live fetch
+
+  function automatic logic anchorable(input logic [3:0] opr,
+                                      input logic       opa_lsb);
+    case (opr)
+      // branch outcomes (JCN/JIN/JUN/JMS/ISZ targets, BBL pop) are not
+      // anchored here; their state effects are checked against the ISS
+      4'h1, 4'h4, 4'h5, 4'h7, 4'hc: anchorable = 1'b0;
+      4'h3:    anchorable = !opa_lsb;  // FIN (+1) yes; JIN (branch) no
+      default: anchorable = 1'b1;      // NOP, FIM (+2), SRC, INC, ADD, SUB,
+                                       // LD, XCH, I/O group, ACC group
+    endcase
+  endfunction
+
+  function automatic logic [11:0] anchored_next_pc(
+      input logic [3:0]  opr,
+      input logic        opa_lsb,
+      input logic [11:0] addr);
+    // word+1, or word+2 for the two-word FIM; FIN is one word (the +1
+    // rule), so the two-word case is FIM alone among the anchorable set
+    anchored_next_pc = addr + ((opr == 4'h2 && !opa_lsb) ? 12'd2 : 12'd1);
+  endfunction
+
   // Blocking assignments in this checker are deliberate: it runs #1 after
   // each clock edge in simulation time order, not as synthesized logic.
   /* verilator lint_off BLKSEQ */
@@ -438,7 +478,9 @@ module tb_intel_4004;
       m_opa      = 4'h0;
       m_cycle2   = 1'b0;
       m_srcptr   = 8'h0;
-      m_bank     = 4'd0;
+      m_bank     = 2'd0;
+      raw_c1_addr = 12'h0;
+      anchor_armed = 1'b0;
     end else begin
       // Apply every model-side update for the clock period that just ended
       // (cap_* hold the bus values during that period), so the models, the
@@ -515,10 +557,35 @@ module tb_intel_4004;
       end
 
       cycle_count = cycle_count + 1;
-      if (boundary_count == 42 || boundary_count == 43) begin
-        $display("CYC t=%0t b=%0d ph=%0d cmr=%b cmd=%h m_src=%b m_bank=%0d oe=%b",
-                 $time, boundary_count, tb_phase, cm_ram, dut.cmd, m_src,
-                 m_bank, data_oe);
+
+      if (cap_phase == 3'd7) anchor_armed = 1'b1;
+      // Independent PC anchor: the instruction that just committed (its
+      // decode is still in m_opr/m_opa; the ended cycle was final iff
+      // !m_cycle2) must have landed the PC on the manual-documented
+      // advance from its cycle-1 fetch address. Checked before the new
+      // A1-A3 address overwrites raw_c1_addr.
+      if (cap_phase == 3'd0 && !m_cycle2 && anchor_armed &&
+          anchorable(m_opr, m_opa[0])) begin
+        if (dut.pc !== anchored_next_pc(m_opr, m_opa[0], raw_c1_addr)) begin
+          failure_count = failure_count + 1;
+          $display(
+              "FAIL pc anchor @%0t: instr %h%h at %h landed pc=%h exp=%h",
+              $time, m_opr, m_opa, raw_c1_addr, dut.pc,
+              anchored_next_pc(m_opr, m_opa[0], raw_c1_addr));
+        end
+      end
+      // Latch the cycle-1 fetch address from the raw bus. Cycle-2
+      // addresses (including FIN's indirect fetch) never overwrite it.
+      if (cap_phase == 3'd0 && !m_cycle2) raw_c1_addr[3:0]  = cap_data_o;
+      if (cap_phase == 3'd1 && !m_cycle2) raw_c1_addr[7:4]  = cap_data_o;
+      if (cap_phase == 3'd2 && !m_cycle2) raw_c1_addr[11:8] = cap_data_o;
+      // The CPU must fetch the next word from its own PC: after A3, the
+      // raw-bus cycle-1 address equals the architectural PC.
+      if (cap_phase == 3'd2 && !m_cycle2 && anchor_armed &&
+          raw_c1_addr !== dut.pc) begin
+        failure_count = failure_count + 1;
+        $display("FAIL fetch/pc @%0t: bus addr=%h pc=%h", $time,
+                 raw_c1_addr, dut.pc);
       end
       if (cap_sync !== (cap_phase == 3'd0)) begin
         failure_count = failure_count + 1;
@@ -810,10 +877,12 @@ module tb_intel_4004;
     rom[pw + 1] = pw[7:0] + 8'h06;  // DT = pw+6
     pw = pw + 2;
     emit(8'h34);        // FIN P2 -> r4/r5 = rom[DT]
-    rom[pw] = 8'h40;    // JUN over DT
+    rom[pw] = 8'h40;    // JUN to DT (skipping one filler word)
     rom[pw + 1] = pw[7:0] + 8'h03;
     pw = pw + 3;
-    emit(8'hD7);        // DT (LDM 7 as data and instruction)
+    emit(8'hD7);        // DT: fetched by FIN as data (r4/r5 = 0xD7) and then
+                        // executed as LDM 7 - the JUN above targets DT, so
+                        // the flow is exact (PC-anchored), not a pad
     // JIN: pair 0 points at the continuation word
     rom[pw] = 8'h20;    // FIM P0, L_jt
     rom[pw + 1] = pw[7:0] + 8'h04;
@@ -845,12 +914,16 @@ module tb_intel_4004;
     rom[12'h108] = 8'hF0;
     rom[12'h1F0] = 8'h20;  // FIM P0, 0x10 -> r0=0, r1=0x10
     rom[12'h1F1] = 8'h10;
+    // straight-line filler up to word 255: deterministic fall-through,
+    // with every word's post-instruction PC checked by the anchor above
     for (mi = 32'h1F2; mi < 32'h1FF; mi++) rom[mi] = 8'h00;
     rom[12'h1FF] = 8'h38;  // FIN P4 at word 255: fetch {page(0x200), 0, 0x10}
-    for (mi = 32'h200; mi < 32'h210; mi++) rom[mi] = 8'h00;  // landing NOPs
-    rom[12'h210] = 8'h5A;  // marker word (r8=5, r9=A via FIN; SUB rA if run)
-    rom[12'h211] = 8'h40;  // JUN park
-    rom[12'h212] = park_addr[7:0];
+    // exact post-FIN flow (no landing pad): the PC anchor asserts that the
+    // one-word FIN at 0x1FF lands on 0x200, where this JUN ends the run
+    rom[12'h200] = 8'h40;  // JUN park
+    rom[12'h201] = park_addr[7:0];
+    for (mi = 32'h202; mi < 32'h210; mi++) rom[mi] = 8'h00;  // unreached
+    rom[12'h210] = 8'h5A;  // FIN data word only: pair 4 expects r8=5, r9=A
 
     // ---- Random program (page 3, 1-word instructions only) ----
     lfsr = 16'hACE1;

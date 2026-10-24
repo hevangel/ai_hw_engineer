@@ -1,15 +1,22 @@
 // Formal safety and equivalence properties for the Intel 4004 reconstruction.
 //
-// The golden model in this module is an independent instruction-set simulator
-// written from spec/spec.md: it maintains its own sequencer, fetch latches,
-// and full architectural state, driven by `anyconst` instruction words that
-// the bus assumptions deliver at M1/M2. Equality with the DUT is asserted on
-// every architectural register at every clock, for every opcode encoding and
-// every start state, which proves the complete ISA transition function rather
-// than sampled cases. Combinational output checks re-derive the bus and
-// command lines per the spec. Reset is assumed only in the initial cycle; a
-// later reset is unconstrained and the golden model mirrors it, so reset
-// dominance is checked too.
+// The golden model in this module is a co-authored (not externally derived)
+// instruction-set simulator written from spec/spec.md: it maintains its own
+// sequencer, fetch latches, and full architectural state, driven by
+// `anyconst` instruction words that the bus assumptions deliver at M1/M2.
+// Equality with the DUT is asserted on every architectural register at every
+// clock. One word pair is fixed per trace, so the proof covers every single
+// instruction (any encoding, arbitrary operand data, any state reachable
+// from reset) and every adjacent pair of instructions; it does not explore
+// arbitrary sequences of three or more distinct instructions (covered by
+// simulation and the Busicom firmware regression). Because the golden model
+// shares the spec's reading rather than deriving from an external artifact,
+// this equivalence checks implementation consistency, not specification
+// correctness (see the 2026-09-02 failure note and spec section 12).
+// Combinational output checks re-derive the bus and command lines per the
+// spec. Reset is assumed only in the initial cycle; a later reset is
+// unconstrained and the golden model mirrors it, so reset dominance is
+// checked too.
 module intel_4004_props (
     input logic        clk,
     input logic        rst_n,
