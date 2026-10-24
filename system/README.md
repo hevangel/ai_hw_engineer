@@ -22,7 +22,8 @@ storage/media bridge). The `spec/` folder records reference provenance;
 generated artifacts and copyrighted firmware downloads stay in ignored
 `work/` directories where required by the individual system's manifest.
 
-Use the [system README template](TEMPLATE.md) for system overviews. Each
+Run `./scripts/new_system.sh <system_name>` from the repository root to copy
+the shared scaffold. Use the [system README template](TEMPLATE.md) for system overviews. Each
 system README includes a **Web interface and waveform** section with a real
 browser screenshot showing captured signals where supported, or an explicit
 note identifying the missing web-interface or waveform feature. Screenshot

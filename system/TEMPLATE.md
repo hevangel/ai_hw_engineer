@@ -1,5 +1,18 @@
 # System README template
 
+Create a new system scaffold from the repository root:
+
+```sh
+./scripts/new_system.sh <system_name>
+```
+
+The script copies `_template/`, replaces `[SYSTEM_NAME]` in Markdown files,
+and keeps empty source, testbench, formal, script, host, asset and reference
+folders. Names start with a lowercase letter or digit and contain only
+lowercase letters, digits, underscores or hyphens. Existing destinations are
+never overwritten. Complete the specification and plans before implementation;
+add a sourced entry to `system/README.md` when the system is ready to index.
+
 Use the following outline for `system/<system_name>/README.md`. Replace the
 placeholders with the system's verified behavior and sourced history.
 

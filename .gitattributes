@@ -1,4 +1,7 @@
 # These shell entry points run inside Linux containers from Windows checkouts.
+scripts/new_system.sh text eol=lf
+scripts/update_docker.sh text eol=lf
+scripts/update_tool_docs.sh text eol=lf
 design/intel_4004/scripts/*.sh text eol=lf
 design/intel_8275/scripts/*.sh text eol=lf
 design/intel_8237/scripts/*.sh text eol=lf

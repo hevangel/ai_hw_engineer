@@ -1,7 +1,7 @@
 # Docker toolchain release pins
 
 Release discovery date: 2026-10-04. The root Dockerfile builds named EDA tools
-from published releases, with the two upstream snapshot exceptions noted below.
+from published releases, with explicit upstream snapshot exceptions where noted.
 Commit and archive digests prevent a moving tag from silently changing a build.
 Ubuntu packages come from the dated, signed Ubuntu snapshot; they are the
 distribution's supported packages, not separately compiled upstream releases.
@@ -24,13 +24,28 @@ distribution's supported packages, not separately compiled upstream releases.
 | CMake | 4.4.4, PyPI package in a dedicated virtual environment | [package](https://pypi.org/project/cmake/4.4.4/) |
 | UVM bundle | `65a3ded36f7f752356de62669fd84e01f4cb0121` (unchanged upstream HEAD) | [repository](https://github.com/nitronis/UVM) |
 
-SBY and EQY publish no standalone GitHub releases. Their `yosys-*` compatibility
-tags are older than the upstream revisions, so these two retain explicit snapshot
-pins. The UVM repository bundles multiple historical standards for compatibility;
-its upstream revision was already current. Verilator 5.052 replaces the previous
-5.053 development snapshot because the request was for published releases.
+Run `./scripts/update_docker.sh --dry-run` to preview release updates, or
+`./scripts/update_docker.sh` to update the Dockerfile, README version list and
+this table and build the local image. Python 3.11+, Git and Docker are required;
+`--no-build` skips Docker. Discovery uses the official
+[GitHub releases API](https://docs.github.com/en/rest/releases/releases#get-the-latest-release),
+[GitLab releases API](https://docs.gitlab.com/api/releases/), Rust and rustup stable
+manifests, and PyPI package metadata. Verilator uses published version tags
+reachable from its documented stable branch. Source release tags are resolved to commit IDs;
+Verible, Z3 and rustup archives are downloaded to calculate and check SHA-256
+digests against upstream digests where supplied. Network, asset or document
+layout errors stop discovery before any files are changed.
 
-## Build changes
+SBY and EQY retain their existing snapshot if no standalone release is available;
+their compatibility tags do not trigger snapshot updates. Ubuntu, its APT
+snapshot and the UVM submodule are outside the automated update scope. Release
+discovery does not establish compatibility; inspect release notes, update tool
+documentation and run the image build before accepting upgraded pins.
+
+Run the updater's offline regression checks with
+`python3 -m unittest discover -s scripts -p test_update_docker.py -v`.
+
+## Original 2026-10-04 build changes
 
 - Ubuntu 26.04 provides the C++20 compiler required by Yosys. CMake is installed
   in `/opt/cmake` using a virtual environment, respecting system Python isolation.
