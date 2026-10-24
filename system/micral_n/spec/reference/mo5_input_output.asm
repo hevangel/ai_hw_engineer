@@ -1,4 +1,10 @@
 ; Send data to I/O
+;
+; Notation note (2026-10-23): the shipped binary drives output device 23
+; (opcode 0x6F, i.e. port /17 hexadecimal = 23 decimal in the R2E map), not
+; the "015" written below — MO5's source notation and its assembled binary
+; disagree, and this comment preserves both. The platform's spec documents
+; /17 as hexadecimal.
 
 START:
     ORG 0x0000

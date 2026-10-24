@@ -1,5 +1,5 @@
 const $=id=>document.getElementById(id);
-let current=null, switchData=0, panelInput=0, substitution=false, trap=false, busy=false;
+let current=null, switchData=0, panelInput=0, substitution=false, trap=false, busy=false, ttyShown='';
 const hex=(n,w=2)=>Number(n).toString(16).toUpperCase().padStart(w,'0');
 
 function bits(container,count,interactive,onChange){
@@ -40,7 +40,24 @@ function render(s){
   $('auto').classList.toggle('selected',s.running);
   $('trap').textContent=s.trapEnabled?'TRAP ON':'TRAP OFF';$('trap').classList.toggle('selected',s.trapEnabled);
   $('sub').textContent=s.substitution?'SUB ON':'SUB OFF';$('sub').classList.toggle('selected',s.substitution);
+  renderTty(s.tty||'');
 }
+function renderTty(t){
+  if(t===ttyShown)return;
+  ttyShown=t;
+  const text=[...t.matchAll(/../g)].map(pair=>String.fromCharCode(parseInt(pair[0],16)&0x7f)).join('');
+  const printable=text.replace(/[^\x20-\x7e\n]/g,'·');
+  $('ttyOut').textContent=printable;
+  $('ttyOut').scrollTop=$('ttyOut').scrollHeight;
+}
+async function ttySend(){
+  const input=$('ttyIn');const text=input.value;input.value='';
+  if(!text)return;
+  try{const response=await fetch('/api/tty',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});const s=await response.json();if(!response.ok)throw Error(s.error||response.status);render(s);$('error').textContent=''}
+  catch(err){$('error').textContent=String(err)}
+}
+$('ttySend').onclick=ttySend;
+$('ttyIn').addEventListener('keydown',e=>{if(e.key==='Enter')ttySend()});
 async function send(action,extra={}){
   if(busy)return;busy=true;
   try{const response=await fetch('/api/control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...extra})});const s=await response.json();if(!response.ok)throw Error(s.error||response.status);render(s);$('error').textContent=''}

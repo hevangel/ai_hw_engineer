@@ -5,8 +5,11 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 
-// Private line protocol used only by web/server.py. All state is from RTL.
+// Private line protocol used only by web/server.py. All state is from RTL;
+// the ASR-33 teletype is modeled as a byte pipe: TTYIN offers one byte per
+// tick to the board's receiver FIFO, and transmitter strobes are logged.
 int main(int argc, char **argv) {
     Verilated::commandArgs(argc, argv);
     Vmicral_n board;
@@ -17,6 +20,8 @@ int main(int argc, char **argv) {
     board.switch_data = 0;
     board.panel_input = 0;
     board.rom_protect = 1;
+    board.tty_rx_push = 0;
+    board.tty_rx_data = 0;
     board.host_mem_addr = 0;
     board.host_mem_data = 0;
     board.host_mem_write = 0;
@@ -31,10 +36,22 @@ int main(int argc, char **argv) {
     board.rst_n = 1;
     bool running = false, trap_on = false;
     uint16_t trap = 0;
+    int pending_tty = -1;
+    std::vector<uint8_t> tty_log;
     auto read_mem = [&](uint16_t addr) -> int {
         board.host_mem_addr = addr & 0x3fff;
         board.eval();
         return board.host_mem_read;
+    };
+    auto step_tick = [&]() {
+        board.tty_rx_push = pending_tty >= 0 ? 1 : 0;
+        board.tty_rx_data = pending_tty >= 0 ? pending_tty & 255 : 0;
+        pending_tty = -1;
+        tick();
+        if (board.tty_tx_strobe) {
+            tty_log.push_back(board.tty_tx_data);
+            if (tty_log.size() > 512) tty_log.erase(tty_log.begin());
+        }
     };
     auto state = [&]() {
         std::ostringstream out;
@@ -58,7 +75,13 @@ int main(int argc, char **argv) {
             << ",\"lastOutputData\":" << unsigned(board.last_output_data)
             << ",\"cycles\":" << board.cycle_count
             << ",\"instructions\":" << board.instruction_count
-            << ",\"memory\":[";
+            << ",\"tty\":\"";
+        char hex[3];
+        for (uint8_t byte : tty_log) {
+            snprintf(hex, sizeof hex, "%02x", byte);
+            out << hex;
+        }
+        out << "\",\"memory\":[";
         uint16_t start = board.pc & 0x3ff0;
         for (int i=0; i<16; ++i) {
             if (i) out << ',';
@@ -103,6 +126,8 @@ int main(int argc, char **argv) {
             board.eval();
         } else if (command == "TRAP") {
             trap_on = x != 0; trap = y & 0x3fff;
+        } else if (command == "TTYIN") {
+            pending_tty = x & 255;
         } else if (command == "POKE") {
             running = false; board.cpu_enable = 0;
             board.host_mem_addr = x & 0x3fff;
@@ -113,18 +138,18 @@ int main(int argc, char **argv) {
             int count = std::clamp(x, 0, 100000);
             for (int i=0; i<count && running; ++i) {
                 board.cpu_enable = 1;
-                tick();
+                step_tick();
                 if (board.halted || (trap_on && board.retired && board.pc == trap))
                     running = false;
             }
             board.cpu_enable = 0; board.eval();
         } else if (command == "CYCLE") {
-            running = false; board.cpu_enable = 1; tick();
+            running = false; board.cpu_enable = 1; step_tick();
             board.cpu_enable = 0; board.eval();
         } else if (command == "STEP") {
             running = false;
             for (int i=0; i<8; ++i) {
-                board.cpu_enable = 1; tick();
+                board.cpu_enable = 1; step_tick();
                 if (board.retired || board.halted) break;
             }
             board.cpu_enable = 0; board.eval();

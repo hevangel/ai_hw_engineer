@@ -10,6 +10,10 @@ import threading
 system = Path(__file__).resolve().parents[1]
 simulator = os.environ.get("MICRAL_SIMULATOR", str(system / "build/obj_dir/Vmicral_n"))
 image = os.environ.get("MICRAL_IMAGE", str(system / "build/mo5_input_output.hex"))
+# The panel is a development tool: bind to loopback unless the operator
+# explicitly overrides the host (review M4: 0.0.0.0 exposed the panel on all
+# interfaces when run outside the documented Docker port mapping).
+host = os.environ.get("MICRAL_HOST", "127.0.0.1")
 port = int(os.environ.get("MICRAL_PORT", "8080"))
 process = subprocess.Popen([simulator, f"+image={image}"], stdin=subprocess.PIPE,
                            stdout=subprocess.PIPE, text=True, bufsize=1)
@@ -54,6 +58,23 @@ class Handler(SimpleHTTPRequestHandler):
             super().do_GET()
 
     def do_POST(self):
+        if self.path == "/api/tty":
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length > 1024:
+                    raise ValueError("request too large")
+                body = json.loads(self.rfile.read(length))
+                text = body.get("text")
+                if not isinstance(text, str) or len(text) > 256:
+                    raise ValueError("invalid teletype input")
+                for ch in text:
+                    command(f"TTYIN {ord(ch) & 255}")
+                self.send_json(command("STATE"))
+            except (ValueError, TypeError, json.JSONDecodeError) as exc:
+                self.send_json({"error": str(exc)}, 400)
+            except Exception as exc:
+                self.send_json({"error": str(exc)}, 500)
+            return
         if self.path != "/api/control":
             self.send_json({"error": "unknown endpoint"}, 404)
             return
@@ -84,8 +105,12 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_json({"error": str(exc)}, 500)
 
 try:
-    print(f"Micral N panel: http://0.0.0.0:{port}/", flush=True)
-    ThreadingHTTPServer(("0.0.0.0", port), Handler).serve_forever()
+    if host not in ("127.0.0.1", "localhost", "::1"):
+        print(f"WARNING: binding the Micral N panel to {host}:{port} exposes it "
+              f"beyond this machine; set MICRAL_HOST=127.0.0.1 to restrict it.",
+              flush=True)
+    print(f"Micral N panel: http://{host}:{port}/", flush=True)
+    ThreadingHTTPServer((host, port), Handler).serve_forever()
 finally:
     if process.poll() is None:
         process.stdin.write("QUIT\n")
