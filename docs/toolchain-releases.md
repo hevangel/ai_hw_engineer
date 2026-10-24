@@ -1,6 +1,6 @@
 # Docker toolchain release pins
 
-Release discovery date: 2026-10-04. The root Dockerfile builds named EDA tools
+Release discovery date: 2026-10-04 (xezim re-checked 2026-10-23). The root Dockerfile builds named EDA tools
 from published releases, with explicit upstream snapshot exceptions where noted.
 Commit and archive digests prevent a moving tag from silently changing a build.
 Ubuntu packages come from the dated, signed Ubuntu snapshot; they are the
@@ -11,7 +11,7 @@ distribution's supported packages, not separately compiled upstream releases.
 | Ubuntu | 26.04.1 LTS, snapshot 20261001T000000Z | [Ubuntu image](https://hub.docker.com/_/ubuntu), [snapshot service](https://snapshot.ubuntu.com/) |
 | Rust | 1.99.0 (stable channel dated 2026-09-28) | [stable manifest](https://static.rust-lang.org/dist/channel-rust-stable.toml) |
 | rustup | 1.29.1 | [releases](https://github.com/rust-lang/rustup/releases) |
-| xezim | 0.11.0, `6558a1e64e251cbd8d0c4e936860af268cf7e04f` | [release](https://github.com/aionhw/xezim/releases/tag/0.11.0) |
+| xezim | 0.11.3, `058f2bba58648452e5799d17572356ebcae7d163` | [release](https://github.com/aionhw/xezim/releases/tag/0.11.3) |
 | Verilator | v5.052, `ea338be98e1e838d3518809ce8899f85a009963c` | [tag](https://github.com/verilator/verilator/tree/v5.052) |
 | Yosys | v0.69, `9f75ca1f9834a39a863915b5dae0c7b1e33533bc` | [release](https://github.com/YosysHQ/yosys/releases/tag/v0.69) |
 | SBY | `b1a1e98cba941ec8433f8dc27f416cd7bb7f14be` | [upstream](https://github.com/YosysHQ/sby) |
