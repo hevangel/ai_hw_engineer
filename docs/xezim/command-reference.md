@@ -10,8 +10,10 @@ xezim <source_files> [+plusargs] [options]
 
 | Option | Purpose |
 |--------|---------|
+| `-V` | Print version and exit |
 | `-D<MACRO>[=val]` | Define a preprocessor macro |
 | `-I<dir>` | Add an include directory |
+| `-uvm` / `--uvm` | Add the UVM library named by `XEZIM_UVM_DIR` (its `src` include dir and `uvm_pkg.sv`); `XEZIM_UVM_VERSION` picks a release from a multi-version bundle |
 | `--simulate` | Run the simulation (default mode; vs `--parse` / `--compile` / `--preprocess`) |
 | `-s <module>` | Select a top-level module. Repeat for multiple roots |
 | `--strict-top` / `--no-strict-top` | Error (default) vs warn + auto-detect the design root when `-s` names no module |
@@ -20,8 +22,10 @@ xezim <source_files> [+plusargs] [options]
 | `--upf <file>` / `--upf-top <path>` | Load IEEE 1801 power intent (supply nets, power switches, domain corruption, isolation). Repeatable |
 | `--module-timescale [mods=]<unit>/<prec>` | Assign timescale to modules without one |
 | `--timescale <unit>/<prec>` | Alias for the unnamed `--module-timescale` form |
+| `-override_timescale <unit>/<prec>` | One timescale for *every* design element: `timescale` directives, `timeunit`/`timeprecision` and `--module-timescale` are all ignored |
 | `--dump-timescales` | Print every module's resolved timescale |
-| `--max-time <N>[ps\|ns\|us\|ms\|s]` | Stop simulation after N simulated time (bare N is ns; default 100000) |
+| `--max-time <N>[ps\|ns\|us\|ms\|s]` | Stop simulation after N simulated time (bare N is ns; default 100 ms) |
+| `--code-coverage[=stmt,branch,toggle]` | Collect code coverage into `xezim_cov.json` (path via `XEZIM_COV_DB`); `--code-coverage-scope <path>` instruments only those instance subtrees |
 | `+seed=<n>` | Seed RNG for reproducible runs (`+seed=random` draws from entropy and prints the seed) |
 | `--sim-debug` | Print debug diagnostics |
 | `--verbose` | Per-file compile progress |
@@ -50,6 +54,8 @@ xezim <source_files> [+plusargs] [options]
 | `--wave` | Compile with waveform support so `$dumpfile`/`$dumpvars` emit VCD. Off by default; `--fst`/`--xtrace` imply it |
 | `--fst <file>` | Emit FST waveform dump |
 | `--fst-scope <hier>` | Restrict FST dump to scope (repeatable) |
+| `-fst_scope_file <file>` | FST scopes from a file, one or more per line, `#`/`//` comments; adds to `--fst-scope` |
+| `-xezim_env <file>` | Set `XEZIM_*` variables from a file (`NAME=value`, `export`/`setenv`/`unsetenv` forms) before anything reads them; overrides the shell |
 | `--xtrace <file>` | Emit XTrace v1.0 dump (a `.zst`/`.zstd` suffix compresses the stream) |
 | `--xtrace-scope <hier>` | Restrict XTrace dump to scope (repeatable) |
 | `--xtrace-from/-to <ns>` | Bound the XTrace dump to a time range |
@@ -84,6 +90,7 @@ xezim <source_files> [+plusargs] [options]
 | `XEZIM_PROFILE_REPORT=1` | Print the `[PROF]` end-of-run profile report |
 | `XEZIM_DIAG_LIMIT=N` | Per-kind cap for elaboration warnings (default 5; 0 = unlimited) |
 | `XEZIM_ENABLE_CACHE=1` | Force-enable the design cache (overrides `--no-cache` heuristics) |
+| `XEZIM_INIT_REG` | Initial value of registers: `0`, or `random` (varies with `+seed=`/`-sv_seed`) |
 | `XEZIM_TWO_STATE=0` | Disable the two-state u64 fast path (on by default) |
 
 `xezim --show-env-avail` prints every supported variable with a description —

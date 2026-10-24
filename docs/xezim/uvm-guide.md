@@ -56,6 +56,11 @@ Xezim elaborates all specified top modules under a synthetic wrapper root.
 
 ## UVM Library Versions
 
+`-uvm` adds the UVM library named by `XEZIM_UVM_DIR` (its `src` include dir and
+`uvm_pkg.sv`); set `XEZIM_UVM_VERSION` to pick a release when `XEZIM_UVM_DIR`
+is a multi-version bundle (e.g. the nitronis/UVM checkout in the Docker image,
+where the release names are `1.2`, `1800.2-2017`, `1800.2-2020`).
+
 | Library | Status |
 |---------|--------|
 | **1800.2-2017** | Reference target. 32/35 sv-tests examples pass |
