@@ -52,6 +52,10 @@ __pycache__/
 .firecrawl/
 /references/amd/*.pdf
 
+# Local scratch space and Git worktrees (AGENTS.md)
+/scratchpad/
+/worktree/
+
 system/*/work/
 
 # mos_6502: GPL test source and raw image stay in the working tree only;
