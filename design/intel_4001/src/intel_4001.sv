@@ -38,7 +38,9 @@ module intel_4001 #(
     input  logic       cm_rom,  // ROM command line
     input  logic [3:0] port_i,  // external I/O pin inputs
     output logic [3:0] port_o,  // external I/O pin output values
-    output logic [3:0] port_oe  // per-pin output enable = IO_DIR
+    output logic [3:0] port_oe, // per-pin output enable = IO_DIR
+    output logic       port_read_o // 1 while this chip drives its I/O port
+                                // value onto the bus (snooped RDR, X2-X3)
 );
 
   // Instruction-cycle period encoding, matching the CPU reconstruction
@@ -128,6 +130,13 @@ module intel_4001 #(
   // I/O pin outputs: the latch behind a per-pin direction gate
   assign port_o  = port_q;
   assign port_oe = IO_DIR;
+
+  // Board-visible strobe for "this chip's I/O port is being read": exactly
+  // the condition under which the chip drives `rdr_value` onto the bus.
+  // lets integrations detect port reads without reaching into this
+  // module's internal state.
+  assign port_read_o = io_selected && s_rdr &&
+                       ((phase == PhX2) || (phase == PhX3));
 
   // ------------------------------------------------------------------
   // Sequencer and state update. Every register is written at most once
