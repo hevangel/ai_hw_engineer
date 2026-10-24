@@ -1,0 +1,46 @@
+
+
+ 0000           	org	0
+                ;
+                ; SIO Loader for 4K BASIC Version 3.2
+                ; 
+                ;   ** Set all sense switches OFF **
+                ;
+                ; H = msb of load address
+                ; L = lsb of load address = length of loader = leader byte
+                ;
+ 0000           	org	0
+                
+                ;	lxi	h,1F7Dh		;8K BASIC V3.0
+                ;	lxi	h,0F7Dh		;4K BASIC V3.1
+ 0000 21AE0F    	lxi	h,0FAEh		;4K BASIC V3.2
+                ;	lxi	h,1FAEh		;8K BASIC V3.2
+                ;	lxi	h,0FC2h		;4K BASIC V4.0
+                ;	lxi	h,1FC2h		;8K BASIC v4.0
+                ;	lxi	h,3FC2h		;Extended BASIC V4.0
+                ;	lxi	h,7EC2h		;Extended Disk BASIC v5.0
+                
+ 0003 311200    loop	lxi	sp,stack	;init SP so a RET jumps to loop
+ 0006 DB00      	in	00h		;get sio status
+ 0008 0F        	rrc			;new byte available?
+ 0009 D8        	rc			;no (jumps back to loop)
+                
+ 000A DB01      	in	01h		;get the byte
+ 000C BD        	cmp	l		;new byte = leader byte?
+ 000D C8        	rz			;yes (jumps back to loop)
+                
+ 000E 2D        	dcr	l		;not leader, decrement address
+ 000F 77        	mov	m,a		;store the byte (reverse order)
+ 0010 C0        	rnz			;loop until L = 0
+                
+ 0011 E9        	pchl			;jump to code just downloaded
+                
+ 0012 0300      stack	dw	loop
+ 0014           	end
+
+
+Here is the program in octal for easier entry into the Altair:
+
+  0: 041 256 017 061 022 000 333 000
+ 10: 017 330 333 001 275 310 055 167
+ 20: 300 351 003 000

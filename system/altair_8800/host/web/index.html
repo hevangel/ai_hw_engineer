@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Altair 8800 front panel</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>MITS Altair 8800</h1>
+  <div id="machine_state">
+    <span class="state_chip" id="state_run">STOP</span>
+    <span class="state_chip" id="state_halt">HALT</span>
+    <span class="state_chip" id="state_prot">UNPROTECTED</span>
+    <span class="state_chip" id="state_fault" hidden>FAULT</span>
+  </div>
+</header>
+
+<main>
+  <section class="panel">
+    <h2>Indicator LEDs</h2>
+    <div class="lamp_row"><span class="row_label">A15&ndash;A8</span><span id="addr_hi"></span></div>
+    <div class="lamp_row"><span class="row_label">A7&ndash;A0</span><span id="addr_lo"></span></div>
+    <div class="lamp_row"><span class="row_label">DATA</span><span id="data_lamps"></span></div>
+    <div class="lamp_row"><span class="row_label">STATUS</span><span id="status_lamps"></span></div>
+    <div class="lamp_row"><span class="row_label">CPU</span><span id="cpu_lamps"></span></div>
+  </section>
+
+  <section class="panel">
+    <h2>Switches</h2>
+    <div class="switch_row"><span class="row_label">A15&ndash;A8 / SENSE</span><span id="sw_addr_hi"></span></div>
+    <div class="switch_row"><span class="row_label">A7&ndash;A0</span><span id="sw_addr_lo"></span></div>
+    <div class="switch_row"><span class="row_label">DATA D7&ndash;D0</span><span id="sw_data"></span></div>
+  </section>
+
+  <section class="panel">
+    <h2>Front panel controls</h2>
+    <div class="buttons">
+      <button id="btn_run">RUN / STOP</button>
+      <button id="btn_step">SINGLE STEP</button>
+      <button id="btn_examine">EXAMINE</button>
+      <button id="btn_exnext">EXAMINE NEXT</button>
+      <button id="btn_deposit">DEPOSIT</button>
+      <button id="btn_depnext">DEPOSIT NEXT</button>
+      <button id="btn_reset">RESET</button>
+      <button id="btn_clr">CLR</button>
+      <button id="btn_protect">PROTECT</button>
+      <button id="btn_unprotect">UNPROTECT</button>
+    </div>
+    <p class="hint">Programs are entered exactly as on the original machine:
+    RESET, set address and data switches, DEPOSIT / DEPOSIT NEXT, then RUN.
+    Paper tape loads through the 88-SIO at ports 0/1.</p>
+  </section>
+
+  <section class="panel">
+    <h2>Teletype console (88-SIO)</h2>
+    <pre id="tty_out"></pre>
+    <form id="tty_form">
+      <input id="tty_in" type="text" autocomplete="off" placeholder="Type a line; Enter sends CR">
+      <button type="submit">Send</button>
+      <label class="tape_label">Load tape <input type="file" id="tape_file" accept=".tap,.bin"></label>
+      <button type="button" id="tape_basic">Load 4K BASIC tape</button>
+      <button type="button" id="tape_stop">Stop tape</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Processor and memory</h2>
+    <table id="cpu_table"></table>
+    <div id="mem_window"></div>
+  </section>
+
+  <section class="panel" id="waveform_panel">
+    <h2>Waveform</h2>
+    <div class="buttons">
+      <select id="waveform_signals">
+        <option value="cpu">CPU bus</option>
+        <option value="sio">88-SIO serial</option>
+        <option value="panel">Front panel</option>
+      </select>
+      <input id="capture_cycles" type="number" min="1" max="65536" value="4096">
+      <button id="waveform_capture">Capture</button>
+      <button id="waveform_refresh" hidden>Reload waveform</button>
+      <a id="waveform_download" hidden download="altair-cpu.fst">Download FST</a>
+      <span id="waveform_status"></span>
+    </div>
+    <iframe id="surfer_frame" title="Surfer waveform viewer"></iframe>
+  </section>
+</main>
+
+<footer>Functional reconstruction: repository Intel 8080 RTL + RAM + 88-SIO +
+front panel. The machine has no ROM; bootstrap and software arrive through
+the panel and the serial card, as in 1975.</footer>
+<script type="module" src="app.js"></script>
+</body>
+</html>

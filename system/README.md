@@ -8,6 +8,7 @@ and a host bridge for external storage, media and user input.
 
 | System | Year | Chips used | Folder |
 |---|---|---|---|
+| MITS Altair 8800 | 1975 | Intel 8080, 88-SIO, front panel, 16 KiB RAM | [altair_8800/](altair_8800/) |
 | Apple IIe functional virtual platform | 1983 | NMOS 6502, IIe MMU, IOU, timing PAL, 128 KiB RAM | [apple_iie/](apple_iie/) |
 | Apple II revision-0 (functional; fidelity validation ongoing) | 1977 | MOS 6502 plus 82 support IC packages | [apple_ii/](apple_ii/) |
 | BUSICOM 141-PF printing calculator | 1971 | 4004, 5×4001, 2×4002, 3×4003 | [busicom_141pf/](busicom_141pf/) |
@@ -34,6 +35,12 @@ The Micral N year follows the [Computer History Museum catalog](https://www.comp
 The IBM PC year follows [IBM's manufacturer history](https://www.ibm.com/history/personal-computer).
 Its original BIOS/BASIC/PC DOS firmware, RTL hardware, front panel, CPU waveform viewer and functional
 boundaries are described in the [system overview](ibm_pc/README.md).
+
+The Altair 8800 year follows the [Popular Electronics January 1975
+announcement](https://www.americanradiohistory.com/hdgrpx/Popular-Electronics/70s/Popular-Electronics-1975-01.pdf).
+Its no-ROM front-panel operation, original 4K BASIC 3.2 boot through the
+88-SIO tape reader and functional boundaries are described in the
+[system overview](altair_8800/README.md).
 
 The original Model 30's 1987 introduction and 8086/MCGA configuration follow
 IBM's [Technical Reference](https://www.ibmfiles.com/ibmfiles/ps2/25/model30tr.pdf)
