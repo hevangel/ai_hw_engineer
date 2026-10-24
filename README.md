@@ -92,6 +92,12 @@ Create a new chip design from the project template:
 ./scripts/new_design.sh my_chip
 ```
 
+Create a new system scaffold from the shared system template:
+
+```bash
+./scripts/new_system.sh my_system
+```
+
 ## Repository structure
 
 ```text
@@ -120,21 +126,14 @@ ai_hw_engineer/
 ├── system/                 — Historical systems built from chip designs
 │   ├── README.md           — System index and integration overview
 │   ├── TEMPLATE.md         — System README and screenshot conventions
-│   ├── apple_ii/           — Apple II reconstruction in progress
-│   ├── busicom_141pf/      — BUSICOM printing calculator
-│   ├── ibm_pc/             — IBM PC 5150
-│   ├── ibm_pc_xt_5160/     — IBM PC XT 5160
-│   └── micral_n/           — Micral N
+│   ├── _template/          — Starting point for new systems
+│   └── <system>/           — One folder per historical system
 ├── references/             — Shared manufacturer manuals and datasheets
 ├── plans/                  — Repository-wide design-series plans
 ├── failure_notes/          — Escaped-defect post-mortems and prevention rules
 ├── semantic-review/        — Recorded semantic code reviews
 ├── session_history/        — Engineering session records
 └── scripts/                — Project-level utility scripts
-    ├── new_design.sh       — Create a chip design from the template
-    ├── run_surfer_web.sh   — Launch the self-hosted Surfer viewer
-    ├── serve_surfer_web.sh — Start the Surfer web server
-    └── serve_surfer_web.py — Surfer HTTP server implementation
 ```
 
 The tree shows maintained source and documentation; local scratch folders,
@@ -177,6 +176,24 @@ Available folders and verification flows vary by project; start with its
 8. Synthesize    — Confirm synthesis with Yosys
 9. Report        — Record evidence, limitations, and final results
 ```
+
+## Standard system workflow
+
+```text
+1. Scaffold      — Run ./scripts/new_system.sh <system_name>
+2. Spec          — Define hardware, buses, memory map, and scope in spec/
+3. References    — Record historical sources and firmware provenance
+4. Plan          — Plan chip reuse, integration, host interfaces, and verification
+5. Integrate     — Connect chip RTL, clocks, reset, memory, and peripherals in src/
+6. Host          — Build the front panel, media/input bridge, and waveform capture
+7. Verify        — Run simulation, real-software regressions, formal where applicable, and synthesis
+8. Document      — Record results and limits; add a real screenshot when available
+9. Index         — Update the system README and system/README.md with sourced details
+```
+
+Work within `system/<system_name>/` after creating the scaffold. Follow
+[the system README conventions](system/TEMPLATE.md) when documenting the web
+interface, waveform capture, launch commands, and verification boundaries.
 
 ## Open-source toolchain
 
@@ -238,6 +255,23 @@ cd design/<chip>
 
 ## Docker image contents
 
+Refresh tool release pins, this version list, and the release manifest, then
+build the local image from a feature branch (Python 3.11+, Git, and Docker required):
+
+```bash
+./scripts/update_docker.sh --dry-run  # Preview changes without writing or building
+./scripts/update_docker.sh            # Update files and build ai-hw-engineer:latest
+./scripts/update_docker.sh --no-build # Update files only
+```
+
+Use `--image <tag>` to choose the local image tag. Optional `GITHUB_TOKEN`
+authentication raises GitHub API rate limits. Ubuntu, APT snapshot, and UVM
+pins stay unchanged. If SBY or EQY has no standalone release, its existing
+snapshot stays pinned. Review release notes and tool documentation when
+upgrading; changed build recipes or archive names may require manual updates
+by the coding agent. A failed build returns nonzero and leaves the updated
+files available for review; it does not establish toolchain compatibility.
+
 The Dockerfile builds a multi-stage image containing:
 
 - **Verilator 5.052** — built from the pinned published release.
@@ -252,6 +286,11 @@ The [release manifest](docs/toolchain-releases.md) records all versions, upstrea
 sources, snapshot exceptions, and the Ubuntu package snapshot used by this build.
 
 Exact tool behavior and invocation details belong in `docs/`, because asking an AI to use a tool without giving it the manual is a little like hiring an intern and hiding the keyboard.
+
+Refresh upstream Markdown references alongside the maintained tool guides with
+`./scripts/update_tool_docs.sh`; use `--tool <name>` to select a tool or
+`--dry-run` to preview changes. See [the documentation updater guide](docs/README.md)
+for prerequisites and source mappings.
 
 ## Scope and limitations
 

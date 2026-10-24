@@ -1,0 +1,71 @@
+{
+  "verilator": {
+    "license": "https://github.com/verilator/verilator/blob/master/LICENSE",
+    "pages": {
+      "overview": "https://verilator.org/guide/latest/overview.html",
+      "installation": "https://verilator.org/guide/latest/install.html",
+      "command-reference": "https://verilator.org/guide/latest/exe_verilator.html",
+      "simulation": "https://verilator.org/guide/latest/simulating.html",
+      "connecting": "https://verilator.org/guide/latest/connecting.html"
+    }
+  },
+  "xezim": {
+    "license": "https://github.com/aionhw/xezim/blob/main/LICENSE",
+    "pages": {
+      "readme": "https://github.com/aionhw/xezim/blob/main/README.md",
+      "uvm-guide": "https://github.com/aionhw/xezim/blob/main/docs/uvm-guide.md",
+      "dpi-guide": "https://github.com/aionhw/xezim/blob/main/docs/dpi-guide.md"
+    }
+  },
+  "yosys-symbiyosys": {
+    "license": "https://github.com/YosysHQ/yosys/blob/main/COPYING",
+    "pages": {
+      "yosys-overview": "https://yosyshq.readthedocs.io/projects/yosys/en/latest/introduction.html",
+      "yosys-synthesis": "https://yosyshq.readthedocs.io/projects/yosys/en/latest/using_yosys/synthesis/index.html",
+      "sby-overview": "https://yosyshq.readthedocs.io/projects/sby/en/latest/",
+      "sby-reference": "https://yosyshq.readthedocs.io/projects/sby/en/latest/reference.html",
+      "sby-verilog": "https://yosyshq.readthedocs.io/projects/sby/en/latest/verilog.html"
+    },
+    "page_licenses": {
+      "sby-overview": "https://github.com/YosysHQ/sby/blob/main/COPYING",
+      "sby-reference": "https://github.com/YosysHQ/sby/blob/main/COPYING",
+      "sby-verilog": "https://github.com/YosysHQ/sby/blob/main/COPYING"
+    }
+  },
+  "eqy": {
+    "license": "https://github.com/YosysHQ/eqy/blob/main/COPYING",
+    "pages": {
+      "overview": "https://yosyshq.readthedocs.io/projects/eqy/en/latest/",
+      "usage": "https://yosyshq.readthedocs.io/projects/eqy/en/latest/quickstart.html"
+    }
+  },
+  "surfer": {
+    "license": "https://gitlab.com/surfer-project/surfer/-/blob/main/LICENSE",
+    "pages": {
+      "overview": "https://docs.surfer-project.org/",
+      "installation": "https://surfer-project.org/"
+    }
+  },
+  "verible": {
+    "license": "https://github.com/chipsalliance/verible/blob/master/LICENSE",
+    "pages": {
+      "overview": "https://chipsalliance.github.io/verible/",
+      "linter": "https://chipsalliance.github.io/verible/verilog_lint.html",
+      "formatter": "https://chipsalliance.github.io/verible/verilog_format.html"
+    }
+  },
+  "iverilog": {
+    "license": "https://github.com/steveicarus/iverilog/blob/master/COPYING",
+    "pages": {
+      "compiler-flags": "https://steveicarus.github.io/iverilog/usage/command_line_flags.html",
+      "vvp-flags": "https://steveicarus.github.io/iverilog/usage/vvp_flags.html",
+      "vpi": "https://steveicarus.github.io/iverilog/usage/vpi.html"
+    }
+  },
+  "uvm": {
+    "license": "https://github.com/accellera-official/uvm-core/blob/main/LICENSE.txt",
+    "pages": {
+      "readme": "https://github.com/accellera-official/uvm-core/blob/main/README.md"
+    }
+  }
+}

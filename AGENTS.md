@@ -20,9 +20,13 @@ ai_hw_engineer/
 ├── design/                 — Chip designs
 │   ├── _template/          — Design template (copy for new chips)
 │   └── <chip_name>/        — One folder per chip
-├── system/                 — Virtual-platform system builds (chips + real
-│   └── <system_name>/      firmware + web front panel; see system/README.md)
+├── system/                 — Historical systems built from chip designs
+│   ├── README.md           — System index and integration overview
+│   ├── TEMPLATE.md         — System README and screenshot conventions
+│   ├── _template/          — Starting point for new systems
+│   └── <system_name>/      — One folder per system
 ├── scripts/                — Project-level utilities
+├── worktree/               — Local Git worktrees (ignored)
 ├── AGENTS.md               — This file
 └── CONTRIBUTING.md         — Contribution guidelines
 ```
@@ -35,6 +39,45 @@ ai_hw_engineer/
 4. Implement RTL in `src/`, assertions in `formal/`, testbench in `tb/`.
 5. Verify: run `scripts/run_formal.sh`, then `scripts/run_sim.sh`.
 6. Document results in `report/`.
+
+## Creating and Maintaining Systems
+
+Systems live under `system/<system_name>/` and integrate chip designs from
+`design/` with memory, peripherals, authentic firmware and host interfaces.
+Read [the system index](system/README.md), [system conventions](system/TEMPLATE.md)
+and any instructions local to the system before changing it.
+
+1. Run `./scripts/new_system.sh <system_name>` to copy `system/_template/`.
+   The scaffold provides documentation and empty implementation folders;
+   it does not provide runnable hardware or verification scripts.
+2. Complete `spec/spec.md` before writing RTL. Define the target machine,
+   hardware scope, reused chips, clocks, reset, buses, memory map and
+   peripheral connections. Record reference sources, firmware provenance,
+   assumptions and unsupported behavior.
+3. Write `plans/implementation_plan.md` and `plans/testplan.md`. Plan chip
+   integration, host interfaces, independent checks and real-software
+   regressions; add a formal plan where applicable.
+4. Implement system RTL in `src/`, testbenches in `tb/`, applicable assertions
+   in `formal/`, and the front panel, media/input bridges and waveform capture
+   in `host/`. Reuse shared chip implementations from `design/`; make chip
+   fixes in the owning design and run its relevant regressions as well.
+5. Add verification entry points under the system's `scripts/`. Run simulation
+   and authentic firmware/software regressions, formal checks where applicable,
+   and synthesis. Record exact commands, inputs, results, evidence and known
+   limits in `report/final_report.md`; do not treat scaffolding or a successful
+   image build as proof that a system works.
+6. Maintain the system README with sourced history and introduction year,
+   important chips, implementation status, reproducible launch commands,
+   firmware requirements, verification boundaries and links to existing docs.
+   Update `system/README.md` when adding a system or changing its indexed details.
+
+Every system README must include a **Web interface and waveform** section.
+Follow `system/TEMPLATE.md` for real screenshot assets and reproduction details.
+If the web interface or waveform capture is unavailable, state that explicitly;
+do not use mockups or broken image links as evidence of implemented behavior.
+Keep generated artifacts and copyrighted firmware downloads in ignored `work/`
+directories where required by the system's provenance manifest; document how
+to obtain required inputs legally.
 
 ## Conventions
 
@@ -100,6 +143,7 @@ Areas:
 - `docker` — Dockerfile changes
 - `docs/<tool>` — Documentation updates
 - `design/<chip>` — Chip design changes
+- `system/<system>` — System integration, host interfaces and verification
 - `scripts` — Utility script changes
 - `libs` — Library updates
 - `infra` — CI, gitignore, project config
@@ -116,6 +160,20 @@ scripts: add lint check to run_all.sh
 
 - `main` — stable, reviewed code only
 - Feature branches: `<type>/<description>` (e.g., `design/add-spi-controller`, `docs/update-verilator`)
+- Create a Git worktree for each task under the owning repository's ignored
+  `worktree/` folder. Keep the primary checkout on `main`; make task changes
+  and run verification in the task worktree.
+
+  ```sh
+  git fetch origin
+  mkdir -p worktree
+  git worktree add -b <type>/<description> worktree/<task-name> origin/main
+  cd worktree/<task-name>
+  ```
+
+- Run these commands from the primary repository checkout. Reuse an existing
+  task worktree when continuing its branch; do not create nested worktrees.
+  Keep commits, pushes and pull requests scoped to the owning repository.
 - All changes go through pull requests
 - Never push directly to `main`
 
@@ -143,6 +201,12 @@ Before submitting a PR, verify:
 
 ### Updating Documentation
 When a tool version changes, update the corresponding `docs/<tool>/` files. Check the tool's official docs/changelog for new features and breaking changes.
+
+Use `./scripts/update_tool_docs.sh --tool <name> --dry-run` to preview fresh
+upstream references, then omit `--dry-run` to write them under
+`docs/<tool>/upstream/`. See [docs/README.md](docs/README.md) for setup and source
+mappings. Preserve the maintained project guides; review upstream changes
+against the pinned tool versions before updating project-specific commands.
 
 ### Updating UVM Library
 ```bash
@@ -196,6 +260,9 @@ When working on this repo, you have access to:
 - `docs/` — comprehensive tool documentation in markdown
 - `libs/uvm/` — full UVM source code for reference
 - `design/_template/` — starting point for any new chip
+- `system/_template/` — starting point for any new system
+- `system/TEMPLATE.md` — system README and screenshot conventions
 - Shell scripts in each design's `scripts/` folder
+- Shell scripts in each system's `scripts/` folder
 
 Read the relevant `docs/<tool>/` before invoking that tool. The docs are written specifically for AI consumption.
