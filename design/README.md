@@ -32,14 +32,19 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1975* (marketing) | AMD Am2909 | Four-bit microprogram sequencer; four-word return stack, separate register/direct buses and OR branching | [amd_am2909](amd_am2909/) |
 | 1975* (Am9080A evidence) | AMD Am9080 / Am9080A | 8-bit processor; complete documented Am9080A instruction set and functional transaction bus | [amd_am9080](amd_am9080/) |
 | 1975 | MOS Technology 6502 physical-bus variant | Documented NMOS ISA with pin/cycle timing for the Apple II revision-0 motherboard | [mos_6502_cycle](mos_6502_cycle/) |
-| 1975 | MOS Technology 6502 | 8-bit microprocessor; full documented NMOS instruction set (151 opcodes), decimal mode, IRQ/NMI; passes Klaus Dormann's functional test | [mos_6502](mos_6502/) |
+| 1975 | MOS Technology 6502 | 8-bit microprocessor; functional and native bus engines, all opcode slots, independent timing and historical software regressions; silicon/board gates open | [mos_6502](mos_6502/) |
+| 1975* (historically reported; primary launch unconfirmed) | MOS Technology 6507 | Thirteen-bit physical bus, native NMOS CPU, internal IRQ/NMI ties; package and historical software regressions | [mos_6507](mos_6507/) |
+| By 1982* (preliminary datasheet; launch unconfirmed) | MOS Technology 6510 | Native NMOS CPU with integrated processor port and AEC drivers; digital and real-software gates pass, physical/reset discrepancies open | [mos_6510](mos_6510/) |
+| By 1981* (preliminary datasheet; launch unconfirmed) | MOS Technology 6526 CIA | Ports, linked timers, serial, TOD/alarm and interrupts; assembled sampled CIA and eleven original KERNAL-backed Lorenz programs, Transactor read-loss profiles, original serial delay/load and 66 TOD software samples verified; physical revision qualification open | [mos_6526](mos_6526/) |
 | 1975* | Intel 8251 / 8251A | Programmable synchronous/asynchronous serial interface (USART) | [intel_8251](intel_8251/) |
 | 1975* / 1982* | Intel 8253 / 8254 | Three-channel programmable interval timers | [intel_8253_8254](intel_8253_8254/) |
 | 1975* | Intel 8255 / 8255A | 24-line programmable peripheral interface | [intel_8255](intel_8255/) |
+| By 1976* (KIM-1 manual; launch year unconfirmed) | MOS Technology 6530 RRIOT | Mask ROM, 64-byte RAM, ports and timer; both KIM-1 masks and original monitor regression | [mos_6530](mos_6530/) |
 | 1976* (availability evidence) | AMD Am2911 | Four-bit microprogram sequencer; shared direct/register bus, four-word return stack | [amd_am2911](amd_am2911/) |
 | 1976 | Intel 8259 / 8259A | Eight-input programmable interrupt controller; manufacturer-based request-withdrawal regression | [intel_8259](intel_8259/) |
 | 1977 (manufacturer history) | AMD Am9511 | Signed integer/native floating arithmetic, conversions and transcendental processing unit | [amd_am9511](amd_am9511/) |
 | 1977* (board use) | Apple II revision-0 support packages | 4116 RAM, ROM, 2513, TTL/bus interfaces and analog support; package years vary | [apple_ii_chips](apple_ii_chips/) |
+| By 1977* (preliminary datasheet; launch unconfirmed) | MOS Technology 6522 VIA | Ports, input latches, handshake, timers and eight serial modes; sampled contract verified, NMOS timing open | [mos_6522](mos_6522/) |
 | 1977* | Intel 8273 | HDLC/SDLC serial protocol controller; framing, NRZI, CRC, DMA and loop relay | [intel_8273](intel_8273/) |
 | 1977* | Intel 8275 | DMA-fed programmable CRT controller; raster, attributes, cursor and light pen | [intel_8275](intel_8275/) |
 | 1977* | Intel 8279 / 8279-5 | Programmable keyboard/display interface | [intel_8279](intel_8279/) |
@@ -56,16 +61,35 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1979* (family) | Intel 8237 / 8237A | Four-channel programmable DMA controller; original IBM PC BIOS integration | [intel_8237](intel_8237/) |
 | 1980 | Intel 8087 | Architectural numeric coprocessor core; 80-bit stack, original ESC instructions and transactional memory interface | [intel_8087](intel_8087/) |
 | 1980* / 1982* | Intel 8272 / 8272A | Four-drive decoded-media floppy controller; FM/MFM/CRC helpers and original IBM PC BIOS/DMA regression | [intel_8272](intel_8272/) |
+| By 1982* (catalog evidence; launch year unconfirmed) | MOS Technology 6532 RIOT | 128-byte RAM, two eight-bit ports, interval timer and PA7 edge interrupts | [mos_6532](mos_6532/) |
 | 1982 | Intel 80286 | Work in progress: 24-bit register-execution core, ALU/shifts/branches, independent instruction vectors and original IBM AT flags-test regression | [intel_80286](intel_80286/) |
 | 1983 | Apple IIe MMU (341-0266) | Firmware-validated memory mapper: main/aux/bank-switched RAM selection, soft switches, ROM decode and multiplexed DRAM address | [apple_iie_mmu](apple_iie_mmu/) |
 | 1983 | Apple IIe IOU (341-0267) | Firmware-validated video machine: read/write video switches, display scanner and interleaved display-address fold, video-mode soft switches, keyboard strobe/auto-repeat, annunciator/speaker/cassette outputs | [apple_iie_iou](apple_iie_iou/) |
 | 1983 | Apple IIe timing PAL (PAL16R8) | Apple-programmed timing generator: Ï†0/Ï†1 CPU clocks, asymmetric Q3 strobe, PRAS'/PCAS' DRAM strobes with CAS gating, LDPS' video load and the 7 MHz dot clock | [apple_iie_pal](apple_iie_pal/) |
+| By 1983* (dated manufacturer description; launch unconfirmed) | MOS Technology 6560 / 6561 VIC | VIC-20 video/sound; complete digital chip (registers, PAL/NTSC raster/interlace, fetch/pixels, light pen, sound) matches MAME per clock and boots original VIC-20 firmware; analog outputs/POT conversion and physical validation pending | [mos_6560](mos_6560/) |
+| By 1983* (dated manufacturer description; launch unconfirmed) | MOS Technology 6567 / 6569 VIC-II | C64 video controller; dot-level digital chip for 6569, 6567R8, 6567R56A, 8565 and 8562 matches MAME per fetch, bus cycle and pixel; original C64 software and physical validation pending | [mos_6567](mos_6567/) |
+| By 1983* (dated manufacturer description; launch unconfirmed) | MOS Technology 6581 / 8580 SID | C64 sound; digital core (oscillators, noise, envelopes, sync/ring, OSC3/ENV3/POT, bus latch) matches reSIDfp per clock for both models; analog DAC/filter stage and original software pending | [mos_6581](mos_6581/) |
+| 1983 | Apple IIe MMU (341-0266) | Full-custom memory mapper: main/aux/bank-switched RAM selection, soft switches, ROM decode and multiplexed DRAM address | [apple_iie_mmu](apple_iie_mmu/) |
+| 1983 | Apple IIe IOU (341-0267) | Full-custom video machine: display scanner and interleaved display-address fold, video-mode soft switches, keyboard strobe/auto-repeat, annunciator/speaker/cassette outputs | [apple_iie_iou](apple_iie_iou/) |
+| 1983 | Apple IIe timing PAL (PAL16R8) | Apple-programmed timing generator: φ0/φ1 CPU clocks, asymmetric Q3 strobe, PRAS'/PCAS' DRAM strobes with CAS gating, LDPS' video load and the 7 MHz dot clock | [apple_iie_pal](apple_iie_pal/) |
+| By 1986* (bibliographic evidence; launch unconfirmed) | MOS Technology 8520 CIA | Amiga peripheral controller: 6526 core with binary 24-bit TOD event counter and 8520 timer/interrupt timing; matches MAME except nine classified residuals; Amiga software pending | [mos_8520](mos_8520/) |
 
 ## Date provenance notes
 
 A year marked with an asterisk (`*`) is the earliest located dated documentation or announcement, not a claim of an exact commercial launch date; availability may have preceded or followed that document, and the uncertainty is retained rather than guessed. The notes below record the sources behind each index date and are grouped by company and chip series.
 
 ### AMD â€” Am9300
+### MOS — 6522, 6530, 6532 and reconstruction series
+
+The 6522 entry uses a **by 1977** bound from the [November 1977 MOS preliminary datasheet](https://www.6502.org/documents/datasheets/mos/mos_6522_preliminary_nov_1977.pdf), not an exact shipment date. See the [VIA history and unresolved timing discrepancies](mos_6522/README.md).
+
+The 6530 entry uses **by 1976** from the manufacturer's [August 1976 KIM-1 User Manual](https://bitsavers.org/components/mosTechnology/kim-1/6500-15B_KIM-1_Users_Manual_197608.pdf). Its October 1975 firmware revision does not establish an exact chip launch date; see the [RRIOT history and mask-specific reconstruction](mos_6530/README.md).
+
+The 6532 year is an availability bound from the [1982 MOS Data Catalog](https://bitsavers.trailing-edge.com/components/mosTechnology/_dataBooks/1982_MOS_Technology_Data_Catalog.pdf), not a claim that it launched in 1982. The archived datasheet is assigned 1976 by a secondary catalog, but the date is not established on the scan; see the [chip history](mos_6532/README.md). The requested sequential chip reconstructions followed by Atari 2600, Commodore 64, NES and Super Nintendo are tracked in the [MOS series ledger](../plans/mos_historical_series.md).
+
+The 6560/6561, 6567/6569 and 6581 entries are bounded by later printings of Commodore manuals that are explicitly dated 1983 (the VIC-20 Programmer's Reference Guide sixth printing and the C64 Programmer's Reference Guide eighth printing); no earlier dated primary document was located, and the 6569 and 8580 revisions are not dated by them. See each chip README.
+
+### AMD — Am9300
 
 The AMD Am9300 entry uses **1970*** for commercial availability, separating it from first working silicon in **1969**. First-person and AMD-sourced accounts differ on the exact first-shipment milestone; see the [chip history and source discussion](amd_am9300/README.md). The ongoing [historical AMD series ledger](../plans/amd_historical_series.md) records the remaining requested designs and their actual completion state.
 
@@ -1563,3 +1587,16 @@ links its manufacturer source and implementation status.
 | Unknown | 74x322244 | 32-bit buffer/driver | [implemented](ttl_74xx/spec/chips/ttl_74x322244.md) |
 | Unknown | 74x322374 | 32-bit D-type flip-flops | [implemented](ttl_74xx/spec/chips/ttl_74x322374.md) |
 | Unknown | 74x324245 | 32-bit dual supply bus transceiver | [implemented](ttl_74xx/spec/chips/ttl_74x324245.md) |
+The 6507 year is historically reported as 1975; the exact manufacturer launch
+notice remains unverified. Technical package behavior uses the MOS family
+datasheet and photographed die ties. See the [6507 overview](mos_6507/README.md)
+for sources and the [measured package report](mos_6507/report/final_report.md).
+
+The 6510 entry uses a by-1982 bound from the manufacturer's November 1982
+preliminary datasheet. See the [6510 history and source ledger](mos_6510/README.md)
+and [measured report](mos_6510/report/final_report.md), including the
+independent emulators' reset disagreement and sampled charge limitations.
+
+The 6526 is documented by the November 1981 preliminary manufacturer sheet;
+its exact launch remains unconfirmed. The [CIA overview](mos_6526/README.md)
+separates the verified timer foundation from the remaining device work.

@@ -1,0 +1,28 @@
+[tasks]
+m6581_bmc m6581 bmc
+m6581_prove m6581 prove
+m6581_cover m6581 cover
+m8580_bmc m8580 bmc
+m8580_prove m8580 prove
+m8580_cover m8580 cover
+[options]
+bmc: mode bmc
+bmc: depth 16
+prove: mode prove
+cover: mode cover
+cover: depth 52
+[engines]
+bmc: abc bmc3
+prove: abc pdr
+cover: smtbmc --syn --nopresat yices
+[script]
+read -formal -D FORMAL -I . mos_6581.sv
+m6581: chparam -set MOS8580 0 mos_6581
+m8580: chparam -set MOS8580 1 mos_6581
+prep -top mos_6581
+# Variable-index reads are guarded; out-of-range bits read zero, not x.
+chtype -map $shiftx $shift
+setundef -anyseq
+[files]
+../src/mos_6581.sv
+mos_6581_props.sv
