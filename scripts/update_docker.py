@@ -30,9 +30,23 @@ SOURCES = {
 
 
 def request(url):
+    # SSRF guard: every request must target the two hosts this tool documents
+    # (GitHub API/downloads and the Kitware CMake archive). Anything else —
+    # including redirects to other hosts or credentials-bearing URLs — is
+    # rejected before any connection is made.
+    parsed = urlparse(url)
+    allowed = (
+        parsed.scheme in {"https"} and parsed.hostname in {
+            "api.github.com", "github.com", "objects.githubusercontent.com",
+            "gitlab.com", "pypi.org", "static.rust-lang.org",
+            "files.pythonhosted.org",
+        }
+    )
+    if not allowed:
+        raise ValueError(f"Refusing non-allowlisted download host: {url}")
     headers = {"User-Agent": "ai-hw-engineer-toolchain-updater"}
     # Never send a GitHub credential to archive hosts or other services.
-    if urlparse(url).hostname == "api.github.com" and os.environ.get("GITHUB_TOKEN"):
+    if parsed.hostname == "api.github.com" and os.environ.get("GITHUB_TOKEN"):
         headers["Authorization"] = "Bearer " + os.environ["GITHUB_TOKEN"]
     return urlopen(Request(url, headers=headers), timeout=60)
 

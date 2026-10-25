@@ -1,7 +1,4 @@
 # These shell entry points run inside Linux containers from Windows checkouts.
-scripts/new_system.sh text eol=lf
-scripts/update_docker.sh text eol=lf
-scripts/update_tool_docs.sh text eol=lf
 design/intel_4004/scripts/*.sh text eol=lf
 design/intel_8275/scripts/*.sh text eol=lf
 design/intel_8237/scripts/*.sh text eol=lf
@@ -41,3 +38,8 @@ design/intel_8008/scripts/*.sh text eol=lf
 system/micral_n/scripts/*.sh text eol=lf
 system/micral_n/scripts/*.py text eol=lf
 system/micral_n/src/rom/*.bin -text
+
+# SCELBI 8B: scripts run in Linux containers; the SCELBAL binary stays byte-exact.
+system/scelbi_8b/scripts/*.sh text eol=lf
+system/scelbi_8b/scripts/*.py text eol=lf
+system/scelbi_8b/src/rom/*.bin -text
