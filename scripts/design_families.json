@@ -1,0 +1,65 @@
+{
+  "families": {
+    "amd_am25xx": [
+      "amd_am2501",
+      "amd_am2505"
+    ],
+    "amd_am29xx": [
+      "amd_am2901",
+      "amd_am2902",
+      "amd_am2903",
+      "amd_am2904",
+      "amd_am2909",
+      "amd_am2910",
+      "amd_am2911",
+      "amd_am2913",
+      "amd_am2914",
+      "amd_am2918"
+    ],
+    "intel_mcs4": [
+      "intel_4001",
+      "intel_4002",
+      "intel_4003",
+      "intel_4004"
+    ],
+    "intel_mcs8": [
+      "intel_8008",
+      "intel_3205",
+      "intel_3404"
+    ],
+    "mos_6502_family": [
+      "mos_6502"
+    ],
+    "ttl_74_series": [
+      "alu_74181"
+    ],
+    "intel_8086_8088": [
+      "intel_8086"
+    ]
+  },
+  "moves": {
+    "design/amd_am2501": "design/amd_am25xx/amd_am2501",
+    "design/amd_am2505": "design/amd_am25xx/amd_am2505",
+    "design/amd_am2901": "design/amd_am29xx/amd_am2901",
+    "design/amd_am2902": "design/amd_am29xx/amd_am2902",
+    "design/amd_am2903": "design/amd_am29xx/amd_am2903",
+    "design/amd_am2904": "design/amd_am29xx/amd_am2904",
+    "design/amd_am2909": "design/amd_am29xx/amd_am2909",
+    "design/amd_am2910": "design/amd_am29xx/amd_am2910",
+    "design/amd_am2911": "design/amd_am29xx/amd_am2911",
+    "design/amd_am2913": "design/amd_am29xx/amd_am2913",
+    "design/amd_am2914": "design/amd_am29xx/amd_am2914",
+    "design/amd_am2918": "design/amd_am29xx/amd_am2918",
+    "design/intel_4001": "design/intel_mcs4/intel_4001",
+    "design/intel_4002": "design/intel_mcs4/intel_4002",
+    "design/intel_4003": "design/intel_mcs4/intel_4003",
+    "design/intel_4004": "design/intel_mcs4/intel_4004",
+    "design/intel_8008": "design/intel_mcs8/intel_8008",
+    "design/intel_3205": "design/intel_mcs8/intel_3205",
+    "design/intel_3404": "design/intel_mcs8/intel_3404",
+    "design/mos_6502": "design/mos_6502_family/mos_6502",
+    "design/mos_6502_cycle": "design/mos_6502_family/mos_6502/cycle",
+    "design/alu_74181": "design/ttl_74_series/alu_74181",
+    "design/intel_8086": "design/intel_8086_8088/intel_8086"
+  }
+}

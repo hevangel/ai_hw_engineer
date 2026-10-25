@@ -5,7 +5,7 @@ import re
 from pypdf import PdfReader
 
 repo = Path(__file__).resolve().parents[3]
-intel = repo / "design/intel_8008/references"
+intel = repo / "design/intel_mcs8/intel_8008/references"
 refs = repo / "references"
 micral = repo / "system/micral_n/spec/reference"
 micral_ocr = refs / "MICRAL_N_Users_Manual_Jan74_ocr.txt"

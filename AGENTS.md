@@ -31,6 +31,10 @@ ai_hw_engineer/
 └── CONTRIBUTING.md         — Contribution guidelines
 ```
 
+## Chip issue and family layout
+
+Use one canonical `design/<issue_slug>/` folder per chip or family issue. A series keeps one parent issue and one family README; add one native sub-issue and member subfolder per physical chip. Alternative implementations of one chip belong to the same chip sub-issue. Existing migrations are listed in `scripts/design_families.json`. Keep historical dates, sources, reports and implementation limits in member READMEs. Update all scripts, source lists, system references, index links and ignored generated paths when moving a design.
+
 ## Creating a New Chip Design
 
 1. Run `./scripts/new_design.sh <chip_name>` or manually copy `design/_template/` to `design/<chip_name>/`.

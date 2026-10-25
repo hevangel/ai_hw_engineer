@@ -4,7 +4,7 @@
 - **Found by:** original BUSICOM 141-PF firmware running on the reconstructed
   board (system/busicom_141pf) — not by any design verification
 - **Fixed in:** PR #10 (system/add-busicom-141pf), commit c60e714 and later
-- **Design touched:** design/intel_4004 (RTL, TB reference model, formal
+- **Design touched:** design/intel_mcs4/intel_4004 (RTL, TB reference model, formal
   golden model)
 
 ## What happened

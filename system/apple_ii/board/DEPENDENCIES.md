@@ -2,7 +2,7 @@
 
 The board test can use an external Visual6502 NMOS transistor netlist through
 the perfect6502 switch-level solver. This is an independent simulation
-reference, **not** an implementation or completion of `design/mos_6502_cycle`.
+reference, **not** an implementation or completion of `design/mos_6502_family/mos_6502/cycle`.
 It is not synthesizable. No behavioral memory is hidden inside the adapter.
 
 Pinned source: [perfect6502 09fc542877a84318291aa42dab143a3e2c3db974](https://github.com/mist64/perfect6502/tree/09fc542877a84318291aa42dab143a3e2c3db974).
