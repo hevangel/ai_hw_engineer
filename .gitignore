@@ -47,6 +47,7 @@ __pycache__/
 *.dll
 
 .mimosa
+.minosa/
 
 # Cached historical-source downloads and rendered datasheet pages
 .firecrawl/
