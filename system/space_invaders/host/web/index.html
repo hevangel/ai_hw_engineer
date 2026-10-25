@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Space Invaders (1978)</title>
+<link rel="stylesheet" href="style.css?v=2">
+</head>
+<body>
+<header>
+  <h1>Space Invaders</h1>
+  <div id="machine_state">
+    <span class="state_chip" id="state_run">STOP</span>
+    <span class="state_chip" id="state_fault" hidden>FAULT</span>
+    <span class="state_chip" id="state_wd" hidden>WATCHDOG RESET</span>
+  </div>
+</header>
+
+<main>
+  <section class="panel screen_panel">
+    <h2>Monitor (rotated cabinet view, color gel)</h2>
+    <div class="screen_wrap">
+      <canvas id="screen" width="256" height="224"></canvas>
+    </div>
+    <div class="buttons">
+      <button id="btn_run">RUN / STOP</button>
+      <button id="btn_reset">RESET</button>
+      <button id="btn_sound">Sound: off</button>
+    </div>
+    <p class="hint">Keyboard: <b>5</b> insert coin, <b>1</b> one-player start,
+    <b>&#8592;/&#8594;</b> or <b>A/D</b> move, <b>Space</b> fire, <b>T</b> tilt.
+    Click the screen first so it receives keys.</p>
+  </section>
+
+  <section class="panel">
+    <h2>Board state</h2>
+    <table id="cpu_table"></table>
+    <div id="sound_events"></div>
+  </section>
+
+  <section class="panel" id="waveform_panel">
+    <h2>Waveform</h2>
+    <div class="buttons">
+      <select id="waveform_signals">
+        <option value="cpu">CPU bus</option>
+        <option value="video">Interrupts &amp; video</option>
+        <option value="io">Ports &amp; shift register</option>
+      </select>
+      <input id="capture_cycles" type="number" min="1" max="65536" value="4096">
+      <button id="waveform_capture">Capture</button>
+      <button id="waveform_refresh" hidden>Reload waveform</button>
+      <a id="waveform_download" hidden download="invaders.fst">Download FST</a>
+      <span id="waveform_status"></span>
+    </div>
+    <iframe id="surfer_frame" title="Surfer waveform viewer"></iframe>
+  </section>
+</main>
+
+<footer>Taito 1978, licensed by Midway — functional reconstruction on the
+repository's Intel 8080 RTL. Original ROM, fetched and hash-checked at run
+time; two 60&nbsp;Hz RST interrupts, hardware shift register, watchdog.
+Cycle-accurate pin timing, discrete analog sound and the cocktail flip are
+outside the model.</footer>
+<script type="module" src="app.js?v=3"></script>
+</body>
+</html>

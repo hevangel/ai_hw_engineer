@@ -26,6 +26,12 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-10-23 — Space Invaders VRAM bit order](2026-10-23-spaceinvaders-vram-bit-order.md)
+  The repository owner reviewing the running panel exposed MSB-first glyph
+  rendering (the hardware shifts bytes LSB-first) and an attract-loop
+  watchdog window tighter than the ROM's TwoSecDelay; byte-level gates
+  could not see either.
+
 - [2026-10-18 — Model 30 MCGA mode 6](2026-10-18-model30-mcga-mode6.md)
   Original BASICA exposed high-resolution-only graphics decoded as text.
 
