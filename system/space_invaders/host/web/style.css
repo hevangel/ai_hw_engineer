@@ -1,0 +1,47 @@
+/* Space Invaders cabinet: black monitor, green phosphor accents. */
+:root {
+    --panel: #14181f;
+    --edge: #2c3542;
+    --text: #d7dde5;
+    --muted: #8b95a3;
+    --accent: #37e05a;
+    --alert: #ff4040;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: #0c0f13; color: var(--text);
+       font-family: "Segoe UI", system-ui, sans-serif; }
+header { display: flex; align-items: baseline; gap: 16px; padding: 12px 24px;
+         background: var(--panel); border-bottom: 2px solid var(--edge); }
+h1 { font-size: 20px; margin: 0; letter-spacing: 3px; color: var(--accent);
+     text-transform: uppercase; }
+h2 { font-size: 12px; margin: 0 0 10px; color: var(--muted); letter-spacing: 1px;
+     text-transform: uppercase; }
+.state_chip { font-size: 12px; padding: 2px 10px; border: 1px solid var(--edge);
+              border-radius: 10px; color: var(--muted); }
+.state_chip.active { color: #0c0f13; background: var(--accent); border-color: var(--accent); }
+main { display: grid; grid-template-columns: minmax(360px, 480px) minmax(330px, 1fr);
+       gap: 14px; padding: 14px 24px; max-width: 1400px; }
+.panel { background: var(--panel); border: 1px solid var(--edge); border-radius: 8px;
+         padding: 12px 16px; }
+.screen_panel { grid-row: span 2; }
+.screen_wrap { height: min(72vh, 560px); display: flex; align-items: center;
+               justify-content: center; overflow: hidden; }
+#screen { /* drawn unrotated (256x224); the cabinet monitor is rotated 90 CCW */
+          transform: rotate(-90deg); height: min(62vh, 470px); width: auto;
+          aspect-ratio: 256 / 224; image-rendering: pixelated; background: #000;
+          border: 8px solid #05070a; border-radius: 8px; }
+.buttons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+button, select, input[type="number"] { background: #222a35; color: var(--text);
+          border: 1px solid var(--edge); border-radius: 6px; padding: 7px 12px;
+          font-size: 13px; cursor: pointer; }
+button:hover { border-color: var(--accent); color: var(--accent); }
+.hint { color: var(--muted); font-size: 12px; margin: 10px 0 0; }
+#cpu_table { font-size: 12px; border-collapse: collapse; }
+#cpu_table th { color: var(--muted); text-align: left; padding: 1px 14px 1px 0; font-weight: 500; }
+#cpu_table td { font-family: "Consolas", monospace; }
+#sound_events { margin-top: 8px; font-size: 11px; color: var(--muted); }
+#surfer_frame { width: 100%; height: 320px; border: 1px solid var(--edge);
+                border-radius: 6px; background: #fff; }
+#waveform_status { font-size: 12px; color: var(--muted); }
+a { color: var(--accent); }
+footer { padding: 10px 24px 24px; color: var(--muted); font-size: 12px; }
