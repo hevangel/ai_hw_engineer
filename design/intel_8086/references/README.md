@@ -8,7 +8,7 @@ The upstream README says all code fetched after the tested instruction is 90h, a
 
 Manufacturer authorities:
 
-- Intel, [8086 Family User's Manual](https://www.inf.pucrs.br/~calazans/undergrad/orgcomp_EC/mat_microproc/intel-8086_family_Users_Manual.pdf), October 1979, 9800722-03; chapters 2 and 4, including figure 2-63. [Bitsavers archive](https://bitsavers.org/components/intel/8086/9800722-03_The_8086_Family_Users_Manual_Oct79.pdf).
+- Intel, [8086 Family User's Manual](https://www.inf.pucrs.br/~calazans/undergrad/orgcomp_EC/mat_microproc/intel-8086_family_Users_Manual.pdf), October 1979, 9800722-03; chapters 2 and 4, including figure 2-63. [Bitsavers archive](https://bitsavers.org/components/intel/8086/9800722-03_The_8086_Family_Users_Manual_Oct79.pdf). Local copy: [PDF](../../../references/intel_8086_family_users_manual_1979.pdf).
 - Intel, [8086 datasheet](https://www.inf.pucrs.br/calazans/undergrad/orgcomp_EC/mat_microproc/intel-8086_datasheet.pdf); pin tables, READY/status timing, INTA floating/BHE and four RQ/GT arbitration conditions.
 - Intel, [80386 compatibility notes](https://www.scs.stanford.edu/05au-cs240c/lab/i386/s14_07.htm), item 7, independently describing original segment-offset word wrap.
 

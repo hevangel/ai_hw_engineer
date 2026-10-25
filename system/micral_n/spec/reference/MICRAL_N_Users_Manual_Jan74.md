@@ -1,6 +1,6 @@
 # R2E Micral N User Manual (January 1974)
 
-Original R2E manual: https://www.mirrorservice.org/sites/www.bitsavers.org/pdf/r2e/MICRAL_N_Users_Manual_Jan74.pdf
+Original R2E manual: [archived scan](../../../../references/MICRAL_N_Users_Manual_Jan74.pdf) ([Bitsavers mirror](https://www.mirrorservice.org/sites/www.bitsavers.org/pdf/r2e/MICRAL_N_Users_Manual_Jan74.pdf))
 
 OCR source: https://archive.org/download/bitsavers_r2eMICRALN_19057147/MICRAL_N_Users_Manual_Jan74_djvu.txt
 

@@ -7,7 +7,7 @@ Model M keyboard and MCGA analog video. This reconstruction targets the
 20 MB fixed disk. The Model 30 286 is a different
 machine. Historical hardware is documented in IBM's
 [Technical Reference](https://www.ibmfiles.com/ibmfiles/ps2/25/model30tr.pdf)
-and [April 1987 product reference](https://bitsavers.org/pdf/ibm/pc/PS2_and_IBM_PC_Product_Reference_Version_4.0_Apr87.pdf).
+and [April 1987 product reference](https://bitsavers.org/pdf/ibm/pc/PS2_and_IBM_PC_Product_Reference_Version_4.0_Apr87.pdf). The local [clean text extraction](spec/reference/model30tr.txt) stays with the system; the [PDF scan](../../references/model30tr.pdf) is in shared references.
 
 The original IBM BIOS and PC DOS boot through RTL CPU and peripherals.
 Original DOS creates and formats the fixed disk, installs its system files

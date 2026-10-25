@@ -13,12 +13,12 @@ identifies the 8530-021. The [May 1987 architecture paper](https://www.bitsavers
 describes the integrated controller, onboard microprocessor, dual 512-byte
 buffers, 48-bit ECC, DMA 3, IRQ5 and five 8-bit register functions. It states
 that this register interface differs from the PC/XT and PC/AT interfaces.
-The Model 30 [Technical Reference](https://www.ibmfiles.com/ibmfiles/ps2/25/model30tr.pdf)
+The Model 30 [Technical Reference scan](../../../references/model30tr.pdf) (also [available from the IBM archive](https://www.ibmfiles.com/ibmfiles/ps2/25/model30tr.pdf))
 pp.1-106/107 defines the dedicated 44-pin channel, planar select and device
 presence. Its BIOS drive type **26** has **612 cylinders, 4 heads and 17
 512-byte sectors**: 41,616 sectors / 21,307,392 bytes, marketed as 20 MB.
 
-The independently drawn 1991 [Model 30 maintenance schematics](https://www.ardent-tool.com/docs/pdf/schematics/m30_sch.pdf),
+The independently drawn 1991 [Model 30 maintenance schematics](../../../references/m30_sch.pdf), also available from [Ardent Tool](https://www.ardent-tool.com/docs/pdf/schematics/m30_sch.pdf),
 sheet 6, corroborate the 44-pin HDU connector's eight data lines, IRQ5,
 DREQ3 and DACK3. This is a third-party planar drawing, not a manufacturer
 drive-controller datasheet, and does not identify the ICs inside the drive.

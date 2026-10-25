@@ -8,6 +8,7 @@ repo = Path(__file__).resolve().parents[3]
 intel = repo / "design/intel_8008/references"
 refs = repo / "references"
 micral = repo / "system/micral_n/spec/reference"
+micral_ocr = refs / "MICRAL_N_Users_Manual_Jan74_ocr.txt"
 
 pdf = PdfReader(refs / "intel_mcs8_users_manual_nov1973.pdf")
 chunks = [
@@ -22,13 +23,13 @@ for number, page in enumerate(pdf.pages, 1):
     chunks.append(f"\n## Scan page {number}\n\n{value}\n")
 (intel / "intel_mcs8_users_manual_nov1973.md").write_text("\n".join(chunks), encoding="utf-8")
 
-raw = (micral / "MICRAL_N_Users_Manual_Jan74_ocr.txt").read_text(encoding="utf-8", errors="replace")
+raw = micral_ocr.read_text(encoding="utf-8", errors="replace")
 raw = raw.replace("\r\n", "\n").replace("\u00ad", "")
 raw = re.sub(r"[ \t]+\n", "\n", raw)
 raw = re.sub(r"\n{3,}", "\n\n", raw).strip()
 header = """# R2E Micral N User Manual (January 1974)
 
-Original R2E manual: https://www.mirrorservice.org/sites/www.bitsavers.org/pdf/r2e/MICRAL_N_Users_Manual_Jan74.pdf
+Original R2E manual: [archived scan](../../../../references/MICRAL_N_Users_Manual_Jan74.pdf) (https://www.mirrorservice.org/sites/www.bitsavers.org/pdf/r2e/MICRAL_N_Users_Manual_Jan74.pdf)
 
 OCR source: https://archive.org/download/bitsavers_r2eMICRALN_19057147/MICRAL_N_Users_Manual_Jan74_djvu.txt
 

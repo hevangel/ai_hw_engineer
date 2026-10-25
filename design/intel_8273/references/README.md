@@ -1,6 +1,6 @@
 # Reference provenance
 
-- [intel_8273.pdf](intel_8273.pdf): Intel order 210479-004, October 1992;
+- [intel_8273.pdf](../../../references/intel_8273.pdf): Intel order 210479-004, October 1992;
   33 technical pages plus Rochester Electronics cover, downloaded from
   [Octopart](https://datasheet.octopart.com/P8273-Intel-datasheet-38976656.pdf).
   PDF index 6 gives register decoding, 14–16 status/results, 18–25 commands,
