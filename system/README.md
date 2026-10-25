@@ -36,7 +36,7 @@ Its original BIOS/BASIC/PC DOS firmware, RTL hardware, front panel, CPU waveform
 boundaries are described in the [system overview](ibm_pc/README.md).
 
 The original Model 30's 1987 introduction and 8086/MCGA configuration follow
-IBM's [Technical Reference](https://www.ibmfiles.com/ibmfiles/ps2/25/model30tr.pdf)
+IBM's [Technical Reference scan](../references/model30tr.pdf) (with a [clean text extraction](ibm_ps2_model30/spec/reference/model30tr.txt)) and the [IBM archive](https://www.ibmfiles.com/ibmfiles/ps2/25/model30tr.pdf)
 and [April 1987 product reference](https://bitsavers.org/pdf/ibm/pc/PS2_and_IBM_PC_Product_Reference_Version_4.0_Apr87.pdf).
 Its native 8086 bus, planar devices, 720K media and waveform viewer are in
 the [Model 30 overview](ibm_ps2_model30/README.md).

@@ -20,10 +20,10 @@ git clone --depth 1 https://github.com/veniamin-ilmer/chips.git
 
 ## User manual extraction and replay
 
-- [PDF scan](Unicom_141P_manual_text.pdf): original source, 35 PDF pages.
+- [PDF scan](../../../../references/Unicom_141P_manual_text.pdf): original source, 35 PDF pages.
 - [Readable Markdown](Unicom_141P_manual.md): normalized text and visually checked
   operation tables, with printed/PDF page references.
-- [Raw OCR Markdown](Unicom_141P_manual_ocr.md): original extraction retained for
+- [Raw OCR Markdown](../../../../references/Unicom_141P_manual_ocr.md): original extraction retained for
   audit; graphical keys and some numbers are garbled.
 - [Replay JSON](Unicom_141P_examples.json): all 42 numbered examples, explicit
   physical key names/codes, switch changes, decimal strings, ink color, symbols,

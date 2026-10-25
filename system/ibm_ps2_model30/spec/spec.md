@@ -8,7 +8,7 @@ Build the original 1987 **8530-021**: Intel 8086-2 at a nominal 8 MHz,
 The optional two-floppy 8530-002 configuration remains available for regression.
 No 8087 is installed. This is the 8086 Model 30, not the later Model 30 286.
 
-Primary authority is IBM's [January 1987 Technical Reference](https://www.ibmfiles.com/ibmfiles/ps2/25/model30tr.pdf):
+Primary authority is IBM's January 1987 [Technical Reference scan](../../../references/model30tr.pdf), [searchable text extraction](reference/model30tr.txt), and [IBM archive](https://www.ibmfiles.com/ibmfiles/ps2/25/model30tr.pdf):
 system board pp. 1-3..1-24, video pp. 1-36..1-78, diskette pp. 1-79..1-105,
 serial/parallel pp. 1-108..1-126, keyboard section 4, BIOS section 5.
 IBM's [1989 sales advisor](https://bitsavers.org/pdf/ibm/pc/ps2/G320-9781-00_PS2_and_Printers_Sales_Advisor_198905.pdf)

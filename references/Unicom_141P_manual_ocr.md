@@ -1,6 +1,6 @@
 # Unicom 141 Series Calculator Operating Instructions
 
-> Source: `spec/reference/Unicom_141P_manual_text.pdf` — "Unicom 141 Series Calculator Operating Instructions"
+> Source: [`Unicom_141P_manual_text.pdf`](Unicom_141P_manual_text.pdf) — "Unicom 141 Series Calculator Operating Instructions"
 > (Unicom Systems, Inc., Cupertino, California). Covers the Unicom 141 series including the
 > Busicom 141-PF (Unicom was the US brand name for Busicom machines). Archived from
 > https://archive.org/details/Unicom141PManual.

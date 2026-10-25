@@ -18,7 +18,8 @@ logical functions only where their data sheets agree.
 ## Sources
 
 - [Apple reference manual and schematics](https://apple2history.org/dl/Apple_II_Redbook.pdf)
-- [TI logic data book](https://www.bitsavers.org/components/ti/_dataBooks/1976_TI_The_TTL_Data_Book.pdf)
+- [TI 1976 TTL Data Book, 2nd edition (Bitsavers scan)](https://bitsavers.trailing-edge.com/components/ti/_dataBooks/1976_TI_The_TTL_Data_Book_2ed/)
+- [Local TI 74-series TTL Data Book copy](../../../references/1976_TI_The_TTL_Data_Book_2ed.pdf)
 - [TI 74LS51](https://www.ti.com/lit/ds/symlink/sn74ls51.pdf)
 - [TI 74LS195A](https://www.ti.com.cn/cn/lit/gpn/SN54LS195A)
 - [Revision-0 connectivity transcription](https://github.com/reifsnyderb/Apple-II-R0/tree/db72624ab23c02f782235bb4420d91695dc17d4e)

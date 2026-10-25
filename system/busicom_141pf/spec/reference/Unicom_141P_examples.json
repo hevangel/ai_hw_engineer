@@ -2,7 +2,7 @@
   "schema_version": 1,
   "source": {
     "title": "Unicom 141 Series Calculator Operating Instructions",
-    "pdf": "Unicom_141P_manual_text.pdf",
+    "pdf": "references/Unicom_141P_manual_text.pdf",
     "sha256": "05d8d3dcccf3efe4e0c8ab4d81678909a8d082af4a6b6cd8a093345284751640",
     "url": "https://archive.org/details/Unicom141PManual",
     "extraction": "Operation tables visually checked against the scanned PDF; decimal strings preserve printed precision."

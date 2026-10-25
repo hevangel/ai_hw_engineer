@@ -1,6 +1,6 @@
 # Micral N virtual-platform specification
 
-Primary source: [R2E Micral N User Manual, January 1974](reference/MICRAL_N_Users_Manual_Jan74.pdf) and its [searchable Markdown transcription](reference/MICRAL_N_Users_Manual_Jan74.md). The computer was introduced in 1973; the January 1974 manual documents the architecture, not a precise first-shipment date.
+Primary source: [R2E Micral N User Manual, January 1974 scan](../../../references/MICRAL_N_Users_Manual_Jan74.pdf) and its [searchable Markdown transcription](reference/MICRAL_N_Users_Manual_Jan74.md). The computer was introduced in 1973; the January 1974 manual documents the architecture, not a precise first-shipment date.
 
 The virtual platform connects the repository's Intel 8008 core to 16 KiB of byte memory, input groups, output latches, and a front panel. The memory is divided into 64 pages of 256 bytes, as R2E describes in chapter III. The model supports a configurable full-memory image and host writes. It marks page 0 and pages 0x38–0x3f read-only when ROM protection is enabled, matching the recovered machine's boot and monitor locations described by the [MO5 restoration](https://hxc2001.pages-perso.free.fr/micral-n/index.html). These physical ROM locations are a restored machine's configuration, not a universal Micral N layout; R2E explicitly allows card address assignment.
 

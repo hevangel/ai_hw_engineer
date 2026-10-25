@@ -3,7 +3,7 @@
 Primary references:
 
 - IBM, *Personal System/2 Model 30 Technical Reference*, first edition,
-  January 1987, [preserved scan](https://www.ibmfiles.com/ibmfiles/ps2/25/model30tr.pdf).
+  January 1987, [shared PDF scan](../../../../references/model30tr.pdf), [searchable text extraction](model30tr.txt), and [IBM archive](https://www.ibmfiles.com/ibmfiles/ps2/25/model30tr.pdf).
   Printed pages 1-6..1-24 define planar bus/refresh/interrupt/memory controls;
   1-44..1-78 define MCGA including font self-load; 1-80..1-83 define the
   Model 30 floppy diagnostic, DOR, DIR and CCR registers. Section 4 covers
@@ -19,8 +19,7 @@ Primary references:
 
 The preparation script pins archive SHA-256 hashes and the PCjs Git blob,
 validates original checksums, and writes an output manifest under ignored
-`work/reference/`. No ROM, font, OS, manual PDF or third-party source bytes
-are committed here. Firmware bytes are not patched.
+`work/reference/`. The manual PDF scan is stored centrally under `references/`; its clean text extraction remains here. No ROM, font, OS image, or third-party firmware bytes are committed here. Firmware bytes are not patched.
 
 Independent implementation references, pinned to 86Box revision
 `ceb009f17daeecbb81e1ddf26ad63beda9300afe`:
