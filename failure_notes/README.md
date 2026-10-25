@@ -26,6 +26,9 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-10-25 — Icarus VPI helper](2026-10-25-icarus-vpi-helper.md)
+  A real C/C++ VPI compilation exposed malformed distro helper flags that version/header-only image checks missed.
+
 - [2026-10-21 — 4059 asynchronous latch release](2026-10-21-ttl4059-asynchronous-latch-release.md)
   Stopped-clock source review exposed LE release incorrectly sampled only on CP edges.
 
