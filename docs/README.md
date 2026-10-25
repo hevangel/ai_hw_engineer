@@ -41,3 +41,5 @@ Offline checks:
 ```sh
 python3 -m unittest discover -s scripts -p test_update_tool_docs.py -v
 ```
+
+The [2026-10-25 EDA qualification](eda-tool-qualification.md) records positive/negative native-tool probes, the Icarus C/C++ helper fix, and the built-in browser Surfer waveform proof. Reproduce the CLI matrix with `python3 scripts/check_eda_tools.py` in the selected image.
