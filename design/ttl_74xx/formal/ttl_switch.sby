@@ -1,0 +1,21 @@
+[tasks]
+check
+cover
+
+[options]
+check: mode prove
+cover: mode cover
+depth 4
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal ../src/ttl_74x16213.sv ttl_switch_contract_props.sv
+prep -top ttl_switch_contract
+memory_map
+opt
+
+[files]
+../src/ttl_74x16213.sv
+ttl_switch_contract_props.sv

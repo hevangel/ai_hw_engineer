@@ -1,0 +1,19 @@
+[tasks]
+check
+cover
+
+[options]
+check: mode prove
+cover: mode cover
+depth 12
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal ../src/ttl_74x574.sv ttl_storage_contract_props.sv
+prep -top ttl_storage_contract
+
+[files]
+../src/ttl_74x574.sv
+ttl_storage_contract_props.sv
