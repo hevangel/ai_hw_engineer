@@ -19,7 +19,7 @@ ai_hw_engineer/
 ├── libs/uvm/               — UVM reference library (git submodule)
 ├── design/                 — Chip designs
 │   ├── _template/          — Design template (copy for new chips)
-│   └── <chip_name>/        — One folder per chip
+│   └── <chip_or_family>/   — Canonical issue folder; member folders inside a family
 ├── system/                 — Historical systems built from chip designs
 │   ├── README.md           — System index and integration overview
 │   ├── TEMPLATE.md         — System README and screenshot conventions
@@ -37,7 +37,7 @@ Use one canonical `design/<issue_slug>/` folder per chip or family issue. A seri
 
 ## Creating a New Chip Design
 
-1. Run `./scripts/new_design.sh <chip_name>` or manually copy `design/_template/` to `design/<chip_name>/`.
+1. Run `./scripts/new_design.sh <chip_slug>` for a standalone chip or `./scripts/new_design.sh <family_slug>/<member_slug>` for a series member; alternatively copy `design/_template/` to that canonical issue/member path.
 2. Fill in `spec/spec.md` with the chip specification before writing RTL.
 3. Write the implementation plan in `plans/implementation_plan.md`.
 4. Implement RTL in `src/`, assertions in `formal/`, testbench in `tb/`.
