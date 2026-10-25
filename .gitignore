@@ -62,3 +62,7 @@ system/*/work/
 # the assembled hex used by the testbench is committed.
 design/mos_6502/references/6502_functional_test.a65
 design/mos_6502/references/6502_functional_test.bin
+
+# motorola_68000: SingleStepTests 680x0 vectors stay in the working tree
+# only (~194 MB compressed); fetch with scripts/fetch_vectors.py.
+design/motorola_68000/references/singlesteptests_680x0/
