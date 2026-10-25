@@ -177,6 +177,74 @@ scripts: add lint check to run_all.sh
 - All changes go through pull requests
 - Never push directly to `main`
 
+## GitHub Issue and Project Tracking
+
+Track task ownership and progress in the `ai_engineer` GitHub Project owned by
+`hevangel`. Use the `gh` CLI for issue and project updates.
+
+### When Starting or Resuming a Task
+
+1. Find the existing issue for the task before creating a duplicate. Keep the
+   canonical implementation issue in its owning repository; work in this
+   repository belongs in `hevangel/ai_hw_engineer`. Record the issue URL in the
+   task plan or handoff so later sessions reuse it.
+2. Read the issue, its acceptance criteria, and its project fields. Look up the
+   current project, item, field and option IDs with `gh`; do not copy IDs from
+   another issue or assume that field names are IDs.
+3. Set these project fields when taking ownership:
+   - **Agent:** the agent doing the work, such as `Codex`.
+   - **Start date:** the date work first began on the task, using the user's
+     timezone. Preserve that date on later resumes. Recover it from task
+     history or dated work records rather than substituting today's date.
+   - **Path:** `<owning-repository>/<relative-implementation-path>`, for
+     example `ai_hw_engineer/design/intel_80286`. Use the implementation path,
+     not an absolute local path or the ignored worktree directory.
+   - **Status:** `Building` while implementing the task. Use the project's
+     other existing statuses when they describe the actual work phase.
+4. Add a concise issue comment saying the agent is working on the task and
+   identifying the scope, branch/worktree and plan where useful. Check recent
+   comments first to avoid posting the same ownership notice on every resume.
+   Write comment text to a temporary file and pass it to
+   `gh issue comment --body-file`.
+5. Read back the saved fields and comment. An attempted command is not proof
+   that the update succeeded. Record any access blocker and continue work
+   that does not depend on the blocked update.
+
+### CLI Access and Field Updates
+
+Check authentication with `gh auth status`. GitHub Project edits require the
+`project` scope; if it is missing, have the user run this and complete the
+browser authorization:
+
+```sh
+gh auth refresh -h github.com -s project
+```
+
+Inspect the project with `gh project list`, `gh project field-list` and
+`gh project item-list`, using `--owner hevangel` and `--format json` as
+appropriate. Set field values with `gh project item-edit`: use
+`--single-select-option-id` for Agent and Status, `--date YYYY-MM-DD` for
+Start date, and `--text` for Path. Include the discovered item, project and
+field IDs. Account for pagination when finding an item; a newly added item
+may fall beyond the first page. Distinguish network or sandbox access
+failures from an invalid credential before asking the user to log in again.
+
+### Transfers and Progress
+
+- Transfer an issue with `gh issue transfer` when moving it to the owning
+  implementation repository. Record its new URL. A transfer can remove the
+  project entry: capture the existing fields first, then restore membership
+  with `gh project item-add` and restore Agent, Start date, Path, Status,
+  Workstream, Sprint and any other existing values. Re-query the new item ID
+  and verify the result.
+- Keep the issue updated at meaningful checkpoints with changes, verification
+  evidence, blockers and PR links. Preserve the original task scope and
+  acceptance criteria when reporting a partial milestone.
+- Set `AI verified` only after the issue's required implementation and
+  verification gates pass. Leave `Human verified` to the human reviewer.
+  Close the issue only when its acceptance criteria are satisfied and the
+  repository's review/merge requirements are met.
+
 ## Pull Request Workflow
 
 1. Create a feature branch from `main`
