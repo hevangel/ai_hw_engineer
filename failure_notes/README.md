@@ -26,6 +26,10 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-10-25 — 80286 INS protection-fault register state](2026-10-25-intel80286-ins-fault-state.md)
+  Intel's original restartability notes exposed a shared assumption that a
+  failed INS element preserved DI/CX; native 286 handlers must repair them.
+
 - [2026-10-23 — Space Invaders VRAM bit order](2026-10-23-spaceinvaders-vram-bit-order.md)
   The repository owner reviewing the running panel exposed MSB-first glyph
   rendering (the hardware shifts bytes LSB-first) and an attract-loop
