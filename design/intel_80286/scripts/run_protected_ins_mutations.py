@@ -19,14 +19,18 @@ def sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def main():
+def main(extra_mutations=()):
     if len(sys.argv) not in (2, 3):
-        raise SystemExit("Usage: run_protected_ins_mutations.py BASELINE_MANIFEST [NEW_RUN_NAME]")
+        raise SystemExit(f"Usage: {Path(sys.argv[0]).name} BASELINE_MANIFEST [NEW_RUN_NAME]")
     design = Path(__file__).resolve().parent.parent
     baseline_path = Path(sys.argv[1]).resolve()
     baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
     if baseline.get("result") != "PASS" or len(baseline.get("ins_limit_cases", [])) != 5:
         raise SystemExit("Baseline must be a passing replay including all five INS cases")
+    if extra_mutations and (len(baseline.get("string_fault_cases", [])) != 4 or
+                            len(baseline.get("string_fault_profiles", [])) != 5 or
+                            baseline.get("passed_cases", 0) < 55):
+        raise SystemExit("Extended mutations require all four groups and all five string-fault profiles")
     for source in baseline["source_files"]:
         path = (design / source["path"]).resolve()
         if not path.is_relative_to(design) or sha256(path) != source["sha256"]:
@@ -78,10 +82,13 @@ def main():
             "INS fixture retired PC or exact successor mismatch",
         ),
     ]
+    mutations.extend(extra_mutations)
     record = {
         "baseline_manifest": str(baseline_path.relative_to(design)),
         "baseline_manifest_sha256": sha256(baseline_path),
         "runner_sha256": sha256(Path(__file__)),
+        "entrypoint": Path(sys.argv[0]).name,
+        "entrypoint_sha256": sha256(Path(sys.argv[0])),
         "source_files": baseline["source_files"],
         "mutations": [],
     }
@@ -114,7 +121,7 @@ def main():
         if not caught:
             raise SystemExit(f"Mutation {label} was not rejected as expected; inspect {snapshot / 'build.log'}")
         print(f"PASS: detected {label}: {diagnostic}", flush=True)
-    print(f"PASS: all {len(mutations)} INS mutations detected; evidence: {result}", flush=True)
+    print(f"PASS: all {len(mutations)} protected-string mutations detected; evidence: {result}", flush=True)
 
 
 if __name__ == "__main__":

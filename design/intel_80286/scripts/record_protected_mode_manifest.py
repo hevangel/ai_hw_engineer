@@ -30,6 +30,7 @@ def main():
         [
             design_dir / "tb" / "protected_mode_fixture.h",
             design_dir / "tb" / "protected_mode_replay.cpp",
+            design_dir / "tb" / "protected_string_replay.h",
             design_dir / "scripts" / "run_protected_mode_replay.sh",
             design_dir / "scripts" / "record_protected_mode_manifest.py",
         ]
@@ -43,9 +44,12 @@ def main():
     manifest = {
         "schema_version": 1,
         "result": "PASS",
-        "scope": "ring-0 #GP/IRET retry, reset cuts, native INS DI/CX fault state and repair",
+        "scope": "ring-0 #GP/IRET retry, reset cuts, native INS/MOVS/STOS/OUTS fault state and repair",
+        "passed_cases": sum(line.startswith("PASS:") for line in log.read_text().splitlines()),
         "ins_limit_cases": ["INSB beyond limit", "INSW straddling limit", "REP INSW last element", "INSW 64K wrap", "REP INSW nonfinal element"],
         "unverified_assumption": "A20 native port-side-effect timing",
+        "string_fault_cases": ["MOVS source", "MOVS destination", "STOS", "OUTS source"],
+        "string_fault_profiles": ["word REP last", "word REP nonfinal", "byte REP", "word DF=1", "word 64K wrap"],
         "wait_modes": ["unstalled", "READY stalls"],
         "reset_cuts": [
             "handler code descriptor read",

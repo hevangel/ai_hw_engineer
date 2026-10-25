@@ -2,7 +2,54 @@
 
 Updated 2026-10-25 during recovery into the `design/intel-80286` worktree.
 
-## Current checkpoint — protected INS fault state
+## Current checkpoint — protected MOVS/STOS/OUTS fault repair
+
+The prior goal turn made concrete progress (INS correction, tests, committed
+source and issue update). This continuation extends the same externally found
+defect to MOVS source/destination, STOS and OUTS memory failures. The full
+80286 objective and completion ledger remain in force.
+
+Current core SHA-256:
+`3e2a84e8a5d417e153b3fe525ecd66e180428e3814b644fbc33c2c2258687f96`.
+Current CPU property SHA-256:
+`a6ce79a5e9853f915156fbff15ce0b967fbc9b023fad23fccd6fc2f2c0c40cbd`.
+These supersede the INS-only snapshot below. See the
+[string-fault report](../../design/intel_80286/report/2026-10-25-protected-strings.md).
+
+Completed: strict Verilator build and 55-case replay at
+`work/protected_strings_20261025_03/`, plus Yosys synthesis (28,734 cells) at
+`work/strings_checks_20261025_01/`. Forty new cases cover four fault phases
+with byte REP, word REP last/nonfinal, backward word and FFFF wrap, each in
+both wait modes. The failing pre-fix model and full input source copy are at
+`work/protected_strings_red_20261025_01/`.
+
+Further completed checks:
+
+- Ten mutations compile and are detected with the expected semantic diagnostic
+  in `work/protected_strings_mutations_20261025_01/`. The manifest identifies
+  both mutation scripts and each mutated core/log. Five new faults target
+  MOVS source count, destination SI, STOS DI, OUTS SI and early wrap dispatch.
+- Depth-12 BMC passes in 251 seconds in `work/strings_checks_20261025_01/bmc12/`.
+  It is a smoke bound and does not reach the entire protected workload.
+- Cover mode times out at 180 seconds with eight complete witnesses; a ninth
+  VCD is only partially emitted. Solver progress reached step 10. This is
+  incomplete and does not establish the native fault-path formal covers.
+- `work/strings_checks_20261025_01/source_audit.json` confirms both 21-file
+  formal snapshots match current source. All 19 replay inputs also match the
+  passing manifest. Replay binary SHA-256:
+  `cf69a2a7565ef3428c40db4dfcf8cf0bf4b83f808da47aa40b45751b3737956e`.
+
+Sessions 38324, 84635 and 42001 are terminal; no jobs from this checkpoint
+remain active. The source scan of Intel LOADALL memo page 14 was rendered
+and checked: the SCAS paragraph really names SI. Further corroboration is
+needed before choosing its fault-time index behavior.
+
+Next architectural work: CMPS source/destination fault repair, then resolve
+SCAS's contradictory index naming in the old Intel memo using independent
+286 evidence. OUTS IOPL, INS DF=1, native port timing and broader full-chip
+gates remain open. The existing synthetic fixtures do not replace OS/2 CPGREP.
+
+## INS-only checkpoint (historical snapshot 408bab2)
 
 Issue: [ai_hw_engineer#80](https://github.com/hevangel/ai_hw_engineer/issues/80).
 Project fields: Agent Codex, Building, Start date 2026-10-23, Path

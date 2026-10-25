@@ -226,3 +226,34 @@ destination in this functional interface. Audit the other string instructions
 against the same Intel repair notes before claiming their fault semantics.
 
 The CPU owns the functional bus while completing an instruction transaction.
+
+### MOVS, STOS and OUTS protected fault repair
+
+Apply the same Intel page-14 repair contract to these memory-denial phases.
+Here `d` is +1/+2 for DF=0 or -1/-2 for DF=1, and `C` is CX immediately
+before the failed element. Arithmetic wraps at 16 bits. CX changes below
+apply only with REP; an unprefixed instruction preserves CX.
+
+| Faulting reference | SI at fault | DI at fault | CX at fault | Handler repair before retry |
+|---|---|---|---|---|
+| MOVS source | SI+d | unchanged | C-1 | Undo SI; add 1 to CX |
+| MOVS destination | SI+d | DI+d | C-2 | Undo SI and DI; add 2 to CX |
+| STOS destination | unchanged | DI+d | C-2 | Undo DI; add 2 to CX |
+| OUTS memory source | SI+d | unchanged | C-2 | Undo SI; add 2 to CX |
+
+MOVS destination denial occurs after its valid source read. The handler
+rewinds SI so the retry reads that element again. Completed prefix elements
+remain committed. Protected word references at FFFF go through the relevant
+source/destination checker; an early combined SI/DI stop would lose the phase
+and register-repair semantics. Real-mode behavior follows its existing path.
+
+`tb/protected_string_replay.h` checks these four groups with byte REP, word
+REP last/nonfinal faults, backward unprefixed word operations, and FFFF word
+references. A wrap handler explicitly relocates the invalid operand after
+checking its wrapped fault indices. Every case runs with and without READY
+stalls and checks the exact operand traffic, frame, prefix PC and successor.
+These tests do not establish port-side-effect timing or OUTS IOPL-fault rules.
+
+CMPS repair is still an implementation gap. SCAS needs further corroboration:
+page 14 of the old memo names SI, while the architectural scan operand uses DI.
+Do not silently resolve that discrepancy by copying a later x86 model.

@@ -194,12 +194,30 @@
             end
             if (rst_n && $past(rst_n && state==MEMORY_CHECK)) begin
                 assert($stable(segs_o) && $stable(flags_o));
-                if ($past(msw[0] && ins_precheck_active && !data_reference_allow &&
+                for (integer r=0;r<8;r=r+1)
+                    if (r!=1 && r!=6 && r!=7) assert(gpr[r]==$past(gpr[r]));
+                if ($past(msw[0] && !data_reference_allow &&
                           !event_delivery_active && !protected_iret_active)) begin
-                    assert(gpr[7]==$past(gpr[7])+$past(string_delta));
-                    assert(gpr[1]==($past(repeat_valid) ? $past(gpr[1])-16'd2 : $past(gpr[1])));
-                    for (integer r=0;r<8;r=r+1)
-                        if (r!=1 && r!=7) assert(gpr[r]==$past(gpr[r]));
+                    if ($past(ins_precheck_active)) begin
+                        assert(gpr[6]==$past(gpr[6]));
+                        assert(gpr[7]==$past(gpr[7])+$past(string_delta));
+                        assert(gpr[1]==($past(repeat_valid) ? $past(gpr[1])-16'd2 : $past(gpr[1])));
+                    end else if ($past((opcode==8'ha4 || opcode==8'ha5) &&
+                        (memory_return==STRING_FIRST || memory_return==STRING_COMMIT))) begin
+                        assert(gpr[6]==$past(gpr[6])+$past(string_delta));
+                        assert(gpr[7]==($past(memory_return)==STRING_COMMIT ?
+                            $past(gpr[7])+$past(string_delta) : $past(gpr[7])));
+                        assert(gpr[1]==($past(repeat_valid) ? $past(gpr[1])-
+                            ($past(memory_return)==STRING_COMMIT ? 16'd2 : 16'd1) : $past(gpr[1])));
+                    end else if ($past((opcode==8'haa || opcode==8'hab) && memory_return==STRING_COMMIT)) begin
+                        assert(gpr[6]==$past(gpr[6]));
+                        assert(gpr[7]==$past(gpr[7])+$past(string_delta));
+                        assert(gpr[1]==($past(repeat_valid) ? $past(gpr[1])-16'd2 : $past(gpr[1])));
+                    end else if ($past((opcode==8'h6e || opcode==8'h6f) && memory_return==STRING_FIRST)) begin
+                        assert(gpr[6]==$past(gpr[6])+$past(string_delta));
+                        assert(gpr[7]==$past(gpr[7]));
+                        assert(gpr[1]==($past(repeat_valid) ? $past(gpr[1])-16'd2 : $past(gpr[1])));
+                    end else assert($stable(regs_o));
                 end else assert($stable(regs_o));
                 if ($past(data_reference_allow)) begin
                     if ($past(memory_precheck_only)) begin

@@ -12,9 +12,10 @@ Protected mode includes the descriptor, privilege, event, and task-state
 mechanisms defined by that 286 manual. Do not substitute later 80386-or-newer
 semantics where the 286 has different behavior.
 
-For protected INS destination-fault register state, target the corrected
+For protected string memory-fault register state, target the corrected
 post-C2 behavior in Intel's 15 October 1984 restartability memo, including
-handler repair of DI and CX. See the source links and exact rules in the
+the handler-repair rules in its LOADALL memo. INS, MOVS, STOS and OUTS now
+have integrated directed cases. See the source links and exact rules in the
 [integration contract](protected_mode_integration.md#native-ins-fault-state-and-handler-repair).
 Earlier stepping errata are not implemented as a selectable profile. Native
 I/O side-effect timing remains assumption A20 and requires independent closure.

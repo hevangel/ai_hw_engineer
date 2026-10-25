@@ -29,12 +29,15 @@ verification results.
 - [Completion requirements](plans/completion_requirements.md)
 - [Worktree recovery report](report/2026-10-24-worktree-recovery.md)
 - [Protected INS correction and verification](report/2026-10-25-protected-ins.md)
+- [MOVS/STOS/OUTS correction and verification](report/2026-10-25-protected-strings.md)
 - [CPU formal harness](formal/intel_80286.sby)
 - [Reset-reachable PDR harness](formal/intel_80286_pdr.sby)
 - [Protected-mode directed fixture](tb/protected_mode_fixture.h)
 - [Protected-mode replay test](tb/protected_mode_replay.cpp) and
   [runner](scripts/run_protected_mode_replay.sh)
-- [Protected INS mutation checks](scripts/run_protected_ins_mutations.py)
+- [Protected string fixture](tb/protected_string_replay.h)
+- [Protected string mutation checks](scripts/run_protected_string_mutations.py)
+  (includes the [INS checks](scripts/run_protected_ins_mutations.py))
 - [INS fault-state escaped defect](../../failure_notes/2026-10-25-intel80286-ins-fault-state.md)
 - [Full 80286 continuation plan](../../plans/286/README.md)
 - [Current continuation status](../../plans/286/STATUS.md)
@@ -47,12 +50,14 @@ From the tool container with this worktree mounted at `/work`:
 
 ```sh
 bash design/intel_80286/scripts/run_protected_mode_replay.sh my-new-run
-python3 design/intel_80286/scripts/run_protected_ins_mutations.py \
+python3 design/intel_80286/scripts/run_protected_string_mutations.py \
   design/intel_80286/work/my-new-run/build_manifest.json my-new-mutation-run
 ```
 
 Use a fresh name for each run; existing evidence directories are preserved.
 The replay checks same-level #GP/IRET recovery and reset cuts, plus protected
-INSB/INSW/REP INSW destination faults with native DI/CX repair, exact prefix
-restart, byte transfers and READY stalls. A20's native port-side-effect timing,
-other string-fault rules and the full release gate remain open.
+INSB/INSW/REP INSW destination faults and MOVS/STOS/OUTS memory faults with
+native index/count repair, exact prefix restart, byte transfers and READY
+stalls. Backward word and 64K-wrap scenarios exercise the latter families.
+A20's native port-side-effect timing, CMPS/SCAS fault rules and the full
+release gate remain open.

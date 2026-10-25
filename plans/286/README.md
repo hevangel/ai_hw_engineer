@@ -2,6 +2,13 @@
 
 Prepared 2026-10-23. Current owner: Codex. Workspace: `B:\ai_hw_engineer\worktree\intel-80286`. Design: `design/intel_80286`. Issue: [ai_hw_engineer#80](https://github.com/hevangel/ai_hw_engineer/issues/80), Building; start date 2026-10-23.
 
+**String-fault follow-up (2026-10-25):** MOVS source/destination, STOS and OUTS
+memory failures now follow the manufacturer handler-repair rules. The expanded
+replay passes 55 cases, including backwards and FFFF word references. See the
+[report](../../design/intel_80286/report/2026-10-25-protected-strings.md) and
+current status for exact evidence. CMPS/SCAS, IOPL and full-chip closure remain
+open; neither this directed matrix nor earlier proofs finish the 80286.
+
 **INS follow-up (2026-10-25):** Intel's restartability memos exposed an escaped
 defect in protected INS fault-time DI/CX. The core and regression now implement
 the corrected post-C2 handler-repair state. Five scenarios pass in both wait

@@ -627,6 +627,8 @@ void run_ins_limit_fixture(bool word, bool repeat, bool insert_waits,
         insert_waits ? " with READY stalls" : " without stalls");
 }
 
+#include "protected_string_replay.h"
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -651,6 +653,14 @@ int main(int argc, char** argv) {
             run_ins_limit_fixture(true,true,waits);
             run_ins_limit_fixture(true,false,waits,true);
             run_ins_limit_fixture(true,true,waits,false,3);
+            for (auto kind : {StringFaultKind::MoveSource,StringFaultKind::MoveDestination,
+                              StringFaultKind::Store,StringFaultKind::Output}) {
+                run_string_fault_fixture(kind,true,true,waits);
+                run_string_fault_fixture(kind,true,true,waits,false,3);
+                run_string_fault_fixture(kind,false,true,waits);
+                run_string_fault_fixture(kind,true,false,waits,true);
+                run_string_fault_fixture(kind,true,false,waits,false,2,true);
+            }
         }
     } catch (const std::exception& error) {
         std::fprintf(stderr, "FAIL: %s\n", error.what());

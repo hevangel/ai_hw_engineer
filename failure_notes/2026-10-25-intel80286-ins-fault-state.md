@@ -66,3 +66,18 @@ rule. Require a regression that fails on the old core, plus mutation rejection
 of preserving pre-fault indices. Record stepping-specific behavior explicitly;
 do not substitute later x86 restart behavior. The existing independent-oracle
 and assumption-ledger rules in AGENTS.md apply to every subsequent string fix.
+
+## MOVS/STOS/OUTS follow-up
+
+The same broad preservation invariant also hid incorrect fault-time state for
+MOVS source/destination, STOS and OUTS memory-source faults. An independently
+derived MOVS test fails against the INS-only checkpoint. The complete failing
+source snapshot and replay log are retained under
+`design/intel_80286/work/protected_strings_red_20261025_01/`.
+
+The follow-up distinguishes first- and second-reference MOVS failures and
+extends the checker path to protected word wrap. Forty additional replay cases
+cover these four groups, including backward operation, byte/word sizes and
+final/nonfinal REP faults. The [follow-up report](../design/intel_80286/report/2026-10-25-protected-strings.md)
+records the current evidence. CMPS/SCAS and IOPL faults remain open; the full
+80286 and its historical-software release gate remain incomplete.

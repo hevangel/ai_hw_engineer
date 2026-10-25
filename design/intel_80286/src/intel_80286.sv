@@ -890,6 +890,26 @@ module intel_80286 (
                                 // last REP INS element leaves CX=FFFF, not 0000.
                                 gpr[7]<=gpr[7]+string_delta;
                                 if (repeat_valid) gpr[1]<=gpr[1]-16'd2;
+                            end else if (msw[0] && (opcode==8'ha4 || opcode==8'ha5) &&
+                                (memory_return==STRING_FIRST || memory_return==STRING_COMMIT)) begin
+                                // Intel LOADALL memo p14: MOVS always requires
+                                // SI repair; destination faults also require DI
+                                // repair and a second CX increment by the handler.
+                                gpr[6]<=gpr[6]+string_delta;
+                                if (memory_return==STRING_COMMIT) gpr[7]<=gpr[7]+string_delta;
+                                if (repeat_valid)
+                                    gpr[1]<=gpr[1]-(memory_return==STRING_COMMIT ? 16'd2 : 16'd1);
+                            end else if (msw[0] && (opcode==8'haa || opcode==8'hab) &&
+                                memory_return==STRING_COMMIT) begin
+                                // Intel LOADALL memo p14: STOS DI/CX repair.
+                                gpr[7]<=gpr[7]+string_delta;
+                                if (repeat_valid) gpr[1]<=gpr[1]-16'd2;
+                            end else if (msw[0] && (opcode==8'h6e || opcode==8'h6f) &&
+                                memory_return==STRING_FIRST) begin
+                                // Intel LOADALL memo p14: OUTS SI/CX repair
+                                // for memory-source protection failure.
+                                gpr[6]<=gpr[6]+string_delta;
+                                if (repeat_valid) gpr[1]<=gpr[1]-16'd2;
                             end
                             if (data_reference_fault && msw[0]) enter_event(data_reference_vector,instruction_ip,1'b0,1'b1,1'b1,data_reference_error);
                             else enter_event(13,instruction_ip,1'b0,1'b1,1'b0,16'd0);
@@ -1430,7 +1450,9 @@ module intel_80286 (
                         memory_start(1'b1,0,gpr[7],24'd0,1'b1,1'b0,
                                      wide ? 3'd2 : 3'd1,0,STRING_FIRST);
                     end else if (wide && ((string_source && gpr[6]==16'hffff) ||
-                                         (string_destination && gpr[7]==16'hffff))) begin
+                                         (string_destination && gpr[7]==16'hffff)) &&
+                        !(msw[0] && (opcode==8'ha4 || opcode==8'ha5 || opcode==8'haa ||
+                                     opcode==8'hab || opcode==8'h6e || opcode==8'h6f))) begin
                         enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0); state<=EVENT_START;
                     end
                     else if (opcode==8'haa || opcode==8'hab)
