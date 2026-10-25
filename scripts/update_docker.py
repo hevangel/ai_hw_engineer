@@ -29,10 +29,28 @@ SOURCES = {
 }
 
 
+# Every host this tool is documented to talk to (GitHub API and release
+# assets, the Surfer GitLab, Rust distribution, PyPI). Anything else,
+# including redirects to other hosts, is rejected before any request.
+FETCH_HOSTS = {
+    "api.github.com",
+    "github.com",
+    "objects.githubusercontent.com",
+    "release-assets.githubusercontent.com",
+    "gitlab.com",
+    "static.rust-lang.org",
+    "pypi.org",
+    "files.pythonhosted.org",
+}
+
+
 def request(url):
+    parts = urlparse(url)
+    if parts.scheme != "https" or parts.hostname not in FETCH_HOSTS:
+        raise ValueError(f"fetch target outside the toolchain allowlist: {url}")
     headers = {"User-Agent": "ai-hw-engineer-toolchain-updater"}
     # Never send a GitHub credential to archive hosts or other services.
-    if urlparse(url).hostname == "api.github.com" and os.environ.get("GITHUB_TOKEN"):
+    if parts.hostname == "api.github.com" and os.environ.get("GITHUB_TOKEN"):
         headers["Authorization"] = "Bearer " + os.environ["GITHUB_TOKEN"]
     return urlopen(Request(url, headers=headers), timeout=60)
 
