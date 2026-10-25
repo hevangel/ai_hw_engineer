@@ -43,8 +43,8 @@ The RTL model is a combinational SystemVerilog implementation of the active-HIGH
 
 ### Reference datasheets
 
-- [Texas Instruments SN74LS181 datasheet](spec/SN74LS181_datasheet.pdf)
-- [Fairchild 74F181 datasheet](spec/74F181_Fairchild_datasheet.pdf)
+- [Texas Instruments SN74LS181 datasheet](../../references/SN74LS181_datasheet.pdf)
+- [Fairchild 74F181 datasheet](../../references/74F181_Fairchild_datasheet.pdf)
 
 ### Historical and technical references
 

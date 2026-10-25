@@ -26,6 +26,7 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1973* | Intel 3404 | Six-bit latch as independent 4-bit and 2-bit inverting sections with separate write enables; MCS-8 address and flag latch | [intel_3404](intel_3404/) |
 | 1974* | AMD Am9102 / Am9102A / Am9102B | 1024x1 asynchronous NMOS RAM; tri-state output and retained-power standby | [amd_am9102](amd_am9102/) |
 | 1974 | Intel 8080 | 8-bit microprocessor; documented instruction set on a functional transaction bus | [intel_8080](intel_8080/) |
+| 1974 (March announcement) | Motorola MC6800 | 8-bit microprocessor; full documented ISA (197 opcodes) passing an independent-oracle vector regression and 50 vendored hakanrw/mc6800 self-checking programs; formal bmc/prove/cover | [motorola_6800](motorola_6800/) |
 | 1975 | AMD Am2901 | Four-bit ALU/register processor slice; documented Am2901A native clock phases and all 512 microinstructions | [amd_am2901](amd_am2901/) |
 | 1975* (announcement) | AMD Am2902 | Four-group carry look-ahead generator; active-low P/G and hierarchical expansion | [amd_am2902](amd_am2902/) |
 | 1975* (marketing) | AMD Am2909 | Four-bit microprogram sequencer; four-word return stack, separate register/direct buses and OR branching | [amd_am2909](amd_am2909/) |
@@ -50,6 +51,8 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | By 1978* (exact year unknown) | AMD Am2918 | Quad D register with continuous Q and three-state Y outputs | [amd_am2918](amd_am2918/) |
 | By 1978* (public announcement; exact shipment unknown) | AMD Am9517 | Four-channel multimode DMA, memory copy/fill and cascade expansion | [amd_am9517](amd_am9517/) |
 | 1978 | Intel 8086 | 16-bit microprocessor; complete documented ISA and native digital BIU with independent physical-chip tests | [intel_8086](intel_8086/) |
+| 1978 | Motorola MC6809 | 8-bit microprocessor; full documented ISA (pages 1/2/3, indexed postbyte indirection, TFR/EXG, MUL, long branches, FIRQ/CWAI/SYNC) passing the hardware-validated reyco2000 functional and interrupt suites; formal bmc/prove/cover | [motorola_6809](motorola_6809/) |
+| 1979 (September announcement) | Motorola MC68000 | Work in progress: 16/32-bit processor; verification harness complete (SingleStepTests 680x0 suite, 1,000,060 single-instruction vectors) and RTL skeleton lint/synthesis clean; instruction classes land incrementally against the vectors | [motorola_68000](motorola_68000/) |
 | 1979* (family) | Intel 8237 / 8237A | Four-channel programmable DMA controller; original IBM PC BIOS integration | [intel_8237](intel_8237/) |
 | 1980 | Intel 8087 | Architectural numeric coprocessor core; 80-bit stack, original ESC instructions and transactional memory interface | [intel_8087](intel_8087/) |
 | 1980* / 1982* | Intel 8272 / 8272A | Four-drive decoded-media floppy controller; FM/MFM/CRC helpers and original IBM PC BIOS/DMA regression | [intel_8272](intel_8272/) |
@@ -95,6 +98,14 @@ The Intel 8080 entry records **1974**, following Intel's [manufacturer history](
 ### Intel — 8086
 
 The Intel 8086 entry records **1978**; Intel dates its introduction to June 8, 1978 in its [manufacturer history](https://timeline.intel.com/1978/the-beginning-of-a-legend%3A-the-8086). This design implements the complete documented instruction set, interrupts and a six-byte prefetch BIU with minimum/maximum-mode digital pins. Independent physical-chip vectors, original DEBUG.COM, formal checks and native bus tests verify the implementation; original EU cycle counts and electrical timing are outside its RTL contract. See the [chip overview](intel_8086/README.md). Its standalone software regression runs unchanged Microsoft DEBUG.COM through the execution unit and both native bus modes.
+
+### Motorola — 6800, 6809, 68000
+
+The Motorola 6800 entry records **1974 (March announcement)**: the [M6800 Microcomputer System announcement](https://en.wikipedia.org/wiki/Motorola_6800) is dated March 1974 with full production by year end; secondary sources differ on the exact day within March 1974, so only the month is claimed. Technical behavior follows the [M6800 Programming Reference Manual M68PRM(D), November 1976](https://bitsavers.trailing-edge.com/components/motorola/6800/Motorola_M6800_Programming_Reference_Manual_M68PRM(D)_Nov76.pdf) (bitsavers). See the [chip overview](motorola_6800/README.md).
+
+The Motorola 6809 entry records **1978**; secondary sources agree on the year but differ on the month, so only the year is claimed. Technical behavior follows the Motorola MC6809 data sheet and programming manual, cross-checked against [MAME's m6809 core](https://github.com/mamedev/mame/blob/master/src/devices/cpu/m6809/m6809.h) (vector map) and the hardware-validated [reyco2000/6809_6309_code_tester](https://github.com/reyco2000/6809_6309_code_tester) programs. See the [chip overview](motorola_6809/README.md).
+
+The Motorola 68000 entry records **1979 (September announcement)**; the September 1979 announcement is the commonly cited date and the exact day is not asserted. The design is work in progress: verification harness complete (SingleStepTests 680x0 suite, 1,000,060 single-instruction vectors), RTL skeleton lint/synthesis clean, instruction classes landing incrementally. See the [chip overview](motorola_68000/README.md).
 
 ### Intel — support and peripheral devices (8237, 8251, 8253/8254, 8255, 8259, 8272, 8273, 8275, 8279)
 

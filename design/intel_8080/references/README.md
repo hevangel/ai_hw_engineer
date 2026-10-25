@@ -2,8 +2,9 @@
 
 ## Manufacturer sources
 
-- [Intel September 1975 Microcomputer Systems User's
-  Manual](https://bitsavers.trailing-edge.com/components/intel/MCS80/98-153B_Intel_8080_Microcomputer_Systems_Users_Manual_197509.pdf):
+- Intel's September 1975 [Microcomputer Systems User's
+  Manual](https://bitsavers.trailing-edge.com/components/intel/MCS80/98-153B_Intel_8080_Microcomputer_Systems_Users_Manual_197509.pdf)
+  ([local PDF](../../../references/intel_8080_microcomputer_systems_users_manual_1975.pdf)):
   chapter 2, status table 2-1, interrupt/reset/HOLD discussions; chapter 4,
   documented instruction set and EI recognition delay.
 - [Intel 8080 Assembly Language Programming Manual, 1975 Rev.

@@ -61,7 +61,7 @@ The UVM repo contains:
 ## Docker
 
 See the project root `Dockerfile` for a containerized build with all tools.
-It pins release 0.11.0; see [toolchain release pins](../toolchain-releases.md).
+It pins release 0.11.3; see [toolchain release pins](../toolchain-releases.md).
 
 ## Development Workflow
 
@@ -82,4 +82,6 @@ cargo test                     # Bytecode interpreter mode
 cargo test --features jit      # JIT mode
 ```
 
-The test suite contains ~2,200 integration tests covering both execution modes, with many differential tests validated against commercial reference simulators.
+The 0.11.3 release suite runs 5,412 default-mode tests plus JIT smoke tests,
+with many differential tests validated against commercial reference
+simulators.

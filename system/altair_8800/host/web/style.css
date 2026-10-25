@@ -1,0 +1,159 @@
+/* Altair 8800 front panel styling: dark machine, red LEDs, toggle switches. */
+:root {
+    --panel: #1d2430;
+    --panel-edge: #39424f;
+    --lamp-off: #4a1010;
+    --lamp-on: #ff3b30;
+    --text: #d7dde5;
+    --muted: #8b95a3;
+    --accent: #f0b429;
+}
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    background: #12161d;
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, sans-serif;
+}
+header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    padding: 14px 24px;
+    background: var(--panel);
+    border-bottom: 2px solid var(--panel-edge);
+}
+h1 { font-size: 20px; margin: 0; letter-spacing: 2px; }
+h2 { font-size: 13px; margin: 0 0 10px; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; }
+.state_chip {
+    font-size: 12px;
+    padding: 2px 10px;
+    border: 1px solid var(--panel-edge);
+    border-radius: 10px;
+    color: var(--muted);
+}
+.state_chip.active { color: #12161d; background: var(--accent); border-color: var(--accent); }
+main {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(430px, 1fr));
+    gap: 14px;
+    padding: 14px 24px;
+    max-width: 1500px;
+}
+.panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-edge);
+    border-radius: 8px;
+    padding: 12px 16px;
+}
+.lamp_row, .switch_row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 6px 0;
+}
+.row_label {
+    width: 118px;
+    min-width: 118px;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: right;
+}
+.lamp {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    margin-right: 5px;
+    border-radius: 50%;
+    background: var(--lamp-off);
+    box-shadow: inset 0 0 4px #000;
+    font-size: 8px;
+    color: #d08a86;
+}
+.lamp.on {
+    background: var(--lamp-on);
+    color: #fff;
+    box-shadow: 0 0 8px var(--lamp-on);
+}
+.toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 26px;
+    margin-right: 5px;
+    border-radius: 4px;
+    background: #2a323e;
+    border: 1px solid var(--panel-edge);
+    color: var(--muted);
+    font-size: 11px;
+    cursor: pointer;
+    user-select: none;
+}
+.toggle.up {
+    background: #514230;
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 6px rgba(240, 180, 41, .4);
+}
+.buttons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button, select, input[type="number"] {
+    background: #2a323e;
+    color: var(--text);
+    border: 1px solid var(--panel-edge);
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-size: 13px;
+    cursor: pointer;
+}
+button:hover { border-color: var(--accent); color: var(--accent); }
+input[type="text"] {
+    background: #10141a;
+    color: var(--accent);
+    border: 1px solid var(--panel-edge);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-family: "Consolas", monospace;
+    font-size: 13px;
+    flex: 1;
+}
+.hint { color: var(--muted); font-size: 12px; margin: 10px 0 0; }
+#tty_out {
+    background: #0c0f13;
+    border: 1px solid var(--panel-edge);
+    border-radius: 6px;
+    color: #d8e3c8;
+    font-family: "Consolas", monospace;
+    font-size: 13px;
+    height: 260px;
+    overflow-y: auto;
+    margin: 0 0 8px;
+    padding: 8px 10px;
+    white-space: pre-wrap;
+}
+#tty_form { display: flex; gap: 8px; align-items: center; }
+.tape_label { font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.tape_label input { color: var(--text); max-width: 190px; }
+#cpu_table { font-size: 12px; border-collapse: collapse; margin-bottom: 10px; }
+#cpu_table th { color: var(--muted); text-align: left; padding: 1px 12px 1px 0; font-weight: 500; }
+#cpu_table td { font-family: "Consolas", monospace; color: var(--text); padding: 1px 0; }
+#mem_window {
+    font-family: "Consolas", monospace;
+    font-size: 12px;
+    white-space: pre;
+    background: #10141a;
+    border: 1px solid var(--panel-edge);
+    border-radius: 6px;
+    padding: 8px 10px;
+    color: var(--text);
+}
+#surfer_frame { width: 100%; height: 340px; border: 1px solid var(--panel-edge); border-radius: 6px; background: #fff; }
+#waveform_status { font-size: 12px; color: var(--muted); }
+a { color: var(--accent); }
+footer {
+    padding: 10px 24px 24px;
+    color: var(--muted);
+    font-size: 12px;
+}

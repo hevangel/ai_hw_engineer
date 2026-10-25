@@ -1,11 +1,11 @@
 # Unicom 141 Series: Operating Instructions
 
-Source: [scanned manual](Unicom_141P_manual_text.pdf), Unicom Systems, Inc.,
+Source: [scanned manual](../../../../references/Unicom_141P_manual_text.pdf), Unicom Systems, Inc.,
 Cupertino, California 95014; [Internet Archive](https://archive.org/details/Unicom141PManual).
 
 This is a normalized Markdown extraction. The scan's operation tables have been
 visually checked; graphical keys have explicit names. The original text-layer
-extraction is preserved in [Unicom_141P_manual_ocr.md](Unicom_141P_manual_ocr.md),
+extraction is preserved in [Unicom_141P_manual_ocr.md](../../../../references/Unicom_141P_manual_ocr.md),
 including all original prose and OCR errors. Photographs and their layout remain
 in the PDF. Printed page numbers are one less than PDF page numbers.
 

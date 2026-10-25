@@ -159,7 +159,7 @@ RUN git clone --filter=blob:none https://github.com/YosysHQ/eqy.git /opt/eqy-src
 # Build xezim
 # ============================================================
 FROM base AS xezim-build
-ARG XEZIM_REV=6558a1e64e251cbd8d0c4e936860af268cf7e04f
+ARG XEZIM_REV=058f2bba58648452e5799d17572356ebcae7d163
 RUN git clone --filter=blob:none https://github.com/aionhw/xezim.git /opt/xezim-src && \
     git -C /opt/xezim-src checkout --detach "${XEZIM_REV}" && \
     cd /opt/xezim-src && \

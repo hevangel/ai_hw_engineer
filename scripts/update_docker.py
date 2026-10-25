@@ -14,7 +14,7 @@ import sys
 import tomllib
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlparse
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -26,6 +26,50 @@ SOURCES = {
     "EQY": ("EQY_REV", "YosysHQ/eqy"),
     "Yices": ("YICES_REV", "SRI-CSL/yices2"),
     "xezim": ("XEZIM_REV", "aionhw/xezim"),
+}
+
+# Release metadata is untrusted: a crafted download URL must not turn this
+# updater into a request forgery tool against internal services. Fetches are
+# restricted to these hosts, directly and after every redirect.
+ALLOWED_HOSTS = frozenset({
+    "api.github.com",
+    "github.com",
+    "objects.githubusercontent.com",
+    "gitlab.com",
+    "static.rust-lang.org",
+    "pypi.org",
+})
+
+
+def checked_url(url):
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or parsed.hostname not in ALLOWED_HOSTS:
+        raise ValueError(
+            f"Refusing to fetch URL outside the toolchain host allowlist: {url}")
+    return url
+
+
+class GuardedRedirects(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return super().redirect_request(req, fp, code, msg, headers,
+                                        checked_url(newurl))
+
+
+_OPENER = build_opener(GuardedRedirects())
+
+
+# Every host this tool is documented to talk to (GitHub API and release
+# assets, the Surfer GitLab, Rust distribution, PyPI). Anything else,
+# including redirects to other hosts, is rejected before any request.
+FETCH_HOSTS = {
+    "api.github.com",
+    "github.com",
+    "objects.githubusercontent.com",
+    "release-assets.githubusercontent.com",
+    "gitlab.com",
+    "static.rust-lang.org",
+    "pypi.org",
+    "files.pythonhosted.org",
 }
 
 
@@ -47,8 +91,14 @@ def request(url):
     headers = {"User-Agent": "ai-hw-engineer-toolchain-updater"}
     # Never send a GitHub credential to archive hosts or other services.
     if parsed.hostname == "api.github.com" and os.environ.get("GITHUB_TOKEN"):
+    parts = urlparse(url)
+    if parts.scheme != "https" or parts.hostname not in FETCH_HOSTS:
+        raise ValueError(f"fetch target outside the toolchain allowlist: {url}")
+    headers = {"User-Agent": "ai-hw-engineer-toolchain-updater"}
+    # Never send a GitHub credential to archive hosts or other services.
+    if parts.hostname == "api.github.com" and os.environ.get("GITHUB_TOKEN"):
         headers["Authorization"] = "Bearer " + os.environ["GITHUB_TOKEN"]
-    return urlopen(Request(url, headers=headers), timeout=60)
+    return _OPENER.open(Request(checked_url(url), headers=headers), timeout=60)
 
 
 def get_json(url):

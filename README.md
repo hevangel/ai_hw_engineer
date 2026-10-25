@@ -277,7 +277,7 @@ The Dockerfile builds a multi-stage image containing:
 - **Verilator 5.052** — built from the pinned published release.
 - **Yosys 0.69** — built from the pinned published release.
 - **SymbiYosys** — pinned source revision with the Z3 and ABC engines.
-- **Xezim 0.11.0** — pinned source revision with JIT support.
+- **Xezim 0.11.3** — pinned source revision with JIT support.
 - **Surfer 0.7.0** — pinned source revision.
 - **Verible** — pinned static release binaries.
 - **UVM** — the repository's pinned submodule copied to `/opt/uvm`.
