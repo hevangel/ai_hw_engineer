@@ -12,4 +12,8 @@ verilator --cc --exe --build -j 4 -Wno-fatal --top-module scelbi_8b \
     >"$SYSTEM/build/system_build.log"
 export SCELBI_SIMULATOR="$SYSTEM/build/obj_dir/Vscelbi_8b"
 export SCELBI_IMAGE="$SYSTEM/build/scelbal.hex"
+# Inside the container the server must bind the container interface for the
+# -p port mapping to reach it; exposure is gated by the host-side -p address
+# (the documented command maps 127.0.0.1 only).
+export SCELBI_HOST="${SCELBI_HOST:-0.0.0.0}"
 exec python3 "$SYSTEM/host/server.py"
