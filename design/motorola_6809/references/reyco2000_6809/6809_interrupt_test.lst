@@ -1,0 +1,983 @@
+                      (nterrupt_test.asm):00001         ; ============================================================
+                      (nterrupt_test.asm):00002         ;  MC6809 interrupt test
+                      (nterrupt_test.asm):00003         ;  GPL-3.0-or-later, see license.txt
+                      (nterrupt_test.asm):00004         ; ============================================================
+                      (nterrupt_test.asm):00005         ;
+                      (nterrupt_test.asm):00006         ; Tests IRQ, FIRQ and NMI: masking, priority, the stack frames and the CC
+                      (nterrupt_test.asm):00007         ; bits each one sets, level (IRQ/FIRQ) versus edge (NMI) sensing, NMI being
+                      (nterrupt_test.asm):00008         ; disarmed until S is first loaded, CWAI and SYNC.
+                      (nterrupt_test.asm):00009         ;
+                      (nterrupt_test.asm):00010         ; Needs the test device (see common.inc): the program raises and drops the
+                      (nterrupt_test.asm):00011         ; interrupt lines itself through DEV_LINES, or schedules a change a number
+                      (nterrupt_test.asm):00012         ; of cycles ahead with DEV_DLINES / DEV_DELAY so it can happen while the CPU
+                      (nterrupt_test.asm):00013         ; waits in CWAI or SYNC.
+                      (nterrupt_test.asm):00014         ;
+                      (nterrupt_test.asm):00015         ; A CPU samples its interrupt inputs a cycle or so before an instruction
+                      (nterrupt_test.asm):00016         ; ends, so an interrupt raised by a store can be taken after the following
+                      (nterrupt_test.asm):00017         ; instruction rather than straight away. The tests leave a few NOPs for it.
+                      (nterrupt_test.asm):00018         ;
+                      (nterrupt_test.asm):00019         ; Runs unchanged on an HD6309 in emulation mode.
+                      (nterrupt_test.asm):00020         ;
+                      (nterrupt_test.asm):00021         ; Test numbers (TEST_CASE at $0100):
+                      (nterrupt_test.asm):00022         ;   $01 NMI ignored until the first LDS     $09 NMI is edge triggered
+                      (nterrupt_test.asm):00023         ;   $02 IRQ: frame, CC, vector              $0A NMI beats FIRQ beats IRQ
+                      (nterrupt_test.asm):00024         ;   $03 IRQ masked by I                     $0B registers survive an IRQ
+                      (nterrupt_test.asm):00025         ;   $04 IRQ is level triggered              $0C stacked PC is the next instruction
+                      (nterrupt_test.asm):00026         ;   $05 FIRQ: frame, CC, vector             $0D CWAI with IRQ and with FIRQ
+                      (nterrupt_test.asm):00027         ;   $06 FIRQ masked by F, not by I          $0E SYNC, interrupt masked
+                      (nterrupt_test.asm):00028         ;   $07 IRQ nested in a FIRQ handler        $0F SYNC, interrupt enabled
+                      (nterrupt_test.asm):00029         ;   $08 NMI: frame, CC, ignores I and F     $10 SYNC with the line already active
+                      (nterrupt_test.asm):00030         ;
+                      (nterrupt_test.asm):00031                     include "common.inc"
+                      (       common.inc):00001         ; ============================================================
+                      (       common.inc):00002         ;  6809 / 6309 functional test suite - shared definitions
+                      (       common.inc):00003         ;  GPL-3.0-or-later, see license.txt
+                      (       common.inc):00004         ; ============================================================
+                      (       common.inc):00005         ;
+                      (       common.inc):00006         ; Every test program in this suite follows the same contract, so one
+                      (       common.inc):00007         ; harness can run all of them on any CPU core:
+                      (       common.inc):00008         ;
+                      (       common.inc):00009         ;   * The program is loaded as a Motorola S-record (bin/*.s19). It sets its
+                      (       common.inc):00010         ;     own vectors at $FFF0-$FFFF; the harness only has to RESET the CPU.
+                      (       common.inc):00011         ;   * The current test number is kept in RAM at TEST_CASE. When a check
+                      (       common.inc):00012         ;     fails the program branches to itself ("bne *" etc.), so a failing
+                      (       common.inc):00013         ;     core ends up spinning on the very instruction that detected the
+                      (       common.inc):00014         ;     error. Look that address up in the matching bin/*.lst listing.
+                      (       common.inc):00015         ;   * On success the program writes 0 to DEV_EXIT and then spins on
+                      (       common.inc):00016         ;     "bra *". A harness without the test device can stop on that loop
+                      (       common.inc):00017         ;     and compare the PC with the "success" symbol in the listing.
+                      (       common.inc):00018         ;
+                      (       common.inc):00019         ; ---- Test device ($FF00-$FF0F) ------------------------------------------
+                      (       common.inc):00020         ;
+                      (       common.inc):00021         ; A tiny memory-mapped peripheral the harness provides. Only the interrupt
+                      (       common.inc):00022         ; and cycle tests need it; the functional tests only use DEV_EXIT and
+                      (       common.inc):00023         ; DEV_PUTC, which are harmless when missing (writes to plain RAM).
+                      (       common.inc):00024         ;
+     FF00             (       common.inc):00025         DEV_LINES   equ $FF00   ; R/W  interrupt line levels: bit0 IRQ, bit1 FIRQ,
+                      (       common.inc):00026                                 ;      bit2 NMI (NMI fires on the 0->1 transition)
+     FF01             (       common.inc):00027         DEV_DLINES  equ $FF01   ; R/W  line levels to load into DEV_LINES later...
+     FF02             (       common.inc):00028         DEV_DELAY   equ $FF02   ; W    ...after this many CPU cycles (16 bit, big
+                      (       common.inc):00029                                 ;      endian, $FF02/$FF03). Writing $FF03 arms it.
+     FF04             (       common.inc):00030         DEV_CYC0    equ $FF04   ; W    latch the cycle counter (start mark)
+     FF05             (       common.inc):00031         DEV_CYC1    equ $FF05   ; W    latch the cycle counter (end mark)
+     FF06             (       common.inc):00032         DEV_CYCD    equ $FF06   ; R    16 bit: end mark - start mark ($FF06/$FF07)
+     FF08             (       common.inc):00033         DEV_PUTC    equ $FF08   ; W    write a character to the harness console
+     FF0F             (       common.inc):00034         DEV_EXIT    equ $FF0F   ; W    stop: 0 = all tests passed, else = failure
+                      (       common.inc):00035         ;
+     0001             (       common.inc):00036         LINE_IRQ    equ $01
+     0002             (       common.inc):00037         LINE_FIRQ   equ $02
+     0004             (       common.inc):00038         LINE_NMI    equ $04
+                      (       common.inc):00039         ;
+                      (       common.inc):00040         ; ---- Memory map shared by all programs ----------------------------------
+                      (       common.inc):00041         ;
+     0100             (       common.inc):00042         TEST_CASE   equ $0100   ; current test number (byte)
+     0101             (       common.inc):00043         TEST_SUB    equ $0101   ; optional sub-step / loop counter for diagnosis
+     0110             (       common.inc):00044         SCRATCH     equ $0110   ; general purpose scratch RAM $0110-$01FF
+     0002             (       common.inc):00045         DP_PAGE     equ $02     ; direct page used by direct mode tests ($0200-$02FF)
+     0300             (       common.inc):00046         DATA        equ $0300   ; data area $0300-$07FF
+     0A00             (       common.inc):00047         USTACK      equ $0A00   ; top of user stack (U)
+     0C00             (       common.inc):00048         SSTACK      equ $0C00   ; top of system stack (S)
+     1000             (       common.inc):00049         CODE        equ $1000   ; programs start here
+                      (       common.inc):00050         ;
+                      (       common.inc):00051         ; ---- Condition code bits ------------------------------------------------
+                      (       common.inc):00052         ;
+     0001             (       common.inc):00053         CC_C        equ $01
+     0002             (       common.inc):00054         CC_V        equ $02
+     0004             (       common.inc):00055         CC_Z        equ $04
+     0008             (       common.inc):00056         CC_N        equ $08
+     0010             (       common.inc):00057         CC_I        equ $10
+     0020             (       common.inc):00058         CC_H        equ $20
+     0040             (       common.inc):00059         CC_F        equ $40
+     0080             (       common.inc):00060         CC_E        equ $80
+                      (       common.inc):00061         ;
+                      (       common.inc):00062         ; ---- Macros -------------------------------------------------------------
+                      (       common.inc):00063         ;
+                      (       common.inc):00064         ; Start test number \1. Leaves A and CC changed.
+0000                  (       common.inc):00065         test        macro
+                      (       common.inc):00066                     lda #\1
+                      (       common.inc):00067                     sta TEST_CASE
+                      (       common.inc):00068                     clr TEST_SUB
+                      (       common.inc):00069                     endm
+                      (       common.inc):00070         ;
+                      (       common.inc):00071         ; Set CC to exactly \1 without touching any other register.
+0000                  (       common.inc):00072         set_cc      macro
+                      (       common.inc):00073                     andcc #$00
+                      (       common.inc):00074                     orcc #\1
+                      (       common.inc):00075                     endm
+                      (       common.inc):00076         ;
+                      (       common.inc):00077         ; Fail unless CC equals \1 exactly. Preserves all registers and CC.
+0000                  (       common.inc):00078         chk_cc      macro
+                      (       common.inc):00079                     pshs cc,a
+                      (       common.inc):00080                     lda ,s
+                      (       common.inc):00081                     cmpa #\1
+                      (       common.inc):00082                     bne *
+                      (       common.inc):00083                     puls cc,a
+                      (       common.inc):00084                     endm
+                      (       common.inc):00085         ;
+                      (       common.inc):00086         ; Fail unless (CC & \2) == \1. Preserves all registers and CC.
+0000                  (       common.inc):00087         chk_ccm     macro
+                      (       common.inc):00088                     pshs cc,a
+                      (       common.inc):00089                     lda ,s
+                      (       common.inc):00090                     anda #\2
+                      (       common.inc):00091                     cmpa #\1
+                      (       common.inc):00092                     bne *
+                      (       common.inc):00093                     puls cc,a
+                      (       common.inc):00094                     endm
+                      (       common.inc):00095         ;
+                      (       common.inc):00096         ; Fail unless register equals the immediate value. Each preserves CC.
+0000                  (       common.inc):00097         chk_a       macro
+                      (       common.inc):00098                     pshs cc
+                      (       common.inc):00099                     cmpa #\1
+                      (       common.inc):00100                     bne *
+                      (       common.inc):00101                     puls cc
+                      (       common.inc):00102                     endm
+0000                  (       common.inc):00103         chk_b       macro
+                      (       common.inc):00104                     pshs cc
+                      (       common.inc):00105                     cmpb #\1
+                      (       common.inc):00106                     bne *
+                      (       common.inc):00107                     puls cc
+                      (       common.inc):00108                     endm
+0000                  (       common.inc):00109         chk_d       macro
+                      (       common.inc):00110                     pshs cc
+                      (       common.inc):00111                     cmpd #\1
+                      (       common.inc):00112                     bne *
+                      (       common.inc):00113                     puls cc
+                      (       common.inc):00114                     endm
+0000                  (       common.inc):00115         chk_x       macro
+                      (       common.inc):00116                     pshs cc
+                      (       common.inc):00117                     cmpx #\1
+                      (       common.inc):00118                     bne *
+                      (       common.inc):00119                     puls cc
+                      (       common.inc):00120                     endm
+0000                  (       common.inc):00121         chk_y       macro
+                      (       common.inc):00122                     pshs cc
+                      (       common.inc):00123                     cmpy #\1
+                      (       common.inc):00124                     bne *
+                      (       common.inc):00125                     puls cc
+                      (       common.inc):00126                     endm
+0000                  (       common.inc):00127         chk_u       macro
+                      (       common.inc):00128                     pshs cc
+                      (       common.inc):00129                     cmpu #\1
+                      (       common.inc):00130                     bne *
+                      (       common.inc):00131                     puls cc
+                      (       common.inc):00132                     endm
+                      (       common.inc):00133         ; S cannot be checked with pshs/puls around it; use the plain compare.
+0000                  (       common.inc):00134         chk_s       macro
+                      (       common.inc):00135                     cmps #\1
+                      (       common.inc):00136                     bne *
+                      (       common.inc):00137                     endm
+0000                  (       common.inc):00138         chk_dp      macro
+                      (       common.inc):00139                     pshs cc,a
+                      (       common.inc):00140                     tfr dp,a
+                      (       common.inc):00141                     cmpa #\1
+                      (       common.inc):00142                     bne *
+                      (       common.inc):00143                     puls cc,a
+                      (       common.inc):00144                     endm
+                      (       common.inc):00145         ;
+                      (       common.inc):00146         ; Fail unless the byte at address \1 equals \2. Preserves registers and CC.
+0000                  (       common.inc):00147         chk_mem     macro
+                      (       common.inc):00148                     pshs cc,a
+                      (       common.inc):00149                     lda \1
+                      (       common.inc):00150                     cmpa #\2
+                      (       common.inc):00151                     bne *
+                      (       common.inc):00152                     puls cc,a
+                      (       common.inc):00153                     endm
+0000                  (       common.inc):00154         chk_mem16   macro
+                      (       common.inc):00155                     pshs cc,d
+                      (       common.inc):00156                     ldd \1
+                      (       common.inc):00157                     cmpd #\2
+                      (       common.inc):00158                     bne *
+                      (       common.inc):00159                     puls cc,d
+                      (       common.inc):00160                     endm
+                      (       common.inc):00161         ;
+                      (       common.inc):00162         ; Report success to the harness and stop.
+0000                  (       common.inc):00163         pass        macro
+                      (       common.inc):00164                     lda #$FF
+                      (       common.inc):00165                     sta TEST_CASE
+                      (       common.inc):00166                     clr DEV_EXIT
+0000                  (       common.inc):00167         success     bra success
+                      (       common.inc):00168                     endm
+                      (nterrupt_test.asm):00032         ;
+     0110             (nterrupt_test.asm):00033         IRQ_VEC     equ SCRATCH         ; RAM vectors (the ROM vectors jump through)
+     0112             (nterrupt_test.asm):00034         FIRQ_VEC    equ SCRATCH+2
+     0114             (nterrupt_test.asm):00035         NMI_VEC     equ SCRATCH+4
+     0116             (nterrupt_test.asm):00036         LOGP        equ SCRATCH+6       ; log write pointer
+     0118             (nterrupt_test.asm):00037         HCC         equ SCRATCH+8       ; CC seen inside the last handler
+     0119             (nterrupt_test.asm):00038         COUNT       equ SCRATCH+9
+     011A             (nterrupt_test.asm):00039         SAVE_S      equ SCRATCH+10
+     0120             (nterrupt_test.asm):00040         FRAME       equ SCRATCH+$10     ; copy of the last interrupt frame (12 bytes)
+     0130             (nterrupt_test.asm):00041         LOG         equ SCRATCH+$20     ; handler log, one letter per interrupt
+                      (nterrupt_test.asm):00042         ;
+                      (nterrupt_test.asm):00043                     org CODE
+                      (nterrupt_test.asm):00044         ; ==========================================================================
+                      (nterrupt_test.asm):00045         ; $01 - NMI must not be taken before S has been loaded
+                      (nterrupt_test.asm):00046         ; ==========================================================================
+1000 8601             (nterrupt_test.asm):00047         start       lda #$01
+1002 B70100           (nterrupt_test.asm):00048                     sta TEST_CASE
+1005 8604             (nterrupt_test.asm):00049                     lda #LINE_NMI
+1007 B7FF00           (nterrupt_test.asm):00050                     sta DEV_LINES       ; NMI edge with NMI still disarmed
+100A 12               (nterrupt_test.asm):00051                     nop
+100B 12               (nterrupt_test.asm):00052                     nop
+100C 12               (nterrupt_test.asm):00053                     nop
+100D 12               (nterrupt_test.asm):00054                     nop
+100E 12               (nterrupt_test.asm):00055                     nop                 ; NMI_VEC points at a trap until here
+100F 8E10F0           (nterrupt_test.asm):00056                     ldx #nmi_late
+1012 BF0114           (nterrupt_test.asm):00057                     stx NMI_VEC
+1015 7FFF00           (nterrupt_test.asm):00058                     clr DEV_LINES
+1018 10CE0C00         (nterrupt_test.asm):00059                     lds #SSTACK         ; arms NMI. Whether the edge seen while
+101C CE0A00           (nterrupt_test.asm):00060                     ldu #USTACK         ; disarmed is taken now is not defined.
+101F 12               (nterrupt_test.asm):00061                     nop
+1020 12               (nterrupt_test.asm):00062                     nop
+1021 12               (nterrupt_test.asm):00063                     nop
+1022 8E10D7           (nterrupt_test.asm):00064                     ldx #nmi_handler
+1025 BF0114           (nterrupt_test.asm):00065                     stx NMI_VEC
+1028 8E108B           (nterrupt_test.asm):00066                     ldx #irq_handler
+102B BF0110           (nterrupt_test.asm):00067                     stx IRQ_VEC
+102E 8E10AD           (nterrupt_test.asm):00068                     ldx #firq_handler
+1031 BF0112           (nterrupt_test.asm):00069                     stx FIRQ_VEC
+1034 8602             (nterrupt_test.asm):00070                     lda #DP_PAGE
+1036 1F8B             (nterrupt_test.asm):00071                     tfr a,dp
+1038 8E1041           (nterrupt_test.asm):00072                     ldx #banner
+103B BD1059           (nterrupt_test.asm):00073                     jsr puts
+103E 1600B3           (nterrupt_test.asm):00074                     lbra t02
+                      (nterrupt_test.asm):00075         ;
+1041 4D43363830392069 (nterrupt_test.asm):00076         banner      fcc "MC6809 interrupt test"
+     6E74657272757074
+     2074657374
+1056 0D0A00           (nterrupt_test.asm):00077                     fcb 13,10,0
+                      (nterrupt_test.asm):00078         ;
+1059 A680             (nterrupt_test.asm):00079         puts        lda ,x+
+105B 2705             (nterrupt_test.asm):00080                     beq puts_done
+105D B7FF08           (nterrupt_test.asm):00081                     sta DEV_PUTC
+1060 20F7             (nterrupt_test.asm):00082                     bra puts
+1062 39               (nterrupt_test.asm):00083         puts_done   rts
+                      (nterrupt_test.asm):00084         ;
+                      (nterrupt_test.asm):00085         ; Clear the log
+1063 3410             (nterrupt_test.asm):00086         log_clear   pshs x
+1065 8E0130           (nterrupt_test.asm):00087                     ldx #LOG
+1068 BF0116           (nterrupt_test.asm):00088                     stx LOGP
+106B 6F84             (nterrupt_test.asm):00089                     clr ,x
+106D 3590             (nterrupt_test.asm):00090                     puls x,pc
+                      (nterrupt_test.asm):00091         ; Append the letter in A to the log (keeps it zero terminated)
+106F 3410             (nterrupt_test.asm):00092         log_add     pshs x
+1071 BE0116           (nterrupt_test.asm):00093                     ldx LOGP
+1074 A780             (nterrupt_test.asm):00094                     sta ,x+
+1076 6F84             (nterrupt_test.asm):00095                     clr ,x
+1078 BF0116           (nterrupt_test.asm):00096                     stx LOGP
+107B 3590             (nterrupt_test.asm):00097                     puls x,pc
+                      (nterrupt_test.asm):00098         ; Fail unless the log equals the zero terminated string at X
+107D 108E0130         (nterrupt_test.asm):00099         log_check   ldy #LOG
+1081 A680             (nterrupt_test.asm):00100         log_check1  lda ,x+
+1083 A1A0             (nterrupt_test.asm):00101                     cmpa ,y+
+1085 26FE             (nterrupt_test.asm):00102                     bne *               ; log differs: see LOG at $0130
+1087 4D               (nterrupt_test.asm):00103                     tsta
+1088 26F7             (nterrupt_test.asm):00104                     bne log_check1
+108A 39               (nterrupt_test.asm):00105                     rts
+                      (nterrupt_test.asm):00106         ;
+                      (nterrupt_test.asm):00107         ; ---- interrupt handlers ---------------------------------------------------
+                      (nterrupt_test.asm):00108         ;
+                      (nterrupt_test.asm):00109         ; IRQ: entire state stacked. Record CC and the frame, drop the line.
+108B 1FA8             (nterrupt_test.asm):00110         irq_handler tfr cc,a
+108D B70118           (nterrupt_test.asm):00111                     sta HCC
+1090 8E0120           (nterrupt_test.asm):00112                     ldx #FRAME
+1093 1F42             (nterrupt_test.asm):00113                     tfr s,y
+1095 C60C             (nterrupt_test.asm):00114                     ldb #12
+1097 A6A0             (nterrupt_test.asm):00115         irq_copy    lda ,y+
+1099 A780             (nterrupt_test.asm):00116                     sta ,x+
+109B 5A               (nterrupt_test.asm):00117                     decb
+109C 26F9             (nterrupt_test.asm):00118                     bne irq_copy
+109E 8649             (nterrupt_test.asm):00119                     lda #'I'
+10A0 BD106F           (nterrupt_test.asm):00120                     jsr log_add
+10A3 B6FF00           (nterrupt_test.asm):00121                     lda DEV_LINES
+10A6 84FE             (nterrupt_test.asm):00122                     anda #~LINE_IRQ&$FF
+10A8 B7FF00           (nterrupt_test.asm):00123                     sta DEV_LINES
+10AB 12               (nterrupt_test.asm):00124                     nop
+10AC 3B               (nterrupt_test.asm):00125                     rti
+                      (nterrupt_test.asm):00126         ;
+                      (nterrupt_test.asm):00127         ; FIRQ: only CC and PC stacked, so save what the handler uses.
+10AD                  (nterrupt_test.asm):00128         firq_handler
+10AD 3401             (nterrupt_test.asm):00129                     pshs cc
+10AF 3436             (nterrupt_test.asm):00130                     pshs y,x,b,a
+10B1 A666             (nterrupt_test.asm):00131                     lda 6,s
+10B3 B70118           (nterrupt_test.asm):00132                     sta HCC
+10B6 8E0120           (nterrupt_test.asm):00133                     ldx #FRAME
+10B9 3167             (nterrupt_test.asm):00134                     leay 7,s
+10BB C603             (nterrupt_test.asm):00135                     ldb #3
+10BD A6A0             (nterrupt_test.asm):00136         firq_copy   lda ,y+
+10BF A780             (nterrupt_test.asm):00137                     sta ,x+
+10C1 5A               (nterrupt_test.asm):00138                     decb
+10C2 26F9             (nterrupt_test.asm):00139                     bne firq_copy
+10C4 8646             (nterrupt_test.asm):00140                     lda #'F'
+10C6 BD106F           (nterrupt_test.asm):00141                     jsr log_add
+10C9 B6FF00           (nterrupt_test.asm):00142                     lda DEV_LINES
+10CC 84FD             (nterrupt_test.asm):00143                     anda #~LINE_FIRQ&$FF
+10CE B7FF00           (nterrupt_test.asm):00144                     sta DEV_LINES
+10D1 12               (nterrupt_test.asm):00145                     nop
+10D2 3536             (nterrupt_test.asm):00146                     puls a,b,x,y
+10D4 3261             (nterrupt_test.asm):00147                     leas 1,s
+10D6 3B               (nterrupt_test.asm):00148                     rti
+                      (nterrupt_test.asm):00149         ;
+                      (nterrupt_test.asm):00150         ; NMI: entire state stacked. The line is left alone (edge triggered).
+10D7 1FA8             (nterrupt_test.asm):00151         nmi_handler tfr cc,a
+10D9 B70118           (nterrupt_test.asm):00152                     sta HCC
+10DC 8E0120           (nterrupt_test.asm):00153                     ldx #FRAME
+10DF 1F42             (nterrupt_test.asm):00154                     tfr s,y
+10E1 C60C             (nterrupt_test.asm):00155                     ldb #12
+10E3 A6A0             (nterrupt_test.asm):00156         nmi_copy    lda ,y+
+10E5 A780             (nterrupt_test.asm):00157                     sta ,x+
+10E7 5A               (nterrupt_test.asm):00158                     decb
+10E8 26F9             (nterrupt_test.asm):00159                     bne nmi_copy
+10EA 864E             (nterrupt_test.asm):00160                     lda #'N'
+10EC BD106F           (nterrupt_test.asm):00161                     jsr log_add
+10EF 3B               (nterrupt_test.asm):00162                     rti
+                      (nterrupt_test.asm):00163         ;
+                      (nterrupt_test.asm):00164         ; NMI that arrives right after the first LDS (allowed, see test $01)
+10F0 7C0119           (nterrupt_test.asm):00165         nmi_late    inc COUNT
+10F3 3B               (nterrupt_test.asm):00166                     rti
+                      (nterrupt_test.asm):00167         ;
+                      (nterrupt_test.asm):00168         ; ==========================================================================
+                      (nterrupt_test.asm):00169         ; $02 - IRQ
+                      (nterrupt_test.asm):00170         ; ==========================================================================
+10F4                  (nterrupt_test.asm):00171         t02         test $02
+10F4 8602             (             test):00001                     lda #$02
+10F6 B70100           (             test):00002                     sta TEST_CASE
+10F9 7F0101           (             test):00003                     clr TEST_SUB
+10FC BD1063           (nterrupt_test.asm):00172                     jsr log_clear
+10FF CC1122           (nterrupt_test.asm):00173                     ldd #$1122
+1102 8E3344           (nterrupt_test.asm):00174                     ldx #$3344
+1105 108E5566         (nterrupt_test.asm):00175                     ldy #$5566
+1109 CE7788           (nterrupt_test.asm):00176                     ldu #$7788
+110C 10FF011A         (nterrupt_test.asm):00177                     sts SAVE_S
+                      (nterrupt_test.asm):00178                     set_cc CC_F|CC_N|CC_C
+1110 1C00             (           set_cc):00001                     andcc #$00
+1112 1A49             (           set_cc):00002                     orcc #CC_F|CC_N|CC_C
+1114 8601             (nterrupt_test.asm):00179                     lda #LINE_IRQ
+1116 B7FF00           (nterrupt_test.asm):00180                     sta DEV_LINES
+1119 12               (nterrupt_test.asm):00181                     nop
+111A 12               (nterrupt_test.asm):00182                     nop
+111B 12               (nterrupt_test.asm):00183                     nop
+111C 12               (nterrupt_test.asm):00184                     nop
+111D 8E15DC           (nterrupt_test.asm):00185                     ldx #log_i
+1120 BD107D           (nterrupt_test.asm):00186                     jsr log_check
+1123 B60118           (nterrupt_test.asm):00187                     lda HCC             ; E and I set, F as before
+1126 84D0             (nterrupt_test.asm):00188                     anda #CC_E|CC_F|CC_I
+1128 81D0             (nterrupt_test.asm):00189                     cmpa #CC_E|CC_F|CC_I
+112A 26FE             (nterrupt_test.asm):00190                     bne *
+112C B60120           (nterrupt_test.asm):00191                     lda FRAME           ; stacked CC has E set, I still clear
+112F 84D0             (nterrupt_test.asm):00192                     anda #~(CC_N|CC_Z|CC_V|CC_C|CC_H)&$FF
+1131 81C0             (nterrupt_test.asm):00193                     cmpa #CC_E|CC_F
+1133 26FE             (nterrupt_test.asm):00194                     bne *
+1135 FC0122           (nterrupt_test.asm):00195                     ldd FRAME+2         ; B, DP
+1138 10832202         (nterrupt_test.asm):00196                     cmpd #$2200+DP_PAGE
+113C 26FE             (nterrupt_test.asm):00197                     bne *
+113E FC0124           (nterrupt_test.asm):00198                     ldd FRAME+4
+1141 10833344         (nterrupt_test.asm):00199                     cmpd #$3344
+1145 26FE             (nterrupt_test.asm):00200                     bne *
+1147 FC0126           (nterrupt_test.asm):00201                     ldd FRAME+6
+114A 10835566         (nterrupt_test.asm):00202                     cmpd #$5566
+114E 26FE             (nterrupt_test.asm):00203                     bne *
+1150 FC0128           (nterrupt_test.asm):00204                     ldd FRAME+8
+1153 10837788         (nterrupt_test.asm):00205                     cmpd #$7788
+1157 26FE             (nterrupt_test.asm):00206                     bne *
+1159 11BC011A         (nterrupt_test.asm):00207                     cmps SAVE_S
+115D 26FE             (nterrupt_test.asm):00208                     bne *
+115F CE0A00           (nterrupt_test.asm):00209                     ldu #USTACK
+                      (nterrupt_test.asm):00210         ;
+                      (nterrupt_test.asm):00211         ; ==========================================================================
+                      (nterrupt_test.asm):00212         ; $03 - IRQ masked by I, taken as soon as I is cleared
+                      (nterrupt_test.asm):00213         ; ==========================================================================
+1162                  (nterrupt_test.asm):00214         t03         test $03
+1162 8603             (             test):00001                     lda #$03
+1164 B70100           (             test):00002                     sta TEST_CASE
+1167 7F0101           (             test):00003                     clr TEST_SUB
+116A BD1063           (nterrupt_test.asm):00215                     jsr log_clear
+116D 1A10             (nterrupt_test.asm):00216                     orcc #CC_I
+116F 1CBF             (nterrupt_test.asm):00217                     andcc #~CC_F&$FF    ; F clear must not let IRQ in
+1171 8601             (nterrupt_test.asm):00218                     lda #LINE_IRQ
+1173 B7FF00           (nterrupt_test.asm):00219                     sta DEV_LINES
+1176 12               (nterrupt_test.asm):00220                     nop
+1177 12               (nterrupt_test.asm):00221                     nop
+1178 12               (nterrupt_test.asm):00222                     nop
+1179 12               (nterrupt_test.asm):00223                     nop
+117A 12               (nterrupt_test.asm):00224                     nop
+117B 12               (nterrupt_test.asm):00225                     nop
+117C 8E15DB           (nterrupt_test.asm):00226                     ldx #log_none
+117F BD107D           (nterrupt_test.asm):00227                     jsr log_check
+1182 1CEF             (nterrupt_test.asm):00228                     andcc #~CC_I&$FF
+1184 12               (nterrupt_test.asm):00229                     nop
+1185 12               (nterrupt_test.asm):00230                     nop
+1186 12               (nterrupt_test.asm):00231                     nop
+1187 8E15DC           (nterrupt_test.asm):00232                     ldx #log_i
+118A BD107D           (nterrupt_test.asm):00233                     jsr log_check
+                      (nterrupt_test.asm):00234         ;
+                      (nterrupt_test.asm):00235         ; ==========================================================================
+                      (nterrupt_test.asm):00236         ; $04 - IRQ is level triggered: taken again until the line drops
+                      (nterrupt_test.asm):00237         ; ==========================================================================
+118D                  (nterrupt_test.asm):00238         t04         test $04
+118D 8604             (             test):00001                     lda #$04
+118F B70100           (             test):00002                     sta TEST_CASE
+1192 7F0101           (             test):00003                     clr TEST_SUB
+1195 BD1063           (nterrupt_test.asm):00239                     jsr log_clear
+1198 7F0119           (nterrupt_test.asm):00240                     clr COUNT
+119B 8E11B9           (nterrupt_test.asm):00241                     ldx #irq_thrice
+119E BF0110           (nterrupt_test.asm):00242                     stx IRQ_VEC
+11A1 8601             (nterrupt_test.asm):00243                     lda #LINE_IRQ
+11A3 B7FF00           (nterrupt_test.asm):00244                     sta DEV_LINES
+11A6 12               (nterrupt_test.asm):00245                     nop
+11A7 12               (nterrupt_test.asm):00246                     nop
+11A8 12               (nterrupt_test.asm):00247                     nop
+11A9 12               (nterrupt_test.asm):00248                     nop
+11AA 8E15DE           (nterrupt_test.asm):00249                     ldx #log_iii
+11AD BD107D           (nterrupt_test.asm):00250                     jsr log_check
+11B0 8E108B           (nterrupt_test.asm):00251                     ldx #irq_handler
+11B3 BF0110           (nterrupt_test.asm):00252                     stx IRQ_VEC
+11B6 160014           (nterrupt_test.asm):00253                     lbra t05
+11B9 8649             (nterrupt_test.asm):00254         irq_thrice  lda #'I'
+11BB BD106F           (nterrupt_test.asm):00255                     jsr log_add
+11BE 7C0119           (nterrupt_test.asm):00256                     inc COUNT
+11C1 B60119           (nterrupt_test.asm):00257                     lda COUNT
+11C4 8103             (nterrupt_test.asm):00258                     cmpa #3
+11C6 2604             (nterrupt_test.asm):00259                     bne irq_thrice1
+11C8 7FFF00           (nterrupt_test.asm):00260                     clr DEV_LINES
+11CB 12               (nterrupt_test.asm):00261                     nop
+11CC 3B               (nterrupt_test.asm):00262         irq_thrice1 rti
+                      (nterrupt_test.asm):00263         ;
+                      (nterrupt_test.asm):00264         ; ==========================================================================
+                      (nterrupt_test.asm):00265         ; $05 - FIRQ
+                      (nterrupt_test.asm):00266         ; ==========================================================================
+11CD                  (nterrupt_test.asm):00267         t05         test $05
+11CD 8605             (             test):00001                     lda #$05
+11CF B70100           (             test):00002                     sta TEST_CASE
+11D2 7F0101           (             test):00003                     clr TEST_SUB
+11D5 BD1063           (nterrupt_test.asm):00268                     jsr log_clear
+11D8 1A50             (nterrupt_test.asm):00269                     orcc #CC_I|CC_F
+11DA 8602             (nterrupt_test.asm):00270                     lda #LINE_FIRQ
+11DC B7FF00           (nterrupt_test.asm):00271                     sta DEV_LINES
+11DF 12               (nterrupt_test.asm):00272                     nop
+11E0 12               (nterrupt_test.asm):00273                     nop
+11E1 8E15DB           (nterrupt_test.asm):00274                     ldx #log_none
+11E4 BD107D           (nterrupt_test.asm):00275                     jsr log_check
+11E7 10FF011A         (nterrupt_test.asm):00276                     sts SAVE_S
+11EB 8696             (nterrupt_test.asm):00277                     lda #CC_E|CC_I|CC_Z|CC_V    ; F clear: FIRQ goes in
+11ED 3402             (nterrupt_test.asm):00278                     pshs a
+11EF CC1122           (nterrupt_test.asm):00279                     ldd #$1122
+11F2 8E3344           (nterrupt_test.asm):00280                     ldx #$3344
+11F5 3501             (nterrupt_test.asm):00281                     puls cc             ; CC, D and X all set before the FIRQ
+11F7 12               (nterrupt_test.asm):00282         t05nops     nop
+11F8 12               (nterrupt_test.asm):00283                     nop
+11F9 12               (nterrupt_test.asm):00284                     nop
+11FA 12               (nterrupt_test.asm):00285                     nop
+11FB 3401             (nterrupt_test.asm):00286                     pshs cc
+11FD 10831122         (nterrupt_test.asm):00287                     cmpd #$1122         ; A and B not touched
+1201 26FE             (nterrupt_test.asm):00288                     bne *
+1203 8C3344           (nterrupt_test.asm):00289                     cmpx #$3344
+1206 26FE             (nterrupt_test.asm):00290                     bne *
+1208 3501             (nterrupt_test.asm):00291                     puls cc
+120A 11BC011A         (nterrupt_test.asm):00292                     cmps SAVE_S
+120E 26FE             (nterrupt_test.asm):00293                     bne *
+1210 8E15E2           (nterrupt_test.asm):00294                     ldx #log_f
+1213 BD107D           (nterrupt_test.asm):00295                     jsr log_check
+1216 B60118           (nterrupt_test.asm):00296                     lda HCC             ; E cleared, F and I set
+1219 84D0             (nterrupt_test.asm):00297                     anda #CC_E|CC_F|CC_I
+121B 8150             (nterrupt_test.asm):00298                     cmpa #CC_F|CC_I
+121D 26FE             (nterrupt_test.asm):00299                     bne *
+121F B60120           (nterrupt_test.asm):00300                     lda FRAME           ; stacked CC: E clear, F clear
+1222 84D0             (nterrupt_test.asm):00301                     anda #CC_E|CC_F|CC_I
+1224 8110             (nterrupt_test.asm):00302                     cmpa #CC_I
+1226 26FE             (nterrupt_test.asm):00303                     bne *
+1228 FC0121           (nterrupt_test.asm):00304                     ldd FRAME+1         ; stacked PC is in the NOPs above
+122B 108311F7         (nterrupt_test.asm):00305                     cmpd #t05nops
+122F 25FE             (nterrupt_test.asm):00306                     blo *
+1231 108311FB         (nterrupt_test.asm):00307                     cmpd #t05nops+4
+1235 22FE             (nterrupt_test.asm):00308                     bhi *
+                      (nterrupt_test.asm):00309         ;
+                      (nterrupt_test.asm):00310         ; ==========================================================================
+                      (nterrupt_test.asm):00311         ; $06 - FIRQ masked by F only
+                      (nterrupt_test.asm):00312         ; ==========================================================================
+1237                  (nterrupt_test.asm):00313         t06         test $06
+1237 8606             (             test):00001                     lda #$06
+1239 B70100           (             test):00002                     sta TEST_CASE
+123C 7F0101           (             test):00003                     clr TEST_SUB
+123F BD1063           (nterrupt_test.asm):00314                     jsr log_clear
+1242 1A40             (nterrupt_test.asm):00315                     orcc #CC_F
+1244 1CEF             (nterrupt_test.asm):00316                     andcc #~CC_I&$FF
+1246 8602             (nterrupt_test.asm):00317                     lda #LINE_FIRQ
+1248 B7FF00           (nterrupt_test.asm):00318                     sta DEV_LINES
+124B 12               (nterrupt_test.asm):00319                     nop
+124C 12               (nterrupt_test.asm):00320                     nop
+124D 12               (nterrupt_test.asm):00321                     nop
+124E 12               (nterrupt_test.asm):00322                     nop
+124F 8E15DB           (nterrupt_test.asm):00323                     ldx #log_none
+1252 BD107D           (nterrupt_test.asm):00324                     jsr log_check
+1255 1CBF             (nterrupt_test.asm):00325                     andcc #~CC_F&$FF
+1257 12               (nterrupt_test.asm):00326                     nop
+1258 12               (nterrupt_test.asm):00327                     nop
+1259 8E15E2           (nterrupt_test.asm):00328                     ldx #log_f
+125C BD107D           (nterrupt_test.asm):00329                     jsr log_check
+                      (nterrupt_test.asm):00330         ;
+                      (nterrupt_test.asm):00331         ; ==========================================================================
+                      (nterrupt_test.asm):00332         ; $07 - an IRQ taken inside a FIRQ handler that clears I
+                      (nterrupt_test.asm):00333         ; ==========================================================================
+125F                  (nterrupt_test.asm):00334         t07         test $07
+125F 8607             (             test):00001                     lda #$07
+1261 B70100           (             test):00002                     sta TEST_CASE
+1264 7F0101           (             test):00003                     clr TEST_SUB
+1267 BD1063           (nterrupt_test.asm):00335                     jsr log_clear
+126A 8E128D           (nterrupt_test.asm):00336                     ldx #firq_nest
+126D BF0112           (nterrupt_test.asm):00337                     stx FIRQ_VEC
+1270 1A50             (nterrupt_test.asm):00338                     orcc #CC_I|CC_F
+1272 8603             (nterrupt_test.asm):00339                     lda #LINE_IRQ|LINE_FIRQ
+1274 B7FF00           (nterrupt_test.asm):00340                     sta DEV_LINES
+1277 12               (nterrupt_test.asm):00341                     nop
+1278 1CAF             (nterrupt_test.asm):00342                     andcc #~(CC_I|CC_F)&$FF     ; FIRQ first: it has priority
+127A 12               (nterrupt_test.asm):00343                     nop
+127B 12               (nterrupt_test.asm):00344                     nop
+127C 12               (nterrupt_test.asm):00345                     nop
+127D 12               (nterrupt_test.asm):00346                     nop
+127E 8E15E4           (nterrupt_test.asm):00347                     ldx #log_fif
+1281 BD107D           (nterrupt_test.asm):00348                     jsr log_check
+1284 8E10AD           (nterrupt_test.asm):00349                     ldx #firq_handler
+1287 BF0112           (nterrupt_test.asm):00350                     stx FIRQ_VEC
+128A 160019           (nterrupt_test.asm):00351                     lbra t08
+128D 3402             (nterrupt_test.asm):00352         firq_nest   pshs a
+128F 8646             (nterrupt_test.asm):00353                     lda #'F'
+1291 BD106F           (nterrupt_test.asm):00354                     jsr log_add
+1294 8601             (nterrupt_test.asm):00355                     lda #LINE_IRQ       ; drop FIRQ, keep IRQ
+1296 B7FF00           (nterrupt_test.asm):00356                     sta DEV_LINES
+1299 1CEF             (nterrupt_test.asm):00357                     andcc #~CC_I&$FF    ; let the IRQ in
+129B 12               (nterrupt_test.asm):00358                     nop
+129C 12               (nterrupt_test.asm):00359                     nop
+129D 12               (nterrupt_test.asm):00360                     nop
+129E 8666             (nterrupt_test.asm):00361                     lda #'f'
+12A0 BD106F           (nterrupt_test.asm):00362                     jsr log_add
+12A3 3502             (nterrupt_test.asm):00363                     puls a
+12A5 3B               (nterrupt_test.asm):00364                     rti
+                      (nterrupt_test.asm):00365         ;
+                      (nterrupt_test.asm):00366         ; ==========================================================================
+                      (nterrupt_test.asm):00367         ; $08 - NMI
+                      (nterrupt_test.asm):00368         ; ==========================================================================
+12A6                  (nterrupt_test.asm):00369         t08         test $08
+12A6 8608             (             test):00001                     lda #$08
+12A8 B70100           (             test):00002                     sta TEST_CASE
+12AB 7F0101           (             test):00003                     clr TEST_SUB
+12AE BD1063           (nterrupt_test.asm):00370                     jsr log_clear
+12B1 CCA1B2           (nterrupt_test.asm):00371                     ldd #$A1B2
+12B4 8EC3D4           (nterrupt_test.asm):00372                     ldx #$C3D4
+12B7 10FF011A         (nterrupt_test.asm):00373                     sts SAVE_S
+                      (nterrupt_test.asm):00374                     set_cc CC_E|CC_F|CC_I|CC_H  ; masks do not stop NMI
+12BB 1C00             (           set_cc):00001                     andcc #$00
+12BD 1AF0             (           set_cc):00002                     orcc #CC_E|CC_F|CC_I|CC_H
+12BF 8604             (nterrupt_test.asm):00375                     lda #LINE_NMI
+12C1 B7FF00           (nterrupt_test.asm):00376                     sta DEV_LINES
+12C4 12               (nterrupt_test.asm):00377                     nop
+12C5 12               (nterrupt_test.asm):00378                     nop
+12C6 12               (nterrupt_test.asm):00379                     nop
+12C7 12               (nterrupt_test.asm):00380                     nop
+12C8 8E15EB           (nterrupt_test.asm):00381                     ldx #log_n
+12CB BD107D           (nterrupt_test.asm):00382                     jsr log_check
+12CE 11BC011A         (nterrupt_test.asm):00383                     cmps SAVE_S
+12D2 26FE             (nterrupt_test.asm):00384                     bne *
+12D4 B60118           (nterrupt_test.asm):00385                     lda HCC             ; E, F and I set
+12D7 84D0             (nterrupt_test.asm):00386                     anda #CC_E|CC_F|CC_I
+12D9 81D0             (nterrupt_test.asm):00387                     cmpa #CC_E|CC_F|CC_I
+12DB 26FE             (nterrupt_test.asm):00388                     bne *
+12DD B60120           (nterrupt_test.asm):00389                     lda FRAME
+12E0 81F0             (nterrupt_test.asm):00390                     cmpa #CC_E|CC_F|CC_I|CC_H
+12E2 26FE             (nterrupt_test.asm):00391                     bne *
+12E4 B60122           (nterrupt_test.asm):00392                     lda FRAME+2         ; B
+12E7 81B2             (nterrupt_test.asm):00393                     cmpa #$B2
+12E9 26FE             (nterrupt_test.asm):00394                     bne *
+                      (nterrupt_test.asm):00395         ;
+                      (nterrupt_test.asm):00396         ; ==========================================================================
+                      (nterrupt_test.asm):00397         ; $09 - NMI is edge triggered: a line held high fires once
+                      (nterrupt_test.asm):00398         ; ==========================================================================
+12EB                  (nterrupt_test.asm):00399         t09         test $09
+12EB 8609             (             test):00001                     lda #$09
+12ED B70100           (             test):00002                     sta TEST_CASE
+12F0 7F0101           (             test):00003                     clr TEST_SUB
+12F3 BD1063           (nterrupt_test.asm):00400                     jsr log_clear
+12F6 12               (nterrupt_test.asm):00401                     nop                 ; the line is still high from test $08
+12F7 12               (nterrupt_test.asm):00402                     nop
+12F8 12               (nterrupt_test.asm):00403                     nop
+12F9 12               (nterrupt_test.asm):00404                     nop
+12FA 8E15DB           (nterrupt_test.asm):00405                     ldx #log_none
+12FD BD107D           (nterrupt_test.asm):00406                     jsr log_check
+1300 7FFF00           (nterrupt_test.asm):00407                     clr DEV_LINES
+1303 12               (nterrupt_test.asm):00408                     nop
+1304 12               (nterrupt_test.asm):00409                     nop
+1305 8E15DB           (nterrupt_test.asm):00410                     ldx #log_none
+1308 BD107D           (nterrupt_test.asm):00411                     jsr log_check
+130B 8604             (nterrupt_test.asm):00412                     lda #LINE_NMI
+130D B7FF00           (nterrupt_test.asm):00413                     sta DEV_LINES       ; a new edge
+1310 12               (nterrupt_test.asm):00414                     nop
+1311 12               (nterrupt_test.asm):00415                     nop
+1312 12               (nterrupt_test.asm):00416                     nop
+1313 8E15EB           (nterrupt_test.asm):00417                     ldx #log_n
+1316 BD107D           (nterrupt_test.asm):00418                     jsr log_check
+1319 7FFF00           (nterrupt_test.asm):00419                     clr DEV_LINES
+131C 12               (nterrupt_test.asm):00420                     nop
+                      (nterrupt_test.asm):00421         ;
+                      (nterrupt_test.asm):00422         ; ==========================================================================
+                      (nterrupt_test.asm):00423         ; $0A - priority: NMI, then FIRQ, then IRQ
+                      (nterrupt_test.asm):00424         ; ==========================================================================
+131D                  (nterrupt_test.asm):00425         t0a         test $0A
+131D 860A             (             test):00001                     lda #$0A
+131F B70100           (             test):00002                     sta TEST_CASE
+1322 7F0101           (             test):00003                     clr TEST_SUB
+1325 BD1063           (nterrupt_test.asm):00426                     jsr log_clear
+1328 1A50             (nterrupt_test.asm):00427                     orcc #CC_I|CC_F
+132A 8603             (nterrupt_test.asm):00428                     lda #LINE_IRQ|LINE_FIRQ
+132C B7FF00           (nterrupt_test.asm):00429                     sta DEV_LINES
+132F 12               (nterrupt_test.asm):00430                     nop
+1330 8607             (nterrupt_test.asm):00431                     lda #LINE_IRQ|LINE_FIRQ|LINE_NMI
+1332 B7FF00           (nterrupt_test.asm):00432                     sta DEV_LINES
+1335 12               (nterrupt_test.asm):00433                     nop
+1336 12               (nterrupt_test.asm):00434                     nop
+1337 12               (nterrupt_test.asm):00435                     nop
+1338 8E15EB           (nterrupt_test.asm):00436                     ldx #log_n          ; NMI in, FIRQ and IRQ still masked
+133B BD107D           (nterrupt_test.asm):00437                     jsr log_check
+133E BD1063           (nterrupt_test.asm):00438                     jsr log_clear
+1341 1CAF             (nterrupt_test.asm):00439                     andcc #~(CC_I|CC_F)&$FF
+1343 12               (nterrupt_test.asm):00440                     nop
+1344 12               (nterrupt_test.asm):00441                     nop
+1345 12               (nterrupt_test.asm):00442                     nop
+1346 12               (nterrupt_test.asm):00443                     nop
+1347 12               (nterrupt_test.asm):00444                     nop
+1348 8E15E8           (nterrupt_test.asm):00445                     ldx #log_fi
+134B BD107D           (nterrupt_test.asm):00446                     jsr log_check
+134E 7FFF00           (nterrupt_test.asm):00447                     clr DEV_LINES
+1351 12               (nterrupt_test.asm):00448                     nop
+                      (nterrupt_test.asm):00449         ;
+                      (nterrupt_test.asm):00450         ; ==========================================================================
+                      (nterrupt_test.asm):00451         ; $0B - an IRQ handler may use every register: RTI restores them all
+                      (nterrupt_test.asm):00452         ; ==========================================================================
+1352                  (nterrupt_test.asm):00453         t0b         test $0B
+1352 860B             (             test):00001                     lda #$0B
+1354 B70100           (             test):00002                     sta TEST_CASE
+1357 7F0101           (             test):00003                     clr TEST_SUB
+135A 8E13C9           (nterrupt_test.asm):00454                     ldx #irq_trash
+135D BF0110           (nterrupt_test.asm):00455                     stx IRQ_VEC
+1360 865A             (nterrupt_test.asm):00456                     lda #$5A
+1362 1F8B             (nterrupt_test.asm):00457                     tfr a,dp
+1364 CC0102           (nterrupt_test.asm):00458                     ldd #$0102
+1367 8E0304           (nterrupt_test.asm):00459                     ldx #$0304
+136A 108E0506         (nterrupt_test.asm):00460                     ldy #$0506
+136E CE0708           (nterrupt_test.asm):00461                     ldu #$0708
+1371 10FF011A         (nterrupt_test.asm):00462                     sts SAVE_S
+1375 1C00             (nterrupt_test.asm):00463                     andcc #$00
+1377 8601             (nterrupt_test.asm):00464                     lda #LINE_IRQ
+1379 B7FF00           (nterrupt_test.asm):00465                     sta DEV_LINES
+137C 8601             (nterrupt_test.asm):00466                     lda #$01            ; A back to $01 for the check below
+137E 12               (nterrupt_test.asm):00467                     nop
+137F 12               (nterrupt_test.asm):00468                     nop
+1380 12               (nterrupt_test.asm):00469                     nop
+1381 12               (nterrupt_test.asm):00470                     nop
+                      (nterrupt_test.asm):00471                     chk_d $0102
+1382 3401             (            chk_d):00001                     pshs cc
+1384 10830102         (            chk_d):00002                     cmpd #$0102
+1388 26FE             (            chk_d):00003                     bne *
+138A 3501             (            chk_d):00004                     puls cc
+                      (nterrupt_test.asm):00472                     chk_x $0304
+138C 3401             (            chk_x):00001                     pshs cc
+138E 8C0304           (            chk_x):00002                     cmpx #$0304
+1391 26FE             (            chk_x):00003                     bne *
+1393 3501             (            chk_x):00004                     puls cc
+                      (nterrupt_test.asm):00473                     chk_y $0506
+1395 3401             (            chk_y):00001                     pshs cc
+1397 108C0506         (            chk_y):00002                     cmpy #$0506
+139B 26FE             (            chk_y):00003                     bne *
+139D 3501             (            chk_y):00004                     puls cc
+                      (nterrupt_test.asm):00474                     chk_u $0708
+139F 3401             (            chk_u):00001                     pshs cc
+13A1 11830708         (            chk_u):00002                     cmpu #$0708
+13A5 26FE             (            chk_u):00003                     bne *
+13A7 3501             (            chk_u):00004                     puls cc
+                      (nterrupt_test.asm):00475                     chk_dp $5A
+13A9 3403             (           chk_dp):00001                     pshs cc,a
+13AB 1FB8             (           chk_dp):00002                     tfr dp,a
+13AD 815A             (           chk_dp):00003                     cmpa #$5A
+13AF 26FE             (           chk_dp):00004                     bne *
+13B1 3503             (           chk_dp):00005                     puls cc,a
+13B3 11BC011A         (nterrupt_test.asm):00476                     cmps SAVE_S
+13B7 26FE             (nterrupt_test.asm):00477                     bne *
+13B9 8602             (nterrupt_test.asm):00478                     lda #DP_PAGE
+13BB 1F8B             (nterrupt_test.asm):00479                     tfr a,dp
+13BD CE0A00           (nterrupt_test.asm):00480                     ldu #USTACK
+13C0 8E108B           (nterrupt_test.asm):00481                     ldx #irq_handler
+13C3 BF0110           (nterrupt_test.asm):00482                     stx IRQ_VEC
+13C6 160015           (nterrupt_test.asm):00483                     lbra t0c
+13C9 7FFF00           (nterrupt_test.asm):00484         irq_trash   clr DEV_LINES
+13CC CCFFFF           (nterrupt_test.asm):00485                     ldd #$FFFF
+13CF 8EFFFF           (nterrupt_test.asm):00486                     ldx #$FFFF
+13D2 108EFFFF         (nterrupt_test.asm):00487                     ldy #$FFFF
+13D6 CEFFFF           (nterrupt_test.asm):00488                     ldu #$FFFF
+13D9 1F8B             (nterrupt_test.asm):00489                     tfr a,dp
+13DB 1A0F             (nterrupt_test.asm):00490                     orcc #$0F
+13DD 3B               (nterrupt_test.asm):00491                     rti
+                      (nterrupt_test.asm):00492         ;
+                      (nterrupt_test.asm):00493         ; ==========================================================================
+                      (nterrupt_test.asm):00494         ; $0C - the stacked PC is the next instruction to run
+                      (nterrupt_test.asm):00495         ; ==========================================================================
+13DE                  (nterrupt_test.asm):00496         t0c         test $0C
+13DE 860C             (             test):00001                     lda #$0C
+13E0 B70100           (             test):00002                     sta TEST_CASE
+13E3 7F0101           (             test):00003                     clr TEST_SUB
+13E6 BD1063           (nterrupt_test.asm):00497                     jsr log_clear
+13E9 1CEF             (nterrupt_test.asm):00498                     andcc #~CC_I&$FF
+13EB 8601             (nterrupt_test.asm):00499                     lda #LINE_IRQ
+13ED B7FF00           (nterrupt_test.asm):00500                     sta DEV_LINES
+13F0 12               (nterrupt_test.asm):00501         t0csled     nop
+13F1 12               (nterrupt_test.asm):00502                     nop
+13F2 12               (nterrupt_test.asm):00503                     nop
+13F3 12               (nterrupt_test.asm):00504                     nop
+13F4 12               (nterrupt_test.asm):00505                     nop
+13F5 12               (nterrupt_test.asm):00506         t0csled_end nop
+13F6 8E15DC           (nterrupt_test.asm):00507                     ldx #log_i
+13F9 BD107D           (nterrupt_test.asm):00508                     jsr log_check
+13FC FC012A           (nterrupt_test.asm):00509                     ldd FRAME+10
+13FF 108313F0         (nterrupt_test.asm):00510                     cmpd #t0csled
+1403 25FE             (nterrupt_test.asm):00511                     blo *
+1405 108313F5         (nterrupt_test.asm):00512                     cmpd #t0csled_end
+1409 22FE             (nterrupt_test.asm):00513                     bhi *
+                      (nterrupt_test.asm):00514         ;
+                      (nterrupt_test.asm):00515         ; ==========================================================================
+                      (nterrupt_test.asm):00516         ; $0D - CWAI
+                      (nterrupt_test.asm):00517         ; ==========================================================================
+                      (nterrupt_test.asm):00518         ; CWAI ANDs CC with its operand, stacks the entire state (E set) and waits.
+                      (nterrupt_test.asm):00519         ; The interrupt then goes straight to its vector: no second frame.
+140B                  (nterrupt_test.asm):00520         t0d         test $0D
+140B 860D             (             test):00001                     lda #$0D
+140D B70100           (             test):00002                     sta TEST_CASE
+1410 7F0101           (             test):00003                     clr TEST_SUB
+1413 BD1063           (nterrupt_test.asm):00521                     jsr log_clear
+1416 1A50             (nterrupt_test.asm):00522                     orcc #CC_I|CC_F
+1418 8601             (nterrupt_test.asm):00523                     lda #LINE_IRQ
+141A B7FF01           (nterrupt_test.asm):00524                     sta DEV_DLINES
+141D CC003C           (nterrupt_test.asm):00525                     ldd #60
+1420 FDFF02           (nterrupt_test.asm):00526                     std DEV_DELAY       ; IRQ in 60 cycles
+1423 CC4455           (nterrupt_test.asm):00527                     ldd #$4455
+1426 8E6677           (nterrupt_test.asm):00528                     ldx #$6677
+1429 10FF011A         (nterrupt_test.asm):00529                     sts SAVE_S
+                      (nterrupt_test.asm):00530                     set_cc CC_I|CC_F|CC_N|CC_Z
+142D 1C00             (           set_cc):00001                     andcc #$00
+142F 1A5C             (           set_cc):00002                     orcc #CC_I|CC_F|CC_N|CC_Z
+1431 3CE7             (nterrupt_test.asm):00531                     cwai #~(CC_I|CC_N)&$FF
+1433 1FA8             (nterrupt_test.asm):00532         t0dret1     tfr cc,a            ; RTI restored CC from the CWAI frame
+1435 81C4             (nterrupt_test.asm):00533                     cmpa #CC_E|CC_F|CC_Z
+1437 26FE             (nterrupt_test.asm):00534                     bne *
+1439 11BC011A         (nterrupt_test.asm):00535                     cmps SAVE_S
+143D 26FE             (nterrupt_test.asm):00536                     bne *
+143F 8E15DC           (nterrupt_test.asm):00537                     ldx #log_i
+1442 BD107D           (nterrupt_test.asm):00538                     jsr log_check
+1445 B60120           (nterrupt_test.asm):00539                     lda FRAME           ; CC & operand, then E
+1448 81C4             (nterrupt_test.asm):00540                     cmpa #CC_E|CC_F|CC_Z
+144A 26FE             (nterrupt_test.asm):00541                     bne *
+144C FC0121           (nterrupt_test.asm):00542                     ldd FRAME+1         ; A, B
+144F 10834455         (nterrupt_test.asm):00543                     cmpd #$4455
+1453 26FE             (nterrupt_test.asm):00544                     bne *
+1455 FC0124           (nterrupt_test.asm):00545                     ldd FRAME+4
+1458 10836677         (nterrupt_test.asm):00546                     cmpd #$6677
+145C 26FE             (nterrupt_test.asm):00547                     bne *
+145E FC012A           (nterrupt_test.asm):00548                     ldd FRAME+10
+1461 10831433         (nterrupt_test.asm):00549                     cmpd #t0dret1
+1465 26FE             (nterrupt_test.asm):00550                     bne *
+1467 B60118           (nterrupt_test.asm):00551                     lda HCC
+146A 84D0             (nterrupt_test.asm):00552                     anda #CC_E|CC_F|CC_I
+146C 81D0             (nterrupt_test.asm):00553                     cmpa #CC_E|CC_F|CC_I ; IRQ sets I, leaves F (set here)
+146E 26FE             (nterrupt_test.asm):00554                     bne *
+                      (nterrupt_test.asm):00555         ; CWAI with FIRQ: the frame is still the entire state, E set
+1470 7C0101           (nterrupt_test.asm):00556                     inc TEST_SUB
+1473 BD1063           (nterrupt_test.asm):00557                     jsr log_clear
+1476 1A50             (nterrupt_test.asm):00558                     orcc #CC_I|CC_F
+1478 8602             (nterrupt_test.asm):00559                     lda #LINE_FIRQ
+147A B7FF01           (nterrupt_test.asm):00560                     sta DEV_DLINES
+147D CC003C           (nterrupt_test.asm):00561                     ldd #60
+1480 FDFF02           (nterrupt_test.asm):00562                     std DEV_DELAY
+1483 CC8899           (nterrupt_test.asm):00563                     ldd #$8899
+1486 8EAABB           (nterrupt_test.asm):00564                     ldx #$AABB
+1489 108ECCDD         (nterrupt_test.asm):00565                     ldy #$CCDD
+148D 10FF011A         (nterrupt_test.asm):00566                     sts SAVE_S
+                      (nterrupt_test.asm):00567                     set_cc CC_I|CC_F
+1491 1C00             (           set_cc):00001                     andcc #$00
+1493 1A50             (           set_cc):00002                     orcc #CC_I|CC_F
+1495 3CBF             (nterrupt_test.asm):00568                     cwai #~CC_F&$FF
+1497                  (nterrupt_test.asm):00569         t0dret2     chk_cc CC_E|CC_I
+1497 3403             (           chk_cc):00001                     pshs cc,a
+1499 A6E4             (           chk_cc):00002                     lda ,s
+149B 8190             (           chk_cc):00003                     cmpa #CC_E|CC_I
+149D 26FE             (           chk_cc):00004                     bne *
+149F 3503             (           chk_cc):00005                     puls cc,a
+14A1 11BC011A         (nterrupt_test.asm):00570                     cmps SAVE_S
+14A5 26FE             (nterrupt_test.asm):00571                     bne *
+                      (nterrupt_test.asm):00572                     chk_d $8899         ; restored from the entire frame
+14A7 3401             (            chk_d):00001                     pshs cc
+14A9 10838899         (            chk_d):00002                     cmpd #$8899
+14AD 26FE             (            chk_d):00003                     bne *
+14AF 3501             (            chk_d):00004                     puls cc
+                      (nterrupt_test.asm):00573                     chk_x $AABB
+14B1 3401             (            chk_x):00001                     pshs cc
+14B3 8CAABB           (            chk_x):00002                     cmpx #$AABB
+14B6 26FE             (            chk_x):00003                     bne *
+14B8 3501             (            chk_x):00004                     puls cc
+                      (nterrupt_test.asm):00574                     chk_y $CCDD
+14BA 3401             (            chk_y):00001                     pshs cc
+14BC 108CCCDD         (            chk_y):00002                     cmpy #$CCDD
+14C0 26FE             (            chk_y):00003                     bne *
+14C2 3501             (            chk_y):00004                     puls cc
+14C4 8E15E2           (nterrupt_test.asm):00575                     ldx #log_f
+14C7 BD107D           (nterrupt_test.asm):00576                     jsr log_check
+14CA B60120           (nterrupt_test.asm):00577                     lda FRAME           ; the FIRQ handler saw an E=1 frame
+14CD 8190             (nterrupt_test.asm):00578                     cmpa #CC_E|CC_I
+14CF 26FE             (nterrupt_test.asm):00579                     bne *
+14D1 FC0121           (nterrupt_test.asm):00580                     ldd FRAME+1
+14D4 10838899         (nterrupt_test.asm):00581                     cmpd #$8899
+14D8 26FE             (nterrupt_test.asm):00582                     bne *
+14DA B60118           (nterrupt_test.asm):00583                     lda HCC
+14DD 84D0             (nterrupt_test.asm):00584                     anda #CC_E|CC_F|CC_I
+14DF 81D0             (nterrupt_test.asm):00585                     cmpa #CC_E|CC_F|CC_I
+14E1 26FE             (nterrupt_test.asm):00586                     bne *
+                      (nterrupt_test.asm):00587         ; CWAI with the interrupt already waiting: taken at once
+14E3 7C0101           (nterrupt_test.asm):00588                     inc TEST_SUB
+14E6 BD1063           (nterrupt_test.asm):00589                     jsr log_clear
+14E9 1A50             (nterrupt_test.asm):00590                     orcc #CC_I|CC_F
+14EB 8601             (nterrupt_test.asm):00591                     lda #LINE_IRQ
+14ED B7FF00           (nterrupt_test.asm):00592                     sta DEV_LINES
+14F0 12               (nterrupt_test.asm):00593                     nop
+14F1 12               (nterrupt_test.asm):00594                     nop
+14F2 3CEF             (nterrupt_test.asm):00595                     cwai #~CC_I&$FF
+14F4 8E15DC           (nterrupt_test.asm):00596                     ldx #log_i
+14F7 BD107D           (nterrupt_test.asm):00597                     jsr log_check
+                      (nterrupt_test.asm):00598         ;
+                      (nterrupt_test.asm):00599         ; ==========================================================================
+                      (nterrupt_test.asm):00600         ; $0E - SYNC with the interrupt masked: carries on after SYNC, no vector
+                      (nterrupt_test.asm):00601         ; ==========================================================================
+14FA                  (nterrupt_test.asm):00602         t0e         test $0E
+14FA 860E             (             test):00001                     lda #$0E
+14FC B70100           (             test):00002                     sta TEST_CASE
+14FF 7F0101           (             test):00003                     clr TEST_SUB
+1502 BD1063           (nterrupt_test.asm):00603                     jsr log_clear
+1505 1A50             (nterrupt_test.asm):00604                     orcc #CC_I|CC_F
+1507 8601             (nterrupt_test.asm):00605                     lda #LINE_IRQ
+1509 B7FF01           (nterrupt_test.asm):00606                     sta DEV_DLINES
+150C CC0064           (nterrupt_test.asm):00607                     ldd #100
+150F FDFF02           (nterrupt_test.asm):00608                     std DEV_DELAY
+1512 B7FF04           (nterrupt_test.asm):00609                     sta DEV_CYC0
+1515 13               (nterrupt_test.asm):00610                     sync
+1516 B7FF05           (nterrupt_test.asm):00611                     sta DEV_CYC1
+1519 FCFF06           (nterrupt_test.asm):00612                     ldd DEV_CYCD        ; SYNC really waited for the line
+151C 1083005A         (nterrupt_test.asm):00613                     cmpd #90
+1520 25FE             (nterrupt_test.asm):00614                     blo *
+1522 8E15DB           (nterrupt_test.asm):00615                     ldx #log_none
+1525 BD107D           (nterrupt_test.asm):00616                     jsr log_check
+1528 7FFF00           (nterrupt_test.asm):00617                     clr DEV_LINES
+152B 12               (nterrupt_test.asm):00618                     nop
+                      (nterrupt_test.asm):00619         ; and with FIRQ masked
+152C 7C0101           (nterrupt_test.asm):00620                     inc TEST_SUB
+152F 8602             (nterrupt_test.asm):00621                     lda #LINE_FIRQ
+1531 B7FF01           (nterrupt_test.asm):00622                     sta DEV_DLINES
+1534 CC0064           (nterrupt_test.asm):00623                     ldd #100
+1537 FDFF02           (nterrupt_test.asm):00624                     std DEV_DELAY
+153A 13               (nterrupt_test.asm):00625                     sync
+153B 8E15DB           (nterrupt_test.asm):00626                     ldx #log_none
+153E BD107D           (nterrupt_test.asm):00627                     jsr log_check
+1541 7FFF00           (nterrupt_test.asm):00628                     clr DEV_LINES
+1544 12               (nterrupt_test.asm):00629                     nop
+                      (nterrupt_test.asm):00630         ;
+                      (nterrupt_test.asm):00631         ; ==========================================================================
+                      (nterrupt_test.asm):00632         ; $0F - SYNC with the interrupt enabled: handler, then on after SYNC
+                      (nterrupt_test.asm):00633         ; ==========================================================================
+1545                  (nterrupt_test.asm):00634         t0f         test $0F
+1545 860F             (             test):00001                     lda #$0F
+1547 B70100           (             test):00002                     sta TEST_CASE
+154A 7F0101           (             test):00003                     clr TEST_SUB
+154D BD1063           (nterrupt_test.asm):00635                     jsr log_clear
+1550 1CEF             (nterrupt_test.asm):00636                     andcc #~CC_I&$FF
+1552 8601             (nterrupt_test.asm):00637                     lda #LINE_IRQ
+1554 B7FF01           (nterrupt_test.asm):00638                     sta DEV_DLINES
+1557 CC0050           (nterrupt_test.asm):00639                     ldd #80
+155A FDFF02           (nterrupt_test.asm):00640                     std DEV_DELAY
+155D 13               (nterrupt_test.asm):00641                     sync
+155E 8E15DC           (nterrupt_test.asm):00642         t0fret      ldx #log_i
+1561 BD107D           (nterrupt_test.asm):00643                     jsr log_check
+1564 FC012A           (nterrupt_test.asm):00644                     ldd FRAME+10
+1567 1083155E         (nterrupt_test.asm):00645                     cmpd #t0fret
+156B 26FE             (nterrupt_test.asm):00646                     bne *
+                      (nterrupt_test.asm):00647         ; NMI ends a SYNC too
+156D 7C0101           (nterrupt_test.asm):00648                     inc TEST_SUB
+1570 BD1063           (nterrupt_test.asm):00649                     jsr log_clear
+1573 1A50             (nterrupt_test.asm):00650                     orcc #CC_I|CC_F
+1575 8604             (nterrupt_test.asm):00651                     lda #LINE_NMI
+1577 B7FF01           (nterrupt_test.asm):00652                     sta DEV_DLINES
+157A CC0050           (nterrupt_test.asm):00653                     ldd #80
+157D FDFF02           (nterrupt_test.asm):00654                     std DEV_DELAY
+1580 13               (nterrupt_test.asm):00655                     sync
+1581 8E15EB           (nterrupt_test.asm):00656                     ldx #log_n
+1584 BD107D           (nterrupt_test.asm):00657                     jsr log_check
+1587 7FFF00           (nterrupt_test.asm):00658                     clr DEV_LINES
+158A 12               (nterrupt_test.asm):00659                     nop
+                      (nterrupt_test.asm):00660         ;
+                      (nterrupt_test.asm):00661         ; ==========================================================================
+                      (nterrupt_test.asm):00662         ; $10 - SYNC with a masked interrupt line already active: no wait
+                      (nterrupt_test.asm):00663         ; ==========================================================================
+158B                  (nterrupt_test.asm):00664         t10         test $10
+158B 8610             (             test):00001                     lda #$10
+158D B70100           (             test):00002                     sta TEST_CASE
+1590 7F0101           (             test):00003                     clr TEST_SUB
+1593 BD1063           (nterrupt_test.asm):00665                     jsr log_clear
+1596 1A50             (nterrupt_test.asm):00666                     orcc #CC_I|CC_F
+1598 8601             (nterrupt_test.asm):00667                     lda #LINE_IRQ
+159A B7FF00           (nterrupt_test.asm):00668                     sta DEV_LINES
+159D 12               (nterrupt_test.asm):00669                     nop
+159E B7FF04           (nterrupt_test.asm):00670                     sta DEV_CYC0
+15A1 13               (nterrupt_test.asm):00671                     sync                ; must not wait forever
+15A2 B7FF05           (nterrupt_test.asm):00672                     sta DEV_CYC1
+15A5 FCFF06           (nterrupt_test.asm):00673                     ldd DEV_CYCD
+15A8 10830028         (nterrupt_test.asm):00674                     cmpd #40
+15AC 22FE             (nterrupt_test.asm):00675                     bhi *
+15AE 8E15DB           (nterrupt_test.asm):00676                     ldx #log_none
+15B1 BD107D           (nterrupt_test.asm):00677                     jsr log_check
+15B4 7FFF00           (nterrupt_test.asm):00678                     clr DEV_LINES
+15B7 12               (nterrupt_test.asm):00679                     nop
+                      (nterrupt_test.asm):00680         ;
+                      (nterrupt_test.asm):00681         ; ==========================================================================
+15B8 8E15C8           (nterrupt_test.asm):00682         done        ldx #passed
+15BB BD1059           (nterrupt_test.asm):00683                     jsr puts
+                      (nterrupt_test.asm):00684                     pass
+15BE 86FF             (             pass):00001                     lda #$FF
+15C0 B70100           (             pass):00002                     sta TEST_CASE
+15C3 7FFF0F           (             pass):00003                     clr DEV_EXIT
+15C6 20FE             (             pass):00004         success     bra success
+15C8 416C6C2074657374 (nterrupt_test.asm):00685         passed      fcc "All tests passed"
+     7320706173736564
+15D8 0D0A00           (nterrupt_test.asm):00686                     fcb 13,10,0
+                      (nterrupt_test.asm):00687         ;
+15DB 00               (nterrupt_test.asm):00688         log_none    fcb 0
+15DC 4900             (nterrupt_test.asm):00689         log_i       fcn "I"
+15DE 49494900         (nterrupt_test.asm):00690         log_iii     fcn "III"
+15E2 4600             (nterrupt_test.asm):00691         log_f       fcn "F"
+15E4 46496600         (nterrupt_test.asm):00692         log_fif     fcn "FIf"
+15E8 464900           (nterrupt_test.asm):00693         log_fi      fcn "FI"
+15EB 4E00             (nterrupt_test.asm):00694         log_n       fcn "N"
+                      (nterrupt_test.asm):00695         ;
+15ED 6E9F0110         (nterrupt_test.asm):00696         irq_thunk   jmp [IRQ_VEC]
+15F1 6E9F0112         (nterrupt_test.asm):00697         firq_thunk  jmp [FIRQ_VEC]
+15F5 6E9F0114         (nterrupt_test.asm):00698         nmi_thunk   jmp [NMI_VEC]
+15F9 20FE             (nterrupt_test.asm):00699         nmi_trap    bra nmi_trap        ; NMI before the first LDS
+15FB 20FE             (nterrupt_test.asm):00700         unexpected  bra unexpected
+                      (nterrupt_test.asm):00701         ;
+                      (nterrupt_test.asm):00702                     org NMI_VEC
+0114 15F9             (nterrupt_test.asm):00703                     fdb nmi_trap        ; initial RAM vector, loaded with the program
+                      (nterrupt_test.asm):00704         ;
+                      (nterrupt_test.asm):00705                     ifgt *-DEV_LINES
+                      (nterrupt_test.asm):00706                     error "program runs into the test device at $FF00"
+                      (nterrupt_test.asm):00707                     endc
+                      (nterrupt_test.asm):00708                     org $FFF0
+FFF0 15FB             (nterrupt_test.asm):00709                     fdb unexpected      ; $FFF0 reserved (HD6309: trap)
+FFF2 15FB             (nterrupt_test.asm):00710                     fdb unexpected      ; $FFF2 SWI3
+FFF4 15FB             (nterrupt_test.asm):00711                     fdb unexpected      ; $FFF4 SWI2
+FFF6 15F1             (nterrupt_test.asm):00712                     fdb firq_thunk      ; $FFF6 FIRQ
+FFF8 15ED             (nterrupt_test.asm):00713                     fdb irq_thunk       ; $FFF8 IRQ
+FFFA 15FB             (nterrupt_test.asm):00714                     fdb unexpected      ; $FFFA SWI
+FFFC 15F5             (nterrupt_test.asm):00715                     fdb nmi_thunk       ; $FFFC NMI
+FFFE 1000             (nterrupt_test.asm):00716                     fdb start           ; $FFFE RESET
+                      (nterrupt_test.asm):00717                     end start
