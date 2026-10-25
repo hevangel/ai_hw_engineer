@@ -37,10 +37,7 @@ cc -std=c11 -shared -fPIC -O2 -I/usr/include/iverilog -Iwork/reference \
 vvp -Mwork -mcpu_reference work/boot.vvp
 ```
 
-The package's `iverilog-vpi --cflags` emitted a stray `0-3` compiler argument
-in the verified container. The board script invokes `cc` directly with the
-installed VPI include path to avoid that packaging defect. This workaround
-does not alter the simulator or reference sources.
+Ubuntu's pinned `iverilog=12.0-3` package embeds a stray standalone `0-3` token in the installed VPI helper's CFLAGS and CXXFLAGS. The Apple II overlay removes only that token from those two assignments. It retains the simulator, reference sources, include paths, compiler hardening flags and original license. The image build runs `scripts/check_eda_tools.py --tools iverilog`, requiring the packaged helper to compile and load a real VPI module, a four-state simulation to pass, and the deliberate fatal test to fail. The documented direct-`cc` board workflow remains supported and is tested separately. Future package upgrades must recheck both helper assignments and these actual build/load probes.
 
 Real-valued analog package models are simulation-only. Icarus emits warnings
 about synthesizing real assignments in `always_comb`; do not treat these as

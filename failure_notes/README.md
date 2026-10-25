@@ -26,6 +26,9 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-10-25 — Icarus VPI helper](2026-10-25-icarus-vpi-helper.md)
+  A real C/C++ VPI compilation exposed malformed distro helper flags that version/header-only image checks missed.
+
 - [2026-10-23 — Space Invaders VRAM bit order](2026-10-23-spaceinvaders-vram-bit-order.md)
   The repository owner reviewing the running panel exposed MSB-first glyph
   rendering (the hardware shifts bytes LSB-first) and an attract-loop
