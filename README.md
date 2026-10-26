@@ -288,7 +288,9 @@ sources, snapshot exceptions, and the Ubuntu package snapshot used by this build
 ### Publishing to Docker Hub
 
 After a toolchain change is merged, publish the image from a clean checkout of
-`main` (Python 3.11+, Git and Docker required):
+`main` ([uv](https://docs.astral.sh/uv/), Git and Docker required; uv
+provides Python 3.11+). On Windows, run the script directly with
+`uv run --no-project --script scripts/publish_docker.py`:
 
 Put the Docker Hub credentials in `.env` at the repository root. Git ignores
 this file, and environment variables of the same name take precedence:
@@ -315,7 +317,7 @@ the repository as public if needed, and replaces the Docker Hub overview with
 [docs/dockerhub/overview.md](docs/dockerhub/overview.md) filled in from the
 release manifest and the reported versions. Edit that template, not the Docker
 Hub page. Offline checks:
-`python3 -m unittest discover -s scripts -p test_publish_docker.py -v`.
+`uv run --no-project python -m unittest discover -s scripts -p test_publish_docker.py -v`.
 
 Exact tool behavior and invocation details belong in `docs/`, because asking an AI to use a tool without giving it the manual is a little like hiring an intern and hiding the keyboard.
 

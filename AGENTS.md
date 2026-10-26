@@ -286,7 +286,9 @@ When changing tool versions or adding tools:
 ### Publishing the Docker Image
 
 Publish only when the user asks, and only a reviewed commit on `main`:
-run `./scripts/publish_docker.sh --dry-run`, then `./scripts/publish_docker.sh`.
+run `./scripts/publish_docker.sh --dry-run`, then `./scripts/publish_docker.sh`
+(the wrapper runs the script with `uv`; on Windows use
+`uv run --no-project --script scripts/publish_docker.py`).
 The script reads `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` from the environment
 or the user's Git-ignored root `.env`; never read, print, copy or commit that
 file or the token, and never ask for the token in chat. The script builds, smoke-tests, pushes

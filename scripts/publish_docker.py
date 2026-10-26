@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --no-project --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = []
+# ///
 """Build, smoke-test and publish the EDA Docker image to Docker Hub.
 
 The image is tagged `YYYY.MM.DD-<commit>` and `latest`, carries OCI labels for
@@ -216,6 +220,9 @@ class DockerHub:
 
 
 def main(argv=None):
+    # Python builds with their own OpenSSL DLL (such as uv-managed Python on
+    # Windows) abort with OPENSSL_Applink when asked to write a TLS key log.
+    os.environ.pop("SSLKEYLOGFILE", None)
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--dry-run", action="store_true",
