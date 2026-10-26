@@ -8,7 +8,9 @@ reported by the freshly built image. The repository is created public if it
 does not exist yet.
 
 Full publishing needs DOCKERHUB_USERNAME and DOCKERHUB_TOKEN (a Docker Hub
-personal access token with read, write and delete scope).
+personal access token with read, write and delete scope), from the environment
+or the Git-ignored .env file in the primary checkout. Environment variables
+take precedence over .env.
 """
 
 import argparse
@@ -49,6 +51,40 @@ VERSION_COMMANDS = (
 def run(command, **kwargs):
     print("+ " + " ".join(command), flush=True)
     return subprocess.run(command, cwd=ROOT, check=True, **kwargs)
+
+
+def default_env_file():
+    """Use .env in this checkout, or in the primary checkout for a worktree/<task> checkout."""
+    candidates = [ROOT / ".env"]
+    if ROOT.parent.name == "worktree":
+        candidates.append(ROOT.parents[1] / ".env")
+    return next((path for path in candidates if path.is_file()), None)
+
+
+def parse_env(text):
+    """Parse KEY=VALUE lines; supports comments, blank lines, `export` and quotes."""
+    values = {}
+    for number, line in enumerate(text.splitlines(), 1):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        key, separator, value = line.removeprefix("export ").partition("=")
+        key, value = key.strip(), value.strip()
+        if not separator or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key):
+            raise ValueError(f".env line {number} is not KEY=VALUE")
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
+            value = value[1:-1]
+        values[key] = value
+    return values
+
+
+def load_env(path):
+    """Add .env values to os.environ without overriding variables already set."""
+    if path is None:
+        return
+    for key, value in parse_env(path.read_text(encoding="utf-8-sig")).items():
+        os.environ.setdefault(key, value)
+    print(f"Loaded settings from {path}")
 
 
 def git(*args):
@@ -186,9 +222,11 @@ def main(argv=None):
                       help="check the source and print tags and overview; no build or Docker Hub changes")
     mode.add_argument("--no-push", action="store_true",
                       help="build and smoke-test the image and render the overview; no Docker Hub changes")
-    parser.add_argument("--repository", default=os.environ.get("DOCKERHUB_REPOSITORY"),
+    parser.add_argument("--repository",
                         help="Docker Hub repository NAMESPACE/NAME "
                              "(default: $DOCKERHUB_REPOSITORY or $DOCKERHUB_USERNAME/" + IMAGE_NAME + ")")
+    parser.add_argument("--env-file", type=Path,
+                        help="KEY=VALUE credentials file (default: .env in the primary checkout)")
     parser.add_argument("--no-latest", action="store_true", help="do not move the latest tag")
     parser.add_argument("--allow-unmerged", action="store_true",
                         help="allow publishing a commit that is not on origin/main")
@@ -196,9 +234,13 @@ def main(argv=None):
     parser.add_argument("--overview-out", type=Path, help="also write the rendered overview to this file")
     args = parser.parse_args(argv)
 
+    if args.env_file and not args.env_file.is_file():
+        parser.error(f"--env-file {args.env_file} does not exist")
+    load_env(args.env_file or default_env_file())
     username = os.environ.get("DOCKERHUB_USERNAME", "")
     token = os.environ.get("DOCKERHUB_TOKEN", "")
-    repository = args.repository or (f"{username}/{IMAGE_NAME}" if username else "")
+    repository = (args.repository or os.environ.get("DOCKERHUB_REPOSITORY")
+                  or (f"{username}/{IMAGE_NAME}" if username else ""))
     if not re.fullmatch(r"[a-z0-9]+(?:[._-][a-z0-9]+)*/[a-z0-9]+(?:[._-][a-z0-9]+)*", repository):
         parser.error("set --repository NAMESPACE/NAME or DOCKERHUB_USERNAME (lowercase Docker Hub names)")
     namespace, name = repository.split("/")

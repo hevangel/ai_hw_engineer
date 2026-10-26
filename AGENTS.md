@@ -287,8 +287,9 @@ When changing tool versions or adding tools:
 
 Publish only when the user asks, and only a reviewed commit on `main`:
 run `./scripts/publish_docker.sh --dry-run`, then `./scripts/publish_docker.sh`.
-The user supplies `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` in the environment;
-never ask for, print or store the token. The script builds, smoke-tests, pushes
+The script reads `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` from the environment
+or the user's Git-ignored root `.env`; never read, print, copy or commit that
+file or the token, and never ask for the token in chat. The script builds, smoke-tests, pushes
 the dated and `latest` tags, keeps the repository public and regenerates the
 Docker Hub overview. Report the pushed digest it prints. Change the Docker Hub
 page only through the template and script.

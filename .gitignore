@@ -1,3 +1,6 @@
+# Local secrets (Docker Hub credentials for scripts/publish_docker.sh)
+.env
+
 # Build artifacts
 /worktree/
 design/*/work/

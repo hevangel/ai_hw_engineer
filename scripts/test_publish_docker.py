@@ -1,6 +1,11 @@
 """Offline regression checks for Docker Hub publishing helpers."""
 
+from contextlib import redirect_stdout
 from datetime import datetime, timezone
+import io
+import os
+from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -50,9 +55,30 @@ class PublishTests(unittest.TestCase):
 
     def test_publish_requires_credentials(self):
         with patch.dict("os.environ", {"DOCKERHUB_USERNAME": "someone"}, clear=True), \
+                patch.object(publisher, "default_env_file", return_value=None), \
                 patch.object(publisher, "check_source") as check, self.assertRaises(SystemExit):
             publisher.main([])
         check.assert_not_called()
+
+    def test_env_file_parsing(self):
+        values = publisher.parse_env("# comment\n\nexport A=1\nB = \"two words\"\nC='x=y'\nD=\n")
+        self.assertEqual(values, {"A": "1", "B": "two words", "C": "x=y", "D": ""})
+
+    def test_malformed_env_line_is_rejected_without_echoing_it(self):
+        with self.assertRaises(ValueError) as caught:
+            publisher.parse_env("DOCKERHUB_TOKEN secret-value\n")
+        self.assertIn("line 1", str(caught.exception))
+        self.assertNotIn("secret-value", str(caught.exception))
+
+    def test_environment_overrides_env_file(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / ".env"
+            path.write_text("DOCKERHUB_USERNAME=from-file\nDOCKERHUB_TOKEN=file-token\n", encoding="utf-8")
+            with patch.dict("os.environ", {"DOCKERHUB_USERNAME": "from-env"}, clear=True), \
+                    redirect_stdout(io.StringIO()):
+                publisher.load_env(path)
+                self.assertEqual(os.environ["DOCKERHUB_USERNAME"], "from-env")
+                self.assertEqual(os.environ["DOCKERHUB_TOKEN"], "file-token")
 
     def test_dirty_tree_is_rejected(self):
         with patch.object(publisher, "git", return_value=" M Dockerfile"):

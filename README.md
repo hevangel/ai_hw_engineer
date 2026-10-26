@@ -290,9 +290,18 @@ sources, snapshot exceptions, and the Ubuntu package snapshot used by this build
 After a toolchain change is merged, publish the image from a clean checkout of
 `main` (Python 3.11+, Git and Docker required):
 
+Put the Docker Hub credentials in `.env` at the repository root. Git ignores
+this file, and environment variables of the same name take precedence:
+
 ```bash
-export DOCKERHUB_USERNAME=<docker-hub-user>
-export DOCKERHUB_TOKEN=<personal-access-token>   # Read, Write, Delete scope
+DOCKERHUB_USERNAME=<docker-hub-user>
+DOCKERHUB_TOKEN=<personal-access-token>          # Read, Write, Delete scope
+```
+
+The script also finds this file from a `worktree/<task>` checkout, or use
+`--env-file <path>`.
+
+```bash
 ./scripts/publish_docker.sh --dry-run            # Check source, show tags and overview
 ./scripts/publish_docker.sh --no-push            # Build and smoke-test only
 ./scripts/publish_docker.sh                      # Build, push and update Docker Hub
