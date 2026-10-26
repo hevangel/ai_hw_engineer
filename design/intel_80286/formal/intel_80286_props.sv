@@ -209,6 +209,13 @@
                             $past(gpr[7])+$past(string_delta) : $past(gpr[7])));
                         assert(gpr[1]==($past(repeat_valid) ? $past(gpr[1])-
                             ($past(memory_return)==STRING_COMMIT ? 16'd2 : 16'd1) : $past(gpr[1])));
+                    end else if ($past((opcode==8'ha6 || opcode==8'ha7) &&
+                        (memory_return==STRING_FIRST || memory_return==STRING_COMMIT))) begin
+                        assert(gpr[7]==$past(gpr[7])+$past(string_delta));
+                        assert(gpr[6]==($past(memory_return)==STRING_COMMIT ?
+                            $past(gpr[6])+$past(string_delta) : $past(gpr[6])));
+                        assert(gpr[1]==($past(repeat_valid) ? $past(gpr[1])-
+                            ($past(memory_return)==STRING_COMMIT ? 16'd2 : 16'd1) : $past(gpr[1])));
                     end else if ($past((opcode==8'haa || opcode==8'hab) && memory_return==STRING_COMMIT)) begin
                         assert(gpr[6]==$past(gpr[6]));
                         assert(gpr[7]==$past(gpr[7])+$past(string_delta));
@@ -387,7 +394,14 @@
                 if (state!=STRING_START && repeat_valid) assert(gpr[1]!=0);
             end
             if (rst_n && $past(rst_n) && !retire_o && !event_o && !element_o) begin
-                assert($stable(regs_o));
+                if (!$past(state==MEMORY_CHECK && msw[0] && !data_reference_allow &&
+                           !event_delivery_active && !protected_iret_active &&
+                           (ins_precheck_active ||
+                            ((opcode==8'ha4 || opcode==8'ha5 || opcode==8'ha6 || opcode==8'ha7) &&
+                             (memory_return==STRING_FIRST || memory_return==STRING_COMMIT)) ||
+                            ((opcode==8'haa || opcode==8'hab) && memory_return==STRING_COMMIT) ||
+                            ((opcode==8'h6e || opcode==8'h6f) && memory_return==STRING_FIRST))))
+                    assert($stable(regs_o));
                 assert($stable(segs_o));
                 assert($stable(flags_o));
                 assert($stable(msw) && $stable(gdt_base) && $stable(gdt_limit));

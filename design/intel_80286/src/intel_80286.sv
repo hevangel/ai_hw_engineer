@@ -899,6 +899,14 @@ module intel_80286 (
                                 if (memory_return==STRING_COMMIT) gpr[7]<=gpr[7]+string_delta;
                                 if (repeat_valid)
                                     gpr[1]<=gpr[1]-(memory_return==STRING_COMMIT ? 16'd2 : 16'd1);
+                            end else if (msw[0] && (opcode==8'ha6 || opcode==8'ha7) &&
+                                (memory_return==STRING_FIRST || memory_return==STRING_COMMIT)) begin
+                                // Intel LOADALL memo p14: CMPS always requires
+                                // DI repair; repair SI only after ES:DI passed.
+                                gpr[7]<=gpr[7]+string_delta;
+                                if (memory_return==STRING_COMMIT) gpr[6]<=gpr[6]+string_delta;
+                                if (repeat_valid)
+                                    gpr[1]<=gpr[1]-(memory_return==STRING_COMMIT ? 16'd2 : 16'd1);
                             end else if (msw[0] && (opcode==8'haa || opcode==8'hab) &&
                                 memory_return==STRING_COMMIT) begin
                                 // Intel LOADALL memo p14: STOS DI/CX repair.
@@ -1452,13 +1460,16 @@ module intel_80286 (
                     end else if (wide && ((string_source && gpr[6]==16'hffff) ||
                                          (string_destination && gpr[7]==16'hffff)) &&
                         !(msw[0] && (opcode==8'ha4 || opcode==8'ha5 || opcode==8'haa ||
-                                     opcode==8'hab || opcode==8'h6e || opcode==8'h6f))) begin
+                                     opcode==8'hab || opcode==8'h6e || opcode==8'h6f ||
+                                     opcode==8'ha6 || opcode==8'ha7))) begin
                         enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0); state<=EVENT_START;
                     end
                     else if (opcode==8'haa || opcode==8'hab)
                         memory_start(1'b1, 0, gpr[7], 24'd0, 1'b1, 1'b0, wide ? 3'd2 : 3'd1, {16'h0,gpr[0]}, STRING_COMMIT);
                     else if (string_compare)
-                        // ASSUMPTION: A6. CMPS destination-first reads match the external functional oracle, not native timing.
+                        // Intel 210498-005 defines CMPS flags from [SI]-[DI].
+                        // ASSUMPTION A6: the functional model reads ES:DI first;
+                        // native per-beat order still needs an independent trace.
                         memory_start(1'b1, 0, gpr[7], 24'd0, 1'b0, 1'b0, wide ? 3'd2 : 3'd1, 0, (opcode==8'ha6 || opcode==8'ha7) ? STRING_FIRST : STRING_COMMIT);
                     else memory_start(1'b1, override_valid ? override_segment : 2'd3, gpr[6], 24'd0, 1'b0, 1'b0, wide ? 3'd2 : 3'd1, 0, (opcode==8'hac || opcode==8'had) ? STRING_COMMIT : STRING_FIRST);
                 end

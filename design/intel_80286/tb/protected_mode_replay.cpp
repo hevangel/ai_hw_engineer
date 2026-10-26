@@ -654,12 +654,15 @@ int main(int argc, char** argv) {
             run_ins_limit_fixture(true,false,waits,true);
             run_ins_limit_fixture(true,true,waits,false,3);
             for (auto kind : {StringFaultKind::MoveSource,StringFaultKind::MoveDestination,
-                              StringFaultKind::Store,StringFaultKind::Output}) {
+                              StringFaultKind::Store,StringFaultKind::Output,
+                              StringFaultKind::CompareSource,StringFaultKind::CompareDestination}) {
                 run_string_fault_fixture(kind,true,true,waits);
                 run_string_fault_fixture(kind,true,true,waits,false,3);
                 run_string_fault_fixture(kind,false,true,waits);
                 run_string_fault_fixture(kind,true,false,waits,true);
                 run_string_fault_fixture(kind,true,false,waits,false,2,true);
+                if (kind==StringFaultKind::CompareSource || kind==StringFaultKind::CompareDestination)
+                    run_string_fault_fixture(kind,true,true,waits,false,2,false,true);
             }
         }
     } catch (const std::exception& error) {

@@ -1,5 +1,10 @@
 # Intel 80286 progress audit and revised execution plan
 
+> Historical plan, superseded on 2026-10-26 by
+> [the latest audit and revised plan](2026-10-26-audit-and-revised-plan.md).
+> The CMPS work described below as pending now has a source-matched 79-case
+> replay and 15 detected mutations; use the newer plan for current status.
+
 Audited 2026-10-25 (America/Vancouver). This is the active plan for the next
 implementation owner, including Luna at maximum effort. It supersedes the task
 order and takeover commands in [the October 23 plan](README.md). That document

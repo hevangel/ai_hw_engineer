@@ -1,6 +1,52 @@
 # Intel 80286 continuation status
 
-## Audit and revised plan — 2026-10-25
+## Current checkpoint — CMPS and full-chip audit (2026-10-26)
+
+The active continuation sequence is
+[the 2026-10-26 audit and revised plan](2026-10-26-audit-and-revised-plan.md).
+The prior 2026-10-25 plan is historical; its “CMPS unfinished” statements are
+superseded by this checkpoint.
+
+The protected-string change now includes CMPS source/destination fault repair
+and compare semantics. The final strict Verilator 5.052 replay at
+`design/intel_80286/work/protected_cmps_native_20261025_03/` has 79 passing
+cases. Its manifest matches all 19 current replay inputs; the core SHA-256 is
+`08ab26c1fc4fabb1320453036e09f3d62920795821bac60914483e0c594b7dca` and the
+binary SHA-256 is
+`6713a06c6b36c1f2585565748912081e222a143e0e899a297bc02163160a89fd`. The
+focused mutation run at
+`design/intel_80286/work/protected_cmps_mutations_20261025_03/` detected all
+15 mutants with expected diagnostics.
+The source-backed checkpoint description is in the
+[CMPS report](../../design/intel_80286/report/2026-10-26-protected-cmps.md).
+
+Yosys 0.69 synthesis/check completed with zero reported problems at
+`design/intel_80286/work/cmps_checks_20261026_01/synthesis.log`. The depth-12
+BMC at `bmc12_02/` is `PASS 0 185`; its 21 RTL/property files match current
+source. Cover mode at `cover64_01/` timed out after 180 seconds with 11 complete
+witnesses and 53 cover statements unreached. This is not a formal cover pass.
+The current core and property SHA-256 values are
+`08ab26c1fc4fabb1320453036e09f3d62920795821bac60914483e0c594b7dca` and
+`430fc631524a30ea1637cab2e8d021c9204aee3bd6aea80b605eb7a6aaac83d2`.
+
+The CMPS slice is present as nine modified tracked files on branch
+`design/intel-80286`; it has not yet been committed. The branch is 37 commits
+behind and 4 ahead of the local `main` reference. GitHub issue #80 remains
+Building with Agent Codex, Start date 2026-10-23, and Path
+`ai_hw_engineer/design/intel_80286`.
+
+No 286 formal container was running when Docker was inspected on 2026-10-26.
+The only recently started container was identified as an unrelated Busicom
+firmware run. The 2026-10-25 PDR/cover containers were stopped earlier; their
+saved logs remain historical evidence only.
+
+The full CPU remains incomplete. CPGREP has not run; the recorded PCjs setup
+stops at BIOS 1782 without a shell. The ISA/mode inventory, valid protected
+opcodes, LDT/TR, privilege/task/event mechanisms, native bus, broad runner and
+complete formal proof/cover remain open. See the active plan for sequenced
+gates. No verification suite was rerun during this documentation audit.
+
+## Historical audit and revised plan — 2026-10-25
 
 The [audit and replacement plan](2026-10-25-audit-and-revised-plan.md) is now the
 active task sequence. Baseline HEAD is `af9026410fef74c871cbc084aea909d2e11f5e55`;

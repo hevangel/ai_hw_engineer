@@ -1,11 +1,10 @@
 # Continuation plan: Intel 80286
 
-**Active plan (2026-10-25):** Follow the
-[progress audit and revised execution plan](2026-10-25-audit-and-revised-plan.md).
-It supersedes all task ordering, takeover commands and copyable Luna instructions
-below. The remainder of this file is historical context: the bounded ring-0 path
-already works, several named helpers are absent after recovery, and CMPS is an
-unfinished dirty-tree change. Use the new plan and current status for continuation.
+**Active plan (2026-10-26):** Follow the
+[progress audit and revised execution plan](2026-10-26-audit-and-revised-plan.md).
+It supersedes the 2026-10-25 plan's task order. The bounded ring-0 path and the
+focused CMPS repair/replay now work; broader CPU, software, native-interface
+and proof gates remain open. The remainder of this file is historical context.
 
 Prepared 2026-10-23. Current owner: Codex. Workspace: `B:\ai_hw_engineer\worktree\intel-80286`. Design: `design/intel_80286`. Issue: [ai_hw_engineer#80](https://github.com/hevangel/ai_hw_engineer/issues/80), Building; start date 2026-10-23.
 
@@ -13,8 +12,15 @@ Prepared 2026-10-23. Current owner: Codex. Workspace: `B:\ai_hw_engineer\worktre
 memory failures now follow the manufacturer handler-repair rules. The expanded
 replay passes 55 cases, including backwards and FFFF word references. See the
 [report](../../design/intel_80286/report/2026-10-25-protected-strings.md) and
-current status for exact evidence. CMPS/SCAS, IOPL and full-chip closure remain
-open; neither this directed matrix nor earlier proofs finish the 80286.
+current status for exact evidence. At that checkpoint CMPS/SCAS, IOPL and
+full-chip closure remained open; neither that directed matrix nor earlier
+proofs finished the 80286.
+
+**CMPS follow-up (2026-10-26):** Both protected CMPS fault phases now have
+repair and comparison tests. The source-matched replay passes 79 cases and the
+mutation suite detects 15 faults. This closes only the focused CMPS slice;
+SCAS, IOPL, independent software execution and full-chip closure remain open.
+See the [latest audit and plan](2026-10-26-audit-and-revised-plan.md).
 
 **INS follow-up (2026-10-25):** Intel's restartability memos exposed an escaped
 defect in protected INS fault-time DI/CX. The core and regression now implement

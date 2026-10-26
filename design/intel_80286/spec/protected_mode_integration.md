@@ -254,6 +254,30 @@ checking its wrapped fault indices. Every case runs with and without READY
 stalls and checks the exact operand traffic, frame, prefix PC and successor.
 These tests do not establish port-side-effect timing or OUTS IOPL-fault rules.
 
-CMPS repair is still an implementation gap. SCAS needs further corroboration:
+### CMPS protected fault repair
+
+Intel's [80286/80287 Programmer's Reference Manual, order 210498-005](https://bitsavers.trailing-edge.com/components/intel/80286/210498-005_80286_and_80287_Programmers_Reference_Manual_1987.pdf)
+defines CMPS as source `[SI]` minus destination `[DI]`, with SI using DS (or the
+source segment override) and DI using ES. The [Intel LOADALL memo, page 14](https://docs.pcjs.org/manuals/intel/80286/80286_LOADALL.pdf)
+requires DI repair for either denied memory reference. SI also requires repair
+when the ES:DI reference did not cause the fault. A repeated CMPS needs one CX
+increment; add the second increment when SI was also repaired.
+
+| Denied operand | Native SI at fault | Native DI at fault | Native CX at fault | Handler repair before retry |
+|---|---|---|---|---|
+| ES:DI destination | unchanged | DI + `d` | `C - 1` | DI - `d`; add 1 to CX |
+| DS:SI source after ES:DI succeeded | SI + `d` | DI + `d` | `C - 2` | SI - `d`, DI - `d`; add 2 to CX |
+
+For an unprefixed CMPS, CX is unchanged. `d` follows DF and operand width.
+
+In the functional model, ES:DI is checked before DS:SI. Therefore a denied
+first reference advances native DI and decrements repeated CX once; a denied
+second reference advances both indices and decrements repeated CX twice.
+Completed comparisons retain their flags and count effects; a fault before the
+second reference does not commit a comparison. Word references at FFFF pass
+through the relevant segment checker so the fault phase and repair remain
+visible. These directed tests do not prove native bus-beat order.
+
+SCAS needs further corroboration:
 page 14 of the old memo names SI, while the architectural scan operand uses DI.
 Do not silently resolve that discrepancy by copying a later x86 model.

@@ -19,7 +19,7 @@ def sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def main(extra_mutations=()):
+def main(extra_mutations=(), required_string_cases=(), minimum_passed_cases=55):
     if len(sys.argv) not in (2, 3):
         raise SystemExit(f"Usage: {Path(sys.argv[0]).name} BASELINE_MANIFEST [NEW_RUN_NAME]")
     design = Path(__file__).resolve().parent.parent
@@ -27,10 +27,12 @@ def main(extra_mutations=()):
     baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
     if baseline.get("result") != "PASS" or len(baseline.get("ins_limit_cases", [])) != 5:
         raise SystemExit("Baseline must be a passing replay including all five INS cases")
-    if extra_mutations and (len(baseline.get("string_fault_cases", [])) != 4 or
-                            len(baseline.get("string_fault_profiles", [])) != 5 or
-                            baseline.get("passed_cases", 0) < 55):
-        raise SystemExit("Extended mutations require all four groups and all five string-fault profiles")
+    required_groups = {"MOVS source", "MOVS destination", "STOS", "OUTS source"} | set(required_string_cases)
+    required_profiles = {"word REP last", "word REP nonfinal", "byte REP", "word DF=1", "word 64K wrap"}
+    if extra_mutations and (not required_groups.issubset(baseline.get("string_fault_cases", [])) or
+                            not required_profiles.issubset(baseline.get("string_fault_profiles", [])) or
+                            baseline.get("passed_cases", 0) < minimum_passed_cases):
+        raise SystemExit("Extended mutations require the complete named string-fault matrix")
     for source in baseline["source_files"]:
         path = (design / source["path"]).resolve()
         if not path.is_relative_to(design) or sha256(path) != source["sha256"]:
@@ -89,6 +91,8 @@ def main(extra_mutations=()):
         "runner_sha256": sha256(Path(__file__)),
         "entrypoint": Path(sys.argv[0]).name,
         "entrypoint_sha256": sha256(Path(sys.argv[0])),
+        "required_string_groups": sorted(required_groups) if extra_mutations else [],
+        "minimum_passed_cases": minimum_passed_cases if extra_mutations else None,
         "source_files": baseline["source_files"],
         "mutations": [],
     }

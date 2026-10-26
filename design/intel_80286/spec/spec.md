@@ -14,8 +14,10 @@ semantics where the 286 has different behavior.
 
 For protected string memory-fault register state, target the corrected
 post-C2 behavior in Intel's 15 October 1984 restartability memo, including
-the handler-repair rules in its LOADALL memo. INS, MOVS, STOS and OUTS now
-have integrated directed cases. See the source links and exact rules in the
+the handler-repair rules in its LOADALL memo. INS, MOVS, STOS, OUTS and CMPS
+have integrated directed cases. Intel order 210498-005 defines CMPS flags from
+the source element at DS:SI minus the destination element at ES:DI. See the
+source links and exact rules in the
 [integration contract](protected_mode_integration.md#native-ins-fault-state-and-handler-repair).
 Earlier stepping errata are not implemented as a selectable profile. Native
 I/O side-effect timing remains assumption A20 and requires independent closure.
