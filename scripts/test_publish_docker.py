@@ -1,6 +1,6 @@
 """Offline regression checks for Docker Hub publishing helpers."""
 
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime, timezone
 import io
 import os
@@ -59,6 +59,13 @@ class PublishTests(unittest.TestCase):
                 patch.object(publisher, "check_source") as check, self.assertRaises(SystemExit):
             publisher.main([])
         check.assert_not_called()
+
+    def test_tls_key_log_is_disabled(self):
+        with patch.dict("os.environ", {"SSLKEYLOGFILE": "keys.log"}, clear=True), \
+                patch.object(publisher, "default_env_file", return_value=None):
+            with self.assertRaises(SystemExit), redirect_stderr(io.StringIO()):
+                publisher.main([])
+            self.assertNotIn("SSLKEYLOGFILE", os.environ)
 
     def test_env_file_parsing(self):
         values = publisher.parse_env("# comment\n\nexport A=1\nB = \"two words\"\nC='x=y'\nD=\n")
