@@ -280,6 +280,18 @@ When changing tool versions or adding tools:
 1. Update the relevant build stage
 2. Update `docs/` if CLI options changed
 3. Test the build: `docker build -t ai-hw-engineer .`
+4. If the image's usage, tools or environment changed, update the Docker Hub
+   overview template `docs/dockerhub/overview.md`.
+
+### Publishing the Docker Image
+
+Publish only when the user asks, and only a reviewed commit on `main`:
+run `./scripts/publish_docker.sh --dry-run`, then `./scripts/publish_docker.sh`.
+The user supplies `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` in the environment;
+never ask for, print or store the token. The script builds, smoke-tests, pushes
+the dated and `latest` tags, keeps the repository public and regenerates the
+Docker Hub overview. Report the pushed digest it prints. Change the Docker Hub
+page only through the template and script.
 
 ## Error Handling
 
