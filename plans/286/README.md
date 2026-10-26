@@ -1,5 +1,12 @@
 # Continuation plan: Intel 80286
 
+**Active plan (2026-10-25):** Follow the
+[progress audit and revised execution plan](2026-10-25-audit-and-revised-plan.md).
+It supersedes all task ordering, takeover commands and copyable Luna instructions
+below. The remainder of this file is historical context: the bounded ring-0 path
+already works, several named helpers are absent after recovery, and CMPS is an
+unfinished dirty-tree change. Use the new plan and current status for continuation.
+
 Prepared 2026-10-23. Current owner: Codex. Workspace: `B:\ai_hw_engineer\worktree\intel-80286`. Design: `design/intel_80286`. Issue: [ai_hw_engineer#80](https://github.com/hevangel/ai_hw_engineer/issues/80), Building; start date 2026-10-23.
 
 **String-fault follow-up (2026-10-25):** MOVS source/destination, STOS and OUTS

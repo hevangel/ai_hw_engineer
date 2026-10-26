@@ -1,5 +1,35 @@
 # Intel 80286 continuation status
 
+## Audit and revised plan — 2026-10-25
+
+The [audit and replacement plan](2026-10-25-audit-and-revised-plan.md) is now the
+active task sequence. Baseline HEAD is `af9026410fef74c871cbc084aea909d2e11f5e55`;
+RTL/properties still match the MOVS/STOS/OUTS checkpoint below. Five existing
+dirty files add unfinished CMPS tests, manifest fields and mutation definitions;
+no CMPS RTL fix or passing 79-case result exists yet. Preserve those edits.
+
+Audit checks: the hash-matched saved baseline binary passes all 55 cases again;
+the unfinished CMPS binary exits 1 with a native-state mismatch. Ten historical
+mutation logs match their recorded hashes/diagnostics. Both current formal
+snapshots match all 21 RTL/property inputs each. Only 16/19 passing replay
+inputs match the dirty checkout; the two test sources and recorder changed.
+No compiler, synthesis, proof, cover or mutation compilation was rerun for this
+documentation audit. Details and ignored scratch audit outputs are in the plan.
+
+**Correction to older job statements:** Docker containers `08ff02ed061f` (PDR)
+and `8f82f426aa15` (cover) are still running the recovered Task 4 retry3 snapshot,
+core `c77cfbce...` / properties `4d184fc5...`. Neither has a terminal SBY status.
+The inspected cover directory has 52 `.yw` files and progress at step 48; PDR
+reports PRV=289 without final PASS. These results cannot verify the newer RTL.
+No container was stopped or duplicated by the audit. Account for these jobs
+before scheduling replacements; earlier claims that they were gone are superseded.
+
+Next work: Gate 0 of the revised plan (durable inputs, missing harness inventory,
+live-job accounting), then finish the pending CMPS change under Gate 1. Broader
+ISA/#UD classification, protected mechanisms, software/platform evidence, native
+interface and full formal/release closure remain open. The complete CPU is not
+verified, and no RTL changes were made during this audit.
+
 Updated 2026-10-25 during recovery into the `design/intel-80286` worktree.
 
 ## Current checkpoint — protected MOVS/STOS/OUTS fault repair
