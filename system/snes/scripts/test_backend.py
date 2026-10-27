@@ -78,7 +78,7 @@ def main():
                 state = request()
             assert state["running"] and not state["overrun"]
             screen = base64.b64decode(state["screen"])
-            assert len(screen) == 512 * 240 * 2
+            assert len(screen) == 512 * 480 * 2
             assert len(set(screen[:512 * 224 * 2:2])) >= 2, "HelloWorld text not drawn"
             assert len(base64.b64decode(state["audio"])) % 4 == 0
 

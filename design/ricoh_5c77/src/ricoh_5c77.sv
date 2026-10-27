@@ -258,7 +258,7 @@ module ricoh_5c77 (
     logic [9:0] clr;
     // Mosaic line.
     logic [8:0] mos_line;
-    logic [3:0] mos_cnt;
+    logic [4:0] mos_cnt;
 
     // Sprite evaluation.
     logic [6:0] obj_i;
@@ -311,7 +311,11 @@ module ricoh_5c77 (
     // Sprite line (OBJ interlace uses doubled lines). Sprites are evaluated
     // on the line before they are shown, so OAM Y = 0 starts on line 1.
     wire [8:0] obj_rl = rline - 9'd1;
-    wire [7:0] obj_line = setini[1] ? {obj_rl[6:0], field} : obj_rl[7:0];
+    wire [7:0] obj_line = obj_rl[7:0];
+    // Row within a sprite: OBJ interlace shows every other row, by field.
+    function automatic logic [7:0] obj_dy(input logic [7:0] d);
+        obj_dy = setini[1] ? {d[6:0], field} : d;
+    endfunction
 
     // Sliver geometry for the current sprite.
     logic [8:0] sl_x;
@@ -324,7 +328,7 @@ module ricoh_5c77 (
         logic [3:0] ct, rt;
         logic [14:0] base;
         colp = {sliver, 3'b000};
-        dy = obj_line - cs_y;
+        dy = obj_dy(obj_line - cs_y);
         rowf = cs_attr[7] ? (cs_h - 7'd1 - dy[6:0]) : dy[6:0];
         row = rowf;
         // Hardware fetches slivers left to right; the column is mirrored
@@ -340,12 +344,13 @@ module ricoh_5c77 (
     end
 
     // Sprite range test for OAM entry obj_i.
-    wire [7:0] ev_dy = obj_line - oam[{1'b0, obj_i, 2'b01}];
+    wire [7:0] ev_d = obj_line - oam[{1'b0, obj_i, 2'b01}];
+    wire [7:0] ev_dy = obj_dy(ev_d);
     wire [6:0] ev_h = obj_h(obsel[7:5], oam_large(obj_i));
     wire [8:0] ev_x = oam_x(obj_i);
     wire [6:0] ev_w = obj_w(obsel[7:5], oam_large(obj_i));
     // X = 256 still counts toward the per-line limits.
-    wire ev_in = {1'b0, ev_dy} < {2'b00, ev_h} &&
+    wire ev_in = {1'b0, ev_dy} < {2'b00, ev_h} && !(setini[1] && ev_d[7]) &&
                  !(ev_x > 9'd256 && ({1'b0, ev_x} + {3'b000, ev_w} - 10'd1) < 10'd512);
 
     // Background fetch state.
@@ -479,15 +484,17 @@ module ricoh_5c77 (
             range_over <= 1'b0;
             time_over <= 1'b0;
             bank <= 1'b0;
-            mos_cnt <= 4'd0;
+            mos_cnt <= 5'd0;
             mos_line <= 9'd0;
         end else begin
             if (line_start) begin
                 // Mosaic line counter.
-                if (line == 9'd1 || mos_cnt == 4'd0) begin
+                // Interlaced high resolution counts the size in 448-line
+                // rows, so each block covers twice as many lines.
+                if (line == 9'd1 || mos_cnt == 5'd0) begin
                     mos_line <= line;
-                    mos_cnt <= mosaic[7:4];
-                end else mos_cnt <= mos_cnt - 4'd1;
+                    mos_cnt <= (hires_o && setini[0]) ? {mosaic[7:4], 1'b1} : {1'b0, mosaic[7:4]};
+                end else mos_cnt <= mos_cnt - 5'd1;
                 if (line == 9'd0 && !inidisp[7]) begin
                     range_over <= 1'b0;
                     time_over <= 1'b0;
@@ -680,7 +687,7 @@ module ricoh_5c77 (
             sz = {1'b0, mosaic[7:4]} + 5'd1;
             mx = px_x;
             if (mosaic[i]) begin
-                if (hires_o) mx = {(px_x[9:1] - (px_x[9:1] % {4'h0, sz})), px_x[0]};
+                if (hires_o) mx = {(px_x[9:1] - (px_x[9:1] % {4'h0, sz})), 1'b0};
                 else mx = px_x - (px_x % {5'h00, sz});
             end
             bg_px[i * 12 +: 12] = bgbuf[px_bank][i][mx[8:0]];

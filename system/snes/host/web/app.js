@@ -9,11 +9,14 @@ const canvas = document.getElementById('screen');
 const ctx = canvas.getContext('2d');
 const img = ctx.createImageData(512, 224);
 
-// SCREEN is 512 x 240 little-endian BGR555; row 0 is display line 1.
+// SCREEN is 512 x 480 little-endian BGR555 (interlaced fields woven,
+// progressive lines doubled); row 0 is display line 1. The canvas shows
+// the even rows.
 function renderScreen(b64) {
     const raw = atob(b64);
     for (let n = 0, p = 0; n < 512 * 224; ++n) {
-        const v = raw.charCodeAt(2 * n) | (raw.charCodeAt(2 * n + 1) << 8);
+        const k = ((n >> 9) * 1024 + (n & 511)) * 2;
+        const v = raw.charCodeAt(k) | (raw.charCodeAt(k + 1) << 8);
         const r = v & 31, g = (v >> 5) & 31, b = (v >> 10) & 31;
         img.data[p++] = (r << 3) | (r >> 2);
         img.data[p++] = (g << 3) | (g >> 2);
