@@ -63,7 +63,10 @@ def text_layer(board):
 
 
 def run_screen_test(rom, png, max_frames, chunk):
+    """Compare every frame: animated demos match their screenshot only at
+    the animation phase it was taken in."""
     board = Board(rom)
+    ref = screen.load_reference(png)
     best = 1.0
     try:
         frames = 0
@@ -73,11 +76,11 @@ def run_screen_test(rom, png, max_frames, chunk):
         reset_done = False
         last_text = None
         while frames < max_frames:
-            state = board.ask(f"FRAMES {chunk}")
+            state = board.ask("FRAMES 1")
             frames = state["frames"]
             if state.get("overrun"):
                 return {"result": "FAIL", "why": "S-DSP micro-op overrun", "frames": frames}
-            if is_cpu_test:
+            if is_cpu_test and frames % chunk == 0:
                 text = text_layer(board)
                 if "FAIL" in text:
                     return {"result": "FAIL", "why": "test printed FAIL", "frames": frames}
@@ -87,13 +90,14 @@ def run_screen_test(rom, png, max_frames, chunk):
                     reset_done = True
                 last_text = text
             reply = board.ask("SCREEN")
-            diff = screen.compare(reply, png)
-            best = min(best, diff)
+            diff = screen.compare(reply, ref)
+            if diff < best:
+                best, best_reply = diff, reply
             if diff == 0.0:
                 return {"result": "PASS", "frames": frames}
         out = SYSTEM / "work" / "images" / (rom.stem + ".png")
         out.parent.mkdir(parents=True, exist_ok=True)
-        screen.to_image(reply).save(out)
+        screen.to_image(best_reply).save(out)
         return {"result": "FAIL", "why": f"best screen difference {best:.4f}", "frames": frames,
                 "image": str(out)}
     finally:

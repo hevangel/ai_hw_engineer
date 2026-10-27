@@ -7,6 +7,7 @@ module snes #(
 ) (
     input  logic clk,                    // master clock 21.477272 / 21.281370 MHz
     input  logic rst_n,                  // reset button (also low at power-on)
+    input  logic por_n,                  // power-on only: the PPUs keep their registers over a reset
     // Cartridge configuration (from the ROM header)
     input  logic hirom_i,
     input  logic [21:0] rom_mask_i,
@@ -24,6 +25,8 @@ module snes #(
     output logic [8:0] pix_y,
     output logic [14:0] pix_rgb,
     output logic pix_hires,
+    output logic pix_field,              // interlace field of the current frame
+    output logic pix_interlace,
     output logic frame_o,
     // Audio (32 kHz)
     output logic sample_valid,
@@ -107,6 +110,8 @@ module snes #(
     // ---------------- PPUs ----------------
     logic [7:0] ppu1_rdata, ppu2_rdata, bgmode;
     logic ppu1_hit, ppu2_hit, line_start, vblank, field, px_bank, hires;
+    assign pix_field = field;
+    assign pix_interlace = interlace;
     logic [8:0] line;
     logic [9:0] px_x;
     logic [47:0] bg_px;
@@ -116,14 +121,14 @@ module snes #(
     logic vram_cwe_lo, vram_cwe_hi;
     logic [7:0] vram_cwdata;
     ricoh_5c77 ppu1 (
-        .clk, .rst_n, .b_addr, .b_rd, .b_wr, .bus_ce, .b_data_i(wdata),
+        .clk, .rst_n(por_n), .b_addr, .b_rd, .b_wr, .bus_ce, .b_data_i(wdata),
         .rdata(ppu1_rdata), .hit(ppu1_hit),
         .vram_raddr, .vram_rdata, .vram_caddr, .vram_cwe_lo, .vram_cwe_hi, .vram_cwdata, .vram_cdata,
         .line_start, .line, .vblank, .field,
         .px_x, .px_bank, .bg_px, .obj_px, .mode_o(bgmode), .hires_o(hires)
     );
     ricoh_5c78 #(.PAL(PAL)) ppu2 (
-        .clk, .rst_n, .b_addr, .b_rd, .b_wr, .bus_ce, .b_data_i(wdata),
+        .clk, .rst_n(por_n), .b_addr, .b_rd, .b_wr, .bus_ce, .b_data_i(wdata),
         .rdata(ppu2_rdata), .hit(ppu2_hit), .cpu_mdr(mdr), .wrio7(wrio[7]), .ext_latch(1'b0),
         .line_start, .line, .hcount(), .vblank, .field,
         .interlace_o(interlace), .overscan_o(overscan),

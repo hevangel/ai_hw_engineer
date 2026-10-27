@@ -48,6 +48,12 @@ module ricoh_5c77 (
     logic [15:0] vlatch;
     logic [15:0] m7a, m7b, m7c, m7d;
     logic [12:0] m7x, m7y, m7hofs, m7vofs;
+    // Copies taken at the start of each line for the renderer, so HDMA writes
+    // for the next line (horizontal blank) never reach the line being drawn.
+    logic [9:0] lhofs [4], lvofs [4];
+    logic [15:0] lm7a, lm7b, lm7c, lm7d;
+    logic [12:0] lm7x, lm7y, lm7hofs, lm7vofs;
+    logic [7:0] lm7sel;
     logic [8:0] oamadd;
     logic oam_prio;
     logic [9:0] oam_addr;
@@ -302,8 +308,10 @@ module ricoh_5c77 (
     wire cs_large = oam_large(cs);
     wire [6:0] cs_w = obj_w(obsel[7:5], cs_large);
     wire [6:0] cs_h = obj_h(obsel[7:5], cs_large);
-    // Sprite line (OBJ interlace uses doubled lines).
-    wire [7:0] obj_line = setini[1] ? {rline[6:0], field} : rline[7:0];
+    // Sprite line (OBJ interlace uses doubled lines). Sprites are evaluated
+    // on the line before they are shown, so OAM Y = 0 starts on line 1.
+    wire [8:0] obj_rl = rline - 9'd1;
+    wire [7:0] obj_line = setini[1] ? {obj_rl[6:0], field} : obj_rl[7:0];
 
     // Sliver geometry for the current sprite.
     logic [8:0] sl_x;
@@ -405,21 +413,21 @@ module ricoh_5c77 (
     always_comb begin
         logic signed [31:0] a, b, c, d, hc, vc, ho, vo, yy, xx;
         logic [8:0] ln;
-        a = 32'($signed(m7a)); b = 32'($signed(m7b));
-        c = 32'($signed(m7c)); d = 32'($signed(m7d));
-        hc = 32'($signed(m7x)); vc = 32'($signed(m7y));
-        ho = 32'($signed(m7hofs)); vo = 32'($signed(m7vofs));
+        a = 32'($signed(lm7a)); b = 32'($signed(lm7b));
+        c = 32'($signed(lm7c)); d = 32'($signed(lm7d));
+        hc = 32'($signed(lm7x)); vc = 32'($signed(lm7y));
+        ho = 32'($signed(lm7hofs)); vo = 32'($signed(lm7vofs));
         ln = mosaic[0] ? mos_line : rline;
-        yy = m7sel[1] ? 32'(255 - $signed(32'(ln[7:0]))) : 32'(ln[7:0]);
+        yy = lm7sel[1] ? 32'(255 - $signed(32'(ln[7:0]))) : 32'(ln[7:0]);
         m7_psx = ((a * m7clip(13'(ho - hc))) & ~32'sd63) + ((b * m7clip(13'(vo - vc))) & ~32'sd63) +
                  ((b * yy) & ~32'sd63) + (hc <<< 8);
         m7_psy = ((c * m7clip(13'(ho - hc))) & ~32'sd63) + ((d * m7clip(13'(vo - vc))) & ~32'sd63) +
                  ((d * yy) & ~32'sd63) + (vc <<< 8);
-        xx = m7sel[0] ? 32'(255 - $signed(32'(m7_x[7:0]))) : 32'(m7_x[7:0]);
+        xx = lm7sel[0] ? 32'(255 - $signed(32'(m7_x[7:0]))) : 32'(m7_x[7:0]);
         m7_px = m7_psx + a * xx;
         m7_py = m7_psy + c * xx;
         m7_out = m7_px[31:18] != 14'h0 || m7_py[31:18] != 14'h0;
-        m7_zero = m7_out && m7sel[7:6] == 2'b11;
+        m7_zero = m7_out && lm7sel[7:6] == 2'b11;
     end
 
     // Render port address.
@@ -445,8 +453,8 @@ module ricoh_5c77 (
         logic [9:0] px, py;
         logic [5:0] tx, ty;
         logic [14:0] a;
-        px = {col[6:0] - 7'd1, 3'b000} + {hofs[2][9:3], 3'b000};
-        py = vofs[2] + {6'h00, row, 3'b000};
+        px = {col[6:0] - 7'd1, 3'b000} + {lhofs[2][9:3], 3'b000};
+        py = lvofs[2] + {6'h00, row, 3'b000};
         tx = px[8:3];
         ty = py[8:3];
         a = {bgsc[2][6:2], 10'h000} + {5'b00000, ty[4:0], tx[4:0]};
@@ -485,6 +493,10 @@ module ricoh_5c77 (
                     time_over <= 1'b0;
                 end
                 rline <= line;
+                lhofs <= hofs; lvofs <= vofs;
+                lm7a <= m7a; lm7b <= m7b; lm7c <= m7c; lm7d <= m7d;
+                lm7x <= m7x; lm7y <= m7y; lm7hofs <= m7hofs; lm7vofs <= m7vofs;
+                lm7sel <= m7sel;
                 bank <= line[0];
                 clr <= 10'd0;
                 rs <= (!vblank && line != 9'd0) ? R_CLEAR : R_IDLE;
@@ -573,8 +585,8 @@ module ricoh_5c77 (
                 else begin
                     bg <= nb[1:0];
                     col <= 7'd0;
-                    col_hofs <= hofs[nb[1:0]];
-                    col_vofs <= vofs[nb[1:0]];
+                    col_hofs <= lhofs[nb[1:0]];
+                    col_vofs <= lvofs[nb[1:0]];
                     rs <= R_BG_MAP;
                 end
             end
@@ -587,16 +599,16 @@ module ricoh_5c77 (
                 logic [15:0] h, v;
                 h = opt_h;
                 v = vram_rdata;
-                col_hofs <= hofs[bg];
-                col_vofs <= vofs[bg];
+                col_hofs <= lhofs[bg];
+                col_vofs <= lvofs[bg];
                 if (mode == 3'd4) begin
                     // One entry: bit 15 selects vertical or horizontal.
                     if (h[4'd13 + {2'b00, bg}]) begin
                         if (h[15]) col_vofs <= h[9:0];
-                        else col_hofs <= {h[9:3], hofs[bg][2:0]};
+                        else col_hofs <= {h[9:3], lhofs[bg][2:0]};
                     end
                 end else begin
-                    if (h[4'd13 + {2'b00, bg}]) col_hofs <= {h[9:3], hofs[bg][2:0]};
+                    if (h[4'd13 + {2'b00, bg}]) col_hofs <= {h[9:3], lhofs[bg][2:0]};
                     if (v[4'd13 + {2'b00, bg}]) col_vofs <= v[9:0];
                 end
                 rs <= R_BG_MAP;
@@ -633,8 +645,8 @@ module ricoh_5c77 (
                     else begin
                         bg <= nb[1:0];
                         col <= 7'd0;
-                        col_hofs <= hofs[nb[1:0]];
-                        col_vofs <= vofs[nb[1:0]];
+                        col_hofs <= lhofs[nb[1:0]];
+                        col_vofs <= lvofs[nb[1:0]];
                         rs <= R_BG_MAP;
                     end
                 end else begin
@@ -649,7 +661,7 @@ module ricoh_5c77 (
             R_M7_PIX: begin
                 logic [7:0] p;
                 p = vram_rdata[15:8];
-                if (m7_out && m7sel[7:6] == 2'b10) p = 8'h00;
+                if (m7_out && lm7sel[7:6] == 2'b10) p = 8'h00;
                 if (p != 8'h00) bgbuf[bank][0][{1'b0, m7_x[7:0]}] <= {1'b0, 3'b000, p};
                 if (p[6:0] != 7'h00) bgbuf[bank][1][{1'b0, m7_x[7:0]}] <= {p[7], 3'b000, 1'b0, p[6:0]};
                 m7_x <= m7_x + 9'd1;

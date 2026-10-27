@@ -92,10 +92,16 @@ module ricoh_5c78 #(
     logic [7:0] cgadd_r, cg_latch, mdr;
     logic [8:0] cg_addr;               // word address << 1 | byte
     logic [14:0] cgram [256];
-    // Display copy: the line composed during line N+1 uses CGRAM as it stood
-    // at the end of line N's active display (hcnt 1096), so HDMA palette
-    // writes in the following horizontal blank apply to the next line.
+    // Display copy, one line behind CGRAM: every CGRAM write reaches it
+    // exactly one line (CG_DELAY clocks) later. Line N is composed during
+    // line N+1 at the dot times of line N, so each pixel sees the palette as
+    // it stood when hardware would have drawn it, including writes made
+    // during active display or spread over the horizontal blank.
+    localparam logic [15:0] CG_DELAY = 16'd1364;
     logic [14:0] cgram_d [256];
+    logic [15:0] tclk;
+    logic [38:0] cg_fifo [128];        // {time, index, colour}
+    logic [6:0] cg_wp, cg_rp;
     logic [7:0] w12sel, w34sel, wobjsel, wh0, wh1, wh2, wh3, wbglog, wobjlog;
     logic [7:0] tm, ts, tmw, tsw, cgwsel, cgadsub;
     logic [14:0] coldata;
@@ -119,7 +125,7 @@ module ricoh_5c78 #(
     always_ff @(posedge clk) begin
         if (!rst_n) begin
             inidisp <= 8'h80; setini <= 8'h00;
-            cgadd_r <= 8'h00; cg_addr <= 9'h0; cg_latch <= 8'h00; mdr <= 8'h00;
+            cgadd_r <= 8'h00; cg_addr <= 9'h0; cg_latch <= 8'h00; mdr <= 8'h00; cg_wp <= 7'd0;
             w12sel <= 8'h00; w34sel <= 8'h00; wobjsel <= 8'h00;
             wh0 <= 8'h00; wh1 <= 8'h00; wh2 <= 8'h00; wh3 <= 8'h00;
             wbglog <= 8'h00; wobjlog <= 8'h00;
@@ -140,7 +146,11 @@ module ricoh_5c78 #(
                     8'h21: begin cgadd_r <= b_data_i; cg_addr <= {b_data_i, 1'b0}; end
                     8'h22: begin
                         if (!cg_addr[0]) cg_latch <= b_data_i;
-                        else cgram[cg_addr[8:1]] <= {b_data_i[6:0], cg_latch};
+                        else begin
+                            cgram[cg_addr[8:1]] <= {b_data_i[6:0], cg_latch};
+                            cg_fifo[cg_wp] <= {tclk, cg_addr[8:1], b_data_i[6:0], cg_latch};
+                            cg_wp <= cg_wp + 7'd1;
+                        end
                         cg_addr <= cg_addr + 9'd1;
                     end
                     8'h23: w12sel <= b_data_i;
@@ -207,27 +217,46 @@ module ricoh_5c78 #(
     end
 
     // ---------------- Composition ----------------
-    logic composing;
+    // Line N is composed during line N+1 at line N's dot times: pixel x at
+    // hcnt 88 + 4x (88 + 2x per half pixel in high resolution).
+    localparam logic [10:0] H_FIRST = 11'd88;
+    logic composing, active;
     logic [9:0] cx;
+    logic [1:0] cdiv;
     logic [8:0] crow;
     wire [2:0] mode = r.bgmode[2:0];
     wire wide = r.hires;
     always_ff @(posedge clk) begin
         if (!rst_n) begin
             composing <= 1'b0;
+            active <= 1'b0;
             cx <= 10'd0;
+            cdiv <= 2'd0;
         end else if (line_start) begin
             r <= pend;
             pend <= live;
-            composing <= vcnt >= 9'd2 && vcnt <= vdisp + 9'd1;
+            active <= vcnt >= 9'd2 && vcnt <= vdisp + 9'd1;
+            composing <= 1'b0;
             crow <= vcnt - 9'd2;
             cx <= 10'd0;
+            cdiv <= 2'd0;
+        end else if (active && hcnt == H_FIRST) begin
+            composing <= 1'b1;
         end else if (composing) begin
-            cx <= cx + 10'd1;
-            if (cx == (wide ? 10'd511 : 10'd255)) composing <= 1'b0;
+            cdiv <= cdiv + 2'd1;
+            if (wide ? cdiv[0] : cdiv == 2'd3) begin
+                cx <= cx + 10'd1;
+                cdiv <= 2'd0;
+                if (cx == (wide ? 10'd511 : 10'd255)) begin
+                    composing <= 1'b0;
+                    active <= 1'b0;
+                end
+            end
         end
     end
-    assign px_x = cx;
+    // Pseudo high resolution: both halves of a pixel read the same S-PPU1
+    // column (the sub screen in the left half, the main screen in the right).
+    assign px_x = (wide && !hires_mode) ? {1'b0, cx[9:1]} : cx;
     assign px_bank = !vcnt[0];
 
     // Window test for a layer: sel = 4 setting bits, lg = 2 logic bits.
@@ -403,12 +432,16 @@ module ricoh_5c78 #(
         sub_p = pick(r.ts, r.tsw, win_l, bg_px, obj_px, r.bgmode, r.setini, r.cgwsel);
     end
     always_ff @(posedge clk) begin
-        if (hcnt == 11'd1096) begin
-            for (int i = 0; i < 64; i++) begin
-                cgram_d[i] <= cgram[i];
-                cgram_d[i + 64] <= cgram[i + 64];
-                cgram_d[i + 128] <= cgram[i + 128];
-                cgram_d[i + 192] <= cgram[i + 192];
+        if (!rst_n) begin
+            tclk <= 16'd0;
+            cg_rp <= 7'd0;
+        end else begin
+            tclk <= tclk + 16'd1;
+            // Both halves of a high-resolution pixel read CGRAM at one instant.
+            if (cg_rp != cg_wp && tclk - cg_fifo[cg_rp][38:23] >= CG_DELAY &&
+                !(composing && wide && cx[0])) begin
+                cgram_d[cg_fifo[cg_rp][22:15]] <= cg_fifo[cg_rp][14:0];
+                cg_rp <= cg_rp + 7'd1;
             end
         end
     end
@@ -424,11 +457,24 @@ module ricoh_5c78 #(
         bright = {bb[8:4], gg[8:4], rr[8:4]};
     endfunction
 
-    logic [14:0] main_rgb, sub_rgb, out_rgb;
+    function automatic logic [14:0] cmath(input logic [14:0] a, input logic [14:0] b,
+                                          input logic subtract, input logic halve);
+        for (int i = 0; i < 3; i++) begin
+            logic [5:0] sum;
+            if (!subtract) sum = {1'b0, a[i * 5 +: 5]} + {1'b0, b[i * 5 +: 5]};
+            else sum = (a[i * 5 +: 5] >= b[i * 5 +: 5]) ? {1'b0, a[i * 5 +: 5]} - {1'b0, b[i * 5 +: 5]} : 6'h00;
+            if (halve) sum = {1'b0, sum[5:1]};
+            else if (sum[5]) sum = 6'h1f;
+            cmath[i * 5 +: 5] = sum[4:0];
+        end
+    endfunction
+
+    logic [14:0] main_rgb, sub_rgb, out_rgb, m_cur, m_prev;
+    always_ff @(posedge clk)
+        if (pix_valid && cx[0]) m_prev <= m_cur;
     always_comb begin
         logic cw, clip, nomath, use_math, halve, sub_is_fixed;
         logic [14:0] m, s;
-        logic [5:0] sum [3];
         cw = win_l[5];
         case (r.cgwsel[7:6])
             2'd0: clip = 1'b0;
@@ -443,28 +489,26 @@ module ricoh_5c78 #(
             default: nomath = 1'b1;
         endcase
         m = clip ? 15'h0000 : main_c;
+        m_cur = m;
         sub_is_fixed = !r.cgwsel[1] || !sub_p.found;
         s = sub_is_fixed ? r.coldata : sub_c;
         use_math = !nomath && main_p.math_ok &&
                    (main_p.layer == 3'd5 ? r.cgadsub[5] : r.cgadsub[main_p.layer]);
         halve = r.cgadsub[6] && !clip && !(r.cgwsel[1] && !sub_p.found);
-        for (int i = 0; i < 3; i++) begin
-            logic [4:0] a, b;
-            a = m[i * 5 +: 5];
-            b = s[i * 5 +: 5];
-            if (!r.cgadsub[7]) sum[i] = {1'b0, a} + {1'b0, b};
-            else sum[i] = ({1'b0, a} >= {1'b0, b}) ? {1'b0, a} - {1'b0, b} : 6'h00;
-            if (halve) sum[i] = {1'b0, sum[i][5:1]};
-            else if (sum[i][5]) sum[i] = 6'h1f;
-        end
-        main_rgb = use_math ? {sum[2][4:0], sum[1][4:0], sum[0][4:0]} : m;
-        sub_rgb = sub_p.found ? sub_c : r.coldata;
+        main_rgb = use_math ? cmath(m, s, r.cgadsub[7], halve) : m;
+        // A transparent sub-screen pixel shows the backdrop colour (CGRAM 0).
+        sub_rgb = sub_p.found ? sub_c : cgram_d[0];
+        // High resolution: the left half shows the sub screen, blended with
+        // the previous main screen pixel by the same colour-math rule.
+        // The first pixel of a line has no previous one and uses its own
+        // (assumption A5: the reference differs in this column on some lines).
+        if (use_math) sub_rgb = cmath(sub_rgb, cx == 10'd0 ? m : m_prev, r.cgadsub[7], halve);
         if (r.inidisp[7]) out_rgb = 15'h0000;
         else if (wide && !cx[0]) out_rgb = bright(sub_rgb, r.inidisp[3:0]);
         else out_rgb = bright(main_rgb, r.inidisp[3:0]);
     end
 
-    assign pix_valid = composing;
+    assign pix_valid = composing && (wide ? cdiv[0] : cdiv == 2'd3);
     assign pix_x = cx;
     assign pix_y = crow;
     assign pix_rgb = out_rgb;

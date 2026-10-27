@@ -21,7 +21,7 @@
 namespace {
 
 Vsnes board;
-constexpr int kW = 512, kH = 240;
+constexpr int kW = 512, kH = 480;
 std::vector<uint16_t> screen(kW * kH), drawing(kW * kH);
 uint64_t frames = 0, cpu_cycles = 0, master_ticks = 0, smp_cycles = 0;
 int capture_version = 0;
@@ -45,12 +45,20 @@ void tick() {
     ++master_ticks;
     if (cpu_edge) ++cpu_cycles;
     if (board.apu_tick) ++smp_cycles;
-    if (board.pix_valid && board.pix_y < kH) {
+    // Frames are kept at 512 x 480: an interlaced field fills its own rows,
+    // a progressive line fills both rows of its pair.
+    if (board.pix_valid && board.pix_y < kH / 2) {
+        int row = board.pix_y * 2 + (board.pix_interlace ? board.pix_field : 0);
+        bool both = !board.pix_interlace;
+        auto put = [&](int x, uint16_t v) {
+            drawing[row * kW + x] = v;
+            if (both) drawing[(row + 1) * kW + x] = v;
+        };
         if (board.pix_hires) {
-            if (board.pix_x < kW) drawing[board.pix_y * kW + board.pix_x] = board.pix_rgb;
+            if (board.pix_x < kW) put(board.pix_x, board.pix_rgb);
         } else if (board.pix_x < 256) {
-            drawing[board.pix_y * kW + board.pix_x * 2] = board.pix_rgb;
-            drawing[board.pix_y * kW + board.pix_x * 2 + 1] = board.pix_rgb;
+            put(board.pix_x * 2, board.pix_rgb);
+            put(board.pix_x * 2 + 1, board.pix_rgb);
         }
     }
     if (board.sample_valid && audio.size() < 32000 * 2 * 4) {
@@ -78,11 +86,13 @@ void run_frames(uint64_t n) {
 
 void reset_board(bool power) {
     board.rst_n = 0;
+    if (power) board.por_n = 0;
     for (int i = 0; i < 64; ++i) {
         board.clk = 1; board.eval();
         board.clk = 0; board.eval();
     }
     board.rst_n = 1;
+    board.por_n = 1;
     board.eval();
     if (power) { frames = 0; cpu_cycles = 0; master_ticks = 0; smp_cycles = 0; }
 }
@@ -229,7 +239,7 @@ int main(int argc, char** argv) {
                 std::cout << "{\"addr\":" << x << ",\"hex\":\"" << hex << "\"}" << std::endl;
                 continue;
             } else if (command == "SCREEN") {
-                // 512 x 240 BGR555, little-endian; low-resolution pixels doubled.
+                // 512 x 480 BGR555, little-endian; low-resolution pixels doubled.
                 std::cout << "{\"frames\":" << frames << ",\"width\":" << kW << ",\"height\":" << kH
                           << ",\"screen\":\""
                           << base64(reinterpret_cast<const uint8_t*>(screen.data()), screen.size() * 2)

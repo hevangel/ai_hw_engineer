@@ -1,48 +1,45 @@
 #!/usr/bin/env python3
 """Helpers shared by the SNES test scripts: decode the simulator's SCREEN
-reply (512 x 240 BGR555) and compare it with a 256-wide reference image."""
+reply (512 x 480 BGR555, progressive lines doubled) and compare it with a
+reference image of 256 or 512 columns and 224/239 or 448/478 rows."""
 import base64
-import struct
 
-
-def rgb555(v):
-    r, g, b = v & 31, (v >> 5) & 31, (v >> 10) & 31
-    return (r << 3 | r >> 2, g << 3 | g >> 2, b << 3 | b >> 2)
+import numpy as np
 
 
 def decode(reply):
-    raw = base64.b64decode(reply["screen"])
+    """Frame as an (h, w, 3) uint8 RGB array."""
     w, h = reply["width"], reply["height"]
-    words = struct.unpack(f"<{w * h}H", raw)
-    return w, h, [rgb555(v) for v in words]
+    v = np.frombuffer(base64.b64decode(reply["screen"]), dtype="<u2").reshape(h, w)
+    rgb = np.stack([v & 31, (v >> 5) & 31, (v >> 10) & 31], axis=-1).astype(np.uint8)
+    return (rgb << 3) | (rgb >> 2)
 
 
-def to_image(reply, rows=224):
+def to_image(reply, rows=448):
     from PIL import Image
-    w, h, px = decode(reply)
-    img = Image.new("RGB", (w, rows))
-    img.putdata(px[:w * rows])
-    return img
+    return Image.fromarray(decode(reply)[:rows])
 
 
-def compare(reply, reference_path, tolerance=10):
-    """Fraction of reference pixels that differ (per-channel tolerance).
-    A 256-wide reference is compared with the even columns of the frame."""
+def load_reference(path):
     from PIL import Image
-    ref = Image.open(reference_path).convert("RGB")
-    rw, rh = ref.size
-    w, h, px = decode(reply)
-    step = max(w // rw, 1)
-    refpx = ref.load()
-    # A 225-row reference also holds display line 0 (never shown); frame
-    # row 0 is display line 1.
-    top = 1 if rh in (225, 240) else 0
-    rows = min(rh - top, h)
-    bad = 0
-    for y in range(rows):
-        for x in range(rw):
-            a = px[y * w + x * step]
-            b = refpx[x, y + top]
-            if any(abs(a[i] - b[i]) > tolerance for i in range(3)):
-                bad += 1
-    return bad / (rw * rows)
+    return np.asarray(Image.open(path).convert("RGB"), dtype=np.int16)
+
+
+def compare(reply, ref, tolerance=10):
+    """Fraction of reference pixels that differ by more than `tolerance` in
+    any channel. A 256-wide reference is compared with the even columns and
+    a 224-row reference with the even rows of the frame. A 225/240-row
+    (450/480-row) reference also holds display line 0, which is never shown;
+    frame row 0 is display line 1."""
+    if not isinstance(ref, np.ndarray):
+        ref = load_reference(ref)
+    frame = decode(reply).astype(np.int16)
+    rh, rw = ref.shape[:2]
+    tall = rh >= 400
+    sy, sx = (1 if tall else 2), frame.shape[1] // rw
+    top = (2 if tall else 1) if rh in (225, 240, 450, 480) else 0
+    ref = ref[top:]
+    view = frame[::sy, ::sx][:ref.shape[0]]
+    ref = ref[:view.shape[0]]
+    bad = (np.abs(view - ref) > tolerance).any(axis=-1)
+    return float(bad.mean())
