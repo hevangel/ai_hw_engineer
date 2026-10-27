@@ -1,47 +1,22 @@
-#!/bin/bash
-# Run simulation with xezim
-# Usage: ./run_sim.sh [test_name] [+seed=N]
-
-set -e
-
-CHIP_NAME=$(basename $(dirname $(dirname $(realpath $0))))
-DESIGN_DIR=$(dirname $(dirname $(realpath $0)))
-UVM_HOME=${UVM_HOME:-$(realpath $DESIGN_DIR/../../libs/uvm/1800.2-2017)}
-WORK_DIR=$DESIGN_DIR/work/sim
-
-# Default test
-TEST_NAME=${1:-base_test}
-shift 2>/dev/null || true
-
-# Create work directory
-mkdir -p $WORK_DIR
-
-echo "=== Running simulation: $CHIP_NAME / $TEST_NAME ==="
-echo "  Design dir: $DESIGN_DIR"
-echo "  UVM:        $UVM_HOME"
-
-# Collect source files
-SRC_FILES=$(find $DESIGN_DIR/src -name "*.sv" -o -name "*.v" | sort)
-TB_FILES=$(find $DESIGN_DIR/tb -name "*.sv" | sort)
-
-# Run xezim
-xezim --simulate \
-  -s tb_top \
-  -I $UVM_HOME/src \
-  -I $DESIGN_DIR/src \
-  -I $DESIGN_DIR/tb \
-  -D UVM_NO_DPI \
-  -D UVM_REPORT_DISABLE_FILE_LINE \
-  -D SIMULATION \
-  $UVM_HOME/src/uvm_pkg.sv \
-  $SRC_FILES \
-  $TB_FILES \
-  +UVM_TESTNAME=$TEST_NAME \
-  --fst $WORK_DIR/${TEST_NAME}.fst \
-  --max-time 1000000 \
-  -l $WORK_DIR/${TEST_NAME}.log \
-  "$@"
-
-echo "=== Simulation complete ==="
-echo "  Log:      $WORK_DIR/${TEST_NAME}.log"
-echo "  Waveform: $WORK_DIR/${TEST_NAME}.fst"
+#!/bin/sh
+# Directed PPU checks for both regions on Verilator (and xezim when installed).
+set -eu
+HERE=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+. "$HERE/scripts/sources.sh"
+mkdir -p "$HERE/work/sim"
+for region in ntsc pal; do
+    def=""; [ "$region" = pal ] && def="-DPAL_REGION"
+    verilator --binary --timing -Wall -Wno-UNUSEDSIGNAL -Wno-TIMESCALEMOD $def -j 4 --top-module tb_top \
+        --Mdir "$HERE/work/sim/$region" $RICOH_2C02_SRC "$HERE/tb/tb_top.sv" \
+        > "$HERE/work/sim/$region-build.log" 2>&1 || { cat "$HERE/work/sim/$region-build.log"; exit 1; }
+    "$HERE/work/sim/$region/Vtb_top" > "$HERE/work/sim/$region-verilator.log" 2>&1 || {
+        tail -20 "$HERE/work/sim/$region-verilator.log"; exit 1; }
+    grep 'RICOH 2C02 TB PASS' "$HERE/work/sim/$region-verilator.log"
+    if command -v xezim >/dev/null 2>&1; then
+        xezim --simulate --sv2017 --error-exit $def -s tb_top $RICOH_2C02_SRC "$HERE/tb/tb_top.sv" \
+            -l "$HERE/work/sim/$region-xezim.log"
+        grep 'RICOH 2C02 TB PASS' "$HERE/work/sim/$region-xezim.log"
+    else
+        echo "xezim not installed: skipped second simulator for $region"
+    fi
+done
