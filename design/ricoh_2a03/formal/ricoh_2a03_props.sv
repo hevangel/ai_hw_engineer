@@ -1,6 +1,11 @@
     // Included inside ricoh_2a03 under FORMAL (the core's own properties
     // are included by mos_6502_native and checked in the same proof).
     logic f_2a03_valid = 0;
+    // Power-on reset accompanies /RST and is asserted in the first cycle.
+    always_comb begin
+        if (!por_n) assume(!rst_n);
+        if (!f_2a03_valid) assume(!por_n);
+    end
     always_ff @(posedge clk) begin
         f_2a03_valid <= 1;
         // The core assumes reset in the first cycle; registers are

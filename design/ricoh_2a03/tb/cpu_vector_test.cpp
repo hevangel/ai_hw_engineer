@@ -79,9 +79,9 @@ int main(int argc, char** argv) {
                       << " Y=" << expected.y << " S=" << expected.s << " P=" << expected.p << std::dec << "\n";
         };
         dut.irq_n = 1; dut.nmi_n = 1;
-        dut.clk = 0; dut.rst_n = 0; dut.eval();
+        dut.clk = 0; dut.rst_n = 0; dut.por_n = 0; dut.eval();
         dut.clk = 1; dut.eval();
-        dut.clk = 0; dut.rst_n = 1;
+        dut.clk = 0; dut.rst_n = 1; dut.por_n = 1;
         // Verification-only state injection through Verilator public-flat access.
         auto* root = dut.rootp;
         root->ricoh_2a03__DOT__core__DOT__state = 0; // S_FETCH

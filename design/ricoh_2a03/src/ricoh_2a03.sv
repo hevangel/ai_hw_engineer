@@ -3,7 +3,8 @@
 module ricoh_2a03 #(
     parameter bit REGION = 1'b0     // 0 = RP2A03 NTSC, 1 = RP2A07 PAL
 ) (
-    input  logic clk, rst_n,
+    input  logic clk, rst_n,         // /RST: reset button (and power-on)
+    input  logic por_n,              // power-on reset, asserted together with rst_n
     input  logic irq_n, nmi_n,
     output logic [15:0] addr_o,
     input  logic [7:0] data_i,
@@ -73,7 +74,7 @@ module ricoh_2a03 #(
     );
 
     ricoh_2a03_apu #(.PAL(REGION)) apu (
-        .clk, .rst_n, .apu_phase_i(apu_phase),
+        .clk, .rst_n, .por_n, .apu_phase_i(apu_phase),
         .wr_i(cpu_wr && core_addr[15:5] == 11'h200), .reg_i(core_addr[4:0]), .data_i(core_dout),
         .status_rd_i(status_rd), .status_o(apu_status),
         .dmc_dma_req_o(dmc_req), .dmc_dma_addr_o(dmc_addr), .dmc_dma_done_i(dmc_done),

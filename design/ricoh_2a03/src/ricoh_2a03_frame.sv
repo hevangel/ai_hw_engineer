@@ -3,6 +3,7 @@ module ricoh_2a03_frame #(
     parameter bit PAL = 1'b0
 ) (
     input  logic clk, rst_n,
+    input  logic por_n,           // power-on: mode 0; /RST alone keeps the mode
     input  logic apu_phase_i,     // 1 during an APU ("put") cycle
     input  logic wr_i,            // $4017 write this cycle
     input  logic [1:0] mode_i,    // $4017 bits 7:6
@@ -34,15 +35,25 @@ module ricoh_2a03_frame #(
 
     always_ff @(posedge clk) begin
         if (!rst_n) begin
-            five_step <= 1'b0; inhibit <= 1'b0; count <= '0; irq_o <= 1'b0;
-            reset_delay <= '0; pending_five <= 1'b0;
+            // Power-on behaves as a $4017 write of $00, /RST as a rewrite of
+            // the last value; either way the sequence restarts at release.
+            if (!por_n) begin five_step <= 1'b0; inhibit <= 1'b0; end
+            count <= '0; irq_o <= 1'b0; reset_delay <= '0;
+            pending_five <= por_n && five_step;
         end else begin
-            if (reset_now || (!five_step && count == S4 + 16'd2) || (five_step && count == S5 + 16'd1))
-                count <= 16'd1; // this cycle is cycle 0 of the next sequence
+            // The counter runs one ahead of the table: an event at sequence
+            // cycle N is applied on the edge that ends cycle N-1, so its effect
+            // (length clock, IRQ flag) is visible during cycle N. blargg
+            // apu_test 4/5/6: flag readable and lengths clocked 29831 /
+            // 14916 CPU cycles after a $4017 write on an APU cycle.
+            if (reset_now || (!five_step && count == S4 + 16'd3) || (five_step && count == S5 + 16'd2))
+                count <= 16'd2; // this cycle is sequence cycle 0 (+1 ahead)
             else count <= count + 16'd1;
             if (reset_delay != 0) reset_delay <= reset_delay - 3'd1;
-            if (!five_step && !inhibit && count >= S4 && count <= S4 + 16'd2) irq_o <= 1'b1;
+            // A $4015 read inside the three-cycle window does not stop the
+            // next set: the flag reads set again afterwards (blargg 07/apu_test 6).
             if (irq_clear_i) irq_o <= 1'b0;
+            if (!five_step && !inhibit && count >= S4 && count <= S4 + 16'd2) irq_o <= 1'b1;
             if (wr_i) begin
                 five_step <= mode_i[1]; inhibit <= mode_i[0]; pending_five <= mode_i[1];
                 if (mode_i[0]) irq_o <= 1'b0;

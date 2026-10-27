@@ -3,6 +3,7 @@ module ricoh_2a03_apu #(
     parameter bit PAL = 1'b0
 ) (
     input  logic clk, rst_n,
+    input  logic por_n,            // power-on: clears every channel register
     input  logic apu_phase_i,      // 1 on APU ("put") cycles
     input  logic wr_i,             // CPU write to $4000-$401F this cycle
     input  logic [4:0] reg_i,
@@ -23,38 +24,41 @@ module ricoh_2a03_apu #(
     logic status_wr;
     assign status_wr = wr_i && reg_i == 5'h15;
 
+    // /RST acts like a $4015 write of 0 (length counters and DMC cleared,
+    // DMC IRQ cleared) and a rewrite of the last $4017 value; the other
+    // channel registers keep their contents. Power-on clears everything.
     always_ff @(posedge clk) begin
         if (!rst_n) enable <= '0;
         else if (status_wr) enable <= data_i[3:0];
     end
 
     ricoh_2a03_frame #(.PAL(PAL)) frame_unit (
-        .clk, .rst_n, .apu_phase_i, .wr_i(wr_i && reg_i == 5'h17), .mode_i(data_i[7:6]),
+        .clk, .rst_n, .por_n, .apu_phase_i, .wr_i(wr_i && reg_i == 5'h17), .mode_i(data_i[7:6]),
         .irq_clear_i(status_rd_i), .quarter_o(quarter), .half_o(half), .irq_o(frame_irq)
     );
     ricoh_2a03_pulse #(.NEGATE_ONES(1'b1)) pulse1 (
-        .clk, .rst_n, .apu_tick_i(apu_phase_i), .quarter_i(quarter), .half_i(half),
+        .clk, .rst_n(por_n), .apu_tick_i(apu_phase_i), .quarter_i(quarter), .half_i(half),
         .enable_i(enable[0]), .wr_i(wr_i && reg_i[4:2] == 3'd0), .reg_i(reg_i[1:0]),
         .data_i, .active_o(p1_act), .out_o(pulse1_o)
     );
     ricoh_2a03_pulse #(.NEGATE_ONES(1'b0)) pulse2 (
-        .clk, .rst_n, .apu_tick_i(apu_phase_i), .quarter_i(quarter), .half_i(half),
+        .clk, .rst_n(por_n), .apu_tick_i(apu_phase_i), .quarter_i(quarter), .half_i(half),
         .enable_i(enable[1]), .wr_i(wr_i && reg_i[4:2] == 3'd1), .reg_i(reg_i[1:0]),
         .data_i, .active_o(p2_act), .out_o(pulse2_o)
     );
     ricoh_2a03_triangle triangle (
-        .clk, .rst_n, .quarter_i(quarter), .half_i(half),
+        .clk, .rst_n(por_n), .quarter_i(quarter), .half_i(half),
         .enable_i(enable[2]), .wr_i(wr_i && reg_i[4:2] == 3'd2), .reg_i(reg_i[1:0]),
         .data_i, .active_o(tri_act), .out_o(triangle_o)
     );
     ricoh_2a03_noise #(.PAL(PAL)) noise (
-        .clk, .rst_n, .apu_tick_i(apu_phase_i), .quarter_i(quarter), .half_i(half),
+        .clk, .rst_n(por_n), .apu_tick_i(apu_phase_i), .quarter_i(quarter), .half_i(half),
         .enable_i(enable[3]), .wr_i(wr_i && reg_i[4:2] == 3'd3), .reg_i(reg_i[1:0]),
         .data_i, .active_o(noise_act), .out_o(noise_o)
     );
     ricoh_2a03_dmc #(.PAL(PAL)) dmc (
-        .clk, .rst_n, .apu_tick_i(apu_phase_i), .wr_i(wr_i && reg_i[4:2] == 3'd4),
-        .reg_i(reg_i[1:0]), .data_i, .status_wr_i(status_wr), .enable_i(data_i[4]),
+        .clk, .rst_n(por_n), .apu_tick_i(apu_phase_i), .wr_i(wr_i && reg_i[4:2] == 3'd4),
+        .reg_i(reg_i[1:0]), .data_i, .status_wr_i(status_wr || !rst_n), .enable_i(rst_n && data_i[4]),
         .dma_req_o(dmc_dma_req_o), .dma_addr_o(dmc_dma_addr_o), .dma_done_i(dmc_dma_done_i),
         .dma_data_i(dmc_dma_data_i), .active_o(dmc_act), .irq_o(dmc_irq), .out_o(dmc_o)
     );

@@ -48,7 +48,8 @@ derives this clock from the master oscillator.
 | Port | Dir | Width | Description |
 |---|---|---|---|
 | `clk` | in | 1 | CPU cycle clock (M2 rising edge completes a cycle) |
-| `rst_n` | in | 1 | Active-low /RST (synchronous to `clk`) |
+| `rst_n` | in | 1 | Active-low /RST (synchronous to `clk`): the reset button, also low at power-on |
+| `por_n` | in | 1 | Power-on reset, low only together with `rst_n`; clears APU channel registers and the frame mode |
 | `irq_n` | in | 1 | External /IRQ (cartridge), wire-ORed with APU IRQs |
 | `nmi_n` | in | 1 | /NMI (from the PPU) |
 | `addr_o` | out | 16 | Address bus (A15–A0) |
@@ -108,7 +109,7 @@ board's open-bus value is returned. The CPU test-mode registers
 | Quarter | 7457 | 7457 | 8313 | 8313 |
 | Quarter + half | 14913 | 14913 | 16627 | 16627 |
 | Quarter | 22371 | 22371 | 24939 | 24939 |
-| IRQ flag set | 29828–29830 | — | 33252–33254 | — |
+| IRQ flag readable | 29828–29830 | — | 33252–33254 | — |
 | Quarter + half | 29829 | 37281 | 33253 | 41565 |
 | Wrap (= cycle 0) | 29830 | 37282 | 33254 | 41566 |
 
@@ -154,4 +155,5 @@ board's open-bus value is returned. The CPU test-mode registers
 | ASSUMPTION: DMC DMA during OAM DMA steals two cycles (get + realign) | NESdev DMA page describes 1–3 stolen cycles depending on alignment | Approximation; documented in report |
 | Length-counter reload in the same cycle as a half-frame clock is applied (the hardware ignores it when the counter was non-zero) | NESdev Length Counter page | Not modelled; documented |
 | The triangle outputs its sequencer value at ultrasonic periods | Hardware behavior (NESdev Triangle page) | Implemented as hardware |
-| Reset (not power-on) leaves APU channel registers unchanged except `$4015`=0 and frame counter as if `$4017` was rewritten | NESdev APU reset notes | Implemented: reset clears enables, lengths, IRQ flags; channel registers also cleared (simplification) |
+| Reset (not power-on) leaves APU channel registers unchanged except `$4015`=0 and frame counter as if `$4017` was rewritten | NESdev APU reset notes; blargg `apu_reset` ROMs | Implemented with the separate `por_n` input: /RST alone clears enables, lengths, DMC and IRQ flags and restarts the sequencer in the last mode; power-on also clears channel registers and selects mode 0 |
+| Frame IRQ flag is readable on counter cycles 29828–29830, i.e. 29831–29833 CPU cycles after a `$4017` write on an APU cycle | blargg `apu_test` 4-jitter and 6-irq_flag_timing | Implemented (fixed after the first ROM run showed it one cycle late) |

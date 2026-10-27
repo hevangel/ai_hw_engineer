@@ -12,6 +12,8 @@ module tb_top;
     localparam int S2 = REGION ? 16627 : 14913;
     localparam int S1 = REGION ? 8313 : 7457;
     logic clk = 0, rst_n = 0, irq_n = 1, nmi_n = 1;
+    logic por_n;
+    assign por_n = rst_n;    // every reset here is a power-on
     logic [15:0] addr_o, pc_o;
     logic [7:0] data_i, data_o, a_o, x_o, y_o, s_o, p_o;
     logic we_o, ext_rd_o, oe1_n_o, oe2_n_o, dma_o, fetch_o, jammed_o, fault_o;

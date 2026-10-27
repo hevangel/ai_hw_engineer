@@ -32,8 +32,10 @@ module ricoh_2a03_length (
     assign active_o = count != 0;
     always_ff @(posedge clk) begin
         if (!rst_n || !enable_i) count <= '0;
-        else if (load_i) count <= length_lookup(index_i);
+        // A reload written while a non-zero counter is being clocked is
+        // ignored (blargg apu 11.len_reload_timing).
         else if (half_i && !halt_i && count != 0) count <= count - 8'd1;
+        else if (load_i) count <= length_lookup(index_i);
     end
 `ifdef FORMAL
     // The counter only ever holds a table entry or a decremented one.
