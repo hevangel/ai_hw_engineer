@@ -1,66 +1,10 @@
-# Implementation Plan: ricoh_5a22
+# Implementation plan: Ricoh 5A22
 
-## Overview
-
-Brief description of the chip and its purpose.
-
-## Architecture
-
-High-level block diagram and architecture description.
-
-## Module Hierarchy
-
-```
-chip_top
-├── module_a
-│   ├── sub_a1
-│   └── sub_a2
-├── module_b
-└── module_c
-```
-
-## Implementation Phases
-
-### Phase 1: Core Logic
-- [ ] Define interfaces and port list
-- [ ] Implement core datapath
-- [ ] Add control logic
-- [ ] Initial lint check
-
-### Phase 2: Integration
-- [ ] Connect sub-modules
-- [ ] Add clock/reset distribution
-- [ ] Add configuration registers (if any)
-
-### Phase 3: Verification-Ready
-- [ ] Add SVA assertions inline
-- [ ] Add coverage points
-- [ ] Create synthesis constraints
-
-## Design Decisions
-
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Clock scheme | Single clock | Simplicity |
-| Reset | Synchronous active-low | Standard practice |
-| Interface | AXI-Lite | Widely supported |
-
-## Constraints
-
-- Target frequency: TBD
-- Area budget: TBD
-- Power budget: TBD
-
-## Dependencies
-
-- None / List dependencies on other modules
-
-## Schedule
-
-| Milestone | Target Date | Status |
-|-----------|-------------|--------|
-| RTL complete | | Not started |
-| Formal clean | | Not started |
-| UVM TB complete | | Not started |
-| Coverage closure | | Not started |
-| Sign-off | | Not started |
+1. Spec and timing table ([spec](../spec/spec.md)).
+2. H/V counters with the documented line-length exceptions.
+3. Bus sequencer with four owners (CPU, refresh, DMA, HDMA); the CPU cycle
+   length is decoded from the address the core presents.
+4. DMA/HDMA engine with separate channel and byte-index state, 8-clock units.
+5. Registers, multiply/divide, NMI/IRQ, joypad and auto-read.
+6. Verify in `system/snes` with Peter Lemon's ROMs against their reference
+   screenshots; a directed testbench checks timing positions in isolation.

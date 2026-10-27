@@ -31,6 +31,9 @@ module sony_s_dsp (
     output logic [4:0] phase_o,
     output logic overrun_o             // a phase's micro-ops were still running at tick
 );
+    // Register bits the hardware ignores and wide arithmetic temporaries
+    // whose upper bits are deliberately dropped.
+    /* verilator lint_off UNUSEDSIGNAL */
 `include "sony_s_dsp_gauss.svh"
 `include "sony_s_dsp_sched.svh"
 
@@ -38,37 +41,37 @@ module sony_s_dsp (
 
     // ---------------- helpers ----------------
     function automatic logic signed [31:0] sx16(input logic [15:0] a);
-        return {{16{a[15]}}, a};
+        sx16 = {{16{a[15]}}, a};
     endfunction
     function automatic logic signed [31:0] sx8(input logic [7:0] a);
-        return {{24{a[7]}}, a};
+        sx8 = {{24{a[7]}}, a};
     endfunction
     function automatic logic signed [15:0] clamp16(input logic signed [31:0] x);
-        if (x > 32'sd32767) return 16'sh7fff;
-        if (x < -32'sd32768) return 16'sh8000;
-        return x[15:0];
+        if (x > 32'sd32767) clamp16 = 16'sh7fff;
+        else if (x < -32'sd32768) clamp16 = 16'sh8000;
+        else clamp16 = x[15:0];
     endfunction
 
     function automatic logic [11:0] rate_period(input logic [4:0] r);
         case (r)
-            5'd1: return 2048; 5'd2: return 1536; 5'd3: return 1280; 5'd4: return 1024;
-            5'd5: return 768;  5'd6: return 640;  5'd7: return 512;  5'd8: return 384;
-            5'd9: return 320;  5'd10: return 256; 5'd11: return 192; 5'd12: return 160;
-            5'd13: return 128; 5'd14: return 96;  5'd15: return 80;  5'd16: return 64;
-            5'd17: return 48;  5'd18: return 40;  5'd19: return 32;  5'd20: return 24;
-            5'd21: return 20;  5'd22: return 16;  5'd23: return 12;  5'd24: return 10;
-            5'd25: return 8;   5'd26: return 6;   5'd27: return 5;   5'd28: return 4;
-            5'd29: return 3;   5'd30: return 2;   5'd31: return 1;
-            default: return 1;
+            5'd1: rate_period = 2048; 5'd2: rate_period = 1536; 5'd3: rate_period = 1280; 5'd4: rate_period = 1024;
+            5'd5: rate_period = 768;  5'd6: rate_period = 640;  5'd7: rate_period = 512;  5'd8: rate_period = 384;
+            5'd9: rate_period = 320;  5'd10: rate_period = 256; 5'd11: rate_period = 192; 5'd12: rate_period = 160;
+            5'd13: rate_period = 128; 5'd14: rate_period = 96;  5'd15: rate_period = 80;  5'd16: rate_period = 64;
+            5'd17: rate_period = 48;  5'd18: rate_period = 40;  5'd19: rate_period = 32;  5'd20: rate_period = 24;
+            5'd21: rate_period = 20;  5'd22: rate_period = 16;  5'd23: rate_period = 12;  5'd24: rate_period = 10;
+            5'd25: rate_period = 8;   5'd26: rate_period = 6;   5'd27: rate_period = 5;   5'd28: rate_period = 4;
+            5'd29: rate_period = 3;   5'd30: rate_period = 2;   5'd31: rate_period = 1;
+            default: rate_period = 1;
         endcase
     endfunction
     function automatic logic [10:0] rate_offset(input logic [4:0] r);
-        if (r == 0 || r >= 5'd30) return 0;
         case (r % 3)
-            0: return 536;
-            1: return 0;
-            default: return 1040;
+            0: rate_offset = 536;
+            1: rate_offset = 0;
+            default: rate_offset = 1040;
         endcase
+        if (r == 0 || r >= 5'd30) rate_offset = 0;
     endfunction
 
     // ---------------- state ----------------
@@ -109,24 +112,24 @@ module sony_s_dsp (
     logic run;
 
     logic [8:0] sx;
-    uop_t op;
+    logic [5:0] op;
     logic [2:0] v;
     assign sx = sched(phase, slot);
-    assign op = uop_t'(sx[8:3]);
+    assign op = sx[8:3];
     assign v = sx[2:0];
     assign phase_o = phase;
     assign reg_rdata = regs[reg_addr];
     assign smp_rdata = ram_rdata;
 
     function automatic logic [6:0] vr(input logic [2:0] vv, input logic [3:0] r);
-        return {vv, r};
+        vr = {vv, r};
     endfunction
 
     function automatic logic [6:0] bi(input logic [2:0] vv, input logic [3:0] j);
-        return 7'(vv * 12) + 7'(j);
+        bi = 7'(vv * 12) + 7'(j);
     endfunction
     function automatic logic [3:0] hi(input logic c, input logic [2:0] j);
-        return {c, j};
+        hi = {c, j};
     endfunction
 
     logic [15:0] ea22;
@@ -187,19 +190,19 @@ module sony_s_dsp (
             default: ;
         endcase
         s = sx16(clamp16(s));
-        return {s[14:0], 1'b0};
+        brr_sample = {s[14:0], 1'b0};
     endfunction
 
     function automatic logic [3:0] wrap12(input logic [4:0] i);
-        return i >= 5'd12 ? 4'(i - 5'd12) : i[3:0];
+        wrap12 = i >= 5'd12 ? 4'(i - 5'd12) : i[3:0];
     endfunction
 
     function automatic logic signed [31:0] gmul(input logic [10:0] g, input logic [15:0] smp);
-        return ($signed({21'h0, g}) * sx16(smp)) >>> 11;
+        gmul = ($signed({21'h0, g}) * sx16(smp)) >>> 11;
     endfunction
 
     function automatic logic signed [31:0] fir(input logic [15:0] h, input logic [7:0] c);
-        return (sx16(h) * sx8(c)) >>> 6;
+        fir = (sx16(h) * sx8(c)) >>> 6;
     endfunction
 
     function automatic logic signed [15:0] echo_out(input logic [15:0] m, input logic [7:0] mv,
@@ -207,7 +210,7 @@ module sony_s_dsp (
         logic signed [31:0] a, b;
         a = (sx16(m) * sx8(mv)) >>> 7;
         b = ({{15{e[16]}}, e} * sx8(ev)) >>> 7;
-        return clamp16(sx16(a[15:0]) + sx16(b[15:0]));
+        echo_out = clamp16(sx16(a[15:0]) + sx16(b[15:0]));
     endfunction
 
     // Rate counters, and their next values (the noise poll uses the ticked counter).
@@ -338,7 +341,7 @@ module sony_s_dsp (
 
     // Voice output accumulation for channel ch.
     function automatic logic signed [31:0] amp(input logic [15:0] out, input logic [7:0] vol);
-        return (sx16(out) * sx8(vol)) >>> 7;
+        amp = (sx16(out) * sx8(vol)) >>> 7;
     endfunction
 
     // ---------------- sequencer ----------------
@@ -359,10 +362,56 @@ module sony_s_dsp (
                 e_in[c] <= 0; e_out[c] <= 0; m_out[c] <= 0;
             end
             for (int r = 0; r < 32; r++) pcnt[r] <= 11'({1'b0, rate_offset(5'(r))} % rate_period(5'(r)));
-            {env_hi, keylatch, kon_l, koff_l, mod_l, noise_l, echo_l, endx, looped} <= '0;
-            {bank_l, src_l, brr_hdr, brr_byte, brr_addr, brr_next, nyb} <= '0;
-            {l_adsr0, l_envx, l_outx, elo, l_pitch, l_out} <= '0;
-            {ehoff, e_page, e_addr, e_off, e_len} <= '0;
+            env_hi <= '0;
+
+            keylatch <= '0;
+
+            kon_l <= '0;
+
+            koff_l <= '0;
+
+            mod_l <= '0;
+
+            noise_l <= '0;
+
+            echo_l <= '0;
+
+            endx <= '0;
+
+            looped <= '0;
+            bank_l <= '0;
+
+            src_l <= '0;
+
+            brr_hdr <= '0;
+
+            brr_byte <= '0;
+
+            brr_addr <= '0;
+
+            brr_next <= '0;
+
+            nyb <= '0;
+            l_adsr0 <= '0;
+
+            l_envx <= '0;
+
+            l_outx <= '0;
+
+            elo <= '0;
+
+            l_pitch <= '0;
+
+            l_out <= '0;
+            ehoff <= '0;
+
+            e_page <= '0;
+
+            e_addr <= '0;
+
+            e_off <= '0;
+
+            e_len <= '0;
             e_ro <= 1'b1;
             sample_ph <= 1'b1;
             lfsr <= 15'h4000;
@@ -550,4 +599,5 @@ module sony_s_dsp (
             end
         end
     end
+    /* verilator lint_on UNUSEDSIGNAL */
 endmodule

@@ -27,11 +27,14 @@ module ricoh_5c77 (
     // Layer read port for S-PPU2 (previous line).
     input  logic [9:0] px_x,          // 0-255, or 0-511 in high resolution
     input  logic px_bank,
-    output logic [11:0] bg_px [4],    // {priority, palette[2:0], colour[7:0]}
+    output logic [47:0] bg_px,           // {priority, palette[2:0], colour[7:0]}
     output logic [8:0] obj_px,        // {priority[1:0], palette[2:0], colour[3:0]}
     output logic [7:0] mode_o,        // BGMODE
     output logic hires_o
 );
+    // Register bits the hardware ignores and wide arithmetic temporaries
+    // whose upper bits are deliberately dropped.
+    /* verilator lint_off UNUSEDSIGNAL */
     // ---------------- Registers ----------------
     logic [7:0] obsel, bgmode, mosaic, vmain, m7sel, setini, inidisp;
     logic [7:0] bgsc [4];
@@ -148,7 +151,7 @@ module ricoh_5c77 (
                     8'h0b: begin bgnba[0] <= b_data_i[3:0]; bgnba[1] <= b_data_i[7:4]; end
                     8'h0c: begin bgnba[2] <= b_data_i[3:0]; bgnba[3] <= b_data_i[7:4]; end
                     8'h0d, 8'h0f, 8'h11, 8'h13: begin
-                        hofs[(b_addr[3:0] - 4'hd) >> 1] <= {b_data_i[1:0], bgofs_latch[7:3],
+                        hofs[2'((b_addr[3:0] - 4'hd) >> 1)] <= {b_data_i[1:0], bgofs_latch[7:3],
                                                              bgofs_latch2[2:0]};
                         bgofs_latch <= b_data_i;
                         bgofs_latch2 <= b_data_i;
@@ -158,7 +161,7 @@ module ricoh_5c77 (
                         end
                     end
                     8'h0e, 8'h10, 8'h12, 8'h14: begin
-                        vofs[(b_addr[3:0] - 4'he) >> 1] <= {b_data_i[1:0], bgofs_latch};
+                        vofs[2'((b_addr[3:0] - 4'he) >> 1)] <= {b_data_i[1:0], bgofs_latch};
                         bgofs_latch <= b_data_i;
                         if (b_addr == 8'h0e) begin
                             m7vofs <= {b_data_i[4:0], m7_latch};
@@ -252,7 +255,7 @@ module ricoh_5c77 (
     logic [3:0] mos_cnt;
 
     // Sprite evaluation.
-    logic [6:0] obj_i, obj_first;
+    logic [6:0] obj_i;
     logic [7:0] obj_n;                  // sprites evaluated
     logic [6:0] obj_list [32];
     logic [5:0] obj_count;              // sprites in range
@@ -260,7 +263,6 @@ module ricoh_5c77 (
     logic [3:0] sliver;                 // sliver within the current sprite
     logic [5:0] slivers;                // slivers fetched this line
     logic [15:0] obj_plane01;
-    logic [7:0] obj_row;
 
     // Sprite size helpers: OBSEL size field -> small/large widths and heights.
     function automatic logic [6:0] obj_w(input logic [2:0] sz, input logic lg);
@@ -285,18 +287,18 @@ module ricoh_5c77 (
 
     // OAM entry fields for sprite n.
     function automatic logic [8:0] oam_x(input logic [6:0] n);
-        oam_x = {oam[{5'b10000, n[6:2]}][{n[1:0], 1'b0}], oam[{n, 2'b00}]};
+        oam_x = {oam[{3'b100, 2'b00, n[6:2]}][{n[1:0], 1'b0}], oam[{1'b0, n, 2'b00}]};
     endfunction
     function automatic logic oam_large(input logic [6:0] n);
         oam_large = oam[{5'b10000, n[6:2]}][{n[1:0], 1'b1}];
     endfunction
 
     // Current sprite being fetched.
-    wire [6:0] cs = obj_list[obj_k];
+    wire [6:0] cs = obj_list[obj_k[4:0]];
     wire [8:0] cs_x = oam_x(cs);
-    wire [7:0] cs_y = oam[{cs, 2'b01}];
-    wire [7:0] cs_tile = oam[{cs, 2'b10}];
-    wire [7:0] cs_attr = oam[{cs, 2'b11}];
+    wire [7:0] cs_y = oam[{1'b0, cs, 2'b01}];
+    wire [7:0] cs_tile = oam[{1'b0, cs, 2'b10}];
+    wire [7:0] cs_attr = oam[{1'b0, cs, 2'b11}];
     wire cs_large = oam_large(cs);
     wire [6:0] cs_w = obj_w(obsel[7:5], cs_large);
     wire [6:0] cs_h = obj_h(obsel[7:5], cs_large);
@@ -330,7 +332,7 @@ module ricoh_5c77 (
     end
 
     // Sprite range test for OAM entry obj_i.
-    wire [7:0] ev_dy = obj_line - oam[{obj_i, 2'b01}];
+    wire [7:0] ev_dy = obj_line - oam[{1'b0, obj_i, 2'b01}];
     wire [6:0] ev_h = obj_h(obsel[7:5], oam_large(obj_i));
     wire [8:0] ev_x = oam_x(obj_i);
     wire [6:0] ev_w = obj_w(obsel[7:5], oam_large(obj_i));
@@ -345,13 +347,13 @@ module ricoh_5c77 (
     logic [15:0] chr [4];              // character words
     logic [1:0] chr_i;
     logic [9:0] col_hofs, col_vofs;    // offsets for this column (offset-per-tile)
-    logic [15:0] opt_h, opt_v;
+    logic [15:0] opt_h;
 
     wire [3:0] bpp = bg_bpp(mode, bg);
     wire hires = hires_o;
     wire big = bgmode[4 + bg];
     // Line within the layer (mosaic, interlace in high resolution).
-    wire [8:0] bg_line = mosaic[bg] ? mos_line : rline;
+    wire [8:0] bg_line = mosaic[{1'b0, bg}] ? mos_line : rline;
     wire [9:0] eff_line = (hires && setini[0]) ? {bg_line[8:0], field} : {1'b0, bg_line};
     // Geometry of the current 8-pixel column. Wide tiles (16 pixels, or any
     // tile in high resolution) take the half selected by pixel bit 3.
@@ -396,7 +398,6 @@ module ricoh_5c77 (
     // Mode 7.
     logic [8:0] m7_x;
     logic signed [31:0] m7_psx, m7_psy, m7_px, m7_py;
-    logic [7:0] m7_tile;
     logic m7_out, m7_zero;
     function automatic logic signed [31:0] m7clip(input logic [12:0] n);
         m7clip = n[12] ? {{22{1'b1}}, n[9:0]} : {22'h0, n[9:0]};
@@ -409,12 +410,12 @@ module ricoh_5c77 (
         hc = 32'($signed(m7x)); vc = 32'($signed(m7y));
         ho = 32'($signed(m7hofs)); vo = 32'($signed(m7vofs));
         ln = mosaic[0] ? mos_line : rline;
-        yy = m7sel[1] ? 32'(255 - int'(ln[7:0])) : 32'(ln[7:0]);
+        yy = m7sel[1] ? 32'(255 - $signed(32'(ln[7:0]))) : 32'(ln[7:0]);
         m7_psx = ((a * m7clip(13'(ho - hc))) & ~32'sd63) + ((b * m7clip(13'(vo - vc))) & ~32'sd63) +
                  ((b * yy) & ~32'sd63) + (hc <<< 8);
         m7_psy = ((c * m7clip(13'(ho - hc))) & ~32'sd63) + ((d * m7clip(13'(vo - vc))) & ~32'sd63) +
                  ((d * yy) & ~32'sd63) + (vc <<< 8);
-        xx = m7sel[0] ? 32'(255 - int'(m7_x[7:0])) : 32'(m7_x[7:0]);
+        xx = m7sel[0] ? 32'(255 - $signed(32'(m7_x[7:0]))) : 32'(m7_x[7:0]);
         m7_px = m7_psx + a * xx;
         m7_py = m7_psy + c * xx;
         m7_out = m7_px[31:18] != 14'h0 || m7_py[31:18] != 14'h0;
@@ -501,7 +502,6 @@ module ricoh_5c77 (
                     if (inidisp[7]) rs <= R_DONE;
                     else begin
                         rs <= R_OBJ_EVAL;
-                        obj_first <= oam_prio ? oamadd[7:1] : 7'd0;
                         obj_i <= oam_prio ? oamadd[7:1] : 7'd0;
                         obj_n <= 8'd0;
                         obj_count <= 6'd0;
@@ -553,7 +553,7 @@ module ricoh_5c77 (
                     logic [3:0] c;
                     logic [8:0] xx;
                     b = cs_attr[6] ? 3'(i) : 3'(7 - i);
-                    c = {vram_rdata[8 + b], vram_rdata[b], obj_plane01[8 + b], obj_plane01[b]};
+                    c = {vram_rdata[4'd8 + {1'b0, b}], vram_rdata[{1'b0, b}], obj_plane01[4'd8 + {1'b0, b}], obj_plane01[{1'b0, b}]};
                     xx = sl_x + 9'(i);
                     if (c != 4'h0 && xx < 9'd256 && objbuf[bank][xx[7:0]][3:0] == 4'h0)
                         objbuf[bank][xx[7:0]] <= {cs_attr[5:4], cs_attr[3:1], c};
@@ -591,13 +591,13 @@ module ricoh_5c77 (
                 col_vofs <= vofs[bg];
                 if (mode == 3'd4) begin
                     // One entry: bit 15 selects vertical or horizontal.
-                    if (h[13 + bg]) begin
+                    if (h[4'd13 + {2'b00, bg}]) begin
                         if (h[15]) col_vofs <= h[9:0];
                         else col_hofs <= {h[9:3], hofs[bg][2:0]};
                     end
                 end else begin
-                    if (h[13 + bg]) col_hofs <= {h[9:3], hofs[bg][2:0]};
-                    if (v[13 + bg]) col_vofs <= v[9:0];
+                    if (h[4'd13 + {2'b00, bg}]) col_hofs <= {h[9:3], hofs[bg][2:0]};
+                    if (v[4'd13 + {2'b00, bg}]) col_vofs <= v[9:0];
                 end
                 rs <= R_BG_MAP;
             end
@@ -618,8 +618,8 @@ module ricoh_5c77 (
                     logic [7:0] c;
                     logic [2:0] bit_n;
                     bit_n = map[14] ? 3'(i) : 3'(7 - i);
-                    c = {chr[3][8 + bit_n], chr[3][bit_n], chr[2][8 + bit_n], chr[2][bit_n],
-                         chr[1][8 + bit_n], chr[1][bit_n], chr[0][8 + bit_n], chr[0][bit_n]};
+                    c = {chr[3][4'd8 + {1'b0, bit_n}], chr[3][{1'b0, bit_n}], chr[2][4'd8 + {1'b0, bit_n}], chr[2][{1'b0, bit_n}],
+                         chr[1][4'd8 + {1'b0, bit_n}], chr[1][{1'b0, bit_n}], chr[0][4'd8 + {1'b0, bit_n}], chr[0][{1'b0, bit_n}]};
                     if (bpp == 4'd2) c[7:2] = 6'h00;
                     if (bpp == 4'd4) c[7:4] = 4'h0;
                     xx = col_x + 10'(i);
@@ -671,8 +671,9 @@ module ricoh_5c77 (
                 if (hires_o) mx = {(px_x[9:1] - (px_x[9:1] % {4'h0, sz})), px_x[0]};
                 else mx = px_x - (px_x % {5'h00, sz});
             end
-            bg_px[i] = bgbuf[px_bank][i][mx[8:0]];
+            bg_px[i * 12 +: 12] = bgbuf[px_bank][i][mx[8:0]];
         end
         obj_px = objbuf[px_bank][hires_o ? px_x[8:1] : px_x[7:0]];
     end
+    /* verilator lint_on UNUSEDSIGNAL */
 endmodule

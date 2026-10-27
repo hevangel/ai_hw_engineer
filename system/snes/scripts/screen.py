@@ -34,12 +34,15 @@ def compare(reply, reference_path, tolerance=10):
     w, h, px = decode(reply)
     step = max(w // rw, 1)
     refpx = ref.load()
-    rows = min(rh, h)
+    # A 225-row reference also holds display line 0 (never shown); frame
+    # row 0 is display line 1.
+    top = 1 if rh in (225, 240) else 0
+    rows = min(rh - top, h)
     bad = 0
     for y in range(rows):
         for x in range(rw):
             a = px[y * w + x * step]
-            b = refpx[x, y]
+            b = refpx[x, y + top]
             if any(abs(a[i] - b[i]) > tolerance for i in range(3)):
                 bad += 1
     return bad / (rw * rows)

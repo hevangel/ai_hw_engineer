@@ -62,7 +62,12 @@ module wdc_65c816 (
         // Group 1 (ORA AND EOR ADC STA LDA CMP SBC).
         if (data_i[1:0] == 2'b01 || (data_i[1:0] == 2'b11 && data_i[3:2] != 2'b10) ||
             data_i[4:0] == 5'b10010) begin
-            f_op = op_e'(data_i[7:5]);
+            case (data_i[7:5])
+                3'd0: f_op = O_ORA;  3'd1: f_op = O_AND;
+                3'd2: f_op = O_EOR;  3'd3: f_op = O_ADC;
+                3'd4: f_op = O_STA;  3'd5: f_op = O_LDA;
+                3'd6: f_op = O_CMP;  default: f_op = O_SBC;
+            endcase
             if (data_i[4:0] == 5'b10010) f_mode = M_IDP;
             else if (data_i[1:0] == 2'b01) begin
                 case (data_i[4:2])
@@ -257,17 +262,16 @@ module wdc_65c816 (
     wire [23:0] stk_next = stk_page ? {16'h0001, s[7:0] + 8'd1} : {8'h00, s + 16'd1};
 
     function automatic logic is_read(input op_e o);
-        is_read = o inside {O_ORA, O_AND, O_EOR, O_ADC, O_LDA, O_CMP, O_SBC, O_BIT,
-                            O_LDX, O_LDY, O_CPX, O_CPY};
+        is_read = (o == O_ORA || o == O_AND || o == O_EOR || o == O_ADC || o == O_LDA || o == O_CMP || o == O_SBC || o == O_BIT || o == O_LDX || o == O_LDY || o == O_CPX || o == O_CPY);
     endfunction
     function automatic logic is_write(input op_e o);
-        is_write = o inside {O_STA, O_STX, O_STY, O_STZ};
+        is_write = (o == O_STA || o == O_STX || o == O_STY || o == O_STZ);
     endfunction
     function automatic logic is_rmw(input op_e o);
-        is_rmw = o inside {O_ASL, O_LSR, O_ROL, O_ROR, O_INC, O_DEC, O_TSB, O_TRB};
+        is_rmw = (o == O_ASL || o == O_LSR || o == O_ROL || o == O_ROR || o == O_INC || o == O_DEC || o == O_TSB || o == O_TRB);
     endfunction
     function automatic logic x_width(input op_e o);
-        x_width = o inside {O_LDX, O_LDY, O_CPX, O_CPY, O_STX, O_STY};
+        x_width = (o == O_LDX || o == O_LDY || o == O_CPX || o == O_CPY || o == O_STX || o == O_STY);
     endfunction
 
     // Data-phase entry for the current operation.
@@ -299,25 +303,25 @@ module wdc_65c816 (
         logic c, v;
         logic [15:0] b16;
         b16 = sub ? ~opnd : opnd;
-        av = wide ? int'(acc) : int'(acc[7:0]);
-        bv = wide ? int'(b16) : int'(b16[7:0]);
+        av = wide ? $signed(32'(acc)) : $signed(32'(acc[7:0]));
+        bv = wide ? $signed(32'(b16)) : $signed(32'(b16[7:0]));
         top = wide ? 12 : 4;
         lim = wide ? 'h10000 : 'h100;
         if (!dec) begin
-            r = av + bv + int'(cin);
+            r = av + bv + $signed(32'(cin));
         end else begin
             // Low digits: add, correct, carry on.
             c = cin;
             r = 0;
-            for (int sh = 0; sh < top; sh += 4) begin
-                digit = ((av >> sh) & 'hf) + ((bv >> sh) & 'hf) + int'(c);
+            for (int sh = 0; sh < 12; sh = sh + 4) if (sh < top) begin
+                digit = ((av >> sh) & 'hf) + ((bv >> sh) & 'hf) + $signed(32'(c));
                 if (!sub && digit > 9) digit = digit + 6;
                 if (sub && digit <= 15) digit = digit - 6;
                 c = digit > 15;
                 r = r | ((digit & 'hf) << sh);
             end
             // Top digit: uncorrected until after V is taken.
-            r = r + ((((av >> top) & 'hf) + ((bv >> top) & 'hf) + int'(c)) << top);
+            r = r + ((((av >> top) & 'hf) + ((bv >> top) & 'hf) + $signed(32'(c))) << top);
         end
         v = ((~(av ^ bv) & (av ^ r)) & (lim >> 1)) != 0;
         if (dec) begin
@@ -623,7 +627,7 @@ module wdc_65c816 (
                             endcase
                         end
                     endcase
-                    stk_n <= f_op inside {O_PHD, O_PLD, O_PLB, O_PEA, O_PEI, O_PER, O_RTL};
+                    stk_n <= (f_op == O_PHD || f_op == O_PLD || f_op == O_PLB || f_op == O_PEA || f_op == O_PEI || f_op == O_PER || f_op == O_RTL);
                     if (f_mode == M_JSL || f_mode == M_JSRX) stk_n <= 1'b1;
                 end
             end
@@ -634,7 +638,7 @@ module wdc_65c816 (
                     O_ASLA, O_LSRA, O_ROLA, O_RORA, O_INA, O_DEA: begin
                         if (mf) a[7:0] <= rmw_res[7:0]; else a <= rmw_res;
                         p[FZ] <= rmw_z; p[FN] <= rmw_n;
-                        if (!(op inside {O_INA, O_DEA})) p[FC] <= rmw_c;
+                        if (!((op == O_INA || op == O_DEA))) p[FC] <= rmw_c;
                     end
                     O_INX: begin x <= xf ? {8'h00, x[7:0] + 8'd1} : x + 16'd1;
                                  p <= nz(p, x + 16'd1, !xf); end
@@ -845,8 +849,8 @@ module wdc_65c816 (
             S_RMW_IO: begin
                 rmw_val <= rmw_res;
                 p[FZ] <= rmw_z;
-                if (!(op inside {O_TSB, O_TRB})) p[FN] <= rmw_n;
-                if (op inside {O_ASL, O_LSR, O_ROL, O_ROR}) p[FC] <= rmw_c;
+                if (!((op == O_TSB || op == O_TRB))) p[FN] <= rmw_n;
+                if ((op == O_ASL || op == O_LSR || op == O_ROL || op == O_ROR)) p[FC] <= rmw_c;
                 state <= w16 ? S_RMW_WH : S_RMW_WL;
             end
             S_RMW_WH: state <= S_RMW_WL;

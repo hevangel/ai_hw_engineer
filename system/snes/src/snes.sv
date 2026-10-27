@@ -109,7 +109,7 @@ module snes #(
     logic ppu1_hit, ppu2_hit, line_start, vblank, field, px_bank, hires;
     logic [8:0] line;
     logic [9:0] px_x;
-    logic [11:0] bg_px [4];
+    logic [47:0] bg_px;
     logic [8:0] obj_px;
     logic [14:0] vram_raddr, vram_caddr;
     logic [15:0] vram_rdata, vram_cdata;

@@ -26,7 +26,7 @@ module ricoh_5c78 #(
     // S-PPU1 layer port.
     output logic [9:0] px_x,
     output logic px_bank,
-    input  logic [11:0] bg_px [4],
+    input  logic [47:0] bg_px,
     input  logic [8:0] obj_px,
     input  logic [7:0] bgmode,
     input  logic hires_mode,
@@ -38,6 +38,9 @@ module ricoh_5c78 #(
     output logic pix_hires,
     output logic frame_o             // pulse at the start of each frame
 );
+    // Register bits the hardware ignores and wide arithmetic temporaries
+    // whose upper bits are deliberately dropped.
+    /* verilator lint_off UNUSEDSIGNAL */
     // ---------------- Video timing ----------------
     logic [10:0] hcnt;
     logic [8:0] vcnt;
@@ -89,6 +92,10 @@ module ricoh_5c78 #(
     logic [7:0] cgadd_r, cg_latch, mdr;
     logic [8:0] cg_addr;               // word address << 1 | byte
     logic [14:0] cgram [256];
+    // Display copy: the line composed during line N+1 uses CGRAM as it stood
+    // at the end of line N's active display (hcnt 1096), so HDMA palette
+    // writes in the following horizontal blank apply to the next line.
+    logic [14:0] cgram_d [256];
     logic [7:0] w12sel, w34sel, wobjsel, wh0, wh1, wh2, wh3, wbglog, wobjlog;
     logic [7:0] tm, ts, tmw, tsw, cgwsel, cgadsub;
     logic [14:0] coldata;
@@ -338,60 +345,75 @@ module ricoh_5c78 #(
         win_l[5] = win(r.wobjsel[7:4], r.wobjlog[3:2], w1, w2);
     end
 
-    function automatic pick_t pick(input logic [7:0] en, input logic [7:0] wen,
-                                   input logic [5:0] wl, input logic [11:0] bgp [4],
-                                   input logic [8:0] objp, input regs_t rr);
+    function automatic logic [28:0] pick(input logic [7:0] en, input logic [7:0] wen,
+                                   input logic [5:0] wl, input logic [47:0] bgp,
+                                   input logic [8:0] objp, input logic [7:0] rr_bgmode, input logic [7:0] rr_setini, input logic [7:0] rr_cgwsel);
         logic [3:0] best, rk;
         logic [2:0] bl;
-        pick_t pk;
+        logic pk_found, pk_math_ok, pk_direct;
+        logic [2:0] pk_layer;
+        logic [14:0] pk_drgb;
         logic [7:0] idx;
         logic [3:0] b;
+        logic [11:0] pi, ps, p0;
         best = 4'hf;
         bl = 3'd5;
         for (int i = 0; i < 4; i++) begin
-            if (en[i] && !(wen[i] && wl[i]) && bgp[i][7:0] != 8'h00) begin
-                rk = rank(rr.bgmode[2:0], rr.bgmode[3], rr.setini[6], 3'(i), {1'b0, bgp[i][11]});
+            pi = bgp[i * 12 +: 12];
+            if (en[i] && !(wen[i] && wl[i]) && pi[7:0] != 8'h00) begin
+                rk = rank(rr_bgmode[2:0], rr_bgmode[3], rr_setini[6], 3'(i), {1'b0, pi[11]});
                 if (rk < best) begin best = rk; bl = 3'(i); end
             end
         end
         if (en[4] && !(wen[4] && wl[4]) && objp[3:0] != 4'h0) begin
-            rk = rank(rr.bgmode[2:0], rr.bgmode[3], rr.setini[6], 3'd4, objp[8:7]);
+            rk = rank(rr_bgmode[2:0], rr_bgmode[3], rr_setini[6], 3'd4, objp[8:7]);
             if (rk < best) begin best = rk; bl = 3'd4; end
         end
-        pk.found = bl != 3'd5;
-        pk.layer = bl;
-        pk.math_ok = 1'b1;
-        pk.direct = 1'b0;
-        pk.drgb = 15'h0000;
+        pk_found = bl != 3'd5;
+        pk_layer = bl;
+        pk_math_ok = 1'b1;
+        pk_direct = 1'b0;
+        pk_drgb = 15'h0000;
         idx = 8'h00;
         if (bl == 3'd4) begin
             idx = {1'b1, objp[6:4], objp[3:0]};
-            pk.math_ok = objp[6];
+            pk_math_ok = objp[6];
         end else if (bl != 3'd5) begin
-            b = bpp_of(rr.bgmode[2:0], bl[1:0]);
+            b = bpp_of(rr_bgmode[2:0], bl[1:0]);
+            ps = bgp[bl[1:0] * 12 +: 12];
+            p0 = bgp[11:0];
             case (b)
-                4'd2: idx = rr.bgmode[2:0] == 3'd0 ? {1'b0, bl[1:0], bgp[bl[1:0]][10:8], bgp[bl[1:0]][1:0]}
-                                                   : {3'b000, bgp[bl[1:0]][10:8], bgp[bl[1:0]][1:0]};
-                4'd4: idx = {1'b0, bgp[bl[1:0]][10:8], bgp[bl[1:0]][3:0]};
-                default: idx = bgp[bl[1:0]][7:0];
+                4'd2: idx = rr_bgmode[2:0] == 3'd0 ? {1'b0, bl[1:0], ps[10:8], ps[1:0]}
+                                                   : {3'b000, ps[10:8], ps[1:0]};
+                4'd4: idx = {1'b0, ps[10:8], ps[3:0]};
+                default: idx = ps[7:0];
             endcase
             // Direct colour: 8-bit pixels of BG1 in modes 3, 4 and 7.
-            pk.direct = rr.cgwsel[0] && bl == 3'd0 && b == 4'd8;
-            pk.drgb = {bgp[0][7:6], bgp[0][10], 2'b00,
-                          bgp[0][5:3], bgp[0][9], 1'b0,
-                          bgp[0][2:0], bgp[0][8], 1'b0};
+            pk_direct = rr_cgwsel[0] && bl == 3'd0 && b == 4'd8;
+            pk_drgb = {p0[7:6], p0[10], 2'b00,
+                          p0[5:3], p0[9], 1'b0,
+                          p0[2:0], p0[8], 1'b0};
         end
-        pk.idx = idx;
-        pick = pk;
+        pick = {pk_found, pk_layer, pk_math_ok, pk_direct, idx, pk_drgb};
     endfunction
 
     pick_t main_p, sub_p;
     always_comb begin
-        main_p = pick(r.tm, r.tmw, win_l, bg_px, obj_px, r);
-        sub_p = pick(r.ts, r.tsw, win_l, bg_px, obj_px, r);
+        main_p = pick(r.tm, r.tmw, win_l, bg_px, obj_px, r.bgmode, r.setini, r.cgwsel);
+        sub_p = pick(r.ts, r.tsw, win_l, bg_px, obj_px, r.bgmode, r.setini, r.cgwsel);
     end
-    wire [14:0] main_c = main_p.direct ? main_p.drgb : cgram[main_p.idx];
-    wire [14:0] sub_c = sub_p.direct ? sub_p.drgb : cgram[sub_p.idx];
+    always_ff @(posedge clk) begin
+        if (hcnt == 11'd1096) begin
+            for (int i = 0; i < 64; i++) begin
+                cgram_d[i] <= cgram[i];
+                cgram_d[i + 64] <= cgram[i + 64];
+                cgram_d[i + 128] <= cgram[i + 128];
+                cgram_d[i + 192] <= cgram[i + 192];
+            end
+        end
+    end
+    wire [14:0] main_c = main_p.direct ? main_p.drgb : cgram_d[main_p.idx];
+    wire [14:0] sub_c = sub_p.direct ? sub_p.drgb : cgram_d[sub_p.idx];
 
     // Colour math and brightness.
     function automatic logic [14:0] bright(input logic [14:0] c, input logic [3:0] lv);
@@ -447,4 +469,5 @@ module ricoh_5c78 #(
     assign pix_y = crow;
     assign pix_rgb = out_rgb;
     assign pix_hires = wide;
+    /* verilator lint_on UNUSEDSIGNAL */
 endmodule

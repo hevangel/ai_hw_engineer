@@ -30,26 +30,34 @@ module sony_s_smp (
     output logic fetch_o
 );
     logic [15:0] addr;
-    logic [7:0] dout, psw;
+    logic [7:0] dout;
+    /* verilator lint_off UNUSEDSIGNAL */
+    logic [7:0] psw;
+    /* verilator lint_on UNUSEDSIGNAL */
     // The core samples din at ce only; its address does not depend on din.
     /* verilator lint_off UNOPTFLAT */
     logic [7:0] din;
     /* verilator lint_on UNOPTFLAT */
     logic rd, we;
 
+    // Unused observation ports of the core; PSW bit 5 (P) gates TEST writes.
+    /* verilator lint_off PINCONNECTEMPTY */
     sony_spc700 core (
         .clk, .ce, .rst_n,
         .addr_o(addr), .data_i(din), .data_o(dout), .rd_o(rd), .we_o(we),
         .fetch_o, .halted_o(), .pc_o,
         .a_o(), .x_o(), .y_o(), .sp_o(), .psw_o(psw)
     );
+    /* verilator lint_on PINCONNECTEMPTY */
 
     logic [7:0] ipl [64];
     always_ff @(posedge clk) if (ipl_we) ipl[ipl_addr] <= ipl_data;
 
     // TEST ($F0) fields
     logic timers_disable, ram_writable, ram_disable, timers_enable;
+    /* verilator lint_off UNUSEDSIGNAL */
     logic [3:0] wait_cfg;              // wait-state fields: stored, not modelled
+    /* verilator lint_on UNUSEDSIGNAL */
     // CONTROL ($F1) fields
     logic [2:0] t_en;
     logic ipl_en;
