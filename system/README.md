@@ -16,12 +16,12 @@ and a host bridge for external storage, media and user input.
 | Micral N | 1973 | Intel 8008, 16 KiB memory, I/O bus | [micral_n/](micral_n/) |
 | IBM PC 5150 | 1981 | 8088 bus adapter/shared 8086 EU, 8259, 8253, 8255, 8237, 8272, CGA | [ibm_pc/](ibm_pc/) |
 | IBM PC XT 5160 | 1983 | 8088, 8087, 256 KiB RAM, CGA, IBM/Xebec 10 MB fixed disk | [ibm_pc_xt_5160/](ibm_pc_xt_5160/) |
+| Commodore 64 (PAL cycle-exact vs VICE; NTSC functional) | 1982 | MOS 6510, 6569/6567 VIC-II, 6581 SID, 2×6526 CIA, 906114-01 PLA, 64 KiB DRAM | [commodore_64/](commodore_64/) |
 | IBM PS/2 Model 30 | 1987 | Native 8086, planar gate arrays, 8259, 8253, 8237, 8272, MM58167-compatible RTC, MCGA, integrated DBA fixed-disk controller | [ibm_ps2_model30/](ibm_ps2_model30/) |
 
-The requested Atari 2600, Commodore 64, Nintendo NES and Super Nintendo
-reconstructions are queued, in that order, after the chip work in the
-[MOS series ledger](../plans/mos_historical_series.md). They are not yet
-implemented systems.
+The requested Atari 2600, Nintendo NES and Super Nintendo reconstructions
+are tracked in the [MOS series ledger](../plans/mos_historical_series.md);
+the Commodore 64 is implemented (below).
 
 Each `system/<name>/` folder follows the chip-design layout (`spec/`,
 `plans/`, `src/`, `tb/`, `scripts/`, `report/`) plus `host/` (web app and
@@ -58,3 +58,8 @@ IBM's [Technical Reference scan](../references/model30tr.pdf) (with a [clean tex
 and [April 1987 product reference](https://bitsavers.org/pdf/ibm/pc/PS2_and_IBM_PC_Product_Reference_Version_4.0_Apr87.pdf).
 Its native 8086 bus, planar devices, 720K media and waveform viewer are in
 the [Model 30 overview](ibm_ps2_model30/README.md).
+
+The Commodore 64 year follows MAME's [c64.cpp at a pinned commit](https://github.com/mamedev/mame/blob/41a494b6ef80adc924ccb2bdba1ee69580276e0c/src/mame/commodore/c64.cpp)
+(year only). Its original BASIC/KERNAL boot, cycle-exact PAL agreement with
+VICE x64sc, NTSC discrepancy and functional boundaries are described in the
+[system overview](commodore_64/README.md).
