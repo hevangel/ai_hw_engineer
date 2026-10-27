@@ -31,7 +31,9 @@ module snes_memory (
     output logic [7:0] aram_rdata,
     // Host observation (no side effects): $00xxxxx WRAM, $10xxxx ARAM,
     // $20xxxx VRAM (byte address), $30xxxx SRAM
-    input  logic [23:0] host_addr,
+    /* verilator lint_off UNUSEDSIGNAL */
+    input  logic [23:0] host_addr,     // bits 19-17 unused
+    /* verilator lint_on UNUSEDSIGNAL */
     output logic [7:0] host_rdata
 );
     logic [7:0] wram [0:131071];

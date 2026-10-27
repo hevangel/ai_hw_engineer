@@ -500,7 +500,10 @@ module ricoh_5c77 (
                     time_over <= 1'b0;
                 end
                 rline <= line;
-                lhofs <= hofs; lvofs <= vofs;
+                for (int i = 0; i < 4; i++) begin
+                    lhofs[i] <= hofs[i];
+                    lvofs[i] <= vofs[i];
+                end
                 lm7a <= m7a; lm7b <= m7b; lm7c <= m7c; lm7d <= m7d;
                 lm7x <= m7x; lm7y <= m7y; lm7hofs <= m7hofs; lm7vofs <= m7vofs;
                 lm7sel <= m7sel;

@@ -52,13 +52,19 @@ module snes #(
     logic [7:0] b_addr, a_rdata, b_rdata, wdata, mdr, wrio;
     logic a_rd, a_wr, b_rd, b_wr, a_hit, b_hit;
     logic interlace, overscan, jp_latch, jp1_clk, jp2_clk, pad1_bit, pad2_bit;
+    // Status outputs the board does not use (kept for waveforms).
+    /* verilator lint_off UNUSEDSIGNAL */
+    logic cpu_refresh, cpu_dma, cpu_field;
+    logic [10:0] ppu_hcount;
+    logic [4:0] dsp_phase;
+    /* verilator lint_on UNUSEDSIGNAL */
     ricoh_5a22 #(.PAL(PAL)) cpu (
         .clk, .rst_n,
         .a_addr, .a_rd, .a_wr, .a_data_i(a_rdata), .a_hit,
         .b_addr, .b_rd, .b_wr, .b_data_i(b_rdata), .b_hit,
-        .data_o(wdata), .bus_ce, .refresh_o(), .dma_o(), .mdr_o(mdr),
+        .data_o(wdata), .bus_ce, .refresh_o(cpu_refresh), .dma_o(cpu_dma), .mdr_o(mdr),
         .irq_n(1'b1), .interlace_i(interlace), .overscan_i(overscan),
-        .vcount_o(vcount), .hcount_o(hcount), .field_o(),
+        .vcount_o(vcount), .hcount_o(hcount), .field_o(cpu_field),
         .wrio_o(wrio), .rdio_i(wrio),
         .jp_latch_o(jp_latch), .jp1_clk_o(jp1_clk), .jp2_clk_o(jp2_clk),
         .jp1_d_i({1'b0, pad1_bit}), .jp2_d_i({1'b0, pad2_bit}),
@@ -130,7 +136,7 @@ module snes #(
     ricoh_5c78 #(.PAL(PAL)) ppu2 (
         .clk, .rst_n(por_n), .b_addr, .b_rd, .b_wr, .bus_ce, .b_data_i(wdata),
         .rdata(ppu2_rdata), .hit(ppu2_hit), .cpu_mdr(mdr), .wrio7(wrio[7]), .ext_latch(1'b0),
-        .line_start, .line, .hcount(), .vblank, .field,
+        .line_start, .line, .hcount(ppu_hcount), .vblank, .field,
         .interlace_o(interlace), .overscan_o(overscan),
         .px_x, .px_bank, .bg_px, .obj_px, .bgmode, .hires_mode(hires),
         .pix_valid, .pix_x, .pix_y, .pix_rgb, .pix_hires, .frame_o
@@ -139,18 +145,19 @@ module snes #(
     // ---------------- APU ----------------
     // 24.576 MHz / 24 = 1.024 MHz SPC700 cycles, from the master clock by a
     // phase accumulator (the APU has its own crystal on the real board).
-    localparam int unsigned APU_INC = PAL ? 102400 : 128000;
-    localparam int unsigned APU_MOD = PAL ? 2128137 : 2684659;
+    localparam logic [22:0] APU_INC = PAL ? 23'd102400 : 23'd128000;
+    localparam logic [22:0] APU_MOD = PAL ? 23'd2128137 : 23'd2684659;
     logic [21:0] apu_acc;
+    wire [22:0] apu_next = {1'b0, apu_acc} + APU_INC;
     always_ff @(posedge clk) begin
         if (!rst_n) begin
             apu_acc <= 22'd0;
             apu_tick <= 1'b0;
-        end else if (apu_acc + APU_INC >= APU_MOD) begin
-            apu_acc <= 22'(apu_acc + APU_INC - APU_MOD);
+        end else if (apu_next >= APU_MOD) begin
+            apu_acc <= 22'(apu_next - APU_MOD);
             apu_tick <= 1'b1;
         end else begin
-            apu_acc <= 22'(apu_acc + APU_INC);
+            apu_acc <= apu_next[21:0];
             apu_tick <= 1'b0;
         end
     end
@@ -172,7 +179,7 @@ module snes #(
         .reg_addr(dsp_addr), .reg_wr(dsp_wr), .reg_wdata(dsp_wdata), .reg_rdata(dsp_rdata),
         .smp_addr, .smp_wr, .smp_wdata, .smp_rdata,
         .ram_addr(aram_addr), .ram_we(aram_we), .ram_wdata(aram_wdata), .ram_rdata(aram_rdata),
-        .sample_valid, .sample_l, .sample_r, .phase_o(), .overrun_o(dsp_overrun)
+        .sample_valid, .sample_l, .sample_r, .phase_o(dsp_phase), .overrun_o(dsp_overrun)
     );
 
     // ---------------- B bus read mux ----------------

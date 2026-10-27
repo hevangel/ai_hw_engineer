@@ -36,19 +36,26 @@ and the [SNESdev wiki timing page](https://snes.nesdev.org/wiki/Timing).
 
 ## 4. Functional description
 
-During line *N+1*, for `hcount` 0-255 (0-511 in high resolution), S-PPU2
-reads pixel *x* of line *N* from S-PPU1, decides the main and sub screen
-pixels with the window and priority rules using the registers captured at
-the start of line *N*, applies colour math and brightness, and emits the
-pixel. Palette lookups use a copy of CGRAM taken at `hcount` 1096 of line
-*N*, after the horizontal-blank HDMA transfers for line *N+1* have landed,
-so per-line palette changes appear on the line they were written for.
+S-PPU1 renders line *N* into a line buffer during line *N*. S-PPU2
+composes it during line *N+1* at line *N*'s dot times: pixel *x* at `hcount`
+88 + 4*x* (two half pixels 2 clocks apart in high resolution). It reads
+pixel *x* from S-PPU1, decides the main and sub screen pixels with the
+window and priority rules using the registers captured at the start of line
+*N*, applies colour math and brightness, and emits the pixel. Palette
+lookups use a display copy of CGRAM that receives every CGRAM write exactly
+one line (1364 clocks) late, so each pixel sees the palette as it stood
+when hardware drew it, including writes made by DMA during active display.
+
+In high resolution the left half of each pixel shows the sub screen. A
+transparent sub-screen pixel shows the backdrop (CGRAM 0), and when colour
+math applies it is blended with the previous main-screen pixel.
 
 ## 5. Assumption ledger
 
 | # | Assumption | Reason / evidence |
 |---|------------|-------------------|
-| A1 | Composition runs one line late against a register snapshot; dot-exact mid-line register effects are not reproduced. | Same rendering model as S-PPU1. |
-| A2 | The CGRAM display copy is taken at `hcount` 1096. | Chosen so HDMA palette writes in the horizontal blank before a line show on that line, as in Peter Lemon's HiColor HDMA tests. |
-| A3 | CGRAM writes during active display land normally. | Hardware redirects them to the address being displayed; no test depends on it. |
+| A1 | Window, colour-math and layer registers are captured once per line; dot-exact mid-line changes of those registers are not reproduced. | Same rendering model as S-PPU1; HDMA changes them in horizontal blank. |
+| A2 | CGRAM writes reach the display copy one line late, and pixels are composed at their hardware dot times. | Reproduces Peter Lemon's HiColor tests, which rewrite CGRAM by DMA from an H-IRQ during display. |
+| A3 | CGRAM writes during active display land at the written address. | Hardware redirects them to the address being displayed; no test depends on it. |
 | A4 | The short NTSC line and the PAL long line follow the SNESdev wiki timing page. | Documented behaviour. |
+| A5 | High-resolution sub-screen half: backdrop when transparent, blended with the previous main pixel; the first pixel of a line uses its own main pixel. | Matches the pseudo-hires HiColor screenshots except column 0 on some lines of two of them. |

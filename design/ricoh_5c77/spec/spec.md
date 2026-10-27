@@ -52,7 +52,9 @@ port; a line's work completes well inside the 1364 master clocks of a line.
 | # | Assumption | Reason / evidence |
 |---|------------|-------------------|
 | A1 | Rendering is line-based, not in lock-step with dot output. Register writes in the middle of a visible line take effect for the next rendered line, not at the exact dot. | HDMA writes during horizontal blank are the normal use and are reproduced; dot-exact mid-line effects are rare. |
-| A2 | Scroll, tile-map and character registers are sampled at the start of the line being rendered. | Matches the effect of HDMA-driven scroll in Peter Lemon's HDMA tests. |
+| A2 | Scroll and Mode 7 registers are copied at the start of each line and the line renders from the copies; other registers are read live while the line renders (it finishes before the next horizontal blank in most modes). | HDMA for line *N+1* runs in line *N*'s horizontal blank, while long renders (Mode 7) can still be running. |
 | A3 | OAM is not corrupted by writes during active display, and the OAM address reload at vblank start is modelled without the "OAM read during render" side effects. | Hardware corruption behaviour is poorly documented; no test software depends on it. |
 | A4 | The VRAM read prefetch latch reloads one clock after the address write or the incrementing access. | fullsnes "VRAM read prefetch". |
 | A5 | Open-bus bits of $2134-$213F come from the S-PPU1 data latch (`mdr`). | fullsnes "PPU1 open bus". |
+| A6 | Sprites with OAM Y = *y* start on line *y*+1; with OBJ interlace each field shows every other sprite row. | fullsnes; StarWars and InterlaceRPG screenshots. |
+| A7 | In interlaced high resolution a vertical mosaic block covers twice as many lines, and horizontal mosaic blocks in high resolution are solid. | MosaicMode5 screenshot. |

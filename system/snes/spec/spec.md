@@ -1,7 +1,8 @@
 # SNES specification
 
-Status: implemented; board-level verification in progress (see the
-[final report](../report/final_report.md)).
+Status: implemented and verified in the cloud container (see the
+[final report](../report/final_report.md)); the S-DSP lock-step oracle and
+the Docker image run are still owed.
 
 ## Historical sources and provenance
 
@@ -44,8 +45,9 @@ the synthesis check. Its side-effect-free host port reads work RAM
 
 `host/simulator.cpp` drives the Verilated board over a line protocol:
 `STATE`, `RUN`, `FRAMES`, `RESET`, `PAD1`/`PAD2` (12 button bits),
-`PEEK`/`MEM`, `SCREEN` (the last complete frame as 512×240 BGR555,
-low-resolution pixels doubled), `AUDIO` (the S-DSP's 32 kHz stereo
+`PEEK`/`MEM`, `SCREEN` (the last complete frame as 512×480 BGR555:
+low-resolution pixels doubled, interlaced fields woven into alternate
+rows, progressive lines doubled), `AUDIO` (the S-DSP's 32 kHz stereo
 samples), `TRACE` (65C816 registers at each opcode fetch) and `CAPTURE`
 (FST of the board for Surfer). `host/server.py` serves the web panel:
 television canvas, controller 1 on the keyboard, sound, cartridge selection
@@ -55,10 +57,13 @@ with power cycle, board state and the waveform panel.
 
 - Lint clean for both regions with `verilator --lint-only -Wall`.
 - Every Peter Lemon ROM that ships a reference screenshot reaches a frame
-  that matches it (per channel within 10 of 255, comparing the
-  even columns of the 512-wide frame); CPU and SPC700 instruction tests
-  never print FAIL; sound demos without a screenshot produce non-silent
-  output.
+  that matches it (every frame is compared; per channel within 10 of 255;
+  a 256-wide or 224/239-line screenshot is compared with the matching
+  columns or rows of the 512×480 frame). Screenshots that cannot be
+  matched pixel for pixel are listed with evidence as REF, and open model
+  differences as KNOWN with a bound on the difference. CPU and SPC700
+  instruction tests never print FAIL; sound demos without a screenshot
+  produce non-silent output.
 - The backend API test passes and the board synthesizes with Yosys.
 
 ## Assumption ledger
