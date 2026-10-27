@@ -17,8 +17,9 @@ board's master clock. The IPL ROM is copyrighted and is not stored in the
 repository: `scripts/fetch_ipl.py` places a pinned copy in the ignored
 `work/` folder and the simulator loads it at start-up.
 
-Read the [specification and assumptions](spec/spec.md),
-[implementation plan](plans/implementation_plan.md) and
-[verification report](report/final_report.md). `scripts/run_all.sh` runs
-lint and synthesis. Real software (Peter Lemon's SPC700 instruction tests
-and music players) runs in the [SNES system](../../system/snes/).
+Read the [specification and assumptions](spec/spec.md), [implementation
+plan](plans/implementation_plan.md) and [verification
+report](report/final_report.md). `scripts/run_all.sh` runs lint, the SPC700
+test ROMs and music demos on the SNES board, and synthesis. Real software
+(Peter Lemon's SPC700 instruction tests and music players) runs in the [SNES
+system](../../system/snes/).

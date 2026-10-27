@@ -15,7 +15,8 @@ Behaviour follows [fullsnes](https://problemkaputt.de/fullsnes.htm) and the
 
 The model runs on the master clock with a PAL parameter for the 50 Hz board.
 
-Read the [specification and assumptions](spec/spec.md),
-[implementation plan](plans/implementation_plan.md) and
-[verification report](report/final_report.md). `scripts/run_all.sh` runs
-lint and synthesis. The picture is verified in the [SNES system](../../system/snes/).
+Read the [specification and assumptions](spec/spec.md), [implementation
+plan](plans/implementation_plan.md) and [verification
+report](report/final_report.md). `scripts/run_all.sh` runs lint, the PPU
+test ROMs on the SNES board and synthesis. The picture is verified in the
+[SNES system](../../system/snes/).

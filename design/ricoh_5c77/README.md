@@ -17,8 +17,9 @@ This original SystemVerilog model renders each line into a line buffer while
 that line is scanned, and S-PPU2 composes it during the following line. All
 logic runs on the master clock.
 
-Read the [specification and assumptions](spec/spec.md),
-[implementation plan](plans/implementation_plan.md) and
-[verification report](report/final_report.md). `scripts/run_all.sh` runs
-lint and synthesis. The picture is verified against reference screenshots
-from real-software test ROMs in the [SNES system](../../system/snes/).
+Read the [specification and assumptions](spec/spec.md), [implementation
+plan](plans/implementation_plan.md) and [verification
+report](report/final_report.md). `scripts/run_all.sh` runs lint, the PPU
+test ROMs on the SNES board and synthesis. The picture is verified against
+reference screenshots from real-software test ROMs in the [SNES
+system](../../system/snes/).

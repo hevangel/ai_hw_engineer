@@ -16,8 +16,9 @@ Behaviour follows [fullsnes](https://problemkaputt.de/fullsnes.htm) and the
 This original SystemVerilog model runs everything on the master clock with
 clock enables. It wraps the project's [WDC 65C816](../wdc_65c816/) core.
 
-Read the [specification and assumptions](spec/spec.md),
-[implementation plan](plans/implementation_plan.md) and
-[verification report](report/final_report.md). `scripts/run_all.sh` runs
-lint, a directed testbench and synthesis. Real software (Peter Lemon's CPU,
-bank and DMA/HDMA test ROMs) runs in the [SNES system](../../system/snes/).
+Read the [specification and assumptions](spec/spec.md), [implementation
+plan](plans/implementation_plan.md) and [verification
+report](report/final_report.md). `scripts/run_all.sh` runs lint, the CPU,
+bank and DMA/HDMA test ROMs on the SNES board, and synthesis. Real software
+(Peter Lemon's CPU, bank and DMA/HDMA test ROMs) runs in the [SNES
+system](../../system/snes/).

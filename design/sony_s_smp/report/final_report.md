@@ -1,76 +1,39 @@
-# Final Design Report: sony_s_smp
+# Sony S-SMP verification
 
-## 1. Executive Summary
+## Contract and evidence
 
-Brief summary of design status, key metrics, and sign-off readiness.
+`sony_s_smp.sv` wraps the project's [SPC700](../../sony_spc700/) core and
+adds the S-SMP glue: the 64-byte IPL ROM (loaded at start-up, never stored
+in the repository), the IPL enable and port-clear bits of CONTROL, the
+four bidirectional CPU ports, timers 0 and 1 (8 kHz) and 2 (64 kHz) with
+their 4-bit counters cleared on read, the TEST register fields, and the
+`$F2/$F3` window into the [S-DSP](../../sony_s_dsp/). One SPC700 cycle runs
+per 1.024 MHz clock enable from the board. The
+[specification](../spec/spec.md) lists sources and assumptions A1–A4.
 
-## 2. Design Overview
+The chip is verified on the [SNES board](../../../system/snes/) by Peter
+Lemon's SPC700 test ROMs (revision
+`350b394e86ec5d62f600b5cbf64cdce3721bb6ef`), which upload test programs
+through the IPL protocol and print each result on screen; the screen must
+match the author's screenshot and must never show FAIL.
+`scripts/run_smp_test.sh` runs that subset.
 
-- Module: sony_s_smp
-- Version: 1.0
-- Designer: AI Hardware Engineer
-- Date: YYYY-MM-DD
+## Results (2026-10-27)
 
-## 3. Verification Status
+Cloud container: Verilator 5.020, Yosys 0.33. Formal and coverage flows
+were not run; the Docker image run of `scripts/run_all.sh` is still owed.
 
-### 3.1 Simulation Results
+| Gate | Measured result |
+|---|---|
+| Strict lint | `verilator --lint-only -Wall` passes |
+| Real software | 7/7 `CPUTest/SPC700` ROMs (ADC, AND, DEC, EOR, INC, ORA, SBC) match their screenshots after 1,005–2,039 frames; they time every case with the S-SMP timers. The 9 sound demos upload their driver through the IPL and produce sound |
+| Synthesis | Generic Yosys synthesis and `check -assert` pass: 14,391 cells |
 
-| Metric | Value | Target | Status |
-|--------|-------|--------|--------|
-| Tests run | | | |
-| Tests passed | | | |
-| Line coverage | | > 95% | |
-| Toggle coverage | | > 80% | |
-| FSM coverage | | 100% | |
+## Known differences
 
-### 3.2 Formal Verification Results
+None observed.
 
-| Property Set | Mode | Result |
-|--------------|------|--------|
-| Protocol | bmc (depth 50) | |
-| Protocol | prove (pdr) | |
-| Data integrity | bmc (depth 30) | |
-| Reachability | cover | |
+## Remaining gates
 
-### 3.3 Lint/Synthesis
-
-| Check | Tool | Result |
-|-------|------|--------|
-| Lint | Verilator --lint-only | |
-| Synthesis | Yosys | |
-| Area | Yosys stat | |
-
-## 4. Known Issues
-
-| Issue | Severity | Impact | Workaround |
-|-------|----------|--------|------------|
-| None | — | — | — |
-
-## 5. Open Items
-
-- [ ] Item 1
-- [ ] Item 2
-
-## 6. Sign-off
-
-| Criterion | Status |
-|-----------|--------|
-| RTL frozen | |
-| Formal clean | |
-| Simulation coverage met | |
-| Lint clean | |
-| Synthesis clean | |
-
-## 7. Appendix
-
-### Resource Utilization (Yosys)
-
-```
-Paste yosys stat output here
-```
-
-### Test List
-
-```
-Paste test list here
-```
+TEST wait states are stored but not applied (A1). No chip-level testbench,
+formal properties or coverage closure exist yet.
