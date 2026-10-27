@@ -137,6 +137,22 @@ module ricoh_2c02 #(
         endcase
     end
 
+    // ---- I/O latch decay: each bit fades to 0 about 600 ms after it was
+    // last driven. Writes drive all bits; reads drive only the bits the
+    // register returns ($2002: 7-5, palette reads: 5-0).
+    localparam logic [5:0] DECAY_FRAMES = REGION ? 6'd30 : 6'd36;
+    logic [7:0] latch_drive;
+    logic [47:0] decay_age;          // six-bit frame age per latch bit
+    always_comb begin
+        latch_drive = 8'h00;
+        if (cpu_ce && cpu_cs) begin
+            if (cpu_we) latch_drive = 8'hff;
+            else if (cpu_addr == 3'd2) latch_drive = 8'he0;
+            else if (cpu_addr == 3'd4) latch_drive = 8'hff;
+            else if (cpu_addr == 3'd7) latch_drive = palette_space ? 8'h3f : 8'hff;
+        end
+    end
+
     // Rendering-time $2007 increments the scroll counters instead of v += 1/32.
     function automatic logic [14:0] inc_x(input logic [14:0] a);
         if (a[4:0] == 5'd31) inc_x = {a[14:11], ~a[10], a[9:5], 5'd0};
@@ -156,6 +172,7 @@ module ricoh_2c02 #(
     always_ff @(posedge clk) begin
         if (!rst_n) begin
             ctrl <= '0; mask <= '0; oam_addr <= '0; io_latch <= '0; read_buffer <= '0;
+            decay_age <= '0;
             v <= '0; t <= '0; fine_x <= '0; w <= 1'b0;
             vbl <= 1'b0; sprite0_hit <= 1'b0; sprite_ovf <= 1'b0; suppress_vbl <= 1'b0;
             scanline <= '0; dot <= '0; frame_odd <= 1'b0;
@@ -207,6 +224,10 @@ module ricoh_2c02 #(
                 if (scanline == 9'd241 && dot == 9'd1) begin
                     if (!suppress_vbl) vbl <= 1'b1;
                     suppress_vbl <= 1'b0;
+                    for (int i = 0; i < 8; i++) begin
+                        if (decay_age[i*6 +: 6] == DECAY_FRAMES) io_latch[i] <= 1'b0;
+                        else decay_age[i*6 +: 6] <= decay_age[i*6 +: 6] + 6'd1;
+                    end
                 end
                 if (pre_line && dot == 9'd1) begin
                     vbl <= 1'b0; sprite0_hit <= 1'b0; sprite_ovf <= 1'b0;
@@ -223,9 +244,10 @@ module ricoh_2c02 #(
 
             // ---------------- CPU register access ----------------
             if (cpu_ce && cpu_cs) begin
+                for (int i = 0; i < 8; i++) if (latch_drive[i]) decay_age[i*6 +: 6] <= '0;
                 if (!cpu_we) begin
                     cpu_rdata <= reg_value;
-                    if (cpu_addr == 3'd2 || cpu_addr == 3'd4 || cpu_addr == 3'd7) io_latch <= reg_value;
+                    io_latch <= (io_latch & ~latch_drive) | (reg_value & latch_drive);
                     case (cpu_addr)
                         3'd2: begin
                             vbl <= 1'b0; w <= 1'b0;

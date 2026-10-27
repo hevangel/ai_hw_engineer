@@ -65,7 +65,9 @@ Mapper logic watching PA12/PA13 sees the same address sequence.
 | `$2007` | PPUDATA | RW | Access at `v`, then `v` += 1 or 32 (during rendering: coarse-X and Y increments instead). Reads below `$3F00` return the buffer and refill it; palette reads return directly (upper bits open bus) and refill the buffer from `v`−`$1000` |
 
 Writes and reads to any register refresh the 8-bit I/O latch (open bus).
-The latch is not decayed (real latch decays after ~600 ms).
+Each latch bit decays to 0 when it has not been driven for 36 frames
+(30 on the 2C07), about 600 ms. Writes drive all eight bits; reads drive
+only the bits the register returns (`$2002`: 7–5, palette reads: 5–0).
 
 ## 4. Frame timing
 
@@ -122,5 +124,6 @@ Greyscale ANDs the index with `$30`.
 | ASSUMPTION: register side effects occur at the last master edge of the CPU cycle (`cpu_ce`); read data is latched there | Real PPU samples on M2/`/CS` timing within the cycle | Model choice; validated by vblank/NMI timing ROMs |
 | Non-multiplexed VRAM bus, data sampled on the second dot of each fetch | Same address sequence as ALE/RD bus | Documented simplification |
 | `$2007` access while rendering is disabled performs its bus cycle on the next two dots; during rendering the pending access replaces the next fetch slot | Hardware performs it over following PPU cycles | Approximation |
-| OAM decay, I/O latch decay, `$2004` writes during rendering, PAL OAM refresh during vblank and the 2C07 sprite-evaluation start delay are not modelled | NESdev OAM/PAL pages | Out of scope; documented |
+| ASSUMPTION: I/O latch bits decay after 36 (NTSC) / 30 (PAL) frames without being driven | NESdev open-bus notes (~600 ms); blargg `ppu_open_bus` | Implemented; frame-granular |
+| OAM decay, `$2004` writes during rendering, PAL OAM refresh during vblank and the 2C07 sprite-evaluation start delay are not modelled | NESdev OAM/PAL pages | Out of scope; documented |
 | Odd-frame skip is decided at pre-render dot 339 from the current rendering-enable state | NESdev frame timing | Implemented |
