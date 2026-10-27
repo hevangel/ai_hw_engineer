@@ -24,6 +24,7 @@ module ricoh_5a22 #(
     output logic bus_ce,              // last clock of the current access
     output logic refresh_o,           // DRAM refresh in progress
     output logic dma_o,               // DMA/HDMA owns the bus
+    output logic [7:0] mdr_o,         // open-bus latch (last value on the data bus)
     // Interrupt and video timing.
     input  logic irq_n,               // cartridge /IRQ
     input  logic interlace_i,         // PPU $2133 bit 0
@@ -117,6 +118,7 @@ module ricoh_5a22 #(
     logic [12:0] autojoy_cnt;
     logic jp_latch_reg;
     logic [7:0] mdr;
+    assign mdr_o = mdr;
 
     // DMA channel registers.
     logic [7:0] dmap [8], bbad [8], a1b [8], dasb [8], ntrl [8], unused [8];

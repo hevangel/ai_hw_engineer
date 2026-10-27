@@ -24,7 +24,6 @@ module ricoh_5c77 (
     input  logic [8:0] line,
     input  logic vblank,
     input  logic field,
-    input  logic [7:0] ppu2_mdr,      // S-PPU2 open-bus latch (bit 4 of STAT77)
     // Layer read port for S-PPU2 (previous line).
     input  logic [9:0] px_x,          // 0-255, or 0-511 in high resolution
     input  logic px_bank,
@@ -95,7 +94,7 @@ module ricoh_5c77 (
             8'h38: rdata = oam[oam_addr[9] ? {5'b10000, oam_addr[4:0]} : oam_addr];
             8'h39: rdata = vlatch[7:0];
             8'h3a: rdata = vlatch[15:8];
-            8'h3e: rdata = {time_over, range_over, 1'b0, ppu2_mdr[4], 4'h1};
+            8'h3e: rdata = {time_over, range_over, 1'b0, mdr[4], 4'h1};
             8'h04, 8'h05, 8'h06, 8'h08, 8'h09, 8'h0a, 8'h14, 8'h15, 8'h16,
             8'h18, 8'h19, 8'h1a, 8'h24, 8'h25, 8'h26, 8'h28, 8'h29, 8'h2a: rdata = mdr;
             default: hit = b_addr[7:6] == 2'b00 && b_addr[5:0] < 6'h34 ? 1'b1 : 1'b0;
@@ -375,7 +374,7 @@ module ricoh_5c77 (
         tile_py = eff_line + col_vofs;
         tx = wide ? tile_px[9:4] : tile_px[8:3];
         ty = big ? tile_py[9:4] : tile_py[8:3];
-        scbase = {bgsc[bg][7:2], 9'h000};
+        scbase = {bgsc[bg][6:2], 10'h000};
         map_addr = scbase + {5'b00000, ty[4:0], tx[4:0]};
         if (tx[5] && bgsc[bg][0]) map_addr = map_addr + 15'h0400;
         if (ty[5]) begin
@@ -387,9 +386,9 @@ module ricoh_5c77 (
         tile = mapv[9:0] + {5'h00, sub_y, 3'h0, sub_x};
         fy = mapv[15] ? ~tile_py[2:0] : tile_py[2:0];
         case (bpp)
-            4'd2: chr_addr = {bgnba[bg], 11'h000} + {2'b00, tile, fy};
-            4'd4: chr_addr = {bgnba[bg], 11'h000} + {1'b0, tile, 1'b0, fy};
-            default: chr_addr = {bgnba[bg], 11'h000} + {tile, 2'b00, fy};
+            4'd2: chr_addr = {bgnba[bg][2:0], 12'h000} + {2'b00, tile, fy};
+            4'd4: chr_addr = {bgnba[bg][2:0], 12'h000} + {1'b0, tile, 1'b0, fy};
+            default: chr_addr = {bgnba[bg][2:0], 12'h000} + {tile, 2'b00, fy};
         endcase
     end
     wire [6:0] last_col = hires ? 7'd64 : 7'd32;
@@ -449,7 +448,7 @@ module ricoh_5c77 (
         py = vofs[2] + {6'h00, row, 3'b000};
         tx = px[8:3];
         ty = py[8:3];
-        a = {bgsc[2][7:2], 9'h000} + {5'b00000, ty[4:0], tx[4:0]};
+        a = {bgsc[2][6:2], 10'h000} + {5'b00000, ty[4:0], tx[4:0]};
         if (tx[5] && bgsc[2][0]) a = a + 15'h0400;
         if (ty[5]) begin
             if (bgsc[2][1:0] == 2'd2) a = a + 15'h0400;
