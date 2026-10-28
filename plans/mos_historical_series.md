@@ -50,7 +50,7 @@ separate in its report.
 | 1 | Atari 2600 | Native 6507 bus timing, 6532, Atari TIA, cartridge mapping, controllers, raster/audio | Queued |
 | 2 | Commodore 64 | 6510, two 6526s, VIC-II, SID, PLA/memory arbitration, ROMs, keyboard and storage | Queued |
 | 3 | Nintendo NES | Ricoh 2A03/2A07 CPU/APU and DMA, 2C02/2C07 PPU, cartridge mappers and controllers | Queued |
-| 4 | Super Nintendo | 65C816-derived Ricoh 5A22, DMA/HDMA, 5C77/5C78 PPU, SPC700/DSP, memory/controller interfaces | Queued |
+| 4 | Super Nintendo | 65C816-derived Ricoh 5A22, DMA/HDMA, 5C77/5C78 PPU, SPC700/DSP, memory/controller interfaces | Implemented: [system/snes](../system/snes/) |
 
 Nintendo's custom parts and Atari's TIA are separate prerequisite designs,
 not MOS-branded chips. Research them before implementing their systems.
