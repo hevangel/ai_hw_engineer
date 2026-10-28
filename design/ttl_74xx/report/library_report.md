@@ -1,6 +1,6 @@
 # Numbered 74-series coverage and verification
 
-Updated 2026-10-23 06:19 UTC.
+Updated 2026-10-28 20:56 UTC.
 
 **Requested scope is incomplete.** 1393 catalog entries:
 1161 normalized digital function models, **165 pending digital
@@ -13,6 +13,20 @@ current-source checks passed. Family formal check/cover tasks: 16/16.
 Tool success is not full manufacturer-table or native pin compatibility certification.
 See the [original range evidence](classic_range_report.md) for the preserved
 74181 verification and corrections made to the first 289 models.
+
+## Toolchain used for these results
+
+| Tool | Version |
+|---|---|
+| Verilator | Verilator 5.052 2026-09-05 rev v5.052 |
+| Yosys | Yosys 0.69 (git sha1 9f75ca1f9, Release, GNU /usr/bin/g++ 15.2.0) |
+| SBY | SBY v0.69 |
+| xezim | 0.11.3 |
+| Python | 3.14.4 |
+
+A tool change can change a result. These versions, together with the
+source/test fingerprints recorded per part, are what produced the
+counts below; without them the numbers are not reproducible.
 
 ## Verification contract and limits
 
