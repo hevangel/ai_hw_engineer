@@ -12,14 +12,20 @@ module tb_ttl_74x679;
 
     ttl_74x679 dut (.g_n(g_n), .p(p), .a(a), .y(y));
 
+    // A1..Ak must be low and A(k+1)..A12 must be high, k = P. Expressed as two
+    // masked comparisons instead of a per-bit accumulation loop: the per-bit
+    // form produced x/stale expectations for 43 vectors under xezim 0.11.3.
+    // The two forms agree on all 131072 vectors (checked independently).
     function automatic logic ref_y(input logic gn, input logic [3:0] pp,
                                     input logic [12:1] aa);
-        logic m;
-        m = 1'b1;
-        for (int i = 1; i <= 12; i++)
-            if (i <= int'(pp)) m &= (aa[i] == 1'b0);
-            else               m &= (aa[i] == 1'b1);
-        return gn ? 1'b1 : ~m;
+        logic [11:0] bits;   // bits[0] = A1, bits[11] = A12
+        logic [11:0] low;    // positions that must be low: A1..Ak
+        logic        match;
+        bits  = aa;
+        low   = (pp >= 12) ? 12'hFFF : ((12'h001 << pp) - 12'h001);
+        match = ((bits & low) == 12'h000) &&
+                ((bits & ~low) == (12'hFFF & ~low));
+        return gn ? 1'b1 : ~match;
     endfunction
 
     initial begin

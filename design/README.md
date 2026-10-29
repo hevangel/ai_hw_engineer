@@ -74,6 +74,13 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1983 | Apple IIe IOU (341-0267) | Full-custom video machine: display scanner and interleaved display-address fold, video-mode soft switches, keyboard strobe/auto-repeat, annunciator/speaker/cassette outputs | [apple_iie_iou](apple_iie_iou/) |
 | 1983 | Apple IIe timing PAL (PAL16R8) | Apple-programmed timing generator: φ0/φ1 CPU clocks, asymmetric Q3 strobe, PRAS'/PCAS' DRAM strobes with CAS gating, LDPS' video load and the 7 MHz dot clock | [apple_iie_pal](apple_iie_pal/) |
 | By 1986* (bibliographic evidence; launch unconfirmed) | MOS Technology 8520 CIA | Amiga peripheral controller: 6526 core with binary 24-bit TOD event counter and 8520 timer/interrupt timing; matches MAME except nine classified residuals; Amiga software pending | [mos_8520](mos_8520/) |
+| 1984 | WDC W65C816S | 16-bit 6502 extension: run-time 8/16-bit registers, relocatable direct page, 24-bit banks, block moves, emulation mode; every bus cycle matches SingleStepTests (5.08 million records) | [wdc_65c816](wdc_65c816/) |
+| 1990 | Ricoh 5A22 (S-CPU) | SNES CPU: 65C816 core with 6/8/12-clock memory cycles, DRAM refresh, 8-channel DMA/HDMA, H/V IRQ/NMI, multiplier/divider, auto-joypad; Peter Lemon CPU, bank and HDMA test ROMs | [ricoh_5a22](ricoh_5a22/) |
+| 1990 | Ricoh 5C77 (S-PPU1) | SNES picture unit 1: VRAM/OAM, modes 0–7, offset-per-tile, Mode 7 and multiplier, sprites with overflow flags, high resolution, interlace, mosaic; matched against test-ROM screenshots | [ricoh_5c77](ricoh_5c77/) |
+| 1990 | Ricoh 5C78 (S-PPU2) | SNES picture unit 2: NTSC/PAL timing, CGRAM, windows, priority, colour math, brightness, H/V latches; matched against test-ROM screenshots | [ricoh_5c78](ricoh_5c78/) |
+| 1990 | Sony SPC700 | SNES sound CPU core: 6502-like ISA with YA pair, MUL/DIV, bit operations and TCALL; every bus cycle matches SingleStepTests | [sony_spc700](sony_spc700/) |
+| 1990 | Sony S-SMP | SNES sound CPU chip: SPC700 core, IPL boot ROM interface, four CPU ports, three timers, DSP register window; Peter Lemon SPC700 test ROMs | [sony_s_smp](sony_s_smp/) |
+| 1990 | Sony S-DSP | SNES sound generator: eight BRR voices, gaussian interpolation, ADSR/GAIN, noise, pitch modulation, FIR echo on a 32-phase schedule; independent sample-level oracle pending | [sony_s_dsp](sony_s_dsp/) |
 
 ## Date provenance notes
 
@@ -1601,3 +1608,11 @@ independent emulators' reset disagreement and sampled charge limitations.
 The 6526 is documented by the November 1981 preliminary manufacturer sheet;
 its exact launch remains unconfirmed. The [CIA overview](mos_6526/README.md)
 separates the verified timer foundation from the remaining device work.
+
+The WDC W65C816S entry records **1984**, the year WDC sampled the part
+after announcing it in 1983 ([history](https://en.wikipedia.org/wiki/WDC_65C816)).
+The Ricoh 5A22, 5C77 and 5C78 and the Sony SPC700, S-SMP and S-DSP entries
+record **1990**, the year the Super Famicom that introduced them launched in
+Japan ([history](https://en.wikipedia.org/wiki/Super_Nintendo_Entertainment_System#History)).
+No month-level chip date is asserted. Behaviour is sourced from fullsnes and
+the SNESdev wiki; see each chip README and its measured report.

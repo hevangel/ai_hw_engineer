@@ -2,6 +2,7 @@
 set -eu
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 python3 "$SCRIPT_DIR/run_library.py" inventory
+python3 "$SCRIPT_DIR/check_provenance.py"
 sh "$SCRIPT_DIR/run_lint.sh"
 sh "$SCRIPT_DIR/run_formal.sh"
 sh "$SCRIPT_DIR/run_sim.sh"
