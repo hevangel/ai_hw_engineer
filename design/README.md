@@ -67,6 +67,8 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1983 | Apple IIe MMU (341-0266) | Firmware-validated memory mapper: main/aux/bank-switched RAM selection, soft switches, ROM decode and multiplexed DRAM address | [apple_iie_mmu](apple_iie_mmu/) |
 | 1983 | Apple IIe IOU (341-0267) | Firmware-validated video machine: read/write video switches, display scanner and interleaved display-address fold, video-mode soft switches, keyboard strobe/auto-repeat, annunciator/speaker/cassette outputs | [apple_iie_iou](apple_iie_iou/) |
 | 1983 | Apple IIe timing PAL (PAL16R8) | Apple-programmed timing generator: Ï†0/Ï†1 CPU clocks, asymmetric Q3 strobe, PRAS'/PCAS' DRAM strobes with CAS gating, LDPS' video load and the 7 MHz dot clock | [apple_iie_pal](apple_iie_pal/) |
+| 1983 | Ricoh RP2A03 / RP2A07 | NES CPU: native NMOS 6502 with decimal disabled, APU (pulse, triangle, noise, DMC, frame sequencer), OAM/DMC DMA, controller I/O; NTSC and PAL; independent CPU vectors, nestest and blargg test ROMs | [ricoh_2a03](ricoh_2a03/) |
+| 1983 | Ricoh RP2C02 / RP2C07 | NES PPU: dot-level background pipeline, sprite evaluation with the overflow bug, sprite-0 hit, scroll registers, vblank/NMI races; NTSC and PAL; reference-renderer frame compare and blargg PPU test ROMs | [ricoh_2c02](ricoh_2c02/) |
 | By 1983* (dated manufacturer description; launch unconfirmed) | MOS Technology 6560 / 6561 VIC | VIC-20 video/sound; complete digital chip (registers, PAL/NTSC raster/interlace, fetch/pixels, light pen, sound) matches MAME per clock and boots original VIC-20 firmware; analog outputs/POT conversion and physical validation pending | [mos_6560](mos_6560/) |
 | By 1983* (dated manufacturer description; launch unconfirmed) | MOS Technology 6567 / 6569 VIC-II | C64 video controller; dot-level digital chip for 6569, 6567R8, 6567R56A, 8565 and 8562 matches MAME per fetch, bus cycle and pixel; original C64 software and physical validation pending | [mos_6567](mos_6567/) |
 | By 1983* (dated manufacturer description; launch unconfirmed) | MOS Technology 6581 / 8580 SID | C64 sound; digital core (oscillators, noise, envelopes, sync/ring, OSC3/ENV3/POT, bus latch) matches reSIDfp per clock for both models; analog DAC/filter stage and original software pending | [mos_6581](mos_6581/) |
@@ -1608,6 +1610,14 @@ independent emulators' reset disagreement and sampled charge limitations.
 The 6526 is documented by the November 1981 preliminary manufacturer sheet;
 its exact launch remains unconfirmed. The [CIA overview](mos_6526/README.md)
 separates the verified timer foundation from the remaining device work.
+
+The Ricoh RP2A03 and RP2C02 entries record **1983**, the year the Family
+Computer that introduced them launched in Japan
+([history](https://en.wikipedia.org/wiki/Nintendo_Entertainment_System#History)).
+No month-level chip date is asserted. Behaviour is sourced from the NESdev
+wiki, which is compiled from the Visual 2A03/2C02 die simulations and
+hardware tests; see the [2A03 overview](ricoh_2a03/README.md),
+[2C02 overview](ricoh_2c02/README.md) and their measured reports.
 
 The WDC W65C816S entry records **1984**, the year WDC sampled the part
 after announcing it in 1983 ([history](https://en.wikipedia.org/wiki/WDC_65C816)).
