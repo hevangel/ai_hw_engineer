@@ -22,7 +22,7 @@ Create a reproducible Docker image containing xezim, Verilator, Yosys, SymbiYosy
 
 ### SN74LS181 design
 
-1. Stored TI and Fairchild datasheets under `design/ttl_74_series/alu_74181/spec/` and maintained both active-HIGH and active-LOW functional tables in `spec.md`.
+1. Stored TI and Fairchild datasheets under `design/alu_74181/spec/` and maintained both active-HIGH and active-LOW functional tables in `spec.md`.
 2. Corrected the selector equations and active-LOW carry/lookahead interpretation. The active-LOW table was derived as `F_low(A,B) = NOT F_high(NOT A,NOT B)` and independently checked over 4,096 logic plus 8,192 arithmetic/carry cases.
 3. Wrote implementation, exhaustive test, and formal plans.
 4. Implemented the combinational X/Y carry-lookahead network in `src/alu_74181.sv`, including `F`, active-LOW `Cn+4`, `P`, and `G`, plus `A=B`.
@@ -40,11 +40,11 @@ Create a reproducible Docker image containing xezim, Verilator, Yosys, SymbiYosy
 4. Removed the temporary generated review artifact rather than publishing it; the findings and remediation are retained in this session record.
 5. Rebuilt the image from the remediated Dockerfile and reran independent smoke plus the full sign-off flow successfully.
 6. Ran a final independent staged-diff re-review. It returned `READY` with no blocking, major, or minor findings and reconfirmed all four remediations, image identity, evidence, script modes, and repository hygiene.
-7. Created feature commit `c6de490a87d468df1177cc48e6f09372d84c167c` (`design/ttl_74_series/alu_74181: implement and exhaustively verify ALU`) and non-force pushed `design/complete-alu-74181` to `origin` with upstream tracking.
+7. Created feature commit `c6de490a87d468df1177cc48e6f09372d84c167c` (`design/alu_74181: implement and exhaustively verify ALU`) and non-force pushed `design/complete-alu-74181` to `origin` with upstream tracking.
 
 ## Validation Status
 
-All final checks used image `sha256:d2ffb0d844d69e4de521c2c8e376d46ea34f6edfec1d5069039895c1b2e6f147`. The documented fresh-container command `sh design/ttl_74_series/alu_74181/scripts/run_all.sh` passed end to end after all review remediations.
+All final checks used image `sha256:d2ffb0d844d69e4de521c2c8e376d46ea34f6edfec1d5069039895c1b2e6f147`. The documented fresh-container command `sh design/alu_74181/scripts/run_all.sh` passed end to end after all review remediations.
 
 | Check | Result |
 |---|---|
@@ -82,10 +82,10 @@ The UVM library emits 23 known false `UVM/COMP/NAME` warnings under required `UV
 
 - `Dockerfile`, `README.md`
 - `docs/verible/`, `docs/uvm/USAGE.md`
-- `design/ttl_74_series/alu_74181/spec/`, `src/`, `tb/`, `formal/`, `plans/`, `scripts/`, and `report/`
+- `design/alu_74181/spec/`, `src/`, `tb/`, `formal/`, `plans/`, `scripts/`, and `report/`
 - This session-history record
 
-Generated simulation/formal/synthesis work directories are ignored. The obsolete `design/ttl_74_series/alu_74181/sim.out` binary and redundant populated-directory `.gitkeep` files were removed before commit. The UVM submodule remains clean.
+Generated simulation/formal/synthesis work directories are ignored. The obsolete `design/alu_74181/sim.out` binary and redundant populated-directory `.gitkeep` files were removed before commit. The UVM submodule remains clean.
 
 ## Model-Call Evidence
 
@@ -149,7 +149,7 @@ The MIT license and documentation updates are committed on and pushed to `main`.
 ### Completed work
 
 - Added `design/README.md` as the chip index, including the 74181/SN74LS181 entry and its first-introduced year of 1970.
-- Added `design/ttl_74_series/alu_74181/README.md` with historical context, the chip's importance, implementation overview, local Markdown links, datasheet links, and historical/technical references.
+- Added `design/alu_74181/README.md` with historical context, the chip's importance, implementation overview, local Markdown links, datasheet links, and historical/technical references.
 - Updated `AGENTS.md` to require the design index and a historical, source-linked README for every chip folder, including sourced first-introduced dates and explicit uncertainty.
 
 ### Validation status

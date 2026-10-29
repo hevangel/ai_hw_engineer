@@ -1,0 +1,20 @@
+`timescale 1ns/1ps
+module tb_ttl_74x741;
+    logic [7:0] a, y;
+    logic oe1_n, oe2;
+    ttl_74x741 dut(.*);
+    int errors;
+    initial begin
+        errors = 0;
+        oe1_n = 1; oe2 = 0; a = 8'hFF; #1;
+        if (y !== 0) errors++;
+        oe1_n = 0; oe2 = 1;
+        for (int v = 0; v < 256; v++) begin
+            a = v[7:0]; #1;
+            if (y !== v[7:0]) errors++;
+        end
+        if (errors != 0) $fatal(1, "tb_ttl_74x741: %0d errors", errors);
+        $display("PASS: tb_ttl_74x741");
+        $finish;
+    end
+endmodule

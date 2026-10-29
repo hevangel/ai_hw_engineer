@@ -11,4 +11,8 @@ verilator --cc --exe --build -j 4 -Wno-fatal --top-module micral_n \
     >"$SYSTEM/build/system_build.log"
 export MICRAL_SIMULATOR="$SYSTEM/build/obj_dir/Vmicral_n"
 export MICRAL_IMAGE="$SYSTEM/build/mo5_input_output.hex"
+# Inside the container the server must bind the container interface for the
+# -p port mapping to reach it; exposure is gated by the host-side -p address
+# (the documented command maps 127.0.0.1 only).
+export MICRAL_HOST="${MICRAL_HOST:-0.0.0.0}"
 exec python3 "$SYSTEM/host/server.py"

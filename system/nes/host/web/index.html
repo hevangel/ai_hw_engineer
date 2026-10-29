@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nintendo Entertainment System</title>
+<link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+<header>
+  <h1>Nintendo Entertainment System</h1>
+  <div id="machine_state">
+    <span class="state_chip" id="state_run">STOP</span>
+    <span class="state_chip" id="state_region">NTSC</span>
+    <span class="state_chip alert" id="state_jam" hidden>CPU JAMMED</span>
+  </div>
+</header>
+
+<main>
+  <section class="panel screen_panel">
+    <h2>Television (2C02 palette index &rarr; NTSC-decoded RGB)</h2>
+    <div class="screen_wrap">
+      <canvas id="screen" width="256" height="240" tabindex="0"></canvas>
+    </div>
+    <div class="buttons">
+      <select id="rom_select"></select>
+      <button id="btn_load">LOAD + POWER</button>
+      <button id="btn_run">RUN / STOP</button>
+      <button id="btn_reset">RESET</button>
+      <button id="btn_sound">Sound: off</button>
+    </div>
+    <p class="hint">Controller 1: <b>Arrows</b> D-pad, <b>X</b> A, <b>Z</b> B,
+    <b>Enter</b> Start, <b>Shift</b> Select. Click the screen first so it
+    receives keys.</p>
+  </section>
+
+  <section class="panel">
+    <h2>Board state</h2>
+    <table id="cpu_table"></table>
+    <pre id="test_text"></pre>
+  </section>
+
+  <section class="panel" id="waveform_panel">
+    <h2>Waveform</h2>
+    <div class="buttons">
+      <select id="waveform_signals">
+        <option value="cpu">CPU bus</option>
+        <option value="ppu">PPU raster &amp; VRAM</option>
+        <option value="apu">APU channels &amp; DMA</option>
+      </select>
+      <input id="capture_cycles" type="number" min="1" max="200000" value="20000">
+      <button id="waveform_capture">Capture</button>
+      <button id="waveform_refresh" hidden>Reload waveform</button>
+      <a id="waveform_download" hidden download="nes.fst">Download FST</a>
+      <span id="waveform_status"></span>
+    </div>
+    <iframe id="surfer_frame" title="Surfer waveform viewer"></iframe>
+  </section>
+</main>
+
+<footer>Nintendo 1983 (Famicom) / 1985 (NES) — dot-level reconstruction on the
+repository's Ricoh 2A03 CPU/APU and 2C02 PPU RTL with NROM, MMC1, UxROM and
+CNROM cartridge boards. Software comes from the hash-pinned public test-ROM
+archive, or any mapper 0&ndash;3 iNES file placed in <code>work/roms/</code>.
+Composite video encoding and the analog audio filters are approximated in
+the browser.</footer>
+<script type="module" src="app.js?v=1"></script>
+</body>
+</html>

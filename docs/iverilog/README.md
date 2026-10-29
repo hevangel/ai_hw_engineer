@@ -37,10 +37,7 @@ cc -std=c11 -shared -fPIC -O2 -I/usr/include/iverilog -Iwork/reference \
 vvp -Mwork -mcpu_reference work/boot.vvp
 ```
 
-The package's `iverilog-vpi --cflags` emitted a stray `0-3` compiler argument
-in the verified container. The board script invokes `cc` directly with the
-installed VPI include path to avoid that packaging defect. This workaround
-does not alter the simulator or reference sources.
+Ubuntu's pinned `iverilog=12.0-3` package embeds a stray standalone `0-3` token in the installed VPI helper's CFLAGS and CXXFLAGS. The Apple II overlay removes only that token from those two assignments. It retains the simulator, reference sources, include paths, compiler hardening flags and original license. The image build runs `scripts/check_eda_tools.py --tools iverilog`, requiring the packaged helper to compile and load a real VPI module, a four-state simulation to pass, and the deliberate fatal test to fail. The documented direct-`cc` board workflow remains supported and is tested separately. Future package upgrades must recheck both helper assignments and these actual build/load probes.
 
 Real-valued analog package models are simulation-only. Icarus emits warnings
 about synthesizing real assignments in `always_comb`; do not treat these as
@@ -49,3 +46,7 @@ for package clock/control models; mixed edge/level `always_ff` sensitivity
 caused a compiler assertion in the installed release.
 
 The fetcher derives netlist_sim_initialized.c from the unchanged, hash-checked original solver by zero-initializing its state allocation. See the [dependency ledger](../../system/apple_ii/board/DEPENDENCIES.md#explicit-solver-allocation-fix). Run sh scripts/run_reference_smoke.sh from system/apple_ii before longer VPI firmware tests.
+
+## Confirmed source-level diagnosis
+
+The [root-cause investigation](vpi-prefix-map-root-cause.md) traced the malformed flag to Debian’s `filter-out_iverilog-vpi_flags.patch`, inherited by Ubuntu. Its greedy expression consumes across argument boundaries into a later debug-map path. A hash-pinned source experiment proves that upstream helper generation works, Debian’s patch breaks both C/C++ builds, and a token-based make filter repairs both while preserving other flags. A corrected source patch and reproducible six-case experiment are included; the pinned binary-image cleanup remains the production workaround.

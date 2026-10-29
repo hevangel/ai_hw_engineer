@@ -19,6 +19,12 @@ class DesignFamilyTests(unittest.TestCase):
             self.assertFalse((ROOT / old).exists(), old)
             self.assertTrue((ROOT / new / 'README.md').is_file(), new)
 
+    def test_catalog_member_profiles(self):
+        for catalog, members in MANIFEST.get('catalogs', {}).items():
+            self.assertTrue((ROOT / 'design' / catalog / 'README.md').is_file(), catalog)
+            for member in members:
+                self.assertTrue((ROOT / 'design' / catalog / 'members' / member / 'README.md').is_file(), member)
+
     def test_static_design_source_references_resolve(self):
         for top in ['design', 'system', 'scripts']:
             for path in (ROOT / top).rglob('*'):

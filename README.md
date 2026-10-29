@@ -285,6 +285,40 @@ The Dockerfile builds a multi-stage image containing:
 The [release manifest](docs/toolchain-releases.md) records all versions, upstream
 sources, snapshot exceptions, and the Ubuntu package snapshot used by this build.
 
+### Publishing to Docker Hub
+
+After a toolchain change is merged, publish the image from a clean checkout of
+`main` ([uv](https://docs.astral.sh/uv/), Git and Docker required; uv
+provides Python 3.11+). On Windows, run the script directly with
+`uv run --no-project --script scripts/publish_docker.py`:
+
+Put the Docker Hub credentials in `.env` at the repository root. Git ignores
+this file, and environment variables of the same name take precedence:
+
+```bash
+DOCKERHUB_USERNAME=<docker-hub-user>
+DOCKERHUB_TOKEN=<personal-access-token>          # Read, Write, Delete scope
+```
+
+The script also finds this file from a `worktree/<task>` checkout, or use
+`--env-file <path>`.
+
+```bash
+./scripts/publish_docker.sh --dry-run            # Check source, show tags and overview
+./scripts/publish_docker.sh --no-push            # Build and smoke-test only
+./scripts/publish_docker.sh                      # Build, push and update Docker Hub
+```
+
+The script refuses uncommitted changes and commits that are not on
+`origin/main`. It builds `linux/amd64` with OCI source labels, records the
+version each tool reports, and pushes `YYYY.MM.DD-<commit>` and `latest` to
+`$DOCKERHUB_USERNAME/ai-hw-engineer` (override with `--repository`). It creates
+the repository as public if needed, and replaces the Docker Hub overview with
+[docs/dockerhub/overview.md](docs/dockerhub/overview.md) filled in from the
+release manifest and the reported versions. Edit that template, not the Docker
+Hub page. Offline checks:
+`uv run --no-project python -m unittest discover -s scripts -p test_publish_docker.py -v`.
+
 Exact tool behavior and invocation details belong in `docs/`, because asking an AI to use a tool without giving it the manual is a little like hiring an intern and hiding the keyboard.
 
 Refresh upstream Markdown references alongside the maintained tool guides with

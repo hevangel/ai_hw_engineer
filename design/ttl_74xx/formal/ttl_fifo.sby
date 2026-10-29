@@ -1,0 +1,22 @@
+[tasks]
+check
+cover
+
+[options]
+check: mode bmc
+cover: mode cover
+check: depth 8
+cover: depth 20
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal ../src/ttl_74x222.sv ttl_fifo_contract_props.sv
+prep -top ttl_fifo_contract
+async2sync
+dffunmap
+
+[files]
+../src/ttl_74x222.sv
+ttl_fifo_contract_props.sv

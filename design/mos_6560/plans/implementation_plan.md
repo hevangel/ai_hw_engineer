@@ -1,0 +1,43 @@
+# Implementation plan
+
+1. Establish primary-source register contract, dated history bound and
+   assumption ledger before RTL. Implement the shared register block;
+   exhaustively test chip addresses, mirror writes, dynamic readbacks,
+   phase/read qualification and reset. Prove storage/drive invariants and
+   reachable read/write covers, then synthesize.
+2. Implement raster separately for 6560 and 6561, including NTSC offset,
+   partial-line and interlace behavior. Compare unchanged independent
+   source traces with pinned provenance, not a golden model copied from RTL.
+3. Implement physical PHI1 fetch transactions, matrix/character/color
+   sequencing and pixel output. Verify addresses as well as images against
+   independent traces. Integrate phase-two register access.
+4. Implement and independently qualify tones/noise/amplitude, POT timing,
+   light-pen capture and actual mask-option pin behavior. Separate digital
+   evidence from analog approximations and electrical validation.
+5. Run original VIC-20 software on the native CPU and VIA combination,
+   exact PC checkpoints and independently checked display/audio. Resolve
+   assumptions before chip sign-off. Retain all four requested systems
+   and the wider catalog in the series ledger.
+
+Step 1 is a bounded component milestone; it does not complete the VIC.
+
+The second bounded implementation is the sampled raster component specified
+in `spec/spec.md`: internal scan counters plus the distinct readback epoch,
+frame-boundary interlace sampling and gated integration enable. First
+verify it against unchanged extracted MAME functions and the complete PAL
+callback model. Prove counter/hold/reset/transition invariants for each
+profile and cover early line transitions, then check every request phase
+against the oracles and replay contiguous full frames, pauses and
+initialization in both SV simulators. Sync,
+PHI1 fetch and pixel sequencing remain separate subsequent work.
+
+The third bounded implementation (2026-10-23) covers steps 3 and the digital
+parts of step 4: display sequencer, light pen and sound, integrated in
+mos_6560. Plan followed: review both independent references and record
+their disagreements before RTL; extract the selected MAME functions
+unchanged; compare every clock of both profiles (fetch kind/address,
+pixels, reads, sound) under standard screens, random register programs,
+random bus traffic, light-pen sweeps, holds, resets and interlace; prove
+sequencer invariants with reachable covers; kill seeded mutants; replay in
+both SV simulators; synthesize both profiles. Remaining: analog outputs,
+POT conversion, idle-cycle bus and original VIC-20 software (step 5).
