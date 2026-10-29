@@ -37,6 +37,36 @@ voltage inputs and reduced RC networks. See [analog assumptions](../spec/analog.
 The ideal oscillator remains a fidelity boundary. Q3/Q4 output networks now
 have reduced numerical models with observable voltages and validity flags.
 
+## Package timing
+
+`timing.json` records a per-part propagation delay for every package model,
+with the manufacturer document and printed page that publish it. The TI
+literature number is recorded only where the scan prints one; the rest cite the
+document URL and page, because an unprinted number is not a citation. A
+module's `T_PD` parameter delays each package output; internal state still
+follows the documented clock edge.
+
+`generate_rev0.py --timing typ|max` regenerates the same connectivity with
+typical or published maximum delays, and refuses to run when a characterized
+part has no source. The two boards differ only in `T_PD` values. `--timing
+legacy` keeps the original uniform 5 ns placeholder and remains the checked-in
+default, because the directed testbenches encode zero-delay phase relationships
+that have not all been retimed. `scripts/run_timing_sim.sh` runs the socket
+wiring test and the unmodified Monitor boot at datasheet timing; measured
+results and open harness work are in the
+[verification report](../report/final_report.md).
+
+Two entries are bounds rather than numbers measured at the board load. The 8T97
+sheet is specified at CL = 50 pF, so its 13 ns maximum is conservative at
+15 pF, and no Signetics 8T28 delay could be read, so the AMD second-source
+17 ns maximum is used. `timing.json` carries both caveats on the entries.
+
+The memory packages are marked `idealized` and keep the legacy output delay in
+every mode: 20 ns for the 4116, 5 ns for the system ROM and 2513. The 4116 model
+has no row access (tRAC) or refresh behaviour, so a datasheet access delay makes
+the video data latch capture Hi-Z between CAS cycles. That belongs to review
+item P3, not to the TTL delay table.
+
 ## Independent copper IC audit
 
 The factual fixture `rev0_copper_ic_nets.json` is extracted from Mike Willegal's
