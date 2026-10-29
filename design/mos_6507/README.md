@@ -15,7 +15,7 @@ been verified. The primary [November 1985 MOS family datasheet](http://www.6502.
 establishes the package features used here, rather than an exact launch date.
 
 This original SystemVerilog package adapter reuses the
-[native NMOS 6502 engine](../mos_6502/README.md), exposing only thirteen
+[native NMOS 6502 engine](../mos_6502_family/mos_6502/README.md), exposing only thirteen
 physical address bits and tying unavailable inputs inactive. Debug signals
 are explicitly separate from package pins. This is a sampled digital model;
 clock oscillator/electrical behavior and Atari board compatibility retain

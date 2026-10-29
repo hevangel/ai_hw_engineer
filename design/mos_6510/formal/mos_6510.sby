@@ -18,8 +18,8 @@ read -formal -D FORMAL -I . mos_6502_native.sv mos_6510_port.sv mos_6510.sv
 chparam -set PORT_FALLOFF_CYCLES 3 mos_6510
 prep -top mos_6510 -flatten
 [files]
-../../mos_6502/src/mos_6502_native.sv
-../../mos_6502/formal/mos_6502_native_props.sv
+../../mos_6502_family/mos_6502/src/mos_6502_native.sv
+../../mos_6502_family/mos_6502/formal/mos_6502_native_props.sv
 ../src/mos_6510_port.sv
 mos_6510_port_props.sv
 ../src/mos_6510.sv

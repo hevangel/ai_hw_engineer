@@ -21,7 +21,7 @@ read -formal -D FORMAL -D MOS6507_FORMAL -I . mos_6502_native.sv mos_6507.sv
 prep -top mos_6507 -flatten
 
 [files]
-../../mos_6502/src/mos_6502_native.sv
-../../mos_6502/formal/mos_6502_native_props.sv
+../../mos_6502_family/mos_6502/src/mos_6502_native.sv
+../../mos_6502_family/mos_6502/formal/mos_6502_native_props.sv
 ../src/mos_6507.sv
 mos_6507_props.sv

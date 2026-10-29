@@ -1,6 +1,6 @@
 # Source list for the C64 board (sourced by the other scripts).
 C64_SOURCES="
-$ROOT/design/mos_6502/src/mos_6502_native.sv
+$ROOT/design/mos_6502_family/mos_6502/src/mos_6502_native.sv
 $ROOT/design/mos_6510/src/mos_6510_port.sv
 $ROOT/design/mos_6510/src/mos_6510.sv
 $ROOT/design/mos_6526/src/mos_6526_timer.sv

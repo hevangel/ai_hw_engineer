@@ -21,8 +21,8 @@ read -formal -D FORMAL -I . mos_6502_native.sv ricoh_2a03_length.sv ricoh_2a03_e
 prep -top ricoh_2a03 -flatten
 
 [files]
-../../mos_6502/src/mos_6502_native.sv
-../../mos_6502/formal/mos_6502_native_props.sv
+../../mos_6502_family/mos_6502/src/mos_6502_native.sv
+../../mos_6502_family/mos_6502/formal/mos_6502_native_props.sv
 ../src/ricoh_2a03_length.sv
 ../src/ricoh_2a03_envelope.sv
 ../src/ricoh_2a03_pulse.sv

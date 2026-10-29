@@ -34,7 +34,7 @@ The unchanged shared CPU engine already passes its full native flow:
 2,560,000 independent opcode cases / 11,959,871 bus transactions, 770
 die-derived timing scenarios / 69,300 cycles, formal, authentic Klaus
 success at PC 3469 after 96,241,371 clocks and original KIM firmware. Its
-[native report](../../mos_6502/report/native_report.md) states remaining
+[native report](../../mos_6502_family/mos_6502/report/native_report.md) states remaining
 NMOS timing limits. None of those inputs are generated from this RTL.
 
 ## Test fixture correction

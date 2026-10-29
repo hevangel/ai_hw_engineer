@@ -56,7 +56,7 @@ rate agrees with MAME's 4.433619 MHz / 4 and not with the datasheet's
 printed 4.436187 MHz oscillator; that discrepancy is narrowed, not closed
 by a board measurement.
 
-`tb/vic20_top.sv` connects the native 6502 (`design/mos_6502`), two 6522
+`tb/vic20_top.sv` connects the native 6502 (`design/mos_6502_family/mos_6502`), two 6522
 VIAs (`design/mos_6522`) and `mos_6560`. Board decode follows MAME's
 `vic20_mem`/`vic_videoram_map`: 1 KB RAM at $0000, 4 KB at $1000, character
 ROM at $8000, VIC at $9000-$900F, VIA1 (A4, NMI) and VIA2 (A5, IRQ) in

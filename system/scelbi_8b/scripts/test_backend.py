@@ -62,7 +62,7 @@ def wait_for(needle, guards, mark=0):
 
 verilator_build = ["verilator", "--cc", "--exe", "--build", "-j", "4", "-Wno-fatal",
                    "--top-module", "scelbi_8b", "--Mdir", str(build / "obj_dir"),
-                   str(root / "design/intel_8008/src/intel_8008.sv"),
+                   str(root / "design/intel_mcs8/intel_8008/src/intel_8008.sv"),
                    str(system / "src/scelbi_8b.sv"), str(system / "host/simulator.cpp")]
 subprocess.run(verilator_build, check=True, stdout=logfile.open("w"))
 

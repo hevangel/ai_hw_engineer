@@ -13,7 +13,7 @@ Mike Willegal's SCELBI pages at willegal.net/scelbi). The console is a
 Firmware: the authentic SCELBAL interpreter binary (`src/rom/scelbal_sc1.bin`,
 11942 bytes, loaded at octal 0100) from Mike Willegal's SCELBI archive — the
 same image SIMH's SCELBI guide loads. Provenance and hashes:
-`../../design/intel_8008/README.md` (the design's regression uses the same
+`../../design/intel_mcs8/intel_8008/README.md` (the design's regression uses the same
 bytes). SCELBAL documentation: the SCELBAL book scan
 (scelbi.com/files/docs/scelbal/SCELBAL.pdf, chapter 14 = language reference)
 and the assembler source (`sc1.asm`) — its I/O constants
@@ -28,7 +28,7 @@ parse hangs the interpreter — see the report), and numeric Y/N answers.
 
 ## Hardware and integration
 
-- Intel 8008 core (the repository's `design/intel_8008`), 16 KiB RAM,
+- Intel 8008 core (the repository's `design/intel_mcs8/intel_8008`), 16 KiB RAM,
   reset starts at address 0 where a `JMP 0040` reaches SCELBAL.
 - Console card: bit-banger serial per SIMH's SCELBI 8B model. Receive:
   9 INPs per character (start bit reads 0, data bits LSB first in bit 7,

@@ -3,7 +3,7 @@
 ## Contract and evidence
 
 `ricoh_2a03.sv` wraps the shared native NMOS 6502 engine
-(`design/mos_6502/src/mos_6502_native.sv`, unchanged) with
+(`design/mos_6502_family/mos_6502/src/mos_6502_native.sv`, unchanged) with
 `DECIMAL_ENABLE=0` and adds the APU (two pulse channels, triangle, noise,
 DMC, frame sequencer, `$4015` status), OAM and DMC DMA with cycle-exact
 halt/alignment, the `$4016` strobe and `/OE` controller outputs, and

@@ -14,7 +14,7 @@ the [NESdev CPU page](https://www.nesdev.org/wiki/CPU) documents the
 [Visual 2A03](https://www.nesdev.org/wiki/Visual_2A03).
 
 This original SystemVerilog model wraps the repository's
-[native NMOS 6502 engine](../mos_6502/README.md) with `DECIMAL_ENABLE=0`
+[native NMOS 6502 engine](../mos_6502_family/mos_6502/README.md) with `DECIMAL_ENABLE=0`
 and adds the APU, DMA and I/O logic around it. `REGION` selects 2A03 (NTSC)
 or 2A07 (PAL) timing. The reset button (`rst_n`) and power-on (`por_n`) are
 separate inputs because the APU keeps most channel state across a reset.

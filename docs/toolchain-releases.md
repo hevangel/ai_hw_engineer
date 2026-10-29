@@ -22,6 +22,7 @@ distribution's supported packages, not separately compiled upstream releases.
 | Trunk | 0.21.14 (Surfer WebAssembly build) | [release](https://github.com/trunk-rs/trunk/releases/tag/v0.21.14) |
 | Verible | v0.0-4296-g0f262651, static x86_64 archive | [release](https://github.com/chipsalliance/verible/releases/tag/v0.0-4296-g0f262651) |
 | CMake | 4.4.4, PyPI package in a dedicated virtual environment | [package](https://pypi.org/project/cmake/4.4.4/) |
+| Java JDK | Ubuntu `default-jdk-headless`, resolved from the pinned signed snapshot; compiler and runtime checked at image build | [Project usage](java/README.md) |
 | UVM bundle | `65a3ded36f7f752356de62669fd84e01f4cb0121` (unchanged upstream HEAD) | [repository](https://github.com/nitronis/UVM) |
 
 Run `./scripts/update_docker.sh --dry-run` to preview release updates, or

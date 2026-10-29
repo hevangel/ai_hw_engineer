@@ -199,6 +199,6 @@ text/backup and saved BASIC program. Logs, frames, state snapshots and the
 private disk remain under ignored `work/real_software*`. The full system
 aggregate is still distinguished from the separately executed stages above.
 
-The current [8086 complete verification flow](../../../design/intel_8086/report/final_report.md#current-historical-software-rerun)
+The current [8086 complete verification flow](../../../design/intel_8086_8088/intel_8086/report/final_report.md#current-historical-software-rerun)
 also passes, including the original Microsoft DEBUG application through all
 three CPU interfaces and all 1,700,163 physical-chip instruction cases.

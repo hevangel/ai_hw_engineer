@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-CORE="$HERE/../mos_6502/src/mos_6502_native.sv"
+CORE="$HERE/../mos_6502_family/mos_6502/src/mos_6502_native.sv"
 RRIOT="$HERE/../mos_6530"
 mkdir -p "$HERE/work/sim"
 for top in tb_top tb_kim_boot; do

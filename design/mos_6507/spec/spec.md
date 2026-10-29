@@ -17,7 +17,7 @@ behavior is a separate fidelity gate.
   reports introduction in **1975**. An exact manufacturer launch notice has
   not been verified, so retain that historical attribution and uncertainty.
   Technical behavior is derived from manufacturer and die evidence above.
-- The [shared native 6502 specification](../../mos_6502/spec/spec_native_bus.md)
+- The [shared native 6502 specification](../../mos_6502_family/mos_6502/spec/spec_native_bus.md)
   pins instruction and transistor-timing references and remaining limits.
 
 ## Interface

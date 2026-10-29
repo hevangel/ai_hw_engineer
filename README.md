@@ -349,3 +349,5 @@ Project-owned material in this repository is licensed under the [MIT License](LI
 - SymbiYosys: ISC
 - Surfer: EUPL-1.2
 - UVM: Apache-2.0
+
+The EDA Docker image also includes a [headless Java JDK](docs/java/README.md) (`java` and `javac`) for independent hardware reference oracles such as Am2901.

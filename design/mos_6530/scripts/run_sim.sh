@@ -7,7 +7,7 @@ for top in tb_top tb_kim_boot; do
     extra=
     marker='MOS 6530 PASS:'
     if [ "$top" = tb_kim_boot ]; then
-        extra="$HERE/../mos_6502/src/mos_6502.sv"
+        extra="$HERE/../mos_6502_family/mos_6502/src/mos_6502.sv"
         marker='KIM-1 ORIGINAL MONITOR PASS:'
     fi
     verilator --binary --timing -Wall -Wno-TIMESCALEMOD -I"$HERE/src" -j 4 --top-module "$top" \

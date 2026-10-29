@@ -3,7 +3,7 @@
 
 # Build artifacts
 /worktree/
-design/*/work/
+design/**/work/
 obj_dir/
 target/
 
@@ -64,8 +64,8 @@ system/*/work/
 
 # mos_6502: GPL test source and raw image stay in the working tree only;
 # the assembled hex used by the testbench is committed.
-design/mos_6502/references/6502_functional_test.a65
-design/mos_6502/references/6502_functional_test.bin
+design/mos_6502_family/mos_6502/references/6502_functional_test.a65
+design/mos_6502_family/mos_6502/references/6502_functional_test.bin
 
 # motorola_68000: SingleStepTests 680x0 vectors stay in the working tree
 # only (~194 MB compressed); fetch with scripts/fetch_vectors.py.

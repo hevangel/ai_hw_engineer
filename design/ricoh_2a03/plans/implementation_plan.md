@@ -3,7 +3,7 @@
 1. Source the register map, APU timing tables, DMA cycle behaviour and the
    disabled decimal adder from NESdev (Visual 2A03-derived) before RTL;
    record every model choice in the spec's assumption ledger.
-2. Reuse the verified [native NMOS 6502](../../mos_6502/README.md) with
+2. Reuse the verified [native NMOS 6502](../../mos_6502_family/mos_6502/README.md) with
    `DECIMAL_ENABLE=0`; do not modify the shared core (the C64 work depends
    on it). All 2A03-specific behaviour lives in the wrapper.
 3. Build the APU as one module per unit: length table, envelope, pulse

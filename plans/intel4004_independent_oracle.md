@@ -35,7 +35,7 @@ tables they decode from are not co-authored with the RTL:
    source — preferred: MAME `src/devices/cpu/mcs40/mcs40.cpp` (hardware-
    validated, runs the original Busicom ROMs); cross-check rows against the
    Pyntel4004 opcode list and the scanned MCS-4 manual. Store the table as a
-   checked-in data file (`design/intel_4004/spec/opc_table.*`) with the
+   checked-in data file (`design/intel_mcs4/intel_4004/spec/opc_table.*`) with the
    commit hash of the source pinned in the header, like the Busicom
    reference pins Ilmer's `chips` crate.
 

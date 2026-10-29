@@ -7,7 +7,7 @@ parts combining a licensed NMOS 6502 core with its BCD adder disabled, the
 five-channel Audio Processing Unit (APU), an OAM sprite DMA engine, the DMC
 sample DMA reader and the controller-port I/O latches. This design reuses
 the repository's verified native NMOS engine
-[`mos_6502_native`](../../mos_6502/src/mos_6502_native.sv) with
+[`mos_6502_native`](../../mos_6502_family/mos_6502/src/mos_6502_native.sv) with
 `DECIMAL_ENABLE=0`; no second 6502 is written. Everything Ricoh added around
 that core is new RTL in this folder.
 

@@ -9,7 +9,7 @@ mkdir -p "$HERE/work/$BUILD"
 python3 "$HERE/scripts/fetch_software.py"
 verilator --cc --exe --build -Wall -j 4 --top-module cia_software_top \
     -GTIMER_B_READ_LOSS="$PROFILE" --Mdir "$HERE/work/$BUILD" "$HERE"/src/*.sv \
-    "$HERE/../mos_6502/src/mos_6502_native.sv" "$HERE/tb/cia_software_top.sv" \
+    "$HERE/../mos_6502_family/mos_6502/src/mos_6502_native.sv" "$HERE/tb/cia_software_top.sv" \
     "$HERE/tb/cia_software_test.cpp" > "$HERE/work/$BUILD-build.log" 2>&1
 "$HERE/work/$BUILD/Vcia_software_top" "$HERE/work/lorenz/cia1pb6.prg" \
     "$HERE/work/lorenz/cia1pb7.prg" > "$HERE/work/$BUILD.log" 2>&1

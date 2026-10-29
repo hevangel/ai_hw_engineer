@@ -21,7 +21,7 @@ and an address-enable input for bus sharing. This contract precedes RTL.
   memory before updating the port. Preserve these disagreements; default
   behavior follows the explicitly documented VICE C64 profile, pending
   physical/reference-machine confirmation.
-- The [shared native CPU contract](../../mos_6502/spec/spec_native_bus.md)
+- The [shared native CPU contract](../../mos_6502_family/mos_6502/spec/spec_native_bus.md)
   supplies ISA and control-pin references. The 6510 retains IRQ/NMI and
   decimal arithmetic; its package lacks SO.
 

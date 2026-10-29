@@ -7,5 +7,5 @@ verilator --binary --timing -Wall --top-module tb_top --Mdir work/sim src/apple_
 ./work/sim/Vtb_top
 mkdir -p work/echo
 verilator --binary --timing -Wall --top-module tb_echo --Mdir work/echo \
-    src/apple_ii.sv src/apple_ii_memory.sv ../../design/mos_6502_cycle/src/mos_6502_cycle.sv tb/tb_echo.sv
+    src/apple_ii.sv src/apple_ii_memory.sv ../../design/mos_6502_family/mos_6502/cycle/src/mos_6502_cycle.sv tb/tb_echo.sv
 ./work/echo/Vtb_echo

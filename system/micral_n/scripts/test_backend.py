@@ -73,7 +73,7 @@ def wait_ready(process, port, timeout=30):
 
 verilator_build = ["verilator", "--cc", "--exe", "--build", "-j", "4", "-Wno-fatal",
                    "--top-module", "micral_n", "--Mdir", str(build / "obj_dir"),
-                   str(root / "design/intel_8008/src/intel_8008.sv"),
+                   str(root / "design/intel_mcs8/intel_8008/src/intel_8008.sv"),
                    str(system / "src/micral_n.sv"), str(system / "host/simulator.cpp")]
 subprocess.run(verilator_build, check=True, stdout=logfile.open("w"))
 

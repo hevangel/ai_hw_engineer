@@ -27,7 +27,7 @@ for mode in typ max; do
     iverilog -g2012 -DAPPLE_II_CPU_MODULE=apple_ii_rev0_authored -s tb_rev0_boot \
         -o "work/timing/boot_$mode.vvp" \
         ../../design/apple_ii_chips/src/*.sv ../../design/apple_ii_chips/src/analog/*.sv \
-        ../../design/mos_6502_cycle/src/mos_6502_cycle.sv ../../design/mos_6502_cycle/src/a2_mos6502.sv \
+        ../../design/mos_6502_family/mos_6502/cycle/src/mos_6502_cycle.sv ../../design/mos_6502_family/mos_6502/cycle/src/a2_mos6502.sv \
         "work/timing/board_$mode.sv" src/apple_ii_rev0_peripherals.sv src/apple_ii_*output.sv \
         src/apple_ii_rev0_authored.sv tb/tb_rev0_boot.sv
     vvp "work/timing/boot_$mode.vvp" >"work/timing/boot_$mode.log" 2>&1 \

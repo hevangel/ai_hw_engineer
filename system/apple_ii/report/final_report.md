@@ -130,7 +130,7 @@ The 151 documented-opcode authored NMOS core now replaces H7 in
 `apple_ii_rev0_authored`, retaining the other 82 package instances and actual
 motherboard nets. This option loads no CPU VPI module. Its own lint, formal,
 independent instructions/arithmetic/pin tests, synthesis and real-software
-gates are listed in the [CPU report](../../../design/mos_6502_cycle/report/final_report.md).
+gates are listed in the [CPU report](../../../design/mos_6502_family/mos_6502/cycle/report/final_report.md).
 
 The authored option passes Monitor keyboard clear/deposit/examine and the
 complete 107,520-pixel visible frame. Both cassette polarities also pass:
@@ -269,8 +269,8 @@ No synthesis or formal proof is claimed for the passive charge model.
 
 The seven previously local Apple II commits through `aabbf67` are integrated
 with the current main branch. Both authored CPU implementations are retained:
-`design/mos_6502` is unchanged except for its README cross-link, while the
-physical-bus implementation is preserved as `design/mos_6502_cycle` with a
+`design/mos_6502_family/mos_6502` is unchanged except for its README cross-link, while the
+physical-bus implementation is preserved as `design/mos_6502_family/mos_6502/cycle` with a
 separate module name and the original bus/pin tests. The motherboard uses
 that physical-bus implementation. The IIe MMU, IOU and timing PAL already
 present on main are preserved.

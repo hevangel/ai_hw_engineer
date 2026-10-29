@@ -36,7 +36,7 @@ and [manual-regression failure note](../../../failure_notes/2026-09-27-busicom-m
    regression, formal (bmc/prove/cover with a corrected golden model),
    lint and synthesis all pass after the fix.
 
-## Bug found in design/intel_4004: FIN program-counter advance
+## Bug found in design/intel_mcs4/intel_4004: FIN program-counter advance
 
 Running the original firmware showed every `FIN` skipping the instruction
 after it. FIN is a **one-word** instruction executed over **two** cycles;

@@ -53,3 +53,8 @@ The RTL model is a combinational SystemVerilog implementation of the active-HIGH
 - [Ken Shirriff: Inside the vintage 74181 ALU chip](https://www.righto.com/2017/03/inside-vintage-74181-alu-chip.html) — reverse engineering and historical context
 
 The external historical references are secondary sources; the local datasheets and specification remain the source of truth for the behavior implemented in this repository.
+
+
+## Roadmap ownership
+
+Chip member: [ai_engineer#248](https://github.com/hevangel/ai_engineer/issues/248); canonical parent [#4](https://github.com/hevangel/ai_engineer/issues/4). Multiple models of the same chip use this one member issue.

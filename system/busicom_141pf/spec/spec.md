@@ -34,10 +34,10 @@ an operator or `=` key forces a print.
 
 | Chip | Qty | Role in this reconstruction |
 |---|---|---|
-| intel_4004 | 1 | CPU (`design/intel_4004`) |
-| intel_4001 | 5 | Mask ROM, 256 bytes each, CHIP_NO 0–4 (`design/intel_4001`) |
-| intel_4002 | 2 | RAM, variant -1; both on CM-RAM line 0, selected by P0 straps 0/1 (`design/intel_4002`) |
-| intel_4003 | 3 | 10-bit shift registers (keyboard scan, printer ×2 cascaded) (`design/intel_4003`) |
+| intel_4004 | 1 | CPU (`design/intel_mcs4/intel_4004`) |
+| intel_4001 | 5 | Mask ROM, 256 bytes each, CHIP_NO 0–4 (`design/intel_mcs4/intel_4001`) |
+| intel_4002 | 2 | RAM, variant -1; both on CM-RAM line 0, selected by P0 straps 0/1 (`design/intel_mcs4/intel_4002`) |
+| intel_4003 | 3 | 10-bit shift registers (keyboard scan, printer ×2 cascaded) (`design/intel_mcs4/intel_4003`) |
 
 Firmware: the original calculator mask contents, 5 × 256 bytes
 (`src/rom/rom_4001_N.hex`, provenance in `spec/reference/`).

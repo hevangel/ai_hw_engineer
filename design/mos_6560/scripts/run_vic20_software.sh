@@ -6,7 +6,7 @@ set -eu
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 SRC="$HERE/src/mos_6560.sv $HERE/src/mos_6560_regs.sv $HERE/src/mos_6560_raster.sv \
 $HERE/src/mos_6560_video.sv $HERE/src/mos_6560_lightpen.sv $HERE/src/mos_6560_audio.sv \
-$HERE/../mos_6502/src/mos_6502_native.sv $HERE/../mos_6522/src/mos_6522.sv"
+$HERE/../mos_6502_family/mos_6502/src/mos_6502_native.sv $HERE/../mos_6522/src/mos_6522.sv"
 python3 "$HERE/scripts/fetch_vic20_firmware.py"
 test -f "$HERE/work/vic_display_oracle.o"
 ROM="$HERE/work/vic20"

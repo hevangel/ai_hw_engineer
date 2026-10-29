@@ -13,7 +13,7 @@ programmable port and AEC high-impedance behavior. The ordinary 6510 has
 six bonded port pins despite the family document's generic eight-pin text.
 
 This original sampled digital implementation reuses the
-[native NMOS CPU](../mos_6502/README.md), adds a separate processor-port
+[native NMOS CPU](../mos_6502_family/mos_6502/README.md), adds a separate processor-port
 block and exposes explicit bus-driver enables for board resolution.
 Unbonded-bit charge uses a deterministic configurable approximation.
 Reset follows the pinned VICE C64 profile; MAME differs, and that

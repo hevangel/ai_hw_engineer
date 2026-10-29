@@ -13,26 +13,26 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | Year | Chip | Description | Design |
 |---:|---|---|---|
 | 1970* (commercial; silicon 1969) | AMD Am9300 | Four-bit parallel-load/JK serial shift register; asynchronous master clear | [amd_am9300](amd_am9300/) |
-| 1970* | AMD Am2501 | Four-bit binary synchronous up/down counter with preset and carry look-ahead | [amd_am2501](amd_am2501/) |
+| 1970* | AMD Am2501 | Four-bit binary synchronous up/down counter with preset and carry look-ahead | [amd_am2501](amd_am25xx/amd_am2501//) |
 | 1970 | 74181 / SN74LS181 | 4-bit TTL arithmetic logic unit and function generator | [ttl_74xx](ttl_74xx/) |
-| 1971* | AMD Am2505 | Four-by-two-bit Booth multiplier/partial-product slice; both logic polarities | [amd_am2505](amd_am2505/) |
+| 1971* | AMD Am2505 | Four-by-two-bit Booth multiplier/partial-product slice; both logic polarities | [amd_am2505](amd_am25xx/amd_am2505//) |
 | 1971* | AMD Am3101 | 16x4 asynchronous bipolar RAM; inverted open-collector outputs | [amd_am3101](amd_am3101/) |
-| 1971 | Intel 4001 | 2048-bit mask-programmable ROM + 4-bit I/O port chip (MCS-4) | [intel_4001](intel_4001/) |
-| 1971 | Intel 4002 | 320-bit RAM (256Ã—4 main + 16Ã—4 status) + 4-bit output port (MCS-4) | [intel_4002](intel_4002/) |
-| 1971 | Intel 4003 | 10-bit serial-in/parallel-out shift-register I/O expander (MCS-4) | [intel_4003](intel_4003/) |
-| 1971 | Intel 4004 | 4-bit microprocessor (MCS-4); authentic Busicom manual regression | [intel_4004](intel_4004/) |
-| 1972 | Intel 8008 | 8-bit microprocessor (MCS-8); SCELBAL software regression | [intel_8008](intel_8008/) |
-| 1973* | Intel 3205 | One-of-eight binary decoder with active-low outputs and three chip enables; MCS-8 chip-select and state decode | [intel_3205](intel_3205/) |
-| 1973* | Intel 3404 | Six-bit latch as independent 4-bit and 2-bit inverting sections with separate write enables; MCS-8 address and flag latch | [intel_3404](intel_3404/) |
+| 1971 | Intel 4001 | 2048-bit mask-programmable ROM + 4-bit I/O port chip (MCS-4) | [intel_4001](intel_mcs4/intel_4001//) |
+| 1971 | Intel 4002 | 320-bit RAM (256Ã—4 main + 16Ã—4 status) + 4-bit output port (MCS-4) | [intel_4002](intel_mcs4/intel_4002//) |
+| 1971 | Intel 4003 | 10-bit serial-in/parallel-out shift-register I/O expander (MCS-4) | [intel_4003](intel_mcs4/intel_4003//) |
+| 1971 | Intel 4004 | 4-bit microprocessor (MCS-4); authentic Busicom manual regression | [intel_4004](intel_mcs4/intel_4004//) |
+| 1972 | Intel 8008 | 8-bit microprocessor (MCS-8); SCELBAL software regression | [intel_8008](intel_mcs8/intel_8008//) |
+| 1973* | Intel 3205 | One-of-eight binary decoder with active-low outputs and three chip enables; MCS-8 chip-select and state decode | [intel_3205](intel_mcs8/intel_3205//) |
+| 1973* | Intel 3404 | Six-bit latch as independent 4-bit and 2-bit inverting sections with separate write enables; MCS-8 address and flag latch | [intel_3404](intel_mcs8/intel_3404//) |
 | 1974* | AMD Am9102 / Am9102A / Am9102B | 1024x1 asynchronous NMOS RAM; tri-state output and retained-power standby | [amd_am9102](amd_am9102/) |
 | 1974 | Intel 8080 | 8-bit microprocessor; documented instruction set on a functional transaction bus | [intel_8080](intel_8080/) |
 | 1974 (March announcement) | Motorola MC6800 | 8-bit microprocessor; full documented ISA (197 opcodes) passing an independent-oracle vector regression and 50 vendored hakanrw/mc6800 self-checking programs; formal bmc/prove/cover | [motorola_6800](motorola_6800/) |
-| 1975 | AMD Am2901 | Four-bit ALU/register processor slice; documented Am2901A native clock phases and all 512 microinstructions | [amd_am2901](amd_am2901/) |
-| 1975* (announcement) | AMD Am2902 | Four-group carry look-ahead generator; active-low P/G and hierarchical expansion | [amd_am2902](amd_am2902/) |
-| 1975* (marketing) | AMD Am2909 | Four-bit microprogram sequencer; four-word return stack, separate register/direct buses and OR branching | [amd_am2909](amd_am2909/) |
+| 1975 | AMD Am2901 | Four-bit ALU/register processor slice; documented Am2901A native clock phases and all 512 microinstructions | [amd_am2901](amd_am29xx/amd_am2901//) |
+| 1975* (announcement) | AMD Am2902 | Four-group carry look-ahead generator; active-low P/G and hierarchical expansion | [amd_am2902](amd_am29xx/amd_am2902//) |
+| 1975* (marketing) | AMD Am2909 | Four-bit microprogram sequencer; four-word return stack, separate register/direct buses and OR branching | [amd_am2909](amd_am29xx/amd_am2909//) |
 | 1975* (Am9080A evidence) | AMD Am9080 / Am9080A | 8-bit processor; complete documented Am9080A instruction set and functional transaction bus | [amd_am9080](amd_am9080/) |
-| 1975 | MOS Technology 6502 physical-bus variant | Documented NMOS ISA with pin/cycle timing for the Apple II revision-0 motherboard | [mos_6502_cycle](mos_6502_cycle/) |
-| 1975 | MOS Technology 6502 | 8-bit microprocessor; functional and native bus engines, all opcode slots, independent timing and historical software regressions; silicon/board gates open | [mos_6502](mos_6502/) |
+| 1975 | MOS Technology 6502 physical-bus variant | Documented NMOS ISA with pin/cycle timing for the Apple II revision-0 motherboard | [mos_6502_cycle](mos_6502_family/mos_6502/cycle//) |
+| 1975 | MOS Technology 6502 | 8-bit microprocessor; functional and native bus engines, all opcode slots, independent timing and historical software regressions; silicon/board gates open | [mos_6502](mos_6502_family/mos_6502//) |
 | 1975* (historically reported; primary launch unconfirmed) | MOS Technology 6507 | Thirteen-bit physical bus, native NMOS CPU, internal IRQ/NMI ties; package and historical software regressions | [mos_6507](mos_6507/) |
 | By 1982* (preliminary datasheet; launch unconfirmed) | MOS Technology 6510 | Native NMOS CPU with integrated processor port and AEC drivers; digital and real-software gates pass, physical/reset discrepancies open | [mos_6510](mos_6510/) |
 | By 1981* (preliminary datasheet; launch unconfirmed) | MOS Technology 6526 CIA | Ports, linked timers, serial, TOD/alarm and interrupts; assembled sampled CIA and eleven original KERNAL-backed Lorenz programs, Transactor read-loss profiles, original serial delay/load and 66 TOD software samples verified; physical revision qualification open | [mos_6526](mos_6526/) |
@@ -40,7 +40,7 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1975* / 1982* | Intel 8253 / 8254 | Three-channel programmable interval timers | [intel_8253_8254](intel_8253_8254/) |
 | 1975* | Intel 8255 / 8255A | 24-line programmable peripheral interface | [intel_8255](intel_8255/) |
 | By 1976* (KIM-1 manual; launch year unconfirmed) | MOS Technology 6530 RRIOT | Mask ROM, 64-byte RAM, ports and timer; both KIM-1 masks and original monitor regression | [mos_6530](mos_6530/) |
-| 1976* (availability evidence) | AMD Am2911 | Four-bit microprogram sequencer; shared direct/register bus, four-word return stack | [amd_am2911](amd_am2911/) |
+| 1976* (availability evidence) | AMD Am2911 | Four-bit microprogram sequencer; shared direct/register bus, four-word return stack | [amd_am2911](amd_am29xx/amd_am2911//) |
 | 1976 | Intel 8259 / 8259A | Eight-input programmable interrupt controller; manufacturer-based request-withdrawal regression | [intel_8259](intel_8259/) |
 | 1977 (manufacturer history) | AMD Am9511 | Signed integer/native floating arithmetic, conversions and transcendental processing unit | [amd_am9511](amd_am9511/) |
 | 1977* (board use) | Apple II revision-0 support packages | 4116 RAM, ROM, 2513, TTL/bus interfaces and analog support; package years vary | [apple_ii_chips](apple_ii_chips/) |
@@ -48,14 +48,14 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1977* | Intel 8273 | HDLC/SDLC serial protocol controller; framing, NRZI, CRC, DMA and loop relay | [intel_8273](intel_8273/) |
 | 1977* | Intel 8275 | DMA-fed programmable CRT controller; raster, attributes, cursor and light pen | [intel_8275](intel_8275/) |
 | 1977* | Intel 8279 / 8279-5 | Programmable keyboard/display interface | [intel_8279](intel_8279/) |
-| By 1978* (exact year unknown) | AMD Am2903 | Enhanced four-bit processor slice; expandable native RAM, multiply/divide/normalize, parity and sign extension | [amd_am2903](amd_am2903/) |
-| By 1978* (advance information; exact launch year unknown) | AMD Am2904 | Micro/machine status registers, conditional tests, carry and shift control | [amd_am2904](amd_am2904/) |
-| By 1978* (exact year unknown) | AMD Am2910 | Twelve-bit microprogram controller; five-level stack, loop counter and sixteen instructions | [amd_am2910](amd_am2910/) |
-| By 1978* (exact year unknown) | AMD Am2913 | Eight-input priority interrupt expander with five output gates | [amd_am2913](amd_am2913/) |
-| By 1978* (exact year unknown) | AMD Am2914 | Eight-level vectored interrupt controller; pulse capture, masks, thresholds and cascade | [amd_am2914](amd_am2914/) |
-| By 1978* (exact year unknown) | AMD Am2918 | Quad D register with continuous Q and three-state Y outputs | [amd_am2918](amd_am2918/) |
+| By 1978* (exact year unknown) | AMD Am2903 | Enhanced four-bit processor slice; expandable native RAM, multiply/divide/normalize, parity and sign extension | [amd_am2903](amd_am29xx/amd_am2903//) |
+| By 1978* (advance information; exact launch year unknown) | AMD Am2904 | Micro/machine status registers, conditional tests, carry and shift control | [amd_am2904](amd_am29xx/amd_am2904//) |
+| By 1978* (exact year unknown) | AMD Am2910 | Twelve-bit microprogram controller; five-level stack, loop counter and sixteen instructions | [amd_am2910](amd_am29xx/amd_am2910//) |
+| By 1978* (exact year unknown) | AMD Am2913 | Eight-input priority interrupt expander with five output gates | [amd_am2913](amd_am29xx/amd_am2913//) |
+| By 1978* (exact year unknown) | AMD Am2914 | Eight-level vectored interrupt controller; pulse capture, masks, thresholds and cascade | [amd_am2914](amd_am29xx/amd_am2914//) |
+| By 1978* (exact year unknown) | AMD Am2918 | Quad D register with continuous Q and three-state Y outputs | [amd_am2918](amd_am29xx/amd_am2918//) |
 | By 1978* (public announcement; exact shipment unknown) | AMD Am9517 | Four-channel multimode DMA, memory copy/fill and cascade expansion | [amd_am9517](amd_am9517/) |
-| 1978 | Intel 8086 | 16-bit microprocessor; complete documented ISA and native digital BIU with independent physical-chip tests | [intel_8086](intel_8086/) |
+| 1978 | Intel 8086 | 16-bit microprocessor; complete documented ISA and native digital BIU with independent physical-chip tests | [intel_8086](intel_8086_8088/intel_8086//) |
 | 1978 | Motorola MC6809 | 8-bit microprocessor; full documented ISA (pages 1/2/3, indexed postbyte indirection, TFR/EXG, MUL, long branches, FIRQ/CWAI/SYNC) passing the hardware-validated reyco2000 functional and interrupt suites; formal bmc/prove/cover | [motorola_6809](motorola_6809/) |
 | 1979 (September announcement) | Motorola MC68000 | Work in progress: 16/32-bit processor; verification harness complete (SingleStepTests 680x0 suite, 1,000,060 single-instruction vectors) and RTL skeleton lint/synthesis clean; instruction classes land incrementally against the vectors | [motorola_68000](motorola_68000/) |
 | 1979* (family) | Intel 8237 / 8237A | Four-channel programmable DMA controller; original IBM PC BIOS integration | [intel_8237](intel_8237/) |
@@ -109,21 +109,21 @@ The Apple IIe MMU, IOU and timing-PAL entries record **1983**, the IIe's introdu
 
 ### Intel â€” MCS-4 family (4001, 4002, 4003, 4004)
 
-The Intel 4001 entry records **1971**, the year the MCS-4 family (4004 CPU, 4001 ROM + I/O, 4002 RAM, 4003 shift register) reached the market. The family was developed for the Busicom 141-PF calculator and announced through Intel's advertisement in the November 15, 1971 issue of *Electronic News*, the date the industry treats as the first commercial microprocessor announcement ([EDN](https://www.edn.com/intel-4004-is-announced-november-15-1971/), [Computer History Museum](https://www.computerhistory.org/tdih/november/15/)); the November 1971 [MCS-4 data sheet](https://deramp.com/downloads/mfe_archive/011-Other%20Computers%20and%20Boards/Intel/MCS-4/MCS4_Data_Sheet_Nov71.pdf) is the earliest located Intel document describing the 4001 as the set's mask-programmable program storage. The November 15 date is specifically the advertisement's publication date and some accounts frame earlier mentions differently; the year itself is not in dispute. Technical behavior is sourced from the [MCS-4 Users Manual scan](https://archive.org/details/bitsavers_intelMCS4M_18342130) and the design's [specification](intel_4001/spec/spec.md).
+The Intel 4001 entry records **1971**, the year the MCS-4 family (4004 CPU, 4001 ROM + I/O, 4002 RAM, 4003 shift register) reached the market. The family was developed for the Busicom 141-PF calculator and announced through Intel's advertisement in the November 15, 1971 issue of *Electronic News*, the date the industry treats as the first commercial microprocessor announcement ([EDN](https://www.edn.com/intel-4004-is-announced-november-15-1971/), [Computer History Museum](https://www.computerhistory.org/tdih/november/15/)); the November 1971 [MCS-4 data sheet](https://deramp.com/downloads/mfe_archive/011-Other%20Computers%20and%20Boards/Intel/MCS-4/MCS4_Data_Sheet_Nov71.pdf) is the earliest located Intel document describing the 4001 as the set's mask-programmable program storage. The November 15 date is specifically the advertisement's publication date and some accounts frame earlier mentions differently; the year itself is not in dispute. Technical behavior is sourced from the [MCS-4 Users Manual scan](https://archive.org/details/bitsavers_intelMCS4M_18342130) and the design's [specification](intel_mcs4/intel_4001//spec/spec.md).
 
 The Intel 4002 entry records the same **1971** family year as the rest of the MCS-4 set; see the Intel 4001 note above for the family-announcement sources. No separate month-level launch claim is made.
 
-The Intel 4003 entry records **1971**: it is the I/O expander of the MCS-4 chip set (4004 CPU, 4001 ROM, 4002 RAM, 4003 shift register) announced on November 15, 1971 in Intel's *Electronic News* advertisement, and the November 1971 MCS-4 data catalog already contains the 4003 data sheet, so the part shipped with the family from launch. Secondary retellings differ on how prominently the support chips figured in the original ad, and the exact volume-shipping date is not established; the year is retained rather than a month-level claim. Despite informal summaries calling it a 16-bit part, the [MCS-4 Users Manual (February 1973)](https://archive.org/stream/bitsavers_intelMCS4M_18342130/MCS-4_UsersManual_Feb73_djvu.txt), the [November 1971 data sheet scan](https://deramp.com/downloads/mfe_archive/011-Other%20Computers%20and%20Boards/Intel/MCS-4/MCS4_Data_Sheet_Nov71.pdf) and [IEEE's "The History of the 4004"](https://www.computer.org/csdl/magazine/mi/1996/06/m6010/13rRUytWFdY) uniformly describe a 10-bit serial-in/parallel-out, serial-out static shift register; technical behavior is summarized in the design's [specification](intel_4003/spec/spec.md) and [historical overview](intel_4003/README.md).
+The Intel 4003 entry records **1971**: it is the I/O expander of the MCS-4 chip set (4004 CPU, 4001 ROM, 4002 RAM, 4003 shift register) announced on November 15, 1971 in Intel's *Electronic News* advertisement, and the November 1971 MCS-4 data catalog already contains the 4003 data sheet, so the part shipped with the family from launch. Secondary retellings differ on how prominently the support chips figured in the original ad, and the exact volume-shipping date is not established; the year is retained rather than a month-level claim. Despite informal summaries calling it a 16-bit part, the [MCS-4 Users Manual (February 1973)](https://archive.org/stream/bitsavers_intelMCS4M_18342130/MCS-4_UsersManual_Feb73_djvu.txt), the [November 1971 data sheet scan](https://deramp.com/downloads/mfe_archive/011-Other%20Computers%20and%20Boards/Intel/MCS-4/MCS4_Data_Sheet_Nov71.pdf) and [IEEE's "The History of the 4004"](https://www.computer.org/csdl/magazine/mi/1996/06/m6010/13rRUytWFdY) uniformly describe a 10-bit serial-in/parallel-out, serial-out static shift register; technical behavior is summarized in the design's [specification](intel_mcs4/intel_4003//spec/spec.md) and [historical overview](intel_mcs4/intel_4003//README.md).
 
-The Intel 4004 entry records **1971**: Intel announced the 4004 on November 15, 1971 in Electronic News as the MCS-4 central processor developed for the Busicom 141-PF calculator, making it the first commercially available microprocessor, per the [Intel 4004 historical summary](https://en.wikipedia.org/wiki/Intel_4004) and the [Intel 4004 anniversary project](https://www.4004.com/). Technical behavior is sourced from the [scanned MCS-4 user manual](http://codeabbey.github.io/heavy-data-1/msc4-manual.pdf), instruction-set transcriptions at the [e4004 project](http://e4004.szyc.org/iset.html) and [pastraiser](https://pastraiser.com/cpu/i4004/i4004_opcodes.html), and cross-checked against the [MAME MCS-40 core](https://github.com/mamedev/mame/blob/master/src/devices/cpu/mcs40/mcs40.cpp), summarized in the design's [specification](intel_4004/spec/spec.md).
+The Intel 4004 entry records **1971**: Intel announced the 4004 on November 15, 1971 in Electronic News as the MCS-4 central processor developed for the Busicom 141-PF calculator, making it the first commercially available microprocessor, per the [Intel 4004 historical summary](https://en.wikipedia.org/wiki/Intel_4004) and the [Intel 4004 anniversary project](https://www.4004.com/). Technical behavior is sourced from the [scanned MCS-4 user manual](http://codeabbey.github.io/heavy-data-1/msc4-manual.pdf), instruction-set transcriptions at the [e4004 project](http://e4004.szyc.org/iset.html) and [pastraiser](https://pastraiser.com/cpu/i4004/i4004_opcodes.html), and cross-checked against the [MAME MCS-40 core](https://github.com/mamedev/mame/blob/master/src/devices/cpu/mcs40/mcs40.cpp), summarized in the design's [specification](intel_mcs4/intel_4004//spec/spec.md).
 
 ### Intel â€” MCS-8 (3205, 3404, 8008)
 
-The Intel 3205 entry uses **1973*** as the earliest located dated Intel documentation: the [November 1973 MCS-8 Users Manual](../references/intel_mcs8_users_manual_nov1973.pdf) prints the decoder's truth table (scan page 32) and uses 3205s throughout the SIM8-01 for 8008 state-line decoding and memory chip selects. The same manual's service note that SIM8-01 boards built prior to October 1972 must be modified shows the MCS-8 module was already in field use, so the decoder's availability may have been earlier; the uncertainty is retained rather than guessed. Function follows the combined [Intel 3205/3404 data sheet](../references/intel_3205_3404_datasheet.pdf); see the [design overview](intel_3205/README.md).
+The Intel 3205 entry uses **1973*** as the earliest located dated Intel documentation: the [November 1973 MCS-8 Users Manual](../references/intel_mcs8_users_manual_nov1973.pdf) prints the decoder's truth table (scan page 32) and uses 3205s throughout the SIM8-01 for 8008 state-line decoding and memory chip selects. The same manual's service note that SIM8-01 boards built prior to October 1972 must be modified shows the MCS-8 module was already in field use, so the decoder's availability may have been earlier; the uncertainty is retained rather than guessed. Function follows the combined [Intel 3205/3404 data sheet](../references/intel_3205_3404_datasheet.pdf); see the [design overview](intel_mcs8/intel_3205//README.md).
 
-The Intel 3404 entry uses **1973*** on the same evidence: the MCS-8 manual latches the 8008's time-multiplexed address bytes and the INP flag output in 3404s across the SIM8-01 (scan page 33), and the same pre-October-1972 board-revision note implies earlier availability; the uncertainty is retained rather than guessed. The latch's transparent-while-low, store-on-rising-edge function and its independent 4-bit and 2-bit organization follow the combined [Intel 3205/3404 data sheet](../references/intel_3205_3404_datasheet.pdf); the section bit mapping and the synchronous reset artifact are recorded in the design's assumption ledger, see the [design overview](intel_3404/README.md).
+The Intel 3404 entry uses **1973*** on the same evidence: the MCS-8 manual latches the 8008's time-multiplexed address bytes and the INP flag output in 3404s across the SIM8-01 (scan page 33), and the same pre-October-1972 board-revision note implies earlier availability; the uncertainty is retained rather than guessed. The latch's transparent-while-low, store-on-rising-edge function and its independent 4-bit and 2-bit organization follow the combined [Intel 3205/3404 data sheet](../references/intel_3205_3404_datasheet.pdf); the section bit mapping and the synchronous reset artifact are recorded in the design's assumption ledger, see the [design overview](intel_mcs8/intel_3404//README.md).
 
-The Intel 8008 entry records **1972**, with Intel dating its introduction to April 1972 in its [8008 history](https://www.intel.com/content/www/us/en/history/virtual-vault/articles/the-8008.html). Technical behavior follows the downloaded [MCS-8 Users Manual](intel_8008/references/intel_mcs8_users_manual_nov1973.md) and is checked against SCELBAL and the independent SIMH model; see the [design overview](intel_8008/README.md).
+The Intel 8008 entry records **1972**, with Intel dating its introduction to April 1972 in its [8008 history](https://www.intel.com/content/www/us/en/history/virtual-vault/articles/the-8008.html). Technical behavior follows the downloaded [MCS-8 Users Manual](intel_mcs8/intel_8008//references/intel_mcs8_users_manual_nov1973.md) and is checked against SCELBAL and the independent SIMH model; see the [design overview](intel_mcs8/intel_8008//README.md).
 
 ### Intel â€” 8080
 
@@ -131,7 +131,7 @@ The Intel 8080 entry records **1974**, following Intel's [manufacturer history](
 
 ### Intel â€” 8086
 
-The Intel 8086 entry records **1978**; Intel dates its introduction to June 8, 1978 in its [manufacturer history](https://timeline.intel.com/1978/the-beginning-of-a-legend%3A-the-8086). This design implements the complete documented instruction set, interrupts and a six-byte prefetch BIU with minimum/maximum-mode digital pins. Independent physical-chip vectors, original DEBUG.COM, formal checks and native bus tests verify the implementation; original EU cycle counts and electrical timing are outside its RTL contract. See the [chip overview](intel_8086/README.md). Its standalone software regression runs unchanged Microsoft DEBUG.COM through the execution unit and both native bus modes.
+The Intel 8086 entry records **1978**; Intel dates its introduction to June 8, 1978 in its [manufacturer history](https://timeline.intel.com/1978/the-beginning-of-a-legend%3A-the-8086). This design implements the complete documented instruction set, interrupts and a six-byte prefetch BIU with minimum/maximum-mode digital pins. Independent physical-chip vectors, original DEBUG.COM, formal checks and native bus tests verify the implementation; original EU cycle counts and electrical timing are outside its RTL contract. See the [chip overview](intel_8086_8088/intel_8086//README.md). Its standalone software regression runs unchanged Microsoft DEBUG.COM through the execution unit and both native bus modes.
 
 ### Motorola — 6800, 6809, 68000
 
@@ -163,7 +163,7 @@ The 8279 entry uses **1977*** because a contemporary [May 26, 1977 *Electronics*
 
 ### MOS Technology â€” 6502
 
-The MOS Technology 6502 entry records **1975**, supported by the [IEEE historical exhibit](https://history.ieee.org/programs/ieee-global-museum/microchips-that-shook-the-world/). The exact commercial introduction date is not asserted; the index records the year rather than a month-level date. Instruction behavior is grounded in MOS Technology's [January 1976 programming manual](https://www.bitsavers.org/components/mosTechnology/6500-50A_MCS6500pgmManJan76.pdf), and cycle timing must be checked against its [hardware manual](https://archive.6502.org/books/mcs6500_family_hardware_manual.pdf); see the [chip overview](mos_6502/README.md).
+The MOS Technology 6502 entry records **1975**, supported by the [IEEE historical exhibit](https://history.ieee.org/programs/ieee-global-museum/microchips-that-shook-the-world/). The exact commercial introduction date is not asserted; the index records the year rather than a month-level date. Instruction behavior is grounded in MOS Technology's [January 1976 programming manual](https://www.bitsavers.org/components/mosTechnology/6500-50A_MCS6500pgmManJan76.pdf), and cycle timing must be checked against its [hardware manual](https://archive.6502.org/books/mcs6500_family_hardware_manual.pdf); see the [chip overview](mos_6502_family/mos_6502//README.md).
 
 ### Texas Instruments â€” 74181
 
@@ -1626,3 +1626,18 @@ record **1990**, the year the Super Famicom that introduced them launched in
 Japan ([history](https://en.wikipedia.org/wiki/Super_Nintendo_Entertainment_System#History)).
 No month-level chip date is asserted. Behaviour is sourced from fullsnes and
 the SNESdev wiki; see each chip README and its measured report.
+
+## Canonical family folders and chip tracking
+
+Family issues own the corresponding root folder; physical chips use member sub-issues and member folders. Shared RTL is linked rather than copied. The historical chip index above retains each sourced introduction year.
+
+- [amd_am25xx](amd_am25xx/README.md)
+- [amd_am29xx](amd_am29xx/README.md)
+- [intel_8086_8088](intel_8086_8088/README.md)
+- [intel_mcs4](intel_mcs4/README.md)
+- [intel_mcs8](intel_mcs8/README.md)
+- [mos_6502_family](mos_6502_family/README.md)
+
+The numbered 74-series parts stay in the single [ttl_74xx](ttl_74xx/README.md) library folder, which owns the RTL, formal and testbench files for every implemented 74xx number. The identified physical packages that a board actually used keep member profiles under [ttl_74xx/members/](ttl_74xx/members/README.md); those profiles link the shared model instead of copying it.
+
+The [Apple II support-package library](apple_ii_chips/README.md) retains shared board models; their 74LS member profiles belong to the 74-series issue, and the remaining identified package profiles are children of the Apple II support tracker. An unqualified generic mask ROM is not treated as an identified physical chip.

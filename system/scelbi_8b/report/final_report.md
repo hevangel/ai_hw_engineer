@@ -29,7 +29,7 @@ Environment: `ai-hw-engineer:latest` (Verilator 5.052, Python 3).
 
 - SCELBAL SC1 binary: Mike Willegal's SCELBI archive (the image SIMH's
   SCELBI guide loads; 11942 bytes at octal 0100). Same bytes as the
-  `design/intel_8008` SCELBAL regression.
+  `design/intel_mcs8/intel_8008` SCELBAL regression.
 - Shooting Stars: Copyright 1974 PCC, transcribed from
   `github.com/maurymarkowitz/What-to-Do-After-you-Hit-Return` (`stars.hpb`),
   adapted to SCELBAL's dialect (no string variables, no `LET`, numeric

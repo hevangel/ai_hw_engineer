@@ -116,6 +116,15 @@ each entry. No common year is assigned by guesswork. The
 [1985 TI TTL Data Book volume 2](https://archive.org/details/bitsavers_tidataBookVol2_45945352)
 is an independent historical/technical source for much of the classic range.
 
+## Physical-chip member profiles
+
+The 74-series numbers that a board actually used keep one member profile under
+[members/](members/README.md). A profile records the physical package identity,
+links the shared model in this folder and its sourced contract, and states the
+pin, timing, power, X/Z and analog limits that the digital model does not claim.
+No RTL is copied into member folders, and a member profile is not a new
+verification claim.
+
 ## Completion gate
 
 `run_all.sh` verifies the implemented subset and writes its coverage report, then
