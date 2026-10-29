@@ -3,9 +3,63 @@
 from datetime import datetime,timezone
 from pathlib import Path
 import json,sys
+import platform
+import re
+import subprocess
 from run_library import inventory,digest
 from run_library_formal import families,source_digest
 root=Path(__file__).resolve().parents[1]
+
+
+def first_line(command):
+    """First non-warning line a tool prints for a version query, or None."""
+    try:
+        result=subprocess.run(command,capture_output=True,text=True,timeout=30,check=False)
+    except (OSError,subprocess.SubprocessError):
+        return None
+    for line in ((result.stdout or '')+(result.stderr or '')).splitlines():
+        line=line.strip()
+        if line and not line.lower().startswith('warning'):
+            return line
+    return None
+
+
+def xezim_version():
+    """xezim has no --version flag; its banner is written into every sim log."""
+    for log in sorted((root/'work/library').glob('*/sim.log')):
+        for line in log.read_text(encoding='utf-8',errors='replace').splitlines():
+            match=re.match(r'===\s*xezim\s+(\S+)',line.strip())
+            if match:
+                return match.group(1)
+    return 'version not recorded'
+
+
+def repository_revision():
+    try:
+        result=subprocess.run(['git','rev-parse','--short','HEAD'],capture_output=True,
+                              text=True,timeout=30,check=False,cwd=root)
+    except (OSError,subprocess.SubprocessError):
+        return None
+    value=result.stdout.strip() if result.returncode==0 else ''
+    return value or None
+
+
+def toolchain_section():
+    rows=[]
+    for name,command in (('Verilator',['verilator','--version']),
+                         ('Yosys',['yosys','-V']),
+                         ('SBY',['sby','--version'])):
+        rows.append(f'| {name} | {first_line(command) or "unavailable"} |')
+    rows.append(f'| xezim | {xezim_version()} |')
+    rows.append(f'| Python | {platform.python_version()} |')
+    revision=repository_revision()
+    if revision:
+        rows.append(f'| Repository revision | `{revision}` |')
+    return ('## Toolchain used for these results\n\n'
+            '| Tool | Version |\n|---|---|\n' + '\n'.join(rows) + '\n\n'
+            'A tool change can change a result. These versions, together with the\n'
+            'source/test fingerprints recorded per part, are what produced the\n'
+            'counts below; without them the numbers are not reproducible.\n')
 chips=inventory()
 entries=json.loads((root/'manifest.json').read_text(encoding='utf-8'))
 pending=[c for c in entries if c['status']=='pending']
@@ -39,6 +93,7 @@ Tool success is not full manufacturer-table or native pin compatibility certific
 See the [original range evidence](classic_range_report.md) for the preserved
 74181 verification and corrections made to the first 289 models.
 
+{toolchain_section()}
 ## Verification contract and limits
 
 - Verilator --lint-only -Wall, no blanket warning suppression.
