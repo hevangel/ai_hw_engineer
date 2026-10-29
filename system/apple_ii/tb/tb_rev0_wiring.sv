@@ -23,7 +23,10 @@ module tb_rev0_wiring;
         .composite_sync(composite_sync), .speaker(speaker), .cassette_out(cassette_out),
         .annunciators(annunciators), .paddle_trigger_n(paddle_trigger_n)
     );
-    initial forever #34.921 osc = ~osc;
+    // Delayed continuous assignments start as X everywhere, so the netlist gets
+    // a static settle window before the real oscillator starts. Silicon has no
+    // equivalent X state; this only removes a time-zero artifact.
+    initial begin #2000; forever #34.921 osc = ~osc; end
     // ASSUMPTION: one legal power-up state is selected explicitly by this
     // diagnostic harness. The motherboard contains no artificial reset wire.
     initial begin

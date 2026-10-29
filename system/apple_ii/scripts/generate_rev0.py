@@ -9,11 +9,65 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+TIMING_FILE = ROOT / 'board/timing.json'
 
 
-def generate():
+LEGACY_UNIFORM_NS = 5
+# The 4116 carried a 20 ns placeholder in the original generated board.
+LEGACY_OVERRIDES_NS = {'4116': 20}
+
+
+def resolve_entry(parts, part):
+    """Follow same_as aliases so both spellings of a device share one row."""
+    seen = {part}
+    entry = parts[part]
+    while 'same_as' in entry:
+        target = entry['same_as']
+        if target in seen or target not in parts:
+            raise SystemExit(f"timing.json: bad alias {part} -> {target}")
+        seen.add(target)
+        entry = parts[target]
+    return entry
+
+
+def load_timing(mode):
+    """Return the per-part propagation delay for every modelled package.
+
+    'legacy' and 'zero' reproduce the earlier placeholder boards. 'typ' and
+    'max' take each package's delay from board/timing.json, and an entry that
+    is not idealized must name the datasheet that publishes it: a
+    characterized number without a source is a guess.
+
+    Idealized packages (the DRAM and ROM models) keep their legacy value in
+    every mode. Those models have no access-time behaviour, so a datasheet
+    access delay would describe hardware the model does not contain.
+    """
+    table = json.loads(TIMING_FILE.read_text())
+    parts = table['parts']
+    if mode in ('legacy', 'zero'):
+        uniform = 0 if mode == 'zero' else LEGACY_UNIFORM_NS
+        overrides = LEGACY_OVERRIDES_NS if mode == 'legacy' else {}
+        return {p: overrides.get(p, uniform) for p in parts}
+    key = {'typ': 'typ_ns', 'max': 'max_ns'}[mode]
+    delays = {}
+    for part in parts:
+        entry = resolve_entry(parts, part)
+        if entry.get('idealized'):
+            delays[part] = LEGACY_OVERRIDES_NS.get(part, LEGACY_UNIFORM_NS)
+            continue
+        if not entry.get('source'):
+            raise SystemExit(f"timing.json: {part} has {key} but no datasheet source")
+        value = entry.get(key)
+        if not isinstance(value, int):
+            raise SystemExit(f"timing.json: {part} has no integer {key} (mode {mode})")
+        delays[part] = value
+    return delays
+
+
+def generate(timing_mode='legacy'):
     document = json.loads((ROOT/'board/rev0_connectivity.json').read_text())
     models = json.loads((ROOT/'board/models.json').read_text())
+    delays = load_timing(timing_mode)
     components = document['components']
     all_nets = sorted({p['net'] for c in components.values() for p in c['pins'].values() if p['net']})
     # Electrical straps merge nets, rather than one-way assign connections.
@@ -117,10 +171,11 @@ def generate():
     for ref,c in components.items():
         if c['part'] not in models:continue
         model=models[c['part']]
-        parameters=' #(.T_PD(5ns))'
-        if c['part']=='4116':parameters=' #(.T_PD(20ns))'
-        if c['part']=='ROM_Chip':parameters=f' #(.T_PD(5ns), .ROM_FILE(ROM_{ref.split("-")[-1]}))'
-        if c['part']=='2513':parameters=' #(.T_PD(5ns), .ROM_FILE(CHAR_ROM))'
+        if c['part'] not in delays:raise SystemExit(f"timing.json: no delay for {c['part']} ({ref})")
+        tpd=delays[c['part']]
+        parameters=f' #(.T_PD({tpd}ns))'
+        if c['part']=='ROM_Chip':parameters=f' #(.T_PD({tpd}ns), .ROM_FILE(ROM_{ref.split("-")[-1]}))'
+        if c['part']=='2513':parameters=f' #(.T_PD({tpd}ns), .ROM_FILE(CHAR_ROM))'
         instance=ref.replace('-','_')
         if c['part']=='ROM_Chip':instance='socket_'+instance
         lines.append(f'    {model}{parameters} {instance} ('+', '.join(f'.p{p}({net(ref,p)})' for p in c['pins'])+');')
@@ -129,6 +184,8 @@ def generate():
     metadata=dict(instantiated_packages=count,source=document['source'],straps=straps,
         net_symbols={n:names[canonical(n)] for n in all_nets},
         boundary_packages=['H7: CPU socket','B3: flash timer','H13: paddle timers','K13: cassette amplifier'],
+        timing=dict(mode=timing_mode,units='ns',table='board/timing.json',
+            part_delays={p:delays[p] for p in sorted({c['part'] for c in components.values() if c['part'] in models})}),
         status='Digital connectivity experiment; mixed-signal/full-board sign-off pending.')
     return '\n'.join(lines),json.dumps(metadata,indent=2)+'\n'
 
@@ -136,16 +193,22 @@ def generate():
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check',action='store_true')
+    parser.add_argument('--timing',choices=['legacy','zero','typ','max'],default='legacy',
+        help='per-part propagation delay set from board/timing.json')
+    parser.add_argument('--out-src',help='write generated RTL here instead of src/')
+    parser.add_argument('--out-json',help='write generated metadata here instead of board/')
     args=parser.parse_args()
-    sv,metadata=generate()
-    outputs=[(ROOT/'src/apple_ii_rev0_digital.sv',sv),(ROOT/'board/rev0_generated.json',metadata)]
+    sv,metadata=generate(args.timing)
+    outputs=[(Path(args.out_src) if args.out_src else ROOT/'src/apple_ii_rev0_digital.sv',sv),
+             (Path(args.out_json) if args.out_json else ROOT/'board/rev0_generated.json',metadata)]
     for path,data in outputs:
         if args.check:
             if not path.exists() or path.read_text()!=data:raise SystemExit(f'Stale generated file: {path}')
         else:
             path.parent.mkdir(parents=True,exist_ok=True)
             path.write_text(data,encoding='utf-8',newline='\n')
-    print('Revision-0 digital wiring generated from manifest.' if not args.check else 'Generated wiring matches manifest.')
+    print('Generated wiring matches manifest.' if args.check
+          else f'Revision-0 digital wiring generated from manifest ({args.timing} timing).')
 
 
 if __name__=='__main__':main()

@@ -36,7 +36,10 @@ module tb_rev0_boot;
                  dut.board.D12.p11,dut.board.D12.p12,dut.board.D12.p13,dut.board.D12.p14,dut.board.D13.p11};
     tri [7:0] latched={dut.board.B8.p7,dut.board.B8.p5,dut.board.B8.p12,dut.board.B8.p10,
                        dut.board.B5.p7,dut.board.B5.p5,dut.board.B5.p12,dut.board.B5.p10};
-    initial forever #34.921 osc=~osc;
+    // Delayed continuous assignments start as X everywhere, so the netlist gets
+    // a static settle window before the real oscillator starts. Silicon has no
+    // equivalent X state; this only removes a time-zero artifact.
+    initial begin #2000; forever #34.921 osc=~osc; end
     initial forever begin
         @(posedge dut.board.B10.p3); #10;
         if(capture) begin
