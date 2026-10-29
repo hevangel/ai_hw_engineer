@@ -1,8 +1,8 @@
 # SNES specification
 
 Status: implemented and verified in the cloud container (see the
-[final report](../report/final_report.md)); the S-DSP lock-step oracle and
-the Docker image run are still owed.
+[final report](../report/final_report.md)); the Docker image run is still
+owed.
 
 ## Historical sources and provenance
 

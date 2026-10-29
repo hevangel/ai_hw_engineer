@@ -85,7 +85,8 @@ regression (88 Peter Lemon ROMs: CPU instruction and bank tests, SPC700
 instruction tests, PPU demos compared frame by frame with the author's
 screenshots, and sound demos), the backend API test and a Yosys synthesis
 check of the whole board. Each CPU core also passes its SingleStepTests
-record set cycle for cycle. Measured results and the known differences are
+record set cycle for cycle, and the S-DSP matches blargg's cycle-accurate
+`SPC_DSP` register for register and sample for sample. Measured results and the known differences are
 in the [final report](report/final_report.md).
 
 Not modelled: coprocessor cartridges (Super FX, SA-1, DSP-n), the
