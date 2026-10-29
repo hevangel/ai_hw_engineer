@@ -14,15 +14,17 @@ and a host bridge for external storage, media and user input.
 | Apple II revision-0 (functional; fidelity validation ongoing) | 1977 | MOS 6502 plus 82 support IC packages | [apple_ii/](apple_ii/) |
 | BUSICOM 141-PF printing calculator | 1971 | 4004, 5×4001, 2×4002, 3×4003 | [busicom_141pf/](busicom_141pf/) |
 | Micral N | 1973 | Intel 8008, 16 KiB memory, I/O bus | [micral_n/](micral_n/) |
+| SCELBI 8B (SCELBAL BASIC + Shooting Stars) | 1975 | Intel 8008, 16 KiB RAM, bit-banger serial console | [scelbi_8b/](scelbi_8b/) |
 | IBM PC 5150 | 1981 | 8088 bus adapter/shared 8086 EU, 8259, 8253, 8255, 8237, 8272, CGA | [ibm_pc/](ibm_pc/) |
 | IBM PC XT 5160 | 1983 | 8088, 8087, 256 KiB RAM, CGA, IBM/Xebec 10 MB fixed disk | [ibm_pc_xt_5160/](ibm_pc_xt_5160/) |
+| Commodore 64 (PAL cycle-exact vs VICE; NTSC functional) | 1982 | MOS 6510, 6569/6567 VIC-II, 6581 SID, 2×6526 CIA, 906114-01 PLA, 64 KiB DRAM | [commodore_64/](commodore_64/) |
 | IBM PS/2 Model 30 | 1987 | Native 8086, planar gate arrays, 8259, 8253, 8237, 8272, MM58167-compatible RTC, MCGA, integrated DBA fixed-disk controller | [ibm_ps2_model30/](ibm_ps2_model30/) |
 | Nintendo Entertainment System (NTSC/PAL) | 1983 | Ricoh 2A03/2A07 CPU+APU, 2C02/2C07 PPU, 2 KiB RAM, CIRAM, NROM/MMC1/UxROM/CNROM cartridges, two pads | [nes/](nes/) |
+| Super Nintendo Entertainment System (NTSC/PAL) | 1990 | Ricoh 5A22 (65C816) CPU, 5C77/5C78 PPUs, Sony S-SMP (SPC700) and S-DSP, 128 KiB work RAM, 64 KiB VRAM and audio RAM, LoROM/HiROM cartridges, two pads | [snes/](snes/) |
 
-The requested Atari 2600, Commodore 64 and Super Nintendo reconstructions
-are queued after the chip work in the
-[MOS series ledger](../plans/mos_historical_series.md); they are not yet
-implemented systems. The NES is listed above.
+The requested Atari 2600 reconstruction is tracked in the
+[MOS series ledger](../plans/mos_historical_series.md); the Commodore 64,
+Nintendo NES and Super Nintendo are implemented (the C64 overview is below).
 
 Each `system/<name>/` folder follows the chip-design layout (`spec/`,
 `plans/`, `src/`, `tb/`, `scripts/`, `report/`) plus `host/` (web app and
@@ -38,6 +40,8 @@ note identifying the missing web-interface or waveform feature. Screenshot
 assets live in each system's `assets/` folder.
 
 The Micral N year follows the [Computer History Museum catalog](https://www.computerhistory.org/revolution/artifact/297/1147). Its reconstruction and documented limits are in the [system overview](micral_n/README.md).
+
+The SCELBI 8B year (1975) follows SIMH's SCELBI notes ("a SCELBI-8B from about 1975"); the 8H predecessor was announced in March 1974 (QST). Its reconstruction, the authentic SCELBAL boot, and documented limits are in the [system overview](scelbi_8b/README.md).
 
 The IBM PC year follows [IBM's manufacturer history](https://www.ibm.com/history/personal-computer).
 Its original BIOS/BASIC/PC DOS firmware, RTL hardware, front panel, CPU waveform viewer and functional
@@ -59,3 +63,8 @@ IBM's [Technical Reference scan](../references/model30tr.pdf) (with a [clean tex
 and [April 1987 product reference](https://bitsavers.org/pdf/ibm/pc/PS2_and_IBM_PC_Product_Reference_Version_4.0_Apr87.pdf).
 Its native 8086 bus, planar devices, 720K media and waveform viewer are in
 the [Model 30 overview](ibm_ps2_model30/README.md).
+
+The Commodore 64 year follows MAME's [c64.cpp at a pinned commit](https://github.com/mamedev/mame/blob/41a494b6ef80adc924ccb2bdba1ee69580276e0c/src/mame/commodore/c64.cpp)
+(year only). Its original BASIC/KERNAL boot, cycle-exact PAL agreement with
+VICE x64sc, NTSC discrepancy and functional boundaries are described in the
+[system overview](commodore_64/README.md).

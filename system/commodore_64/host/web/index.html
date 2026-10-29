@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Commodore 64 (1982)</title>
+<link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+<header>
+  <h1>Commodore 64</h1>
+  <div id="machine_state">
+    <span class="state_chip" id="state_run">STOP</span>
+    <span class="state_chip" id="state_variant">PAL</span>
+    <span class="state_chip" id="state_jam" hidden>CPU JAM</span>
+  </div>
+</header>
+
+<main>
+  <section class="panel screen_panel">
+    <h2>Monitor (VIC-II raster, visible border area)</h2>
+    <div class="screen_wrap">
+      <canvas id="screen" width="400" height="284" tabindex="0"></canvas>
+    </div>
+    <div class="buttons">
+      <button id="btn_run">RUN / STOP</button>
+      <button id="btn_reset">RESET</button>
+      <button id="btn_restore">RESTORE</button>
+      <button id="btn_stop_restore">RUN/STOP + RESTORE</button>
+    </div>
+    <div class="buttons">
+      <input id="type_text" type="text" maxlength="256" placeholder="Text to type (Enter = RETURN)">
+      <button id="btn_type">Type</button>
+    </div>
+    <p class="hint">Click the screen, then type: letters, digits and punctuation are
+    queued and typed one per four frames. <b>Arrow keys</b> + <b>Ctrl</b> drive
+    joystick port 2. The simulation runs slower than real time.</p>
+  </section>
+
+  <section class="panel">
+    <h2>Board state</h2>
+    <table id="cpu_table"></table>
+  </section>
+
+  <section class="panel" id="waveform_panel">
+    <h2>Waveform</h2>
+    <div class="buttons">
+      <select id="waveform_signals">
+        <option value="cpu">6510 bus</option>
+        <option value="vic">VIC-II DMA &amp; interrupts</option>
+        <option value="io">PLA, IEC &amp; SID</option>
+      </select>
+      <input id="capture_cycles" type="number" min="1" max="20000" value="2000">
+      <button id="waveform_capture">Capture</button>
+      <button id="waveform_refresh" hidden>Reload waveform</button>
+      <a id="waveform_download" hidden download="c64.fst">Download FST</a>
+      <span id="waveform_status"></span>
+    </div>
+    <iframe id="surfer_frame" title="Surfer waveform viewer"></iframe>
+  </section>
+</main>
+
+<footer>Commodore 1982. MOS 6510 CPU, MOS 6569/6567 VIC-II, MOS 6581 SID, two
+MOS 6526 CIAs and the 906114-01 PLA, all from this repository's RTL, running
+the original BASIC, KERNAL and character ROMs fetched and hash-checked at run
+time. The SID analog filter, cartridges, the 1541 drive and the tape port are
+outside the model; colors use the Pepto palette.</footer>
+<script type="module" src="app.js?v=1"></script>
+</body>
+</html>

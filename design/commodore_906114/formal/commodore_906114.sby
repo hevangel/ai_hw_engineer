@@ -1,0 +1,16 @@
+[tasks]
+bmc
+cover
+[options]
+bmc: mode bmc
+bmc: depth 1
+cover: mode cover
+cover: depth 1
+[engines]
+smtbmc z3
+[script]
+read -formal -D FORMAL -I . commodore_906114.sv
+prep -top commodore_906114
+[files]
+../src/commodore_906114.sv
+commodore_906114_props.sv

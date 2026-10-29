@@ -48,9 +48,9 @@ separate in its report.
 | Order | System | Further prerequisites | State |
 |---:|---|---|---|
 | 1 | Atari 2600 | Native 6507 bus timing, 6532, Atari TIA, cartridge mapping, controllers, raster/audio | Queued |
-| 2 | Commodore 64 | 6510, two 6526s, VIC-II, SID, PLA/memory arbitration, ROMs, keyboard and storage | Queued |
+| 2 | Commodore 64 | 6510, two 6526s, VIC-II, SID, PLA/memory arbitration, ROMs, keyboard and storage | Implemented ([system](../system/commodore_64/)): new 906114-01 PLA design; original BASIC/KERNAL boot on the RTL board; PAL cycle-exact against unchanged VICE x64sc (IRQ entries, READY, full RAM image, 16,384 traced instructions); NTSC functional with a one-cycle badline-stall discrepancy open; typing, pixels, SID pitch, joystick, TOD, RESTORE regressions; web panel; synthesis. SID analog stage, cartridges and IEC devices open |
 | 3 | Nintendo NES | Ricoh 2A03/2A07 CPU/APU and DMA, 2C02/2C07 PPU, cartridge mappers and controllers | Implemented: [system/nes](../system/nes/) (nestest and blargg test-ROM regressions; open items in its report) |
-| 4 | Super Nintendo | 65C816-derived Ricoh 5A22, DMA/HDMA, 5C77/5C78 PPU, SPC700/DSP, memory/controller interfaces | Queued |
+| 4 | Super Nintendo | 65C816-derived Ricoh 5A22, DMA/HDMA, 5C77/5C78 PPU, SPC700/DSP, memory/controller interfaces | Implemented: [system/snes](../system/snes/) |
 
 Nintendo's custom parts and Atari's TIA are separate prerequisite designs,
 not MOS-branded chips. Research them before implementing their systems.
