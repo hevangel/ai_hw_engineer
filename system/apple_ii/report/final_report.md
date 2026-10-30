@@ -372,8 +372,43 @@ not board findings:
    the oracle has 24/256). The pixel-exact comparison therefore holds only for
    the legacy model until the capture is retimed.
 
+
 Consequently `run_all.sh` keeps legacy timing, and the datasheet gate is a
 separate, explicitly scoped run: `sh scripts/run_timing_sim.sh` covers the
 socket test at typical delays and the Monitor boot at typical and maximum
 delays. Its own summary line states the two open comparisons rather than
-hiding them behind a weaker check.
+hiding them behind a weaker check.
+
+## DRAM refresh (30 October 2026, review item P2)
+
+The 4116 model retains data indefinitely, so the board's reliance on the video
+scan for refresh was an assumption rather than a checked property.
+`tb/apple_ii_refresh_check.sv` now watches the RAS/row-address bus — shared by
+all eight banks — and records the gap between successive accesses to each row.
+The boot gate asserts row coverage (a run that misses any of the 128 rows fails)
+and reports the margin.
+
+Measured with Icarus 12.0-3 in the Apple II tools image:
+
+| Configuration | Rows refreshed | RAS accesses | Worst same-row gap | Gaps over 2 ms |
+|---|---|---|---|---|
+| authored Monitor boot, CPU running (183 ms) | 128/128 | 373,928 | 1.9668 ms | 0 |
+| video scan only, CPU socket idle (40 ms) | 128/128 | 81,635 | 2.2215 ms | 48 |
+
+The 4116 requires every row to be refreshed within 2 ms. With the CPU executing
+the worst gap is 1.9668 ms, inside the limit. With the CPU idle the video scan
+alone takes 2.2215 ms, 11% longer than the device allows, and the checker flags
+48 violations in 40 ms; every row sits in the 1.85-2.22 ms band, so the overrun
+is the sweep itself rather than a few slow rows.
+
+The second row is a finding, not a pass: part of the board's refresh budget is
+carried by CPU accesses, and the video-only path is marginally short. The real
+machine works, so either the device tolerance is wider than the datasheet figure
+at room temperature or the model's row addressing differs from silicon; that
+question is left open rather than explained away. What changed is that the
+margin is now measured, and a change that lengthens the sweep shows up
+immediately.
+
+`scripts/run_refresh_check.sh` runs the video-only configuration as a negative
+control: it requires all 128 rows and at least one violation, so a checker stuck
+at zero cannot pass the boot gate for the wrong reason.
