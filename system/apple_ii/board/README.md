@@ -50,11 +50,13 @@ follows the documented clock edge.
 typical or published maximum delays, and refuses to run when a characterized
 part has no source. The two boards differ only in `T_PD` values. `--timing
 legacy` keeps the original uniform 5 ns placeholder and remains the checked-in
-default, because the directed testbenches encode zero-delay phase relationships
-that have not all been retimed. `scripts/run_timing_sim.sh` runs the socket
-wiring test and the unmodified Monitor boot at datasheet timing; measured
-results and open harness work are in the
-[verification report](../report/final_report.md).
+default, because the video, cassette and peripheral harnesses still encode
+zero-delay phase relationships. `scripts/run_timing_sim.sh` runs the socket
+wiring test and the unmodified Monitor boot at typical and maximum delays, and
+prints how long each DRAM bank took to drive the bus; the pixel-exact frame
+comparison stays on the legacy board, because the sync path is deeper than the
+counter path it is compared against. Measured results and the remaining limit
+are in the [verification report](../report/final_report.md).
 
 Two entries are bounds rather than numbers measured at the board load. The 8T97
 sheet is specified at CL = 50 pF, so its 13 ns maximum is conservative at
