@@ -51,6 +51,7 @@ __pycache__/
 
 .mimosa
 .minosa/
+.playwright-cli/
 
 # Cached historical-source downloads and rendered datasheet pages
 .firecrawl/
