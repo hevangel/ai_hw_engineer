@@ -31,6 +31,10 @@ ai_hw_engineer/
 └── CONTRIBUTING.md         — Contribution guidelines
 ```
 
+## GitHub issue lifecycle
+
+Follow the cross-repository [issue lifecycle guide](https://github.com/hevangel/ai_engineer/blob/codex/issue-lifecycle-audit/spec/github_issues.md). Before substantive work, transfer a misplaced issue to its owning repository, set project Path to `ai_hw_engineer/<relative-path>`, retain/set its first actual Start date, move Status to Researching or Building, and register the working coding Agent. Keep evidence and blockers current. Clear Agent whenever work finishes/stops or is handed to inactive review; preserve Path and the first Start date. Sprint is a Scrum planning commitment, not a default assignment. Read live field options/IDs before mutations. A passing version command does not qualify a complete tool workflow; record scoped, reproducible tests and limitations.
+
 ## Chip issue and family layout
 
 Use one canonical `design/<issue_slug>/` folder per chip or family issue. A series keeps one parent issue and one family README; add one native sub-issue and member subfolder per physical chip. Alternative implementations of one chip belong to the same chip sub-issue. Existing migrations are listed in `scripts/design_families.json`. Keep historical dates, sources, reports and implementation limits in member READMEs. Update all scripts, source lists, system references, index links and ignored generated paths when moving a design.
