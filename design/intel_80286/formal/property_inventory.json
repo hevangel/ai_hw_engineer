@@ -1,0 +1,72 @@
+{
+  "formal/intel_80286_access_check_props.sv": {
+    "assert": 2,
+    "assume": 0,
+    "cover": 8
+  },
+  "formal/intel_80286_bus_owner_props.sv": {
+    "assert": 22,
+    "assume": 1,
+    "cover": 4
+  },
+  "formal/intel_80286_cached_reference_props.sv": {
+    "assert": 3,
+    "assume": 0,
+    "cover": 8
+  },
+  "formal/intel_80286_code_check_props.sv": {
+    "assert": 7,
+    "assume": 0,
+    "cover": 9
+  },
+  "formal/intel_80286_code_load_props.sv": {
+    "assert": 38,
+    "assume": 1,
+    "cover": 8
+  },
+  "formal/intel_80286_datapath_props.sv": {
+    "assert": 35,
+    "assume": 0,
+    "cover": 4
+  },
+  "formal/intel_80286_decimal_props.sv": {
+    "assert": 2,
+    "assume": 0,
+    "cover": 4
+  },
+  "formal/intel_80286_ea_props.sv": {
+    "assert": 3,
+    "assume": 0,
+    "cover": 3
+  },
+  "formal/intel_80286_event_control_props.sv": {
+    "assert": 13,
+    "assume": 1,
+    "cover": 7
+  },
+  "formal/intel_80286_muldiv_props.sv": {
+    "assert": 14,
+    "assume": 1,
+    "cover": 4
+  },
+  "formal/intel_80286_pedc_props.sv": {
+    "assert": 10,
+    "assume": 1,
+    "cover": 4
+  },
+  "formal/intel_80286_props.sv": {
+    "assert": 309,
+    "assume": 1,
+    "cover": 52
+  },
+  "formal/intel_80286_segment_check_props.sv": {
+    "assert": 8,
+    "assume": 0,
+    "cover": 6
+  },
+  "formal/intel_80286_segment_load_props.sv": {
+    "assert": 33,
+    "assume": 1,
+    "cover": 6
+  }
+}

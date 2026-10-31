@@ -15,6 +15,7 @@ module intel_80286_segment_load (
     input logic [7:0] bus_rdata_i,
     output logic fault_o, cache_valid_o,
     output logic [7:0] fault_vector_o, access_o,
+    output logic [2:0] descriptor_class_o,
     output logic [15:0] fault_error_o, selector_o, limit_o,
     output logic [23:0] base_o
 );
@@ -22,12 +23,14 @@ module intel_80286_segment_load (
     logic [2:0] state, byte_index;
     logic [15:0] saved_selector, saved_table_limit;
     logic [23:0] saved_table_base, descriptor_address;
+    logic [2:0] saved_descriptor_class;
     logic [1:0] saved_cpl;
     logic saved_stack, saved_ldt_valid;
     logic [47:0] descriptor;
     logic check_needed, check_done, check_valid, check_fault;
     logic [15:0] check_offset, check_error, check_limit;
     logic [7:0] check_vector, check_access, check_accessed;
+    logic [2:0] check_descriptor_class;
     logic [23:0] check_base;
 
     intel_80286_segment_check check_segment(.selector_i(saved_selector),.cpl_i(saved_cpl),
@@ -36,17 +39,20 @@ module intel_80286_segment_load (
         .descriptor_offset_o(check_offset),.descriptor_needed_o(check_needed),.checked_o(check_done),
         .cache_valid_o(check_valid),.fault_o(check_fault),.fault_vector_o(check_vector),
         .fault_error_o(check_error),.base_o(check_base),.limit_o(check_limit),
-        .access_o(check_access),.accessed_value_o(check_accessed));
+        .access_o(check_access),.accessed_value_o(check_accessed),
+        .descriptor_class_o(check_descriptor_class));
 
     assign busy_o=state!=IDLE;
     assign bus_req_o=rst_n && (state==READ_DESCRIPTOR || state==WRITE_ACCESSED);
     assign bus_write_o=state==WRITE_ACCESSED;
     assign bus_addr_o=descriptor_address+(state==WRITE_ACCESSED ? 24'd5 : {21'h0,byte_index});
     assign bus_wdata_o=check_accessed;
+    assign descriptor_class_o=saved_descriptor_class;
     task automatic complete_load;
         done_o<=1; state<=IDLE; selector_o<=saved_selector;
         fault_o<=check_fault; fault_vector_o<=check_vector; fault_error_o<=check_error;
-        cache_valid_o<=check_valid; base_o<=check_base; limit_o<=check_limit; access_o<=check_access;
+        cache_valid_o<=check_valid; base_o<=check_base; limit_o<=check_limit;
+        access_o<=check_access; saved_descriptor_class<=check_descriptor_class;
     endtask
     always_ff @(posedge clk) begin
         if (!rst_n) begin
@@ -55,6 +61,7 @@ module intel_80286_segment_load (
             saved_cpl<=0; saved_stack<=0; saved_ldt_valid<=0;
             done_o<=0; fault_o<=0; fault_vector_o<=0; fault_error_o<=0;
             cache_valid_o<=0; selector_o<=0; base_o<=0; limit_o<=0; access_o<=0;
+            saved_descriptor_class<=0;
         end else begin
             done_o<=0;
             case (state)

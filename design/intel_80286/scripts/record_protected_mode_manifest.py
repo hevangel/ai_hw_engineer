@@ -16,6 +16,13 @@ def sha256(path):
     return digest.hexdigest()
 
 
+def display_path(path, base):
+    try:
+        return str(path.relative_to(base)).replace("\\", "/")
+    except ValueError:
+        return str(path)
+
+
 def first_line(command):
     result = subprocess.run(command, check=True, capture_output=True, text=True)
     return result.stdout.splitlines()[0]
@@ -58,10 +65,10 @@ def main():
             "IRET CS accessed-byte write",
         ],
         "binary": {
-            "path": str(binary.relative_to(design_dir)).replace("\\", "/"),
+            "path": display_path(binary, design_dir),
             "sha256": sha256(binary),
         },
-        "log": str(log.relative_to(design_dir)).replace("\\", "/"),
+        "log": display_path(log, design_dir),
         "source_files": [
             {
                 "path": str(path.relative_to(design_dir)).replace("\\", "/"),
@@ -86,7 +93,7 @@ def main():
                 "--top-module",
                 "intel_80286",
                 "--Mdir",
-                str(build_dir.relative_to(design_dir)).replace("\\", "/"),
+                display_path(build_dir, design_dir),
                 "-CFLAGS",
                 "-std=c++17",
             ],

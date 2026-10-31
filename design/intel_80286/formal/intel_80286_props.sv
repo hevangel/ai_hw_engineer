@@ -1,8 +1,47 @@
 // Included inside intel_80286. Only initial reset constrains the environment.
 `ifdef FORMAL
     logic past_valid = 0;
+    logic protected_event_path_state;
+    logic protected_call_path_state;
+    logic event_delivery_path_state;
+    logic nested_df_idt_limit_escalation;
     logic witnessed_async, witnessed_halt, witnessed_rep, rep_progress;
     logic witnessed_debug, witnessed_vector_limit;
+    always_comb begin
+        protected_event_path_state =
+            state==EVENT_GATE_TAIL || state==EVENT_GATE_VALIDATE ||
+            state==EVENT_GATE_CHECK || state==EVENT_CODE_START ||
+            state==EVENT_TSS_PAIR || state==EVENT_STACK_SELECT ||
+            state==EVENT_FRAME_CHECK || state==EVENT_FRAME_READY ||
+            state==EVENT_FRAME_FLAGS || state==EVENT_FRAME_CS || state==EVENT_FRAME_IP ||
+            state==EVENT_FRAME_ERROR || state==EVENT_FRAME_OLD_SP ||
+            state==EVENT_FRAME_OLD_SS;
+        protected_call_path_state =
+            state==CALL_DESC_TAIL || state==CALL_DESC_CHECK ||
+            state==CALL_CODE_START || state==CALL_FRAME_READY ||
+            state==CALL_TSS_PAIR || state==CALL_STACK_SELECT ||
+            state==CALL_STACK_WRITE_OLD_SP || state==CALL_STACK_WRITE_OLD_CS ||
+            state==CALL_STACK_WRITE_RETURN || state==CALL_PARAM_READ ||
+            state==CALL_PARAM_WRITE || state==CALL_PARAM_NEXT ||
+            state==CALL_GATE_COMMIT;
+        event_delivery_path_state = protected_event_path_state ||
+            state==EVENT_PROTECTED_COMMIT ||
+            (state==CODE_LOAD_WAIT && code_load_target==1) ||
+            (state==SEGMENT_LOAD_WAIT && segment_load_target==3) ||
+            ((state==BUS || state==MEMORY_CHECK) &&
+             (memory_return==EVENT_GATE_TAIL || memory_return==EVENT_GATE_VALIDATE ||
+              memory_return==EVENT_TSS_PAIR || memory_return==EVENT_FRAME_READY ||
+              memory_return==EVENT_FRAME_FLAGS || memory_return==EVENT_FRAME_CS ||
+              memory_return==EVENT_FRAME_IP || memory_return==EVENT_FRAME_ERROR ||
+              memory_return==EVENT_FRAME_OLD_SP || memory_return==EVENT_FRAME_OLD_SS));
+        nested_df_idt_limit_escalation = state==EVENT_START &&
+            event_packet.valid && event_packet.protected_mode &&
+            event_packet.restartable &&
+            (event_packet.vector==0 || event_packet.vector==10 ||
+             event_packet.vector==11 || event_packet.vector==12 ||
+             event_packet.vector==13) &&
+            ({6'h0,event_packet.vector,3'b000}+17'd7)>{1'b0,idt_limit};
+    end
     always_ff @(posedge clk) begin
         past_valid <= 1;
         if (!past_valid) assume(!rst_n);
@@ -32,17 +71,31 @@
                 assert(msw==16'hfff0 && idt_base==0 && idt_limit==16'h03ff);
                 assert(gdt_base==0 && gdt_limit==0); // A12 project reset policy.
                 assert(seg_bases_o=={24'h0,24'h0,24'hff0000,24'h0});
-                assert(!retire_o && !halted_o && !fault_o && !element_o);
+                assert(!retire_o && !halted_o && !shutdown_o && !fault_o && !element_o);
             end
             assert((msw_o & 16'hfff0)==16'hfff0);
             if (rst_n && $past(rst_n && msw[0])) assert(msw[0]);
-            // Protected descriptor engines start only after PE is set; PE
-            // remains set until reset. These relations strengthen the
-            // reset-reachable cache-mode invariants below.
-            if (rst_n) begin
-                assert(!code_load_busy || msw[0]);
-                assert(!segment_load_busy || msw[0]);
+            // A protected event snapshot can only be created while PE is set;
+            // PE is sticky until reset, even after the packet is consumed.
+            if (rst_n) assert(!event_packet.protected_mode || msw[0]);
+            // The protected-mode relation of subordinate descriptor engines
+            // depends on protected-state provenance. It is not asserted until
+            // that relation is inductive across arbitrary BUS continuations.
+            // Protected transfer latches must stay clear while PE is clear.
+            // Raw state exclusion depends on memory_return provenance and is
+            // not inductive from arbitrary BUS states; track that separately.
+            if (rst_n && !msw[0]) begin
+                assert(!protected_far_call_active && !protected_call_through_gate &&
+                       !protected_call_stack_active && !protected_iret_active &&
+                       !iret_outer_active && !protected_ret_active && !ret_outer_active);
+                assert(!protected_call_path_state);
             end
+            // A denied memory check abandons any in-flight outer RETF. Check
+            // the cleanup transition directly instead of constraining the
+            // opcode in arbitrary induction states carrying stale owners.
+            if (rst_n && $past(rst_n && state==MEMORY_CHECK && !data_reference_allow))
+                assert(!protected_ret_active && !ret_outer_active &&
+                       !ret_outer_preflight_done && !ret_outer_ss_ready);
             if (rst_n && !msw[0]) begin
                 // ASSUMPTION A14 applies to the inherited real-mode cache only, after reset.
                 assert(seg_limits_o==64'hffffffffffffffff && seg_access_o==32'h93939393 && seg_valid_o==4'hf);
@@ -54,6 +107,11 @@
                 assert($stable(seg_access_o) && $stable(seg_valid_o));
             end
             assert(!(halted_o && fault_o));
+            if (shutdown_o) begin
+                assert(halted_o && !fault_o && !retire_o && !bus_req_o);
+                assert(!core_bus_req && !descriptor_bus_req && !event_bus_req);
+            end
+            if (rst_n && $past(rst_n && shutdown_o)) assert(shutdown_o);
             if (halted_o || fault_o)
                 assert(!core_bus_req && !(descriptor_claim && descriptor_bus_req) && !event_bus_req);
             assert(!(cpu_bus_ready && event_bus_ready));
@@ -65,9 +123,9 @@
             // engine drops its request; validate the routed handshake itself.
             if (owner_descriptor_ready)
                 assert(owner_descriptor_grant && owner_bus_req && bus_ready_i);
-            if (bus_owner==2)
-                assert(event_bus_path_active || state==STOPPED ||
-                       (state==EVENT_START && event_packet.protected_mode));
+            // EVENT ownership can remain during an in-flight beat or a quiet
+            // release cycle after its request path deasserts. The bus-owner
+            // component proves held-beat stability and release ordering.
             if (rst_n && bus_owner==1)
                 assert(descriptor_bus_path_active || state==STOPPED || descriptor_bus_req ||
                        code_load_busy || segment_load_busy || descriptor_release);
@@ -100,13 +158,16 @@
                 assert($stable(regs_o));
                 assert(!retire_o);
             end
-            if (retire_o) assert($past(rst_n && (state == EXECUTE || (state == SHIFT && shift_remaining == 1) ||
+            if (rst_n && retire_o) assert($past(rst_n && (state == EXECUTE || (state == SHIFT && shift_remaining == 1) ||
                 state == COMMIT_MEMORY || state == IO_DONE || state == PUSH_DONE || state == POP_DONE ||
                 state == MULDIV_WAIT || state == FAR_CALL_DONE || state == FAR_RETURN_DONE || state == EVENT_COMMIT ||
-                state == IRET_COMMIT ||
+                state == EVENT_PROTECTED_COMMIT ||
+                state == IRET_COMMIT || state == CALL_GATE_COMMIT || state == RET_COMMIT ||
                 state == ALL_COMMIT || state == ENTER_COMMIT || state == LEAVE_DONE ||
                 state == STRING_START || state == STRING_COMMIT || state==SYSTEM_DONE ||
-                state==CODE_LOAD_WAIT || state==SEGMENT_LOAD_WAIT)));
+                state==SYSTEM_DESC_VALIDATE || state==SYSTEM_DESC_COMMIT ||
+                state==SYSTEM_QUERY_VALIDATE ||
+                state==CODE_LOAD_WAIT || state==SEGMENT_LOAD_WAIT || state==WAIT_BUSY)));
             if (state == SHIFT) assert(shift_remaining != 0);
             if (state == SHIFT) assert(shift_op);
             if (rst_n && $past(rst_n &&
@@ -115,7 +176,9 @@
                 assert(event_packet.saved_ip==$past(instruction_ip) && !retire_o);
                 assert($stable(regs_o) && $stable(flags_o));
             end
-            assert(state <= EVENT_GATE_CHECK);
+            // Later states include WAIT_BUSY and direct task-switch paths;
+            // CALL_DESC_FINAL is the highest allocated state encoding.
+            assert(state <= CALL_DESC_FINAL);
             assert(cs_trusted); // Real-mode prelude; protected CS commit must clear it.
             if (state==MEMORY_CHECK || state==BUS) begin
                 assert(memory_size>=1 && memory_size<=6);
@@ -125,6 +188,7 @@
             if (rst_n && state==CODE_LOAD_WAIT && code_load_done && !code_load_fault && !code_load_special) begin
                 assert(code_load_cache_valid);
             end
+            if (rst_n && (state==SEGMENT_LOAD_WAIT || state==CODE_LOAD_WAIT)) assert(msw[0]);
             if (rst_n && $past(rst_n && code_load_start && !code_load_busy)) begin
                 // The request outputs publish only when the transaction completes;
                 // the engine properties check that its private request capture is exact.
@@ -133,6 +197,7 @@
             end
             if (rst_n && $past(rst_n && state==CODE_LOAD_WAIT && code_load_done && code_load_target==0 &&
                       code_load_cache_valid && !code_load_fault && !code_load_special &&
+                      code_load_special_descriptor==48'd0 &&
                       code_load_request_selector==(opcode==8'hea ? immediate[31:16] : memory_result[31:16]) &&
                       code_load_request_offset==(opcode==8'hea ? immediate[15:0] : memory_result[15:0]))) begin
                 assert(cs==$past(code_load_selector) && cs_base==$past(code_load_base));
@@ -140,8 +205,21 @@
             end
             if (rst_n && $past(rst_n && state==CODE_LOAD_WAIT && code_load_done &&
                       code_load_cache_valid && !code_load_fault && !code_load_special &&
-                      code_load_target==1)) begin
-                assert(state==EVENT_FRAME_CHECK);
+                      code_load_special_descriptor==48'd0 && code_load_target==1 &&
+                      code_load_request_selector==event_pointer[31:16] &&
+                      code_load_request_offset==event_pointer[15:0])) begin
+                if ($past(code_load_selector[1:0]<cs[1:0])) begin
+                    if ($past(!tr_valid || code_load_selector[1:0]>2 ||
+                        ({1'b0,(16'd2+{12'd0,code_load_selector[1:0],2'b00})}+17'd3)>
+                            {1'b0,tr_limit}))
+                        assert(state==STOPPED && fault_code_o==3 &&
+                               !event_delivery_active && !event_stack_active);
+                    else
+                        assert(state==BUS && memory_return==EVENT_TSS_PAIR &&
+                               event_delivery_active && event_stack_active);
+                end else begin
+                    assert(state==EVENT_FRAME_CHECK && !event_stack_active);
+                end
                 assert(event_target_selector==$past(code_load_selector));
                 assert(event_target_base==$past(code_load_base));
                 assert(event_target_limit==$past(code_load_limit));
@@ -150,8 +228,13 @@
             end
             if (rst_n && $past(rst_n && state==CODE_LOAD_WAIT && code_load_done &&
                       code_load_cache_valid && !code_load_fault && !code_load_special &&
-                      code_load_target==2)) begin
-                assert(state==IRET_COMMIT);
+                      code_load_special_descriptor==48'd0 && code_load_target==2 &&
+                      code_load_request_selector==iret_saved_cs &&
+                      code_load_request_offset==iret_saved_ip)) begin
+                // An outer-level IRET must fetch the restored SS:SP frame
+                // before it can commit the restored code selector.
+                assert($past(iret_outer_active) ? state==MEMORY_CHECK :
+                                                   state==IRET_COMMIT);
                 assert(iret_target_base==$past(code_load_base));
                 assert(iret_target_limit==$past(code_load_limit));
                 assert(iret_target_access==$past(code_load_access));
@@ -162,10 +245,55 @@
                 case ($past(segment_load_target))
                     0: assert(es==$past(segment_load_selector) && es_base==$past(segment_load_base) &&
                               cache_valid[0]==$past(segment_load_cache_valid));
-                    2: if ($past(segment_load_cache_valid))
-                           assert(ss==$past(segment_load_selector) && ss_base==$past(segment_load_base) && cache_valid[2]);
-                    3: assert(ds==$past(segment_load_selector) && ds_base==$past(segment_load_base) &&
-                              cache_valid[3]==$past(segment_load_cache_valid));
+                    2: if ($past(segment_load_cache_valid)) begin
+                        if ($past(protected_call_stack_active)) begin
+                            assert((state==EVENT_START && !protected_call_stack_active) ||
+                                   (protected_call_new_ss_selector==$past(segment_load_selector) &&
+                                    protected_call_new_ss_base==$past(segment_load_base) &&
+                                    protected_call_new_ss_limit==$past(segment_load_limit) &&
+                                    protected_call_new_ss_access==$past(segment_load_access) &&
+                                    memory_return==CALL_STACK_WRITE_OLD_SP));
+                            assert(ss==$past(ss) && ss_base==$past(ss_base) &&
+                                   cache_valid[2]==$past(cache_valid[2]));
+                        end else if ($past(protected_ret_active && ret_outer_active)) begin
+                            assert(state==RET_COMMIT);
+                            assert(ret_target_ss_selector==$past(segment_load_selector));
+                            assert(ret_target_ss_base==$past(segment_load_base));
+                            assert(ret_target_ss_limit==$past(segment_load_limit));
+                            assert(ret_target_ss_access==$past(segment_load_access));
+                            assert(ss==$past(ss) && ss_base==$past(ss_base) &&
+                                   cache_valid[2]==$past(cache_valid[2]));
+                        end else if ($past(iret_outer_active)) begin
+                            assert(state==IRET_COMMIT);
+                            assert(iret_target_ss_selector==$past(segment_load_selector));
+                            assert(iret_target_ss_base==$past(segment_load_base));
+                            assert(iret_target_ss_limit==$past(segment_load_limit));
+                            assert(iret_target_ss_access==$past(segment_load_access));
+                            assert(ss==$past(ss) && ss_base==$past(ss_base) &&
+                                   cache_valid[2]==$past(cache_valid[2]));
+                        end else begin
+                            assert(ss==$past(segment_load_selector) &&
+                                   ss_base==$past(segment_load_base) && cache_valid[2]);
+                        end
+                    end
+                    3: if ($past(event_stack_active)) begin
+                        assert((state==EVENT_FRAME_READY && event_stack_active &&
+                                event_new_ss_selector==$past(segment_load_selector) &&
+                                event_new_ss_base==$past(segment_load_base) &&
+                                event_new_ss_limit==$past(segment_load_limit) &&
+                                event_new_ss_access==$past(segment_load_access) &&
+                                pending_sp==event_tss_stack_sp-
+                                    (event_packet.error_present ? 16'd12 : 16'd10)) ||
+                               (state==STOPPED && !event_stack_active &&
+                                !event_delivery_active && fault_code_o==3 &&
+                                ip==$past(event_packet.saved_ip) && !retire_o));
+                        assert(ds==$past(ds) && ds_base==$past(ds_base) &&
+                               cache_valid[3]==$past(cache_valid[3]));
+                    end else begin
+                        assert(ds==$past(segment_load_selector) &&
+                               ds_base==$past(segment_load_base) &&
+                               cache_valid[3]==$past(segment_load_cache_valid));
+                    end
                     // MOV to CS is rejected by the core after descriptor lookup.
                     default: assert(state==STOPPED && fault_code_o==3 &&
                                     ip==$past(instruction_ip) && !retire_o);
@@ -178,11 +306,85 @@
                 assert(memory_index==0);
             end
             if (rst_n && state==MEMORY_CHECK && memory_precheck_only) begin
-                assert(event_delivery_active && memory_return==EVENT_FRAME_READY);
-                assert(memory_role==2 && memory_kind==1 && memory_write && memory_size==1);
-                assert(memory_offset==event_packet.saved_sp-16'd8 && memory_span_delta==16'd7);
                 assert(!core_bus_req && !retire_o && !event_o);
+                case (memory_return)
+                    EVENT_FRAME_READY: begin
+                        if (event_delivery_active) begin
+                            assert(!event_stack_active);
+                            assert(memory_role==2 && memory_kind==1 && memory_write && memory_size==1);
+                            assert(memory_offset==event_packet.saved_sp-
+                                   (event_packet.error_present ? 16'd8 : 16'd6));
+                            assert(memory_span_delta==
+                                   (event_packet.error_present ? 16'd7 : 16'd5));
+                        end
+                    end
+                    CALL_FRAME_READY: begin
+                        assert(protected_far_call_active);
+                        assert(memory_role==2 && memory_kind==0 && !memory_write && memory_size==1);
+                        assert(memory_offset==pending_sp && memory_span_delta==16'd3);
+                    end
+                    IRET_OUTER_NEXT: begin
+                        assert(protected_iret_active && iret_outer_active);
+                        assert(memory_role==2 && memory_kind==0 && !memory_write && memory_size==1);
+                        assert(memory_offset==gpr[4]+16'd6 && memory_span_delta==16'd3);
+                    end
+                    RET_OUTER_NEXT: begin
+                        assert(protected_ret_active && ret_outer_active);
+                        assert(memory_role==2 && memory_kind==0 && !memory_write && memory_size==1);
+                        assert(memory_offset==gpr[4]+16'd4+ret_stack_adjust &&
+                               memory_span_delta==16'd3);
+                    end
+                    default: assert(1'b0);
+                endcase
             end
+            // Event-only continuations must retain an owner established before
+            // entry. A raw event state can be an arbitrary BUS continuation
+            // during induction, so check the reverse relation after a live
+            // event owner was already present.
+            if (rst_n && protected_event_path_state && $past(event_delivery_active))
+                assert(event_delivery_active && event_packet.valid &&
+                       event_packet.protected_mode);
+            if (rst_n && event_delivery_active)
+                assert(event_delivery_path_state && event_packet.valid &&
+                       event_packet.protected_mode);
+            if (rst_n && event_stack_active)
+                assert((state==STOPPED || event_delivery_path_state) &&
+                       event_packet.valid && event_packet.protected_mode);
+            // The TSS stack-pair read is launched only after a privilege
+            // change has marked this delivery as using the new stack.
+            if (rst_n && (state==EVENT_TSS_PAIR || state==EVENT_STACK_SELECT ||
+                          (state==SEGMENT_LOAD_WAIT && event_delivery_active &&
+                           segment_load_target==3) ||
+                          ((state==BUS || state==MEMORY_CHECK) &&
+                           memory_return==EVENT_TSS_PAIR)))
+                assert(event_stack_active);
+            if (rst_n && state==EVENT_PROTECTED_COMMIT)
+                assert(event_delivery_active && event_packet.valid &&
+                       event_packet.protected_mode);
+            // An IDT-limit fault while invoking a 286 contributory handler
+            // selects null-error-code #DF without changing saved context.
+            if (rst_n && $past(rst_n && nested_df_idt_limit_escalation))
+                assert(state==EVENT_START && event_packet.valid &&
+                       event_packet.protected_mode && event_packet.vector==8 &&
+                       event_packet.restartable && event_packet.error_present &&
+                       event_packet.error_code==0 &&
+                       !event_packet.instruction_retired && !event_delivery_active &&
+                       !event_stack_active && !retire_o &&
+                       ip==event_packet.saved_ip &&
+                       event_packet.saved_cs==$past(event_packet.saved_cs) &&
+                       event_packet.saved_ip==$past(event_packet.saved_ip) &&
+                       event_packet.saved_flags==$past(event_packet.saved_flags) &&
+                       event_packet.saved_sp==$past(event_packet.saved_sp) &&
+                       event_packet.saved_ss==$past(event_packet.saved_ss));
+            if (rst_n && state==EVENT_FRAME_CHECK)
+                assert(!event_stack_active);
+            if (rst_n && state==BUS &&
+                (memory_return==EVENT_FRAME_READY || memory_return==EVENT_FRAME_FLAGS ||
+                 memory_return==EVENT_FRAME_CS || memory_return==EVENT_FRAME_IP ||
+                 memory_return==EVENT_FRAME_ERROR || memory_return==EVENT_FRAME_OLD_SP ||
+                 memory_return==EVENT_FRAME_OLD_SS || memory_return==EVENT_TSS_PAIR))
+                assert(event_delivery_active && event_packet.valid &&
+                       event_packet.protected_mode);
             if (ins_precheck_active) begin
                 assert(opcode==8'h6c || opcode==8'h6d);
                 assert((state==MEMORY_CHECK && memory_return==STRING_FIRST &&
@@ -228,7 +430,7 @@
                 end else assert($stable(regs_o));
                 if ($past(data_reference_allow)) begin
                     if ($past(memory_precheck_only)) begin
-                        assert(state==EVENT_FRAME_READY && !memory_precheck_only);
+                        assert(state==$past(memory_return) && !memory_precheck_only);
                     end else if ($past(ins_precheck_active)) begin
                         assert(state==BUS && memory_io && !memory_segmented && !memory_write);
                         assert(memory_address=={8'h0,$past(gpr[2])} &&
@@ -319,7 +521,12 @@
             end
             // Halt persists through idle recognition/acknowledgement, but
             // cannot own an instruction execution state or memory transfer.
-            if (halt_latch) assert(state==HALTED || state==BOUNDARY || state==EVENT_POLL);
+            assert(bus_halt_cycle_o==(halt_latch && !shutdown_o));
+            assert(bus_shutdown_cycle_o==shutdown_o);
+            assert(!(bus_halt_cycle_o && bus_shutdown_cycle_o));
+            if (bus_halt_cycle_o) assert(!bus_req_o);
+            if (halt_latch && !shutdown_o)
+                assert(state==HALTED || state==BOUNDARY || state==EVENT_POLL);
             if (state==HALTED) assert(halt_latch);
             if (rst_n && $past(rst_n && state==FETCH && !prefix_active &&
                 owner_cpu_grant && cpu_bus_ready && !fetch_reference_fault))
@@ -328,8 +535,16 @@
                 !(state==STRING_BOUNDARY && instruction_ss_shadow)))
                 assert(async_poll && async_valid && async_vector==1);
             if (async_boundary || async_poll) assert(!core_bus_req);
-            if (inta_req_o) begin assert(async_poll); assert(!core_bus_req); end
-            if (async_valid) assert(async_poll);
+            // WAIT can select an event on the same clock that BUSY drops.
+            // Its retirement enters BOUNDARY before the event controller's
+            // held valid/acknowledge is consumed in EVENT_POLL.
+            if (inta_req_o) begin
+                assert(async_poll || (state==WAIT_BUSY && !escape_op) ||
+                       (state==BOUNDARY && $past(state==WAIT_BUSY && !escape_op)));
+                assert(!core_bus_req);
+            end
+            if (async_valid)
+                assert(async_poll || (state==BOUNDARY && $past(state==WAIT_BUSY && !escape_op)));
             if (state==STRING_BOUNDARY || state==STRING_POLL) begin
                 assert(string_op && repeat_valid && gpr[1]!=0);
             end
@@ -349,22 +564,82 @@
                    memory_return == EVENT_GATE_TAIL || memory_return == EVENT_GATE_VALIDATE ||
                    memory_return == EVENT_FRAME_READY || memory_return == EVENT_FRAME_FLAGS ||
                    memory_return == EVENT_FRAME_CS || memory_return == EVENT_FRAME_IP ||
-                   memory_return == EVENT_FRAME_ERROR || memory_return == EVENT_PROTECTED_COMMIT ||
+                   memory_return == EVENT_FRAME_ERROR || memory_return == EVENT_FRAME_OLD_SP ||
+                   memory_return == EVENT_FRAME_OLD_SS || memory_return == EVENT_TSS_PAIR ||
+                   memory_return == EVENT_PROTECTED_COMMIT ||
+                    memory_return == SYSTEM_DESC_MORE || memory_return == SYSTEM_DESC_VALIDATE ||
+                    memory_return == SYSTEM_DESC_COMMIT || memory_return == SYSTEM_QUERY_VALIDATE ||
                    memory_return == ALL_NEXT || memory_return == ENTER_FIRST || memory_return == ENTER_READ ||
                    memory_return == ENTER_COPY || memory_return == ENTER_COMMIT || memory_return == LEAVE_DONE ||
+                    memory_return == IRET_OUTER_SS || memory_return == IRET_OUTER_NEXT ||
+                    memory_return == RET_OUTER_SS || memory_return == RET_OUTER_NEXT ||
+                    memory_return == CALL_DESC_TAIL || memory_return == CALL_DESC_CHECK ||
+                    memory_return == CALL_FRAME_READY || memory_return == CALL_TSS_PAIR ||
+                    memory_return == CALL_STACK_WRITE_OLD_SP || memory_return == CALL_STACK_WRITE_OLD_CS ||
+                    memory_return == CALL_STACK_WRITE_RETURN || memory_return == CALL_GATE_COMMIT ||
+                    memory_return == CALL_PARAM_READ || memory_return == CALL_PARAM_WRITE ||
+                    memory_return == CALL_PARAM_NEXT ||
                    memory_return == SYSTEM_DONE ||
                    memory_return == STRING_FIRST || memory_return == STRING_COMMIT);
+            // Only a protected inter-level CALL gate reads a TSS stack pair.
+            // Keep this continuation tied to its architectural owner so an
+            // arbitrary BUS return code cannot fabricate a protected transfer.
+            if (rst_n && state==BUS && memory_return==CALL_TSS_PAIR)
+                assert(msw[0] && protected_call_through_gate);
+            if (rst_n && state==BUS &&
+                (memory_return==CALL_DESC_TAIL || memory_return==CALL_DESC_CHECK ||
+                 memory_return==CALL_FRAME_READY || memory_return==CALL_STACK_WRITE_OLD_SP ||
+                 memory_return==CALL_STACK_WRITE_OLD_CS || memory_return==CALL_STACK_WRITE_RETURN ||
+                 memory_return==CALL_GATE_COMMIT || memory_return==CALL_PARAM_READ ||
+                 memory_return==CALL_PARAM_WRITE || memory_return==CALL_PARAM_NEXT))
+                assert(msw[0]);
+            // Outer stack returns are likewise owned by a live protected
+            // IRET/RET, not by an arbitrary real-mode BUS return code.
+            if (rst_n && state==BUS &&
+                (memory_return==IRET_OUTER_SS || memory_return==IRET_OUTER_NEXT))
+                assert(msw[0] && protected_iret_active && iret_outer_active);
+            if (rst_n && state==BUS &&
+                (memory_return==RET_OUTER_SS || memory_return==RET_OUTER_NEXT))
+                assert(msw[0] && protected_ret_active && ret_outer_active);
+            // Protected IRET's descriptor-load continuation is reachable only
+            // from a live protected return packet. Bind both entry states so
+            // induction cannot begin inside the code-load wait with PE clear.
+            if (rst_n && state==IRET_OUTER_NEXT)
+                assert(msw[0] && protected_iret_active && iret_outer_active);
+            if (rst_n && state==IRET_CODE_START)
+                assert(msw[0] && protected_iret_active);
+            // The ring-transition stack selector is entered only after the
+            // protected TSS stack-pair read has completed successfully.
+            if (rst_n && state==CALL_TSS_PAIR)
+                assert(msw[0] && protected_call_through_gate);
+            if (rst_n && state==CALL_STACK_SELECT)
+                assert(msw[0] && protected_call_stack_active &&
+                       protected_call_through_gate);
+            if (rst_n && (state==MEMORY_CHECK || state==BUS) &&
+                memory_return==FAR_RETURN_DONE)
+                assert(opcode==8'hca || opcode==8'hcb || opcode==8'hcf);
+            if (rst_n && state==RET_CODE_START)
+                assert(msw[0] && protected_ret_active);
             if (state == BUS) begin
                 assert(memory_remaining >= 1 && memory_remaining <= 6);
                 assert(({1'b0,memory_index}+{1'b0,memory_remaining})<=6);
                 if (opcode==8'h0f)
-                    assert(memory_return==EXECUTE || memory_return==SYSTEM_DONE ||
+                    assert(memory_return==EXECUTE || memory_return==COMMIT_MEMORY ||
+                            memory_return==SYSTEM_DONE ||
+                            memory_return==SYSTEM_DESC_MORE || memory_return==SYSTEM_DESC_VALIDATE ||
+                            memory_return==SYSTEM_DESC_COMMIT || memory_return==SYSTEM_QUERY_VALIDATE ||
                            memory_return==EVENT_VECTOR || memory_return==EVENT_FLAGS ||
                            memory_return==EVENT_CS || memory_return==EVENT_COMMIT ||
                            memory_return==EVENT_GATE_TAIL || memory_return==EVENT_GATE_VALIDATE ||
                            memory_return==EVENT_FRAME_READY || memory_return==EVENT_FRAME_FLAGS ||
                            memory_return==EVENT_FRAME_CS || memory_return==EVENT_FRAME_IP ||
-                           memory_return==EVENT_FRAME_ERROR);
+                           memory_return==EVENT_FRAME_ERROR || memory_return==EVENT_FRAME_OLD_SP ||
+                           memory_return==EVENT_FRAME_OLD_SS || memory_return==EVENT_TSS_PAIR);
+            end
+            if (rst_n && (state==MEMORY_CHECK || state==BUS) &&
+                memory_return==EVENT_FRAME_ERROR) begin
+                assert(event_delivery_active && event_packet.protected_mode &&
+                       event_packet.error_present);
             end
             // An accepted divider operation owns the CPU until its result is ready.
             assert(!md_busy || state==MULDIV_WAIT);
@@ -378,14 +653,20 @@
                 state==EVENT_GATE_VALIDATE || state==EVENT_GATE_CHECK || state==EVENT_CODE_START ||
                 state==EVENT_FRAME_CHECK || state==EVENT_FRAME_READY || state==EVENT_FRAME_FLAGS ||
                 state==EVENT_FRAME_CS || state==EVENT_FRAME_IP || state==EVENT_FRAME_ERROR ||
+                state==EVENT_FRAME_OLD_SP || state==EVENT_FRAME_OLD_SS ||
+                state==EVENT_TSS_PAIR || state==EVENT_STACK_SELECT ||
                 state==EVENT_PROTECTED_COMMIT || (state==BUS &&
                 (memory_return==EVENT_VECTOR || memory_return==EVENT_FLAGS ||
                  memory_return==EVENT_CS || memory_return==EVENT_COMMIT ||
                  memory_return==EVENT_GATE_TAIL || memory_return==EVENT_GATE_VALIDATE ||
                  memory_return==EVENT_FRAME_READY || memory_return==EVENT_FRAME_FLAGS ||
                  memory_return==EVENT_FRAME_CS || memory_return==EVENT_FRAME_IP ||
-                 memory_return==EVENT_FRAME_ERROR || memory_return==EVENT_PROTECTED_COMMIT))) begin
-                if (event_packet.instruction_retired) assert(opcode==8'hcc || opcode==8'hcd || opcode==8'hce);
+                 memory_return==EVENT_FRAME_ERROR || memory_return==EVENT_FRAME_OLD_SP ||
+                 memory_return==EVENT_FRAME_OLD_SS || memory_return==EVENT_TSS_PAIR ||
+                 memory_return==EVENT_PROTECTED_COMMIT))) begin
+                if (rst_n && event_delivery_active && event_packet.valid &&
+                    event_packet.software_interrupt && event_packet.instruction_retired)
+                    assert(opcode==8'hcc || opcode==8'hcd || opcode==8'hce);
             end
             if (state==MULDIV_WAIT && aam_op) assert(md_flags==flags);
             if (state==STRING_START || state==STRING_FIRST || state==STRING_COMMIT ||
@@ -409,19 +690,42 @@
             end
             if (event_o) begin
                 assert($past(rst_n && (state==EVENT_COMMIT || state==EVENT_PROTECTED_COMMIT)));
-                assert((flags_o & 16'h0300)==0);
-                if ($past(state==EVENT_PROTECTED_COMMIT)) begin
-                    assert(event_packet.protected_mode && event_packet.vector==13);
+                if ($past(state==EVENT_PROTECTED_COMMIT && event_delivery_active &&
+                    event_packet.protected_mode)) begin
+                    assert(event_packet.valid && event_packet.protected_mode);
                     assert(cs==$past(event_target_selector) && cs_base==$past(event_target_base));
                     assert(gpr[4]==$past(pending_sp));
-                    assert(flags==(event_packet.saved_flags&16'hfcff));
-                end
+                    assert(!(flags[8]));
+                    if ($past(event_gate[43:40]==4'h6)) begin
+                        assert(!(flags[9]));
+                        assert(flags==(event_packet.saved_flags&16'hfcff));
+                    end else begin
+                        assert(flags[9]==event_packet.saved_flags[9]);
+                        assert(flags==(event_packet.saved_flags&16'hfeff));
+                    end
+                    if ($past(event_stack_active)) begin
+                        assert(ss==$past(event_new_ss_selector) &&
+                               ss_base==$past(event_new_ss_base) && cache_valid[2]);
+                    end else assert(ss==$past(ss) && ss_base==$past(ss_base));
+                end else assert((flags_o & 16'h0300)==0);
             end
             if (retire_o && $past(rst_n && state==IRET_COMMIT)) begin
                 assert(cs==$past(code_load_selector) && cs_base==$past(iret_target_base));
-                assert(ip==$past(iret_saved_ip) && gpr[4]==$past(iret_saved_sp));
-                assert(flags==(($past(flags)&16'h7000)|($past(iret_saved_flags)&16'h0fd5)|16'h0002));
-                assert(ds==$past(ds) && ds_base==$past(ds_base));
+                assert(ip==$past(iret_saved_ip) &&
+                       gpr[4]==($past(iret_outer_active) ? $past(iret_outer_sp) :
+                                                           $past(iret_saved_sp)));
+                assert(flags==(($past(flags)&16'h4000) |
+                    ($past(msw[0] && cs[1:0]==0) ? ($past(iret_saved_flags)&16'h3000) :
+                                                    ($past(flags)&16'h3000)) |
+                    ($past(iret_saved_flags)&16'h0dd5) |
+                    ((!$past(msw[0]) || $past(cs[1:0])<=$past(flags[13:12])) ?
+                        ($past(iret_saved_flags)&16'h0200) : ($past(flags)&16'h0200)) |
+                    16'h0002));
+                assert(es==($past(iret_outer_active && iret_es_invalid) ? 16'h0000 : $past(es)));
+                assert(ds==($past(iret_outer_active && iret_ds_invalid) ? 16'h0000 : $past(ds)));
+                assert(es_base==$past(es_base) && ds_base==$past(ds_base));
+                assert(cache_valid[0]==($past(iret_outer_active && iret_es_invalid) ? 1'b0 : $past(cache_valid[0])));
+                assert(cache_valid[3]==($past(iret_outer_active && iret_ds_invalid) ? 1'b0 : $past(cache_valid[3])));
             end
             if (element_o) begin
                 assert($past(rst_n && state==STRING_COMMIT && string_op));
@@ -440,7 +744,12 @@
             // system-register contract; no environment data assumptions.
             if (retire_o && $past(rst_n && state==EXECUTE && opcode==8'h0f)) begin
                 assert(retire_opcode_o==8'h0f);
-                assert(flags_o==$past(flags_o) && segs_o==$past(segs_o));
+                if ($past((system_opcode==8'h00 &&
+                           (modrm[5:3]==4 || modrm[5:3]==5)) ||
+                          system_opcode==8'h02 || system_opcode==8'h03))
+                    assert((flags_o & 16'hffbf)==($past(flags_o) & 16'hffbf));
+                else assert(flags_o==$past(flags_o));
+                assert(segs_o==$past(segs_o));
                 if ($past(system_opcode==6)) assert(msw==($past(msw)&16'hfff7));
                 if ($past(system_opcode==1 && modrm[5:3]==6))
                     assert(msw==(16'hfff0|($past(rm_value)&16'h000e)|
@@ -468,6 +777,16 @@
             cover(retire_o && retire_opcode_o == 8'hea && cs_base_o == 24'h0f0000);
             cover(retire_o && retire_opcode_o == 8'hb8 && regs_o[15:0] == 16'h1234);
             cover(halted_o);
+            if (rst_n && shutdown_pending && !shutdown_recovery_active) begin
+                assert(shutdown_o && halted_o && !bus_req_o);
+                assert(!fault_o);
+            end
+            if (rst_n && shutdown_recovery_active) begin
+                assert(shutdown_pending && !shutdown_o && !halted_o && !fault_o);
+            end
+            cover(shutdown_recovery_active && event_packet.valid &&
+                  event_packet.protected_mode && event_packet.vector==2);
+            cover(shutdown_nmi_failed && shutdown_pending && !shutdown_recovery_active);
             cover(fault_o && fault_code_o == 1);
             cover(fault_o && fault_code_o == 2);
             cover(retire_o && retire_opcode_o == 8'hd2);
@@ -493,15 +812,31 @@
                 assert($stable(regs_o) && $stable(flags_o));
             end
             if (state==EVENT_START && event_packet.protected_mode) assert(!event_bus_req);
-            if (rst_n && $past(rst_n && state==EVENT_START && event_packet.protected_mode)) begin
-                if ($past(event_vector_o==13 && event_packet.error_present &&
-                          event_packet.error_code==0 && event_packet.saved_sp>=8 &&
-                          ({6'h0,event_vector_o,3'b000}+17'd7)<={1'b0,idt_limit})) begin
+            // A protected contributory exception whose IDT gate exceeds the
+            // limit first escalates to #DF; the dedicated invariant above
+            // checks that transition. The stop assertion below covers the
+            // #DF-gate failure and other non-escalating delivery failures.
+            if (rst_n && $past(rst_n && state==EVENT_START &&
+                               event_packet.protected_mode &&
+                               !nested_df_idt_limit_escalation)) begin
+                if ($past(({6'h0,event_vector_o,3'b000}+17'd7)<={1'b0,idt_limit})) begin
                     assert(state==BUS && event_delivery_active && memory_return==EVENT_GATE_TAIL);
                     assert(memory_address==$past(idt_base)+{13'h0,$past(event_vector_o),3'b000});
+                    assert(!memory_write && !memory_io && !memory_segmented);
+                    assert(memory_kind==0 && memory_size==6 && memory_remaining==6 && memory_index==0);
                 end else begin
                     assert(state==STOPPED && fault_code_o==3);
                     assert(ip==event_packet.saved_ip && !retire_o && !event_o);
+                end
+            end
+            if (rst_n && state==BUS && event_packet.protected_mode && event_delivery_active) begin
+                if (memory_return==EVENT_GATE_TAIL) begin
+                    assert(!memory_write && !memory_io && !memory_segmented);
+                    assert(memory_kind==0 && memory_size==6);
+                end
+                if (memory_return==EVENT_GATE_VALIDATE) begin
+                    assert(!memory_write && !memory_io && !memory_segmented);
+                    assert(memory_kind==0 && memory_size==2);
                 end
             end
             if (rst_n && state==BUS && core_bus_req &&
@@ -511,16 +846,38 @@
                 if (memory_return==EVENT_GATE_VALIDATE)
                     assert(memory_address==idt_base+{13'h0,event_vector_o,3'b000}+24'd6+{21'h0,memory_index});
             end
-            if (rst_n && $past(rst_n && state==EVENT_GATE_VALIDATE)) begin
+            if (rst_n && $past(rst_n && state==EVENT_GATE_TAIL &&
+                event_delivery_active && event_packet.protected_mode)) begin
+                assert(state==BUS && event_delivery_active && memory_return==EVENT_GATE_VALIDATE);
+                assert(memory_address==$past(idt_base)+{13'h0,$past(event_vector_o),3'b000}+24'd6);
+                assert(!memory_write && !memory_io && !memory_segmented);
+                assert(memory_kind==0 && memory_size==2 && memory_remaining==2 && memory_index==0);
+            end
+            if (rst_n && $past(rst_n && state==EVENT_GATE_VALIDATE &&
+                event_delivery_active && event_packet.protected_mode)) begin
                 assert(state==EVENT_GATE_CHECK);
                 assert(event_gate[63:48]==$past(memory_result[15:0]));
                 assert(event_gate[47:0]==$past(event_gate[47:0]));
             end
             if (rst_n && $past(rst_n && state==EVENT_GATE_CHECK &&
-                event_gate[39:32]==0 && !event_gate[44] && event_gate[43:40]==4'h6 &&
-                event_gate[47] && event_gate[63:48]==0)) begin
-                assert(state==EVENT_CODE_START);
-                assert(event_pointer=={event_gate[31:16],event_gate[15:0]});
+                event_delivery_active && event_packet.protected_mode)) begin
+                if ($past(event_gate[39:32]==0 && !event_gate[44] &&
+                          (event_gate[43:40]==4'h6 || event_gate[43:40]==4'h7) &&
+                          event_gate[47] && event_gate[63:48]==0 &&
+                          (!event_packet.software_interrupt ||
+                           cs[1:0]<=event_gate[46:45]))) begin
+                    assert(state==EVENT_CODE_START);
+                    assert(event_pointer=={event_gate[31:16],event_gate[15:0]});
+                end else if ($past(event_gate[39:32]==0 && !event_gate[44] &&
+                                   (event_gate[43:40]==4'h6 || event_gate[43:40]==4'h7) &&
+                                   event_gate[47] && event_gate[63:48]==0 &&
+                                   event_packet.software_interrupt &&
+                                   cs[1:0]>event_gate[46:45])) begin
+                    assert(state==EVENT_START && event_packet.vector==13 &&
+                           event_packet.error_present &&
+                           event_packet.error_code=={5'd0,$past(event_packet.vector),3'b010} &&
+                           event_packet.saved_ip==$past(instruction_ip));
+                end else assert(state==STOPPED && fault_code_o==3);
             end
             if (state==EVENT_CODE_START && owner_event_grant) assert(code_load_start);
             if (state==EVENT_FRAME_ERROR) assert(event_packet.error_present);
@@ -537,6 +894,10 @@
             cover(retire_o && retire_opcode_o==8'h8e && msw[0] && segment_load_target==2 && ss_base!=0);
             cover(bus_owner==2 && event_bus_req && bus_ready_i);
             cover(event_o && event_vector_o==8 && !retire_o && witnessed_vector_limit);
+            cover(rst_n && state==EVENT_START && event_packet.valid &&
+                  event_packet.vector==8 && event_packet.error_present &&
+                  event_packet.error_code==0 &&
+                  $past(rst_n && nested_df_idt_limit_escalation));
             cover(retire_o && retire_opcode_o == 8'hd7);
             cover(element_o && !retire_o && repeat_valid);
             cover(retire_o && retire_opcode_o==8'ha4 && repeat_valid);

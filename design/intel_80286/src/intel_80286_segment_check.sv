@@ -11,7 +11,9 @@ module intel_80286_segment_check (
     output logic [15:0] fault_error_o,
     output logic [23:0] base_o,
     output logic [15:0] limit_o,
-    output logic [7:0] access_o, accessed_value_o
+    output logic [7:0] access_o, accessed_value_o,
+    // Classification-only bits: {S, executable, writable}; never a cache value.
+    output logic [2:0] descriptor_class_o
 );
     logic null_selector, table_valid, type_valid, privilege_valid;
     logic [7:0] access_byte;
@@ -24,6 +26,8 @@ module intel_80286_segment_check (
         table_valid=(!selector_i[2] || ldt_valid_i) &&
                     descriptor_last<={1'b0,table_limit_i};
         access_byte=descriptor_i[47:40]; dpl=access_byte[6:5]; rpl=selector_i[1:0];
+        descriptor_class_o=descriptor_valid_i ?
+            {access_byte[4],access_byte[3],access_byte[1]} : 3'd0;
         if (stack_i) begin
             type_valid=access_byte[4] && !access_byte[3] && access_byte[1];
             privilege_valid=rpl==cpl_i && dpl==cpl_i;

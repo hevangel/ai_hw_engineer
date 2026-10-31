@@ -3,7 +3,7 @@
 module intel_80286_code_check (
     input logic [15:0] selector_i, table_limit_i, offset_i,
     input logic [1:0] cpl_i,
-    input logic ldt_valid_i, descriptor_valid_i, call_i, stack_ok_i,
+    input logic ldt_valid_i, descriptor_valid_i, call_i, gate_call_i, stack_ok_i,
     input logic [47:0] descriptor_i,
     output logic [15:0] descriptor_offset_o,
     output logic descriptor_needed_o, checked_o, cache_valid_o, special_o, fault_o,
@@ -22,6 +22,7 @@ module intel_80286_code_check (
         table_valid=(!selector_i[2] || ldt_valid_i) && last_byte<={1'b0,table_limit_i};
         rights=descriptor_i[47:40];
         privilege_valid=rights[2] ? rights[6:5]<=cpl_i :
+            (gate_call_i && rights[4] && rights[3]) ? rights[6:5]<=cpl_i :
             (rights[6:5]==cpl_i && selector_i[1:0]<=cpl_i);
         descriptor_needed_o=!null_selector && table_valid;
         checked_o=!descriptor_needed_o || descriptor_valid_i;
@@ -39,7 +40,9 @@ module intel_80286_code_check (
             end else if (call_i && !stack_ok_i) begin fault_o=1; fault_vector_o=12; end
             else if (offset_i>descriptor_i[15:0]) begin fault_o=1; fault_vector_o=13; end
             else begin
-                cache_valid_o=1; selector_o={selector_i[15:2],cpl_i};
+                cache_valid_o=1;
+                selector_o={selector_i[15:2],
+                    gate_call_i && rights[4] && rights[3] && !rights[2] ? rights[6:5] : cpl_i};
                 base_o=descriptor_i[39:16]; limit_o=descriptor_i[15:0];
                 access_o=rights; accessed_value_o=rights|8'h01;
             end

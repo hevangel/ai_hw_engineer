@@ -47,13 +47,15 @@
             end
             if (rst_n && $past(rst_n && state==IDLE && start_i)) begin
                 assert(saved_selector==$past(selector_i) && saved_offset==$past(offset_i) && saved_cpl==$past(cpl_i));
-                assert(saved_call==$past(call_i) && saved_stack_ok==$past(stack_ok_i) && saved_ldt_valid==$past(ldt_valid_i));
+                assert(saved_call==$past(call_i) && saved_gate_call==$past(gate_call_i));
+                assert(saved_stack_ok==$past(stack_ok_i) && saved_ldt_valid==$past(ldt_valid_i));
                 assert(saved_table_base==($past(selector_i[2]) ? $past(ldt_base_i) : $past(gdt_base_i)));
                 assert(saved_table_limit==($past(selector_i[2]) ? $past(ldt_limit_i) : $past(gdt_limit_i)));
             end
             if (rst_n && $past(rst_n && busy_o)) begin
                 assert($stable(saved_selector) && $stable(saved_offset) && $stable(saved_cpl));
-                assert($stable(saved_call) && $stable(saved_stack_ok) && $stable(saved_ldt_valid));
+                assert($stable(saved_call) && $stable(saved_gate_call) &&
+                       $stable(saved_stack_ok) && $stable(saved_ldt_valid));
                 assert($stable(saved_table_base) && $stable(saved_table_limit));
             end
             if (rst_n && $past(rst_n && bus_req_o && !bus_ready_i)) begin

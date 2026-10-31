@@ -70,9 +70,33 @@ the SCAS SI/DI discrepancy in the old memo, test INS DF=1 integration or I/O
 privilege faults, run OS/2 SDK CPGREP, or complete any broad ISA, LDT/TR,
 privilege/task, event-delivery, native-interface, full proof/cover or release
 gate. In particular, this source-controlled focused replay is not a substitute
-for the missing broad regression sources or authentic software execution.
+for the complete aggregate regression or authentic software execution.
 
-The next work is to review and commit this focused slice with its report, then
-restore the missing source-backed regression baseline and establish an
-independent 286 software/trace path. The active, full-chip sequence is in
-[`plans/286/2026-10-26-audit-and-revised-plan.md`](../../plans/286/2026-10-26-audit-and-revised-plan.md).
+After this checkpoint, commit e7c2520 closed the focused CMPS source slice. The
+regression harness and specifications were recovered from local snapshot
+f490003fb78c652eb512e5f7fdd2f97f74e0b806. At the pre-ARPL recovery checkpoint,
+`run_sim.sh` recorded 103 passing checks, including the source-matched 79-case
+replay, and the mutation run detected all 15 listed faults. Those CPU results
+use core SHA-256
+`08ab26c1fc4fabb1320453036e09f3d62920795821bac60914483e0c594b7dca`; they do
+not verify the later ARPL core. The recovered sources still need to be tracked,
+and `run_all.sh`, CPGREP, full proof/cover and the native interface remain open.
+See the [active audit and revised plan](../../plans/286/2026-10-26-audit-and-revised-plan.md)
+for the current evidence boundary.
+
+## Current-source refresh after ARPL — 2026-10-26
+
+These results use the current ARPL core SHA-256
+`4bef2d465024748bbf6ff4240076051f2fd43a401f92006b54ee49882e586634` and are
+the latest checks for this source revision:
+
+- Command: `docker run --rm --pull=never -v B:/ai_hw_engineer/worktree/intel-80286:/work -w /work ai-hw-engineer:latest bash design/intel_80286/scripts/run_protected_mode_replay.sh arpl_current_full_replay_20261026_01`
+- Result: exit 0, 79 PASS cases, strict Verilator 5.052 build. The manifest and executable are under `design/intel_80286/work/arpl_current_full_replay_20261026_01/`; the binary SHA-256 is `2141eb75429e89244c0cc3af931b814e1337077749a273f1d21b4aee05f474d8`.
+- Scope: protected event #GP/IRET recovery and reset cuts, plus INS/MOVS/STOS/OUTS/CMPS fault-repair profiles, in both READY modes.
+- The mutation command consumed that replay's manifest with `run_protected_string_mutations.py` and exited 0; all 15 mutants were detected with expected diagnostics. Evidence is under `design/intel_80286/work/arpl_current_full_mutations_20261026_01/`.
+- Yosys 0.69 completed `hierarchy -check`, `synth`, and `check -assert` on the full core hierarchy with zero reported problems and 29,964 cells. Script and log are under `design/intel_80286/work/arpl_current_checks_20261026_01/`; output JSON is `intel_80286.json`.
+- The connected-core `intel_80286.sby` run uses `FORMAL_WORK_DIR=/work/design/intel_80286/work/arpl_current_formal_20261026_01`. Depth-24 ABC BMC passes with SBY status `PASS 0 1577` (26m17s), with no counterexample. Depth-12 prove is `UNKNOWN`: the base case passes through 12, but induction fails at `intel_80286_props.sv:154`. The induction state has code-load target 2 with request `1E80:FFFC` while the saved IRET target is `0200:00F3`; the property antecedent does not require the RTL branch's selector/offset match and zero special-descriptor result. This is an induction/property-strengthening issue, not a reachable counterexample. The depth-64 cover search was interrupted after 28 witnesses at step 20 and has no terminal status. The repository exact-source auditor reports 37/40 tasks PASS: all 36 components and current BMC pass; prove is UNKNOWN, cover is incomplete, and preserved PDR evidence is stale for current RTL. Its output is `design/intel_80286/work/arpl_current_formal_20261026_01/audit.json`.
+
+The refreshed replay, mutations and synthesis do not qualify full 80286
+behavior, independent pin timing or the release aggregate. Track final formal
+task statuses and source/config hashes in the active [audit and revised plan](../../plans/286/2026-10-26-audit-and-revised-plan.md).

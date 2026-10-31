@@ -27,6 +27,7 @@ design/mos_6502/references/*.hex -text
 
 design/intel_8259/scripts/*.sh text eol=lf
 design/intel_8086/scripts/*.sh text eol=lf
+design/intel_80286/scripts/*.sh text eol=lf
 
 # Apple II physical-board and package regressions run in Linux containers.
 design/mos_6502_cycle/scripts/*.sh text eol=lf

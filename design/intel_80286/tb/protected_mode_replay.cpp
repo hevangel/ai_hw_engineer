@@ -183,6 +183,8 @@ void run_fixture(bool insert_waits, const ResetCut* reset_cut = nullptr) {
     dut.bus_rdata_i = 0;
     dut.intr_i = 0;
     dut.nmi_i = 0;
+    dut.busy_i = 0;
+    dut.error_n_i = 1;
     dut.inta_ready_i = 1;
     dut.inta_vector_i = 0;
 
@@ -306,12 +308,14 @@ void run_fixture(bool insert_waits, const ResetCut* reset_cut = nullptr) {
                  (bus.address >= fixture::kStackBase + 0x007e &&
                   bus.address <= fixture::kStackBase + 0x007f)))
                 ordinary_before_fault.push_back({bus.address,
-                    bus.write ? accepted_data : dut.bus_rdata_i, bus.write});
+                    bus.write ? accepted_data : static_cast<uint8_t>(dut.bus_rdata_i),
+                    bus.write});
 
             if (saw_fault_packet && !bus.write &&
                 (bus.address == fixture::kRetryReadFirst ||
                  bus.address == fixture::kRetryReadLast))
-                retry_reads.push_back({bus.address, dut.bus_rdata_i, false});
+                retry_reads.push_back({bus.address,
+                                       static_cast<uint8_t>(dut.bus_rdata_i), false});
 
             if (reset_cut && !reset_cut_taken && bus.address == reset_cut->address &&
                 bus.write == reset_cut->write &&
@@ -514,7 +518,8 @@ void run_ins_limit_fixture(bool word, bool repeat, bool insert_waits,
     VerilatedContext context;
     Vintel_80286 dut(&context);
     dut.clk=0; dut.rst_n=0; dut.bus_ready_i=1; dut.bus_rdata_i=0;
-    dut.intr_i=0; dut.nmi_i=0; dut.inta_ready_i=1; dut.inta_vector_i=0;
+    dut.intr_i=0; dut.nmi_i=0; dut.busy_i=0; dut.error_n_i=1;
+    dut.inta_ready_i=1; dut.inta_vector_i=0;
     for (unsigned i=0; i<3; ++i) {
         dut.clk=0; dut.eval(); dut.clk=1; dut.eval(); context.timeInc(1);
     }

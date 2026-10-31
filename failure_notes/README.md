@@ -26,6 +26,15 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-10-29 — 80286 incoming-task fault context and hidden segment caches](2026-10-29-intel80286-task-fault-context.md)
+  Intel's task-switch note exposed a handler stack using the outgoing SS cache
+  and an invalid incoming DS using the outgoing DS cache after a task fault.
+
+- [2026-10-28 — 80286 task-gate fields and task-switch fault oracle](2026-10-28-intel80286-task-gate-contract.md)
+  A Playwright visual review of Intel's 286 manual caught a shared test/RTL
+  assumption: task-gate offsets are ignored, and an incoming busy TSS faults
+  with #GP(selector), not #TS.
+
 - [2026-10-25 — 80286 INS protection-fault register state](2026-10-25-intel80286-ins-fault-state.md)
   Intel's original restartability notes exposed shared preservation assumptions
   in INS and later MOVS/STOS/OUTS fault paths; native handlers repair indices/count.

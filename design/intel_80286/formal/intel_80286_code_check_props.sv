@@ -5,7 +5,7 @@
 module intel_80286_code_check_props (
     input logic [15:0] selector, table_limit, ip_value,
     input logic [1:0] cpl,
-    input logic ldt_valid, descriptor_valid, is_call, stack_ok,
+    input logic ldt_valid, descriptor_valid, is_call, gate_call, stack_ok,
     input logic [47:0] descriptor
 );
     logic needed, checked_result, valid_cache, special_result, fault;
@@ -18,7 +18,7 @@ module intel_80286_code_check_props (
     logic [15:0] expected_error;
     intel_80286_code_check dut(.selector_i(selector),.table_limit_i(table_limit),.offset_i(ip_value),
         .cpl_i(cpl),.ldt_valid_i(ldt_valid),.descriptor_valid_i(descriptor_valid),
-        .call_i(is_call),.stack_ok_i(stack_ok),.descriptor_i(descriptor),
+        .call_i(is_call),.gate_call_i(gate_call),.stack_ok_i(stack_ok),.descriptor_i(descriptor),
         .descriptor_offset_o(offset),.descriptor_needed_o(needed),.checked_o(checked_result),
         .cache_valid_o(valid_cache),.special_o(special_result),.fault_o(fault),
         .fault_vector_o(vector),.fault_error_o(error),.selector_o(code_selector),
@@ -35,7 +35,8 @@ module intel_80286_code_check_props (
             expected_needed=1; expected_done=descriptor_valid;
             if (descriptor_valid) begin
                 case (kind)
-                    24,25,26,27: allowed=requested<={30'h0,cpl} && privilege=={30'h0,cpl};
+                    24,25,26,27: allowed=gate_call ? privilege<={30'h0,cpl} :
+                        requested<={30'h0,cpl} && privilege=={30'h0,cpl};
                     28,29,30,31: allowed=privilege<={30'h0,cpl};
                     default: allowed=0;
                 endcase
@@ -53,11 +54,13 @@ module intel_80286_code_check_props (
         assert(valid_cache==expected_valid && special_result==expected_special && fault==expected_fault);
         assert(vector==expected_vector && error==expected_error);
         if (expected_valid) begin
-            assert(code_selector==16'((sel/4)*4+{30'h0,cpl}));
+            assert(code_selector==16'((sel/4)*4+
+                (gate_call && kind>=24 && kind<=27 ? privilege : {30'h0,cpl})));
             assert(base==24'(descriptor/65536) && limit_value==16'(descriptor%65536));
             assert(access_value==8'(rights) && accessed_value==8'(rights|1));
         end else assert(code_selector==0 && base==0 && limit_value==0 && access_value==0 && accessed_value==0);
         cover(valid_cache && requested>{30'h0,cpl} && privilege<{30'h0,cpl});
+        cover(valid_cache && gate_call && kind>=24 && kind<=27 && privilege<{30'h0,cpl});
         cover(special_result && rights==4);
         cover(fault && vector==13 && rights==16);
         cover(fault && vector==11 && is_call && !stack_ok && ip_value>descriptor[15:0]);

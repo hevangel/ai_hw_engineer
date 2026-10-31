@@ -1,4 +1,4 @@
-// Exclusive functional-bus owner for CPU, descriptor and event transactions.
+// Exclusive functional-bus owner for CPU, descriptor, event and PEDC transactions.
 // A claim is accepted only while the CPU has no request. Descriptor/event
 // ownership lasts through quiet engine cycles until release is safe.
 // Claim inputs are levels held until their requester receives ownership; an
@@ -13,55 +13,63 @@ module intel_80286_bus_owner #(
     input logic cpu_req_i,
     input logic [23:0] cpu_addr_i,
     input logic cpu_write_i,
-    input logic [7:0] cpu_wdata_i,
+    input logic [15:0] cpu_wdata_i,
     input logic [CONTEXT_WIDTH-1:0] cpu_context_i,
     input logic descriptor_claim_i, descriptor_release_i, descriptor_req_i,
     input logic [23:0] descriptor_addr_i,
     input logic descriptor_write_i,
-    input logic [7:0] descriptor_wdata_i,
+    input logic [15:0] descriptor_wdata_i,
     input logic [CONTEXT_WIDTH-1:0] descriptor_context_i,
     input logic event_claim_i, event_release_i, event_req_i,
     input logic [23:0] event_addr_i,
     input logic event_write_i,
-    input logic [7:0] event_wdata_i,
+    input logic [15:0] event_wdata_i,
     input logic [CONTEXT_WIDTH-1:0] event_context_i,
+    // The CPU admission controller must defer an unstarted CPU request and
+    // account for LOCK, HOLD and architectural priority before claiming.
+    input logic pedc_claim_i, pedc_release_i, pedc_req_i,
+    input logic [23:0] pedc_addr_i,
+    input logic pedc_write_i,
+    input logic [15:0] pedc_wdata_i,
+    input logic [CONTEXT_WIDTH-1:0] pedc_context_i,
     input logic bus_ready_i,
-    input logic [7:0] bus_rdata_i,
+    input logic [15:0] bus_rdata_i,
     output logic bus_req_o,
     output logic [23:0] bus_addr_o,
     output logic bus_write_o,
-    output logic [7:0] bus_wdata_o,
+    output logic [15:0] bus_wdata_o,
     output logic [CONTEXT_WIDTH-1:0] bus_context_o,
-    output logic cpu_grant_o, descriptor_grant_o, event_grant_o,
-    output logic cpu_ready_o, descriptor_ready_o, event_ready_o,
-    output logic [7:0] bus_rdata_o,
+    output logic cpu_grant_o, descriptor_grant_o, event_grant_o, pedc_grant_o,
+    output logic cpu_ready_o, descriptor_ready_o, event_ready_o, pedc_ready_o,
+    output logic [15:0] bus_rdata_o,
     output logic [1:0] owner_o
 );
-    localparam [1:0] CPU=0, DESCRIPTOR=1, EVENT=2;
+    localparam [1:0] CPU=0, DESCRIPTOR=1, EVENT=2, PEDC=3;
     logic [1:0] owner;
     logic inflight;
     logic [23:0] held_addr;
     logic held_write;
-    logic [7:0] held_wdata;
+    logic [15:0] held_wdata;
     logic [CONTEXT_WIDTH-1:0] held_context;
     logic held_req;
     logic selected_req;
     logic [23:0] selected_addr;
     logic selected_write;
-    logic [7:0] selected_wdata;
+    logic [15:0] selected_wdata;
     logic [CONTEXT_WIDTH-1:0] selected_context;
 
     assign owner_o=owner;
     assign cpu_grant_o=owner==CPU;
     assign descriptor_grant_o=owner==DESCRIPTOR;
     assign event_grant_o=owner==EVENT;
+    assign pedc_grant_o=owner==PEDC;
     assign bus_rdata_o=bus_rdata_i;
 
     always_comb begin
         selected_req=1'b0;
         selected_addr=24'd0;
         selected_write=1'b0;
-        selected_wdata=8'd0;
+        selected_wdata=16'd0;
         selected_context='0;
         case (owner)
             CPU: begin
@@ -85,6 +93,13 @@ module intel_80286_bus_owner #(
                 selected_wdata=event_wdata_i;
                 selected_context=event_context_i;
             end
+            PEDC: begin
+                selected_req=pedc_req_i;
+                selected_addr=pedc_addr_i;
+                selected_write=pedc_write_i;
+                selected_wdata=pedc_wdata_i;
+                selected_context=pedc_context_i;
+            end
             default: begin end
         endcase
         bus_req_o=rst_n && (inflight ? held_req : selected_req);
@@ -95,6 +110,7 @@ module intel_80286_bus_owner #(
         cpu_ready_o=rst_n && cpu_grant_o && bus_req_o && bus_ready_i;
         descriptor_ready_o=rst_n && descriptor_grant_o && bus_req_o && bus_ready_i;
         event_ready_o=rst_n && event_grant_o && bus_req_o && bus_ready_i;
+        pedc_ready_o=rst_n && pedc_grant_o && bus_req_o && bus_ready_i;
     end
 
     always_ff @(posedge clk) begin
@@ -125,10 +141,12 @@ module intel_80286_bus_owner #(
                 if (!bus_req_o) begin
                     if (event_claim_i) owner<=EVENT;
                     else if (descriptor_claim_i) owner<=DESCRIPTOR;
+                    else if (pedc_claim_i) owner<=PEDC;
                 end
             end
             DESCRIPTOR: if (descriptor_release_i && (!bus_req_o || bus_ready_i)) owner<=CPU;
             EVENT: if (event_release_i && (!bus_req_o || bus_ready_i)) owner<=CPU;
+            PEDC: if (pedc_release_i && (!bus_req_o || bus_ready_i)) owner<=CPU;
             default: owner<=CPU;
             endcase
         end

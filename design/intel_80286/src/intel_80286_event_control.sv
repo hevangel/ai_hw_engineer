@@ -5,6 +5,7 @@
 module intel_80286_event_control (
     input logic clk, rst_n,
     input logic boundary_i, inhibit_i, step_i, if_i, intr_i, nmi_i, iret_i,
+    input logic shutdown_i, shutdown_nmi_enable_i,
     input logic ack_ready_i,
     input logic [7:0] ack_vector_i,
     output logic ack_req_o,
@@ -17,8 +18,12 @@ module intel_80286_event_control (
     logic [1:0] state;
     logic nmi_previous, nmi_edge, select_nmi;
     assign nmi_edge = nmi_i && !nmi_previous;
-    assign select_nmi = state==IDLE && boundary_i && !inhibit_i && !step_i &&
-                        (!nmi_blocked_o || iret_i) && (nmi_pending_o || nmi_edge);
+    assign select_nmi = state==IDLE &&
+                        ((shutdown_i && shutdown_nmi_enable_i &&
+                          (nmi_pending_o || nmi_edge)) ||
+                         (!shutdown_i && boundary_i && !inhibit_i && !step_i &&
+                          (!nmi_blocked_o || iret_i) &&
+                          (nmi_pending_o || nmi_edge)));
     assign ack_req_o = rst_n && state==ACKNOWLEDGE;
     assign event_valid_o = rst_n && state==DELIVER;
     always_ff @(posedge clk) begin
@@ -30,8 +35,11 @@ module intel_80286_event_control (
             if (nmi_edge) nmi_pending_o<=1;
             if (iret_i) nmi_blocked_o<=0;
             if (select_nmi) begin nmi_pending_o<=0; nmi_blocked_o<=1; end
+            if (shutdown_i && !shutdown_nmi_enable_i) nmi_pending_o<=0;
             case (state)
-                IDLE: if (boundary_i && !inhibit_i) begin
+                IDLE: if (shutdown_i) begin
+                    if (select_nmi) begin event_vector_o<=2; state<=DELIVER; end
+                end else if (boundary_i && !inhibit_i) begin
                     if (step_i) begin event_vector_o<=1; state<=DELIVER; end
                     else if (select_nmi) begin event_vector_o<=2; state<=DELIVER; end
                     else if (intr_i && if_i) state<=ACKNOWLEDGE;

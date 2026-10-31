@@ -46,14 +46,39 @@ Historical context does not narrow the architectural completion target.
 
 ## Current supported slice and open scope
 
-The current protected-mode integration contract defines a bounded ring-0 GDT
-path and same-level vector-13 gate/IRET retry. It does not cover full protected
-mode, privilege transitions, task switching, nested-fault escalation, or the
-complete 80286 instruction set. The [integration contract](protected_mode_integration.md)
-and [completion ledger](../plans/completion_requirements.md) define the active
-milestone and the remaining work. No item is complete solely because an
-unsupported path stops visibly.
+The integrated protected-mode slice includes ring-0 GDT execution, selected
+ring-3 selector and CALL/event/IRET transitions, bounded GDT/LDT CALL gates,
+and the documented IOPL/IF rules for port instructions and flag restoration.
+These features have focused evidence, not full architectural coverage. Task
+switching, nested-fault escalation, broader privilege/fault combinations, and
+the complete 80286 instruction set remain open. The
+[integration contract](protected_mode_integration.md),
+[IOPL contract](iopl_control.md) and
+[completion ledger](../plans/completion_requirements.md) define the current
+scope and remaining work. No item is complete solely because an unsupported
+path stops visibly.
+
+Protected `IN`/`OUT`/`INS`/`OUTS` IOPL checks and POPF/IRET IOPL/IF
+restoration are specified in the [IOPL contract](iopl_control.md); directed
+evidence is recorded in the
+[IOPL report](../report/2026-10-27-iopl-controls.md).
+Protected HLT's CPL-0 restriction is specified in the
+[HLT privilege contract](hlt_privilege.md), with the directed result in the
+[HLT privilege report](../report/2026-10-27-hlt-privilege.md).
+Protected LGDT, LIDT, LMSW and CLTS are also checked as CPL-0-only operations;
+the [system-register contract](system_register_execution.md#protected-system-instruction-privilege-checks)
+records the bounded #GP(0) behavior and its evidence.
+
+The source-backed CPU-pin contract for the 80286 local bus is in
+[native_bus_interface.md](native_bus_interface.md). It defines the architectural
+pin boundary and required protocol evidence; the current byte-transaction core
+does not yet implement that native interface.
 
 Unspecified details require an `ASSUMPTION:` entry in this spec and in the
 affected RTL, plus independent evidence before sign-off. Record any such
 assumption next to the relevant clause; do not silently infer 386 behavior.
+
+ASSUMPTION A26: the standalone processor-extension channel samples PEREQ low
+between requests before accepting another. The datasheet specifies withdrawal,
+but this particular sampling rule needs validation against a real 80287 or an
+independent pin trace. See [the channel contract](processor_extension_channel.md).

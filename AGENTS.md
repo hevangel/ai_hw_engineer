@@ -321,6 +321,17 @@ reference model cannot catch shared misreadings (see
 - **No land-tolerant CPU tests**: instruction tests assert the exact
   post-instruction PC and next-executed instruction; padding placed to
   absorb unknown PC landings is a defect in the test.
+- **286 descriptor contracts**: derive task-switch exceptions and error codes
+  from Intel 210498-005 Tables 8-1/8-2, and distinguish behavior stated for
+  the 286 from fields marked unused or required zero only for compatibility
+  with later processors. Do not turn a compatibility note into a 286 fault
+  rule; test ignored fields with a nonzero value and check the exact transfer.
+- **286 task-fault context**: after loading an incoming TSS, faults during
+  incoming LDT/segment validation run in that task's context. Publish only
+  validated hidden segment caches; the handler stack must use incoming SS:SP,
+  and rejected/unvalidated DS/ES caches must not expose the outgoing task's
+  memory. Execute the directed handler path and check exact stack writes and
+  bus addresses, not only the exception packet.
 
 ## Context for LLM Agents
 

@@ -16,6 +16,13 @@ read, first protected frame byte and IRET CS accessed-byte write, then checks
 that execution restarts through the exact protected recovery path. The
 accepted frame byte remains in external memory across reset.
 
+The core also supports the bounded ARPL protected-mode slice described in
+[`protected_execution.md`](protected_execution.md). Its dedicated checks pass
+register and memory adjustment, no-change behavior, exact ZF/RMW effects,
+READY stalls and the Intel-documented null-source #GP. This instruction-level
+coverage does not expand the ring-0 event path beyond the exercised cases or
+close the full protected-mode contract.
+
 The older full development runner also passed this path on the original
 checkout; its binary was replayed here with a manifest matching all 14 RTL
 sources. The old runner's C++ sources are incomplete in this recovery, so that
@@ -252,7 +259,19 @@ REP last/nonfinal faults, backward unprefixed word operations, and FFFF word
 references. A wrap handler explicitly relocates the invalid operand after
 checking its wrapped fault indices. Every case runs with and without READY
 stalls and checks the exact operand traffic, frame, prefix PC and successor.
-These tests do not establish port-side-effect timing or OUTS IOPL-fault rules.
+These tests do not establish port-side-effect timing. The Intel 80286
+[Programmer's Reference Manual, OUTS entry B-82](https://bitsavers.trailing-edge.com/components/intel/80286/210498-005_80286_and_80287_Programmers_Reference_Manual_1987.pdf)
+specifies `#GP(0)` when CPL exceeds IOPL. The Intel
+[LOADALL restart memo, page 14](https://docs.pcjs.org/manuals/intel/80286/80286_LOADALL.pdf)
+also says an OUTS exception 13 can be caused by insufficient IOPL; its handler
+repair rule advances SI and, for repeated OUTS, adds two to CX. This establishes
+the architectural fault class and handler repair contract, but not whether a
+native port transfer was externally consumed before the fault. The combined
+480-scenario `--iopl-controls` protected-privilege regression includes 288
+dedicated IOPL/IF cases: the direct IN/OUT CPL/IOPL matrix, allowed and denied
+byte/word REP INS/OUTS, CLI/STI, and POPF/IRET controls in both READY policies.
+See the [IOPL report](../report/2026-10-27-iopl-controls.md). Physical
+port-side-effect ordering remains a separate hardware-trace requirement.
 
 ### CMPS protected fault repair
 
@@ -278,6 +297,16 @@ second reference does not commit a comparison. Word references at FFFF pass
 through the relevant segment checker so the fault phase and repair remain
 visible. These directed tests do not prove native bus-beat order.
 
-SCAS needs further corroboration:
-page 14 of the old memo names SI, while the architectural scan operand uses DI.
-Do not silently resolve that discrepancy by copying a later x86 model.
+SCAS fault restart remains unresolved. The Programmer's Reference Manual,
+[SCAS entry B-100](https://bitsavers.trailing-edge.com/components/intel/80286/210498-005_80286_and_80287_Programmers_Reference_Manual_1987.pdf),
+defines the ordinary operand as `ES:DI` and says the instruction advances DI.
+The Intel [LOADALL restart memo, page 14](https://docs.pcjs.org/manuals/intel/80286/80286_LOADALL.pdf)
+directs the exception handler to update SI after a SCAS fault, while the
+ordinary SCAS description names ES:DI and DI advancement. A visual inspection
+of the scanned page confirms that it really says SI; page 13 is unrelated
+implementation notes. The correct page reference is established, but the
+restart rule remains unexplained: no independent 80286 fault trace is available
+to determine whether this is intentional behavior or a source error. Keep
+protected SCAS fault repair release-blocking until an 80286 trace or another
+independent, source-backed explanation resolves it; do not silently substitute
+a later x86 model.

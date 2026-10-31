@@ -7,12 +7,15 @@ under work/; the baseline manifest must match the current source exactly.
 
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+from work_paths import get_work_root
 
 
 def sha256(path):
@@ -23,6 +26,7 @@ def main(extra_mutations=(), required_string_cases=(), minimum_passed_cases=55):
     if len(sys.argv) not in (2, 3):
         raise SystemExit(f"Usage: {Path(sys.argv[0]).name} BASELINE_MANIFEST [NEW_RUN_NAME]")
     design = Path(__file__).resolve().parent.parent
+    work_root = get_work_root(design)
     baseline_path = Path(sys.argv[1]).resolve()
     baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
     if baseline.get("result") != "PASS" or len(baseline.get("ins_limit_cases", [])) != 5:
@@ -43,10 +47,7 @@ def main(extra_mutations=(), required_string_cases=(), minimum_passed_cases=55):
     )
     if not re.fullmatch(r"[A-Za-z0-9_-]+", name):
         raise SystemExit("Run name must contain only letters, digits, underscores and hyphens")
-    work = design / "work"
-    if work.resolve() != work:
-        raise SystemExit("Refusing an aliased work directory")
-    result = work / name
+    result = work_root / name
     result.mkdir(exist_ok=False)
     original = (design / "src/intel_80286.sv").read_text(encoding="utf-8")
     mutations = [
@@ -86,7 +87,7 @@ def main(extra_mutations=(), required_string_cases=(), minimum_passed_cases=55):
     ]
     mutations.extend(extra_mutations)
     record = {
-        "baseline_manifest": str(baseline_path.relative_to(design)),
+        "baseline_manifest": display_path(baseline_path, design),
         "baseline_manifest_sha256": sha256(baseline_path),
         "runner_sha256": sha256(Path(__file__)),
         "entrypoint": Path(sys.argv[0]).name,
@@ -107,9 +108,12 @@ def main(extra_mutations=(), required_string_cases=(), minimum_passed_cases=55):
         core = snapshot / "src/intel_80286.sv"
         core.write_text(original.replace(old, new), encoding="utf-8")
         command = ["bash", str(snapshot / "scripts/run_protected_mode_replay.sh"), "replay"]
+        child_env = os.environ.copy()
+        child_env["INTEL_80286_WORK_DIR"] = str(snapshot / "work")
         print(f"Building mutation: {label}", flush=True)
         with (snapshot / "build.log").open("w", encoding="utf-8") as log:
-            process = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT)
+            process = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT,
+                                     env=child_env)
         output = (snapshot / "build.log").read_text(encoding="utf-8")
         # Compilation/tool errors do not count as detecting a semantic fault.
         caught = process.returncode != 0 and f"FAIL: {diagnostic}" in output
@@ -118,7 +122,7 @@ def main(extra_mutations=(), required_string_cases=(), minimum_passed_cases=55):
         record["mutations"].append({
             "name": label, "detected": caught, "exit_code": process.returncode,
             "expected_diagnostic": diagnostic, "core_sha256": sha256(core),
-            "log": str((snapshot / "build.log").relative_to(design)),
+            "log": display_path(snapshot / "build.log", design),
             "log_sha256": sha256(snapshot / "build.log"),
         })
         (result / "mutations.json").write_text(json.dumps(record, indent=2) + "\n")
@@ -126,6 +130,14 @@ def main(extra_mutations=(), required_string_cases=(), minimum_passed_cases=55):
             raise SystemExit(f"Mutation {label} was not rejected as expected; inspect {snapshot / 'build.log'}")
         print(f"PASS: detected {label}: {diagnostic}", flush=True)
     print(f"PASS: all {len(mutations)} protected-string mutations detected; evidence: {result}", flush=True)
+
+
+def display_path(path, base):
+    path = Path(path).resolve()
+    try:
+        return str(path.relative_to(base)).replace("\\", "/")
+    except ValueError:
+        return str(path)
 
 
 if __name__ == "__main__":

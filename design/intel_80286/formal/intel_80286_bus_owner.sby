@@ -1,0 +1,24 @@
+[tasks]
+bmc
+prove
+cover
+
+[options]
+bmc: mode bmc
+prove: mode prove
+cover: mode cover
+depth 12
+
+[engines]
+smtbmc yices
+
+[script]
+read -formal -sv -I. intel_80286_bus_owner.sv
+prep -top intel_80286_bus_owner
+memory_map
+opt
+check -assert
+
+[files]
+../src/intel_80286_bus_owner.sv
+intel_80286_bus_owner_props.sv

@@ -1,0 +1,25 @@
+[tasks]
+bmc
+prove
+cover
+
+[options]
+bmc: mode bmc
+prove: mode prove
+cover: mode cover
+depth 2
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal -sv intel_80286_access_check.sv intel_80286_cached_reference.sv intel_80286_cached_reference_props.sv
+prep -top intel_80286_cached_reference_props
+memory_map
+opt
+check -assert
+
+[files]
+../src/intel_80286_access_check.sv
+../src/intel_80286_cached_reference.sv
+intel_80286_cached_reference_props.sv

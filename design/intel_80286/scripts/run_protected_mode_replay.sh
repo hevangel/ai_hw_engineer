@@ -3,7 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 design_dir="$(cd -- "$script_dir/.." && pwd -P)"
-work_root="$design_dir/work"
+work_root="${INTEL_80286_WORK_DIR:-$design_dir/work}"
 run_name="${1:-protected_mode_replay_$(date -u +%Y%m%dT%H%M%SZ)}"
 if [[ $# -gt 1 || ! "$run_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
   echo "Usage: $0 [new-run-name: letters, digits, underscores, hyphens]" >&2
@@ -12,10 +12,6 @@ fi
 mkdir -p "$work_root"
 
 resolved_work_root="$(cd -- "$work_root" && pwd -P)"
-if [[ "$resolved_work_root" != "$design_dir/work" ]]; then
-  echo "Refusing to use unexpected work directory: $resolved_work_root" >&2
-  exit 1
-fi
 result_dir="$resolved_work_root/$run_name"
 if [[ -e "$result_dir" || -L "$result_dir" ]]; then
   echo "Refusing to overwrite existing evidence directory: $result_dir" >&2
