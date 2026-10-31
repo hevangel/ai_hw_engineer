@@ -15,6 +15,9 @@ part of the lists. The precompiler therefore emits, per test:
   n_fin  x (u32 addr, u8 data)
   u16        opcode word (injected at pc by the TB)
   u16        opcode_file_index
+  u16        prefetch word at pc+2 (the extension-word source; the ram
+             lists exclude the whole instruction image, so the ext word
+             at pc+2 exists only in the generator's pipeline state)
 
 plus a parallel final-state stream:
   17 x u32   d0-d7, a0-a6, usp, ssp          (final)
@@ -46,6 +49,7 @@ def main():
     body = bytearray()
     finals = bytearray()
     index = bytearray()
+    prefetch = bytearray()
     names = []
     name_ranges = {}
     n_tests = 0
@@ -69,6 +73,8 @@ def main():
                 body += struct.pack('<IB', a & 0xFFFFFF, v & 0xFF)
             opcode_word = int(t['name'].split()[0], 16) & 0xFFFF
             body += struct.pack('<HH', opcode_word, len(names) - 1)
+            pref = t['initial'].get('prefetch', [opcode_word, 0])
+            prefetch += struct.pack('<H', pref[1] & 0xFFFF)
             # final state stream
             for k in REG_KEYS:
                 finals += struct.pack('<I', t['final'][k] & 0xFFFFFFFF)
@@ -77,6 +83,7 @@ def main():
             n_tests += 1
     index += struct.pack('<I', len(body))   # end sentinel
 
+    (OUT_DIR / 'm68k_prefetch.bin').write_bytes(prefetch)
     (OUT_DIR / 'm68k_tests.bin').write_bytes(body)
     (OUT_DIR / 'm68k_index.bin').write_bytes(index)
     (OUT_DIR / 'm68k_final.bin').write_bytes(finals)
