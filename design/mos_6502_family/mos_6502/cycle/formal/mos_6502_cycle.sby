@@ -7,7 +7,9 @@ cover
 bmc: mode bmc
 prove: mode prove
 cover: mode cover
-depth 18
+bmc: depth 18
+prove: depth 18
+cover: depth 60
 
 [engines]
 smtbmc z3
@@ -15,6 +17,7 @@ smtbmc z3
 [script]
 read -formal -sv mos_6502_cycle.sv mos_6502_cycle_formal.sv
 prep -top mos_6502_cycle_formal
+flatten
 memory_map
 opt
 
