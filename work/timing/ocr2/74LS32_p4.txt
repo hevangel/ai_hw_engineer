@@ -1,0 +1,39 @@
+126:SN54LS32,SN74LS32
+125:QUADRUPLE2-INPUTPOSITIVE-ORGATES
+120:recommended operating conditions
+589:SN54LS32 | 707:SN74LS32
+560:MIN | 595:NOM | 638:MAX | 682:MIN | 714:NOM | 755:MAX
+165:Supply voltage | 567:4.5 | 648:5.5 | 681:4.75 | 761:5.25
+132:VIH | 165:Hgh-level input voitage
+132:VIL | 166:Low-levei input voitage | 647:0.7 | 766:0.8
+132:'OH | 166:High-levei output current | 638: 0.4 | 756:- 0.4 | 804:mA
+132:IOL | 166:Low-level output current | 804:mA
+133:TA | 167:Opertating free-alr temperature | 563:-55 | 646:125 | 770:70
+123:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+587:SN54LS32 | 708:SN74LS32
+134:PARAMETER | 312:TEST CONDITIONS + | 595:TYP+ | 716:TYP+ | 755:MAX | 801:UNIT
+561:MIN | 637:MAX | 681:MIN
+149:VIK | 224:VCC - MIN, | 309:I1 - - 18 mA | 639:- 1.5. | 757:- 1.5
+150:VOH | 222:VCCMIN, | 309:VIH-2V, | 394:IOH - - 0.4 mA | 568:2.5 | 687:2.7 | 728:3.4
+149:Vol | 222:VCC-MIN. | 309:VIL - MAX, | 396:lOL-4mA | 603:0.25 | 649:0.4 | 720:0.25 | 766:0.4
+222:VCC -MIN. | 310:VIl - MAX. | 394:IOL=8mA | 721:0.35 | 766:0.5
+223:VCC-MAX, | 308:Vi-7Y | 647:0.1 | 766:0.1 | 804:mA
+224:VcC - MAX, | 309:V,-2.7 V | 650:20 | 769:20
+222:VCC-MAX, | 310:V, - 0.4 V | 637:- 0.4 | 756:- 0.4 | 804:mA
+222:VCC-MAX | 560:20 | 635:-100 | 680: 20 | 753:100 | 804:mA
+150:ICCH | 222:VCC -MAX, | 310:See Note 2 | 609:3.1 | 648:6.2 | 727:3.1 | 765:6.2 | 804:mA
+150:'CCL | 222:VCC-MAX, | 310:V,=0V | 608:4.9 | 647:0.8 | 728:4.9 | 766:9.8 | 804:mA
+120:t For conditions shown as MiN or MAX, use the appropriate value specifigd under recommended operating conditions.
+120: All typical vatues are at Vcc = 5 V, TA = 25°c.
+120:5 Not more than one output snould be shorted at a time and the duration ot the short-circuit shouid not exceed one second.
+122:NOTE 2: | 171:One input at 4.5 V, all others at GND.
+121:switching characteristics, Vcc = 5 V, TA = 25°C (see note 3)
+242:FROM | 478:TEST CONDITIONS | 716:TYP
+133:PARAMETER | 237:HINPUT! | 329:(OUTPUT) | 681:MIN | 757:MAX
+148:IPLH | 724:14 | 770:22 | 808:ns
+240:Aor B | 441:RL-2k. | 561:CL - 15 PF | 725:14 | 770:22
+148:tPHL | 808:ns
+120:NOTE 3: Load circuits and voitage waveforms are shown in Section 1.
+447:TEXAS
+405:INSTRUMENTS
+366:POST OFFICE COX 555012 · OALLAS. TEXAS 75265

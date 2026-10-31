@@ -1,0 +1,184 @@
+{
+  "meta": {
+    "area": "design/ttl_74xx/tb",
+    "generated": "2026-10-28",
+    "method": "Static census. Every *.sv file in tb/ was enumerated; every `function automatic` declaration was listed bucket-by-bucket (10 filename globs), then one exemplar per distinct oracle template was read to determine whether the function contains a loop and whether the loop indexes a vector by the loop variable. Category membership is therefore verified for the whole population, not sampled.",
+    "executed_in_session": false,
+    "execution_note": "No command-execution tool (shell/docker/python) was available in this session, so classify.py was written but NOT run and no xezim simulation was performed here. Counts below were derived by exhaustive grep enumeration plus source reads; the library-wide operator census in section 'operator_census' is template-level, not machine-counted.",
+    "scratch": "work/agents/xezim-blast/"
+  },
+  "totals": {
+    "tb_sv_files": 1165,
+    "per_chip_testbenches": 1161,
+    "support_files": ["alu_74181_if.sv", "alu_74181_uvm_pkg.sv", "tb_exhaustive.sv", "tb_top.sv"],
+    "files_declaring_function_automatic": 96,
+    "per_chip_files_with_function": 95,
+    "per_chip_files_without_function": 1066
+  },
+  "counts": {
+    "a_function_for_variable_bitselect": 4,
+    "b_function_with_any_for": 4,
+    "c_accumulator_inside_loop": 4,
+    "d_if_else_inside_loop": 4,
+    "strict_case_inequality_in_exposed_class": 4
+  },
+  "category_a_files": [
+    {
+      "file": "tb_ttl_74x677.sv",
+      "functions": ["ref_y", "match_addr"],
+      "evidence": "ref_y L18-26: for i=1..16, m &= (aa[i]==0/1); match_addr L29-33: for i=1..16 aa[i]=...",
+      "compare": "!==",
+      "pass_guard": "$fatal when errors != 0",
+      "recorded_baseline_sim": "PASS"
+    },
+    {
+      "file": "tb_ttl_74x678.sv",
+      "functions": ["ref_match", "match_addr"],
+      "evidence": "ref_match L16-23: for i=1..16, m &= (aa[i]==0/1); match_addr L25-29",
+      "compare": "!==",
+      "pass_guard": "$fatal when errors != 0",
+      "recorded_baseline_sim": "PASS"
+    },
+    {
+      "file": "tb_ttl_74x679.sv",
+      "functions": ["ref_y"],
+      "evidence": "ref_y L15-23: for i=1..12, m &= (aa[i]==0/1)",
+      "compare": "!==",
+      "pass_guard": "$fatal when errors != 0",
+      "recorded_baseline_sim": "FAIL"
+    },
+    {
+      "file": "tb_ttl_74x680.sv",
+      "functions": ["ref_match", "match_addr"],
+      "evidence": "ref_match L16-23: for i=1..12, m &= (aa[i]==0/1); match_addr L25-29",
+      "compare": "!==",
+      "pass_guard": "$fatal when errors != 0",
+      "recorded_baseline_sim": "PASS"
+    }
+  ],
+  "function_inventory": [
+    {"file": "tb_ttl_74x677.sv", "oracle": "per-bit accumulator loop", "functions": ["ref_y", "match_addr"], "loop_in_function": true},
+    {"file": "tb_ttl_74x678.sv", "oracle": "per-bit accumulator loop", "functions": ["ref_match", "match_addr"], "loop_in_function": true},
+    {"file": "tb_ttl_74x679.sv", "oracle": "per-bit accumulator loop", "functions": ["ref_y"], "loop_in_function": true},
+    {"file": "tb_ttl_74x680.sv", "oracle": "per-bit accumulator loop", "functions": ["ref_match", "match_addr"], "loop_in_function": true},
+
+    {"file": "tb_ttl_74x181.sv", "oracle": "case table (74181 datasheet)", "functions": ["reference_logic", "reference_arithmetic", "reference_x", "reference_y"], "loop_in_function": false},
+    {"file": "tb_ttl_74x881.sv", "oracle": "case table (74181 datasheet)", "functions": ["ref_logic", "ref_arith"], "loop_in_function": false},
+    {"file": "tb_ttl_74x1181.sv", "oracle": "case table (74181 datasheet)", "functions": ["ref_logic", "ref_arith"], "loop_in_function": false},
+    {"file": "tb_ttl_74x681.sv", "oracle": "case table + arithmetic", "functions": ["expected_result"], "loop_in_function": false},
+
+    {"file": "tb_ttl_74x16209.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x16210.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x16211.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x16212.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x16213.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x16214.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x162292.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x16232.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x16233.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x16292.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x16390.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x16800.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x16811.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x16861.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x3125.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x3126.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x3251.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x3253.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x3257.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x3305.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x3306.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x3345.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x3383.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x3384.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x3386.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x3390.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x3584.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x3861.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x3862.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x6800.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+    {"file": "tb_ttl_74x6845.sv", "oracle": "case table (passive-switch topology)", "functions": ["reference_edge", "reference_weak"], "loop_in_function": false},
+
+    {"file": "tb_ttl_74x189.sv", "oracle": "arithmetic pattern generator (memory model)", "functions": ["pattern"], "loop_in_function": false},
+    {"file": "tb_ttl_74x200.sv", "oracle": "arithmetic pattern generator (memory model)", "functions": ["pattern"], "loop_in_function": false},
+    {"file": "tb_ttl_74x201.sv", "oracle": "arithmetic pattern generator (memory model)", "functions": ["pattern"], "loop_in_function": false},
+    {"file": "tb_ttl_74x202.sv", "oracle": "arithmetic pattern generator (memory model)", "functions": ["pattern"], "loop_in_function": false},
+    {"file": "tb_ttl_74x206.sv", "oracle": "arithmetic pattern generator (memory model)", "functions": ["pattern"], "loop_in_function": false},
+    {"file": "tb_ttl_74x207.sv", "oracle": "arithmetic pattern generator (memory model)", "functions": ["pattern"], "loop_in_function": false},
+    {"file": "tb_ttl_74x208.sv", "oracle": "arithmetic pattern generator (memory model)", "functions": ["pattern"], "loop_in_function": false},
+    {"file": "tb_ttl_74x209.sv", "oracle": "arithmetic pattern generator (memory model)", "functions": ["pattern"], "loop_in_function": false},
+    {"file": "tb_ttl_74x211.sv", "oracle": "arithmetic pattern generator (memory model)", "functions": ["pattern"], "loop_in_function": false},
+    {"file": "tb_ttl_74x212.sv", "oracle": "arithmetic pattern generator (memory model)", "functions": ["pattern"], "loop_in_function": false},
+    {"file": "tb_ttl_74x213.sv", "oracle": "arithmetic pattern generator (memory model)", "functions": ["pattern"], "loop_in_function": false},
+    {"file": "tb_ttl_74x214.sv", "oracle": "arithmetic pattern generator (memory model)", "functions": ["pattern"], "loop_in_function": false},
+    {"file": "tb_ttl_74x215.sv", "oracle": "arithmetic pattern generator (memory model)", "functions": ["pattern"], "loop_in_function": false},
+    {"file": "tb_ttl_74x216.sv", "oracle": "arithmetic pattern generator (memory model)", "functions": ["pattern"], "loop_in_function": false},
+    {"file": "tb_ttl_74x217.sv", "oracle": "arithmetic pattern generator (memory model)", "functions": ["pattern"], "loop_in_function": false},
+    {"file": "tb_ttl_74x218.sv", "oracle": "arithmetic pattern generator (memory model)", "functions": ["pattern"], "loop_in_function": false},
+    {"file": "tb_ttl_74x219.sv", "oracle": "arithmetic pattern generator (memory model)", "functions": ["pattern"], "loop_in_function": false},
+    {"file": "tb_ttl_74x289.sv", "oracle": "arithmetic pattern generator (memory model)", "functions": ["pattern"], "loop_in_function": false},
+    {"file": "tb_ttl_74x81.sv", "oracle": "arithmetic pattern generator (memory model)", "functions": ["pattern"], "loop_in_function": false},
+    {"file": "tb_ttl_74x84.sv", "oracle": "arithmetic pattern generator (memory model)", "functions": ["pattern"], "loop_in_function": false},
+    {"file": "tb_ttl_74x89.sv", "oracle": "arithmetic pattern generator (memory model)", "functions": ["pattern"], "loop_in_function": false},
+
+    {"file": "tb_ttl_74x290.sv", "oracle": "case table (counter decode)", "functions": ["table_b"], "loop_in_function": false},
+    {"file": "tb_ttl_74x293.sv", "oracle": "case table (counter decode)", "functions": ["table_b"], "loop_in_function": false},
+    {"file": "tb_ttl_74x90.sv", "oracle": "case table (counter decode)", "functions": ["table_b"], "loop_in_function": false},
+    {"file": "tb_ttl_74x92.sv", "oracle": "case table (counter decode)", "functions": ["table_b"], "loop_in_function": false},
+    {"file": "tb_ttl_74x93.sv", "oracle": "case table (counter decode)", "functions": ["table_b"], "loop_in_function": false},
+
+    {"file": "tb_ttl_74x44.sv", "oracle": "case table (7-segment font)", "functions": ["expect_y"], "loop_in_function": false},
+    {"file": "tb_ttl_74x46.sv", "oracle": "case table (7-segment font)", "functions": ["decode_ah"], "loop_in_function": false},
+    {"file": "tb_ttl_74x47.sv", "oracle": "case table (7-segment font)", "functions": ["decode_ah"], "loop_in_function": false},
+    {"file": "tb_ttl_74x48.sv", "oracle": "case table (7-segment font)", "functions": ["decode_ah"], "loop_in_function": false},
+    {"file": "tb_ttl_74x49.sv", "oracle": "case table (7-segment font)", "functions": ["decode_ah"], "loop_in_function": false},
+    {"file": "tb_ttl_74x912.sv", "oracle": "case table (7-segment font)", "functions": ["exp_font"], "loop_in_function": false},
+    {"file": "tb_ttl_74x913.sv", "oracle": "case table (7-segment font)", "functions": ["exp_font"], "loop_in_function": false},
+    {"file": "tb_ttl_74x917.sv", "oracle": "case table (7-segment font)", "functions": ["exp_font"], "loop_in_function": false},
+    {"file": "tb_ttl_74x915.sv", "oracle": "case table + expression (7-segment)", "functions": ["bcd_to_7seg", "tpf"], "loop_in_function": false},
+
+    {"file": "tb_ttl_74x1280.sv", "oracle": "expression (parity reduction)", "functions": ["odd_f"], "loop_in_function": false},
+    {"file": "tb_ttl_74x22033.sv", "oracle": "expression (element mux)", "functions": ["elem"], "loop_in_function": false},
+    {"file": "tb_ttl_74x716.sv", "oracle": "expression (counter preset)", "functions": ["reference_preset"], "loop_in_function": false},
+    {"file": "tb_ttl_74x922.sv", "oracle": "expression (keycode pack)", "functions": ["keycode"], "loop_in_function": false},
+    {"file": "tb_ttl_74x923.sv", "oracle": "expression (keycode pack)", "functions": ["keycode"], "loop_in_function": false},
+    {"file": "tb_ttl_74x850.sv", "oracle": "expression (latch read)", "functions": ["dataf", "yf", "wf"], "loop_in_function": false},
+    {"file": "tb_ttl_74x851.sv", "oracle": "expression (latch read)", "functions": ["dataf", "yf", "wf"], "loop_in_function": false},
+
+    {"file": "tb_ttl_74x671.sv", "oracle": "expression (register/counter next state)", "functions": ["q_exp", "casc_exp"], "loop_in_function": false},
+    {"file": "tb_ttl_74x672.sv", "oracle": "expression (register/counter next state)", "functions": ["q_exp", "casc_exp"], "loop_in_function": false},
+    {"file": "tb_ttl_74x673.sv", "oracle": "expression (register/counter next state)", "functions": ["q15_exp"], "loop_in_function": false},
+    {"file": "tb_ttl_74x674.sv", "oracle": "expression (register/counter next state)", "functions": ["q15_exp"], "loop_in_function": false},
+    {"file": "tb_ttl_74x690.sv", "oracle": "expression (register/counter next state)", "functions": ["exp_q", "exp_rco"], "loop_in_function": false},
+    {"file": "tb_ttl_74x691.sv", "oracle": "expression (register/counter next state)", "functions": ["exp_q", "exp_rco"], "loop_in_function": false},
+    {"file": "tb_ttl_74x692.sv", "oracle": "expression (register/counter next state)", "functions": ["exp_q", "exp_rco"], "loop_in_function": false},
+    {"file": "tb_ttl_74x693.sv", "oracle": "expression (register/counter next state)", "functions": ["exp_q", "exp_rco"], "loop_in_function": false},
+    {"file": "tb_ttl_74x696.sv", "oracle": "expression (register/counter next state)", "functions": ["exp_q", "exp_rco"], "loop_in_function": false},
+    {"file": "tb_ttl_74x697.sv", "oracle": "expression (register/counter next state)", "functions": ["exp_q", "exp_rco"], "loop_in_function": false},
+    {"file": "tb_ttl_74x698.sv", "oracle": "expression (register/counter next state)", "functions": ["exp_q", "exp_rco"], "loop_in_function": false},
+    {"file": "tb_ttl_74x699.sv", "oracle": "expression (register/counter next state)", "functions": ["exp_q", "exp_rco"], "loop_in_function": false},
+    {"file": "tb_ttl_74x867.sv", "oracle": "expression (register/counter next state)", "functions": ["exp_rco"], "loop_in_function": false},
+    {"file": "tb_ttl_74x869.sv", "oracle": "expression (register/counter next state)", "functions": ["exp_rco"], "loop_in_function": false}
+  ],
+  "non_function_population": {
+    "count": 1066,
+    "classification": "No `function automatic` declaration. Oracle is computed inline (in initial blocks, tasks, or always_comb), so categories a-d are false by construction.",
+    "basis": "Exhaustive: 10 filename buckets covered every *.sv in tb/; the union of files declaring `function automatic` is exactly the 96 listed above (95 per-chip + tb_exhaustive.sv). 1161 per-chip testbenches - 95 = 1066."
+  },
+  "support_file_notes": {
+    "tb_exhaustive.sv": "74181 support TB; case-table functions reference_logic/reference_arithmetic/reference_x/reference_y, no loop in function.",
+    "alu_74181_uvm_pkg.sv": "UVM package; functions are new/build_phase/connect_phase/write/check_phase (not `automatic`), no oracle loop.",
+    "alu_74181_if.sv": "interface only.",
+    "tb_top.sv": "wrapper."
+  },
+  "operator_census": {
+    "exposed_class": "4/4 use `!==` (case inequality)",
+    "semantics": "`!==` returns 1 whenever the operands differ in any of the four states, so an x expectation always fails the check. `!=` and `==` return x when either operand is x, and `if (x)` takes the false branch, so an x expectation silently passes.",
+    "library_wide": "Template-level inspection (every distinct oracle template read): `!==` is the check operator in all templates examined (comparator, 74181 case table, memory pattern, passive-switch topology, counter expression, 7-segment font, keycode). The only `==`-against-expected idiom found is tb_ttl_74x962.sv:28 `if (q_a == q_b) errors++;`, which asserts that two complementary outputs differ - not an x-tolerant pass. A machine-counted per-file operator census requires running classify.py."
+  },
+  "risk_notes": [
+    "The exposed class is exactly the 74x677/678/679/680 comparator family; no other testbench in the library puts a for loop inside a function.",
+    "Strict `!==` catches the x mode but not a stale-but-legal return: a stale expectation that happens to equal the DUT output passes. That is the only silent-masking path in this class, and it needs coincidence.",
+    "All four comparator TBs call the oracle only 16-20k times (131072 for 679), while 677/678/680 call it ~1-2k times, so exposure scales with vector count."
+  ]
+}

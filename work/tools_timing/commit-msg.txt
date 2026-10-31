@@ -1,0 +1,48 @@
+system/apple_ii: per-part datasheet package timing (review item P1)
+
+The generated revision-0 board gave every 74LS package the same 5 ns
+propagation delay and the 4116 a 20 ns placeholder, so the DRAM
+setup/hold margins and the RAS->CAS->latch window were never exercised.
+Review issue #60 (P1) called that the biggest fidelity gap behind the
+"functional, not electrical" caveat.
+
+`board/timing.json` now holds a typical and maximum delay for every
+modelled package, each with the manufacturer document and printed page
+that publish it. `generate_rev0.py --timing typ|max` regenerates the same
+connectivity from that table; a characterized entry without a source is a
+hard error, so a number cannot enter the board on trust. The legacy
+default still reproduces the checked-in board byte for byte, which keeps
+the directed testbenches meaningful until they are retimed.
+
+Two entries are bounds rather than board-load numbers and say so: the
+8T97 sheet is specified at CL = 50 pF, and no Signetics 8T28 delay was
+readable, so the AMD second-source 17 ns maximum is used. The DRAM and
+ROM models are marked idealized and keep the legacy delay in every mode,
+because they have no access-time behaviour; giving them a datasheet
+access delay is review item P3's rework.
+
+Testbenches gain a 2000 time-unit settle window before the oscillator
+starts: delayed continuous assignments propagate X from the all-unknown
+time-zero state, which silicon does not have.
+
+Verification (Icarus 12.0-3, apple-ii image):
+- generate_rev0.py --check passes; the typ and max boards differ only in
+  T_PD values.
+- run_lint.sh passes; the four Verilator tops are unchanged.
+- scripts/run_timing_sim.sh passes: socket wiring at typical delays, and
+  the unmodified Monitor deposit/examine boot at typical and maximum
+  delays (64,394 instructions, 4,516 unresolved reads).
+- Legacy remains the checked-in default: authored Monitor boot passes at
+  64,393 instructions, 4,516 unresolved reads, pixel-exact frame.
+
+Open, and stated in the report rather than hidden: the directed socket
+test drives address/data at the phi0 edge with fixed waits, so its
+maximum-delay readback failure (RAM row 0 read xx) is not yet evidence
+about the board; and the boot harness samples 10 ns after the pixel
+clock, shorter than a 74LS74 clock-to-Q, so the frame comparison is
+rejected at any non-zero delay.
+
+Also removes the duplicated "Physical package adapter" section in
+design/mos_6502_cycle/spec/spec.md (review item C6).
+
+Refs #60.

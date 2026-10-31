@@ -1,0 +1,45 @@
+662:SW54LS153,SN74LS153
+399:DUAL4-LINETO1-LINEDATASELECTORS/MULTIPLEXERS
+128:recommended operating conditions
+587:SN54LS153 | 706:SN74LS153
+565:MIN | 602:NOM | 642:MAX | 685:MIN | 719:NOM | 761:MAX | 806:JINN
+170:Supply voitage | 571:4.5 | 651:5.5 | 685:4.75 | 765:5.25
+136:VIH | 169:High-level input voitage
+135:VIL | 170:Low-level input voltage | 651:0.7 | 771:0.8
+170:High-level output current | 642:- 0.4 | 762:- 0.4 | 809:mA
+136:IOL | 171:Low-levef output current | 808:mA
+136:TA | 171:Operating free-air temperature | 563:55 | 650:125 | 775:70
+134:PARAMETER | 314:TEST CONDITIONS↑ | 584:SN54LS153 | 704:SN74LS153
+636:MAX | 684:MIN | 717:TVP | 757:MAX | 803:UNIT
+563:MIN | 600:TYP
+149:VIK | 225:YcC-Min. | 312:I,--1BmA | 640:- 1.5 | 759:1.5
+150:VOH | 224:VCC-MIN, | 311:ViH*2V, | 399:VIL = MAX
+225:IOH = - 0.4 mA | 569:2.5 | 604:3.4 | 689:2.7 | 722:3.4
+226:VCC-MIN, | 312:Vih -2v, | 474:lOL=4mA | 597:0.25 | 648:0.4 | 716:0.25 | 768:0.4
+150:VOL | 227:VIL- MAX, | 475:lOL-8mA | 716:0.35
+769:0.5
+225:VCC-MAX. | 312:VI-7V | 649:0.1 | 768:0.1 | 806:mA
+225:VCC-MAX, | 311:V,- 2.7V | 653:20 | 771:20 | 808:HA
+161:TG,2G | 224:VCC -MAX, | 312:V1 = 0.4 V | 639: 0.2 | 757:0.2 | 806:mA
+166:All other | 638: 0.4 | 757: 0.4
+150:loss | 223:VCC=MAX | 561: 20 | 635:-100 | 680: 20 | 754:- 100 | 806:mA
+150:ICCL | 218:VC - MAX, | 311:See Note 2 | 603:6.2 | 653:10 | 722:6.2 | 770:10 | 805:mA
+125:t For conditions shown as MIN or MAX, use the appropriate vatue specified under recommenced operating conditions.
+125:t All typical values are at Vcc = 5 V, TA = 25°C.
+127:S Not more than one output shouid be shorted at a tirne.
+125:NoTe 2: IccL Is measured wlth the outputs open and att Inputs grounded.
+126:switchingcharacteristics,Vcc=5V,TA=25°c
+250:FROM | 326:TO
+138:PARAMETER | 245:(INPUT) | 485:TEST CONDITIONS | 706:MIN | 744:dAL | 778:MAX | 812:UNIT
+165:tPLH | 254:Data | 748:10 | 785:15
+165:tphL | 255:Data | 506:CL * 15 pF. | 748:17 | 784:26 | 819:ns
+165:tPLH | 250:Select | 505:RL~2k2, | 749:19 | 784:29 | 819:ns
+165:tPHL | 250:Select | 506:Se Note 3 | 747:25 | 784:38 | 818:ns
+165:tPLH | 241:StrobeG | 748:16 | 784:24
+165:tPHL | 242:Strobe G | 747:21 | 784:32 | 818:ne
+125:'tpLH -propgation deley time, low-to-high-level output
+129:tPHL  propagation delay time, high-to-low-levef output
+122:NOTE 3: Load circults and voitage waveforms are shown in Section 1.
+453:TEXAS
+411:INSTRUMENTS
+372:POST OFFICE BOX 555012 + 0ALLAS, TEXAS 75265

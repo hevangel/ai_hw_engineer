@@ -1,0 +1,38 @@
+657:SN54S138,SN74S138A
+482:3-LINETO8-LINEDECODERS/DEMULTIPLEXERS
+130:absolute maximum ratings over operating free-air temperature range (unless otherwise noted)
+165:Supply voltage, Vcc (see Note 1) | 813:7V
+165:input voltage | 800:5.5V
+165:Operatingfree-airtemperature range:SN54S138 | 724:-55°Cto125°C
+417:SN74S138A | 749:0°C to 70°℃
+165:Storage temperature range | 732:65°Cto150°C
+130:NOTE 1: Voltage values are with respect to network ground terminal.
+128:recommended operating conditions
+570:SN54S138 | 690:SN74S138A
+546:MIN | 580:NOM | 625:MAX | 673:MIN | 708:NOM | 751:MAX
+196:Supply voitage | 548:4.5 | 634:5.5 | 666:4.75 | 752:5.26
+197:High-level input voltage
+196:Low-ievel input voitage | 633:0.8 | 758:0.8
+196:High-levet output current | 802:mA
+129:OL | 195:Low-levol output current | 637:20 | 762:20 | 801:mA
+128:TA | 196:Operating free-air temperature | 543:-55 | 630:125
+128:electrical characteristics over recommended operating free-air temperature range (unless otherwise
+127:noted)
+692:SN54S138
+134:PARAMETER | 382:TEST CONDITIONSt | 688:SN74S138A
+673:MIN | 705:TYpt | 749:MAX
+151:VIK | 217:VCC - MIN, | 347:-18mA | 750:-1.2
+152:VOH | 319:VIH - 2 V, | 602:SN54S | 675:2.5 | 715:3.4
+216:VCC - MIN. | 403:VIL | 422:- 0.8 V. | 490:JOH  | 527:-1 mA | 602:SN74S' | 673:2.7
+715:3.4
+217:VCC-MIN, | 318:VIH2 V. | 402:VIL0.8V | 490:IOL | 510:-20mA | 757:0.5
+215:VCC - MAX. | 318:V=5.5 V | 800:mA
+218:VCC - MAX. | 319:VI= 2.7 V | 760:50
+214:ycc -- Max, | 320:Vi-0.5V | 760:-2 | 800:mA
+150:los? | 215:YCC MAX | 668:-40 | 745:-100 | 800:mA
+215:YCC -MAX. | 320:Outputs enabled and open | 718:49 | 761:74 | 799:mA
+125:tFor conditions shown as MiN or MAX, use the appropriate vatue specified under recommended operating conditions.
+126:Not more than one output should be shorted et a time, end duration of the short circuit test should not exceed one second.
+452:TEXAS
+409:INSTRUMENTS
+373:POST OFFICE BOX 6550: 2 · OALLAS *EXAS 75265

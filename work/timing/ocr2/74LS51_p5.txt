@@ -1,0 +1,41 @@
+624:SN5451,SN54LS51,S | 790:SN54S51
+623:SN7451, SN74LS51,  | 790:SN74S51
+662:AND-OR-INVERT GATES
+593:SDLS113  DECEMBER 1983 REVISED MARCH 1988
+100:recommendedoperatingconditions
+582:SN54LS51 | 710:SN74LS51
+559:MIN | 593:NOM | 637:MAX | 684:MIN | 719:NOM | 762:MAX
+145:Supply voitage | 565:4.5 | 647:5.5 | 684:4.75 | 766:5.25
+107:VIH | 145:High-level input voltage
+109:VIL | 145:Low-level input voltage | 647:0.7 | 774:0.8
+146:High-level output current | 637:-0.4 | 763:0.4 | 814:mA
+146:Low-level output current | 814:mA
+106:TA | 146:Operating free-air temperature | 558:-55 | 646:125 | 777:70
+583:SN54LS51 | 708:SN74LS51
+110:PARAMETER | 308:TEST CONDITIONS t | 811:UNIT
+559:MIN | 596:TYP | 638:MAX | 685:MIN | 763:MAX
+133:VIK | 207:VCC =MIN, | 297:Ij = - 18 mA | 639:-1.5 | 765:-1.5
+134:VOH | 207:VCC-MIN, | 297:VIL"MAX, | 387:lOH-0.4mA | 566:2.5 | 608:3.4 | 691:2.7 | 733:3.4
+134:VOL | 205:VCC-MIN, | 296:VIH-2V. | 387:lOL-4mA | 603:0.25 | 651:0.4 | 727:0.25 | 775:0.4
+207:VCC-MIN, | 296:Vih-2v. | 386:lOL-8mA | 728:0.35 | 775:0.5
+207:VcC =MAX, | 294:Vi-7V | 649:0.1 | 775:0.1 | 815:mA
+205:VcC -MAX, | 296:Vi=2.7V | 653:20 | 777:20
+207:VcC-MAX, | 295:V,= 0.4 V | 640:-0.4 | 764: 0.4 | 815:mA
+207:VcC =MAX | 558:-20 | 636:100 | 684:-20 | 762:100 | 815:mA
+133:ICCH | 207:Vc-MAX, | 296:V,-0v | 610:0.8 | 650:1.6 | 734:0.8 | 774:1.6 | 815:mA
+133:ICCL | 207:VcC-MAX, | 297:See Note 2 | 610:1.4 | 649:2.8 | 734:1.4 | 774:2.8 | 815:mA
+100:t For conditions shown as MIN or MAX, use the appropriate value specified under recommended operating conditions.
+101:+ All typical values are at Vcc =5 V, TA =25°C.
+101:g Not more than one output should be shorted at a time, and the duration of the short-circuit should not exceed one second.
+100:NOTE 2: All inputs of one AND gate at 4,5 V,all others at GND.
+100:switching characteristics, Vcc=5V,TA=25°c (see note3)
+227:FROM | 328:TO | 723:TYP
+112:PARAMETER | 474:TEST CONDITIONS | 687:MIN | 766:MAX
+222:(INPUT) | 308:(OUTPUT)
+133:tPLH | 733:12 | 780:20 | 819:ns
+233:Any | 435:RL-2k, | 561:CL = 15 pF | 724:12.5 | 780:20 | 820:ns
+134:tPHL
+102:NOTE 3: Load circuits and voltage waveforms are shown in Section 1.
+440: TEXAS
+402:INSTRUMENTS
+368:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

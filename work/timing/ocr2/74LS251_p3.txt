@@ -1,0 +1,47 @@
+711:SN54251SN74251,
+357:DATASELECTORS/MULTIPLEXERSWITH3-STATEOUTPUTS
+592:SDLS085  DECEMBER 1972  REVISED MARCH 1988
+108:absolute maximum ratings over operating free-air temperature range (unless otherwise noted)
+145:Supply voltage, Vcc (see Note1) | 831:7V
+145:Input voltage | 818:5.5 v
+144:Off-state output voltage | 818:5.5v
+146:Operating free-air temperature range:S | 372:SN54251 | 755:55°C to 125°c
+372:SN74251 | 779:0°℃to70℃
+144:Storage temperature range | 757:65°cto150c
+109:.NOTE 1: Voltage values are with respect to network ground terminal.
+108:recommendedoperatingconditions
+606:SN54251 | 726:SN74251
+576:MIN | 616:NOM | 656:MAX | 697:MIN | 734:NOM | 775:MAX
+113:Supply voltage, Vcc | 583:4.5 | 663:5.5 | 696:4.75 | 776:5.25
+111:High-level output current, lOH | 665:-2 | 775:5.2 | 817:mA
+113:Low-level output current, lOL | 666:16 | 786:16 | 817:mA
+113:Operating free-air temperature, TA | 578:55 | 661:125 | 786:70
+108:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+256:PARAMETER | 527:TEST CONDITIONSt | 696:MIN | 772:MAX | 811:UNIT
+112:VIH | 157:High-level input voltage
+110:VIL | 158:Low-level input voltage | 784:0.8
+158:Input clamp voltage | 483:VCC-MIN, | 579:l, " 12mA | 777:1.5
+112:VOH | 157:High-level output voltage | 483:VCCMIN, | 579:VIH = 2 V, | 704:2.4 | 745:3.2
+485:VIL= 0.8 V, | 579:IOH = MAX
+482:VCC=MIN, | 580:VIH =2 V, | 745:0.2 | 784:0.4
+113:VOL | 159:Low-level output voltage | 483:VIL - 0.8 V,
+581:IOL-16mA
+483:VCC=MAX, | 608:Vo-2.4V | 788:40
+158:Off-state (high-impedance-state) output current
+483:VIH-2V | 605:Vo - 0.4 V | 780:-40
+482:VCC - MAX, | 606:lo- -12 mA | 777:-1.5
+111:Vo | 159:Output clamp voftage
+483:VIH = 4.5 V | 604:o-12mA | 757:Vcc+1.5
+158:Input current at maximum input voltage | 485:VcC = MAX, | 579:V,= 5.5 V | 817:mA
+158:High-level input current | 485:VCC=MAX, | 579:Vi= 2.4 V | 788:40
+158:Low-level input current | 483:VCC"MAX, | 580:V, = 0.4 V | 776:1.6 | 817:mA
+156:Short-circuit output currents | 483:VCC-MAX | 700:-18 | 782:99 | 817:mA
+482:VCC -MAX, | 580:All inputs at 4.5 V, | 787:62
+111:IcC | 157:Supply current | 741:38 | 817:mA
+486:All outputs open
+104:For conditions shown as MiN or MAx, use the appropriate value specified under recommended operating conditions for the applicable type.
+104:tAlltypical values are atVcC"5V.TA-25°c.
+104:S Not more than one output should be shorted at a time.
+407:迎 TEXAS.
+401:INSTRUMENTS
+366:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

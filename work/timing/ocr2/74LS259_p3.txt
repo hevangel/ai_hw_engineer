@@ -1,0 +1,62 @@
+710:SN54259, SN74259
+597:8-BIT ADDRESSABLE LATCHES
+593:SDLS086  DECEMBER 1983  REVISED MARCH 1988
+109:recommended operating conditions
+609:SN54259 | 724:SN74259
+583:MIN | 770:MAX | 815:UNIT
+618:NOM | 654:MAX | 699:MIN | 731:NOM
+110:Supply voltage, Vc | 589:4.5 | 666:5.5 | 699:4.75 | 773:5.25
+111:High-leveloutput current, H | 657:-800 | 771:-800
+111:Low-leveloupuurrent,L | 671:16 | 786:16 | 820:mA
+112:Width of clear or enable putse, tw | 593:15 | 711:15 | 824:ns
+354:Data | 710:15t
+353:Address | 825:ns
+113:Hold time, th | 354:Data
+354:Address | 593:20 | 709:20 | 823:ns
+112:Operating free-eir temperature,TA | 585:-55 | 664:125 | 786:70
+108:tThe arrow indicates that the rising edge of the enable pulse is used for reference.
+106:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+419:TEST CONDITIONS | 605:SN54259 | 723:SN74259
+170:PARAMETER | 612:TYPMAX | 699:MIN | 730:TYP+MAX
+583:MIN
+110:VH | 160:High-level input voltage
+160:Low-level input voltage | 666:0.8 | 781:0.8
+158:input clamp voltege | 389:VCC"MIN, | 474:I-12mA | 660:-1.5 | 774:-1.5
+112:VoH | 388:VCC"MIN, | 475:VIH *2 V, | 590:2.4 | 628:3.4
+158:High-level output voltage | 710:2.4 | 744:3.4
+387:VIL =0.8 V, | 478:lOH"-800 μA
+112:VOL | 387:VCC-MIN, | 478:VIH"2V. | 629:0.2
+160:Low-levef output voltage | 667:0.4 | 742:0.2 | 782:0.4
+388:VIL * 0.8 V, | 475:lOL = 16 mA
+159:Input current at maximum input voltage | 388:VCC"MAX, | 475:V,- 5.5 V | 818:mA
+669:80 | 784:80
+388:VCC*MAX, | 477:V} = 2.4 V | 669:40 | 819:HA
+159:current | 298:Other inputs | 785:40
+159:Low-level input | 659:-3.2 | 772:3.2
+389:VCC =MAX, | 475:V↓ = 0.4 V | 820:mA
+159:current | 298:Other inputs | 659:-1.6 | 774:-1.6
+110:los | 158:Short-circuit output currents | 389:VCC " MAX | 585:-18 | 663:-57 | 706:-18 | 777:-57 | 820:mA
+159:Supply current | 388:Vcc"MAX, | 479:See Note 2 | 633:60 | 670:90 | 749:60 | 784:90 | 819:mA
+107:t For conditions shown as MiN or MAX, use the appropriate value specified under recommended operating conditions.
+105:tAll ypical valuesare at Vcc.5Y.TA.25°c.
+107:SNot more than one output shouid be shorted at a time,
+106:NOTE 2: Icc is measuredwith the inputs grounded and the outputs open.
+109:switching characteristics, VcC=5V,TA=25°C
+275:FROM
+140:PARAMETER | 270:(INPUT) | 482:TEST CONDITIONS | 636:MIN | 695:TYP | 754:MAX
+162:tPHL | 280:CLR | 386:Any Q | 699:16 | 759:25 | 824:ns
+160:tPLH | 699:14 | 759:24
+281:Data | 386:Any Q | 759:20 | 825:ns
+162:tPHL | 495:CL * 15pF. | 700:11
+161:tPLH | 495:RL = 400 2. | 699:15 | 759:28
+273:Address | 386:Any Q | 825:ns
+161:tPHL | 497:See Note 3 | 700:17 | 760:28
+161:tPLH | 699:12 | 759:20
+386:Any Q | 825:ns
+161:tPHL | 700:11 | 760:20
+109:tPLH  | 149:propagation delay time, low-to-high-level output
+109:tPHL | 149:propagation delay time, high-to-low-level output
+107:NOTE 3: Load circuits and voltage waveforms are shown in Section 1.
+442: TEXAS
+401:INSTRUMENTS
+367:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

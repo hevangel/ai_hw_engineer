@@ -1,0 +1,42 @@
+133:SN54S153,SN74S153
+134:DUAL 4-LINE | 230:TO1-LINE | 307:EDATASELECTORS/MULTIPLEXERS
+134:recommended operating conditions
+614:SN546153 | 725:SN74S153
+590:MIN | 627:NOM | 664:MAX | 701:MIN | 738:NOM | 774:MAX | 808:JING
+169:Suppiy voltage, Vcc | 597:4.5 | 670:5.5 | 700:4.75 | 777:5.25
+164:High-luputrrt, | 814:mA
+171:Low-level output current, loL | 672:20 | 814:mA
+169:Oprainfree-atmperature | 591:55 | 668:125 | 786:70
+129:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+289:PARAMETER | 533:TEST CONDITIONS+ | 703:MIN | 739:+dAL | 775:MAX | 809:UNIT
+172:VIH | 209:High-tevel input vottage
+172:VIL | 211:Low-level input voltage | 785:80
+172:VIK | 210:Input clamp voltage | 486:Vce = MIN, | 556:1=-18mA | 778:-12
+484:Vcc " MIN, | 557:ViH = 2 V, | 635:Series 54S | 708:2.5 | 742:3.4
+172:VOH | 210:High-level output voltage | 484:VIL = 0.8 V. | 557:JOH = -1mA| | 637:Series 74S | 708:2.7 | 743:3.4
+173:VOL | 485:VCC-MIN. | 557:Vih -2V. | 784:0.6
+210:Low-levet output voltoge | 485:VI. - 0.8 V. | 555:JOL-20mA
+210:Input current at max imum input vottage | 486:VCC=MAX, | 558:Vi = 5.5 V | 814:mA
+209:High-level input current | 485:VcC  MAX. | 558:V, - 2.7 V | 788:50
+210:Low-level input current | 485:VcC=MAX, | 558:V, - 0.5 V | 814:mA
+208:Short-circuit output current | 483:VCC-MAX | 704:40 | 774:-100 | 813:mA
+172:'CCL. | 209:Supply current, ow-levet output | 486:Vcc - MAX. | 558:See Note 2 | 746:45 | 788:70 | 813:mA
+129:tFor conditlons snown as Min or MAx, use tha approprlate vatue specified under recommendec operating cotditions.
+127:+Alltynicaf values are at Vcc" 5 V. TA "25°c.
+129: Not more than one output should be shorted at a time and duration of short-circuit should not exceed one second.
+128:NOTE 2: 'CCL ia measured with the outputs open and all inputs groundad.
+126:switchingcharacteristics,Vcc=5V,TA=25°c
+190:PARAMETER | 338:FROM | 472:TO
+333:(INPUT) | 451:(OUTPUT) | 566:TEST CONDITIONS | 698:MIN | 740:dAL | 773:MAX | 804:UNIT
+336:Data | 790:16 | 812:ns
+215:tph. | 335:Data
+215:tPLH | 333:Select | 548:CL = 15 pF. | 619:RL = 280 $, | 739:11.5 | 783:18 | 815:ns
+215:PHL | 333:Select | 549:See Note 3 | 748:12 | 783:18
+216:IPLH | 324:Strobe G | 747:10 | 783:15
+217:TPHL | 322:Strobe C | 775:13.5 | 815:ns
+127:tPLH = propagation dalay time, low.to-high-laval output
+137:tPHL | 160: propagation deley time, high-to-low-level output
+129:NOTE 3: Load circuits and voitage waveforms are shown in Section 1.
+452:TEXAS
+412:INSTRUMENTS
+369:POST OFFICE BOX 225012 + DALLAS. TEXAS 75265

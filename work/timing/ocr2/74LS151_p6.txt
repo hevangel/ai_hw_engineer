@@ -1,0 +1,51 @@
+128:SN54S151,SN74S151
+127:DATA SELECTORS/MULTIPLEXERS
+128:recommended operating conditions
+605:SN54S151 | 719:SN74S151
+579:MIN | 617:NOM | 656:MAX | 694:MIN | 732:NOM | 771:MAX
+129:Supply vol tage, Vcc | 587:4.5 | 664:5.5 | 694:4.75 | 772:5.25
+128:High-fevel output current, IOH. | 812:mA
+128:Low-level output current, lOL | 782:20 | 811:mA
+127:Operating free-air temperature,A | 584:55 | 661:125 | 783:70
+125:electrical characteristics over recommended operating free-air temperature range (untess otherwise noted)
+236:PARAMETER | 501:TEST CONDITIONST | 694:MIN | 730:TYP* | 771:MAX | 806:UNIT
+180:High-level input voltage
+128:VIL | 179:Low-level input voitage | 781:0.8
+127:VIK | 179:Input clamp voltage | 424:VCC-MIN, | 503:I1--18mA | 772:-1.2
+423:VCC-MIN, | 500:VIH=2V, | 620:SN54S151 | 700:2.5 | 737:3.4
+130:VOH | 178:High-tevef output voltage | 736:3.4
+424:VIL =0.8 V, | 501:"OH -1mA | 623:SN74S151 | 701:2.7
+130:VOL | 179:Low-level output voltage | 424:VCCMIN. | 503:VIH=2 V. | 780:0.5
+425:VIL " 0.8 V, | 500:IOL=20mA
+178:Input current at maximum input voltage | 424:VCC-MAX. | 501:V, = 5.5 V | 812:mA
+179:High-tevet input current | 423:YCC-MAX. | 502:VI=2.7 V | 781:50
+179:Low-level input current | 422:VCC-MAX, | 502:Vi - 0.5 V | 809:mA
+178:Short-circuit output current s | 422:VCC-MAX | 696:40 | 768:100 | 810:mA
+128:ICC | 178:Supply current | 425:VCC=MAX, | 501:All inputs at 4.5 V. | 739:45 | 783:70
+422:All outputs open | 811:mA
+122:tfor conditions shown as MiN or MAx, use the appropriate vatue specified under recommended oparating conditions for tne appicable dtvice
+126:type.
+120:tAll typlcal values areat VCC5V.TA=25'c.
+122:SNot more than one output shoutc be shorted at a time, and duration of the snort-circuit shouid not exceed one second.
+121:switching characteristics,Vcc -5 V.Ta 25°C
+158:PARAMETER1 | 310:FROM | 428:TO
+306:(INPUT) | 410:(OUTPUT) | 528:TEST CONDITIONS | 672:MIN | 752:MAX
+183:tPLH | 298:A, B, or C | 721:12 | 763:18
+184:tPHL | 301:[4 leveis] | 721:12 | 763:18
+183:tPLH | 297:A. B, or C | 720:10 | 764:15
+183:tPHL | 303:[3 levels] | 753:13.5 | 805:ns
+184:tPLH | 308:Any D | 762:12
+542:CL = 15 pF, | 763:12 | 805:ns
+183:tPHL | 538:RL - 280 k,
+183:tPLH | 715:4.5
+182:tPHL | 308:Any D | 547:Soo Noto 4 | 715:4.5 | 805:ns
+182:tPLH | 719:11 | 753:16.5
+183:tPHL | 720:12 | 763:18 | 804:ns
+181:APLH | 300:Strobe G | 762:13
+182:tPHL | 714:8.5 | 763:12 | 805:ns
+120:AtPLH | 170:propagation delay time, low-to-high-level output
+127:IPHL | 157: propagation delay time, high-to-iow-level output
+119:NOTE 4: Load circuits and voltage waveforms are shown in Section 1.
+449:TEXAS
+404:INSTRUMENTS
+370:POST OFFICE BOX 655012 · DALLAS. TEXAS 75265

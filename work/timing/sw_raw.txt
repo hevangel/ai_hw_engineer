@@ -1,0 +1,33 @@
+##### 74LS00.pdf pages 40
+--- p2 ---
+trical Characteristics: SNx400............................ 6 | 6.6 | Electrical Characteristics: SNx4LS00 ....................... 6 | 6.7 | Electrical Characteristics: SNx4S00 ......................... 6 | 6.8 | Switching Characteristics: SNx400 ........................... 7 | 6.9 | Switching Characteristics: SNx4LS00....................... 7 | 6.10 | Switching Characteristics: SNx4S00....................... 7 | 6.11 | Typical Characteristics............................................ 8 | 7 | Parameter Measurement Information .................. 9 | 7.1 | Propagation Delays, Setup and Hold Times, and | Pulse Width................................................................ 9 | 8 | Detailed Description ............................................ 10 | 8.1 | Overview ................................................................. 10 | 8.2 | Functional Block Diagram ....................................... 10 | 8.3 | Feature Description................................................. 10 | 8.4 | Device Functional Modes....................................... 10 | 9 | Application and Implementation ........................ 11 | 9.1 | Application Information............................................ 11 | 9.2 | Typical Application .................................................. 11 | 10 | Power Supply Recommendations ..................... 12 | 11 | Layout................................................................... 13 | 11.1 | Layout Guidelines ................................................. 13 | 11.2 | Layout Example .................................................... 13 | 12 | Device and Documentation Support ................. 14 | 12.1 | Documentat
+--- p7 ---
+ree-air temperature range (unless otherwise noted) | PARAMETER | TEST CONDITIONS | MIN | TYP | MAX | UNIT | IOS | VCC = MAX | –40 | –100 | mA | ICCH | VCC = MAX and VI = 0 V | 10 | 16 | mA | ICCL | VCC = MAX and VI = 4.5 V | 20 | 36 | mA | 6.8 | Switching Characteristics: SNx400 | VCC = 5 V, TA = 25°C, and over operating free-air temperature range (unless otherwise noted). See Figure 2. | PARAMETER | FROM (INPUT) | TO (OUTPUT) | TEST CONDITIONS | MIN | TYP | MAX | UNIT | tPLH | A or B | Y | RL = 400 Ω and CL = 15 pF | 11 | 22 | ns | tPHL | 7 | 15 | 6.9 | Switching Characteristics: SNx4LS00 | VCC = 5 V, TA = 25°C, and over operating free-air temperature range (unless otherwise noted). See Figure 2. | PARAMETER | FROM (INPUT) | TO (OUTPUT) | TEST CONDITIONS | MIN | TYP | MAX | UNIT | tPLH | A or B | Y | RL = 2 kΩ and CL = 15 pF | 9 | 15 | ns | tPHL | 10 | 15 | 6.10 | Switching Characteristics: SNx4S00 | VCC = 5 V, TA = 25°C, and over operating free-air temperature range (unless otherwise noted). See Figure 2. | PARAMETER | FROM (INPUT) | TO (OUTPUT) | TEST CONDITIONS | MIN | TYP | MAX | UNIT | tPLH | A or B | Y | RL = 280 Ω and CL = 15 pF | 3 | 4.5 | ns | RL = 280 Ω and CL = 50 pF | 4.5 | tPHL | A or B | Y | RL = 280 Ω and CL = 15 pF | 3 | 5 | RL = 280 Ω and CL = 50 pF | 5 | 
+##### 74LS02.pdf pages 27
+##### 74LS04.pdf pages 32
+--- p6 ---
+   |    | 	 |  
+ |  |  |   | SDLS029C − DECEMBER 1983 − REVISED JANUARY 2004 | 6 | POST OFFICE BOX 655303 • DALLAS, TEXAS 75265 | switching characteristics, VCC = 5 V, TA = 25°C (see Figure 1) | PARAMETER | FROM | (INPUT) | TO | (OUTPUT) | TEST CONDITIONS | SN5404 | SN7404 | UNIT | PARAMETER | (INPUT) | (OUTPUT) | TEST CONDITIONS | MIN | TYP | MAX | UNIT | tPLH | A | Y | RL | 400 Ω | CL | 15 pF | 12 | 22 | ns | tPHL | A | Y | RL = 400 Ω, | CL = 15 pF | 8 | 15 | ns | recommended operating conditions (see Note 3) | SN54LS04 | SN74LS04 | SN54LS04 | SN74LS04 | UNIT | MIN | NOM | MAX | MIN | NOM | MAX | UNIT | VCC | Supply voltage | 4.5 | 5 | 5.5 | 4.75 | 5 | 5.25 | V | VIH | High-level input voltage | 2 | 2 | V | VIL | Low-level input voltage | 0.7 | 0.8 | V | IOH | High-level output current | −0.4 | −0.4 | mA | IOL | Low-level output current | 4 | 8 | mA | TA | Operating free-air temperature | −55 | 125 | 0 | 70 | °C | NOTE 3: | All unused inputs of the device must be held at VCC or GND to ensure proper device operation. Refer to the TI application report, | Implications of Slow or Floating CMOS Inputs, literature number SCBA004. | electrical characteristics over recommended operating free-air temperature range (unless | otherwise noted) | PARAMETER | TEST CONDITIONS† | SN54LS04 | SN74LS04 | UNIT | PARAMETER | TEST CONDITIONS† | MIN | TYP‡ | MAX | MIN | TYP‡ | MAX | UNIT | VIK | VCC = MIN, | II = −18 mA | −1.5 | −1.5 | V | VOH | VCC = MIN, | VIL = MAX, | IOH = −0.4 mA | 2.5 | 3.4 | 2.7 | 3.4 | V | VOL | VCC | MIN | VIH | 2 V | IOL = 4 mA | 0.25 | 0.4 | 0.4 | V | VOL | VCC = MIN, | VIH = 2 V | IOL = 8 mA | 0.25 | 0.5 | V | II | VCC = MAX, | VI = 7 V | 0.1 | 0.1 | mA | IIH | VCC = MAX, | VI = 2.7 V | 20 | 20 | µA | IIL | VCC = MAX, | VI = 0.4 V | −0.4 | −0.4 | mA | IOS§ | VCC = MAX | −20 | −100 | −20 | −100 | mA | ICCH | VCC = 
+--- p7 ---
+ded operating conditions. | ‡ All typical values are at VCC = 5 V, TA = 25°C. | § Not more than one output should be shorted at a time, and the duration of the short-circuit should not exceed one second. | switching characteristics, VCC = 5 V, TA = 25°C (see Figure 1) | PARAMETER | FROM | (INPUT) | TO | (OUTPUT) | TEST CONDITIONS | SN54S04 | SN74S04 | UNIT | PARAMETER | (INPUT) | (OUTPUT) | TEST CONDITIONS | MIN | TYP | MAX | UNIT | tPLH | A | Y | RL | 280 Ω | CL | 15 pF | 3 | 4.5 | ns | tPHL | A | Y | RL = 280 Ω, | CL = 15 pF | 3 | 5 | ns | tPLH | A | Y | RL | 280 Ω | CL | 50 pF | 4.5 | ns | tPHL | A | Y | RL = 280 Ω, | CL = 50 pF | 5 | ns | 
+##### 74LS08.pdf pages 29
+##### 74LS11.pdf pages 21
+##### 74LS138.pdf pages 26
+##### 74LS139.pdf pages 20
+##### 74LS151.pdf pages 22
+##### 74LS153.pdf pages 21
+##### 74LS161.pdf pages 40
+##### 74LS166.pdf pages 24
+##### 74LS174.pdf pages 16
+##### 74LS175.pdf pages 16
+##### 74LS194.pdf pages 15
+##### 74LS195.pdf pages 1
+##### 74LS20.pdf pages 24
+##### 74LS251.pdf pages 23
+##### 74LS257.pdf pages 24
+##### 74LS259.pdf pages 11
+##### 74LS283.pdf pages 12
+##### 74LS32.pdf pages 30
+##### 74LS51.pdf pages 24
+##### 74LS74.pdf pages 30
+##### 74LS86.pdf pages 24

@@ -1,0 +1,43 @@
+66:SN54LS11, SN54S11,
+66:SN74LS11, SN74S11
+64:TRIPLE3-INPUTPOSITIVE-ANDGATES
+68:SDLS131 APRIL 1985 REVISED MARCH 1988
+73:recommendedoperatingconditions
+534:SN54S11 | 668:SN74S11
+773:UNIT
+506:MIN | 546:NOM | 590:MAX | 637:MIN | 680:NOM | 720:MAX
+85:VCC | 120:Supply voltage | 512:4.5 | 602:5.5 | 638:4.75 | 725:5.25
+85:VIH | 121:High-level input volitage
+85:VIL | 121:Low-level input voltage | 602:0.8 | 732:0.8
+85:IOH | 121:High-level output current | 780:mA
+85:IOL | 121:Low-level output current | 736:20 | 778:mA
+84:TA | 121:Operating free-air temperature | 505: 55 | 599:125 | 737:70
+72:electrical characteristics over recommended operating free-air temperature range | 633:(unless otherwise noted)
+537:SN54S11 | 668:SN74S11
+83:PARAMETER | 269:TEST CONDITIONS  | 777:UNIT
+509:MIN | 538:TYP | 592:MAX | 638:MIN | 676:TYP+ | 723:MAX
+102:VIK | 180:VCC"MIN, | 269:Ij -18 mA | 591:-1.2 | 722:1.2
+103:VOH | 180:VCC -MIN, | 270:VIH * 2 V, | 362:IOH"-1mA | 514:2.5 | 555:3.4 | 645:2.7 | 692:3.4
+102:VOL | 181:VCC-MIN, | 272:VIL - 0.8 V, | 360:IOL-20mA | 604:0.5 | 734:0.5
+181:VCC -MAX, | 271:Vj = 5.5 V | 781:mA
+181:VCC-MAX, | 270:V↓ - 2.7 V | 607:50 | 738:50
+181:VCC"MAX, | 270:V, - 0.5 V | 600:-2 | 732:-2 | 781:mA
+103:losS | 180:VCC-MAX | 502:-40 | 589:-100 | 632:40 | 719:-100 | 781:mA
+103:'CCH | 180:VCC"MAX, | 271:V; = 4.5 V | 551:13.5 | 608:24 | 687:13.5 | 782:mA
+103:ICCL | 181:VCC=MAX, | 269:VI= 0 V | 560:24 | 608:42 | 695:24 | 739:42 | 782:mA
+72:t For conditions shown as MiN or MAX,use the appropriaste value specified under recommended operating conditions.
+72:t All typical values are atVcc.5Y,TA=25°c.
+71:S Not more than one output should be shorted at a time, and tha duration of the shortcircuit should not exceed one second.
+75:switching characteristics, Vcc =5 V,TA=25°c (see note 2)
+197:FROM | 304:TO | 642:MIN | 690:TYP
+84:PARAMETER | 195:(INdNI) | 443:TEST CONDITIONS | 726:MAX | 776:UNIT
+106:tPLH | 694:4.5 | 784:ns
+401:RL*280S2, | 526:CL = 15 pF
+106:tPHL | 739:7.5 | 785:ns
+194:A, B or C
+106:tPLH | 785:ns
+402:RL-2802, | 525:CL = 50 pF
+107:tPHL | 695:7.5 | 785:ns
+74:NOTE 2: Load circuits and voltage waveforms are shown in Section 1.
+363:INSTRUMENTS
+328:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

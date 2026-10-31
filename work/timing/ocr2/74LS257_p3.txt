@@ -1,0 +1,34 @@
+452:SN54LS257B,SN54LS258B,SN54S257,SN54S258
+451:SN74LS257B,SN74LS258B,SN74S257,SN74S258
+306:QUADRUPLE2-LINETO1-LINEDATASELECTORS/MULTIPLEXERS
+600:SDLS148OCTOBER 1976 REVISED MARCH 1988
+104:schematics of inputs and outputs
+429:"LS257B,'LS258B
+150:EQUIVALENT OF A/B INPUT | 414:EQUIVALENT OF ALL | 652:TYPICAL OF ALL OUTPUTS
+435:OTHER INPUTS
+787:VCC
+158:VCC | 412:VCC | 690:100NOM
+249:13ka | 479:≥18ka
+244:NOM | 483:NOM
+145:INPU'
+403:INPU | 785:OUTPUT
+447:'S257,'S258
+268:EQUIVALENT OF EACH INPUT | 524:TYPICAL OF ALL OUTPUTS
+657:Vcc
+571:50NOM
+266:INPU"
+661:OUTPUT
+308:Select: Req =1.4 ks2 NOM
+256:Allother inputs: Req = 2.8 ka NOM
+106:absolute maximum ratings over operating free-air temperature range (unless otherwise noted)
+140:Supply voltage, Vcc (see Note 1). | 833:7V
+141:Input voltage:'LS257B,'LS258B Circuits | 829:7V
+235:S257,'S258Circuits | 819:5.5V
+141:Off-state output voltage. | 818:5.5V
+140:Operating free-air temperature range: SN54LS,SN54S'Circuits | 760:-55cto125
+369:SN74LS',SN74S'Circuits | 777:0°℃ to 70°℃
+140:Storage temperature range . | 759:65to150℃
+104:NOTE 1: Voltage values are with respect to network ground terminal,
+409:Ji TEXAS
+402:INSTRUMENTS
+367:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

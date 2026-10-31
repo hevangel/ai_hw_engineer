@@ -1,0 +1,29 @@
+93:TEXAS | 901:PACKAGEOPTIONADDENDUM
+98:INSTRUMENTS
+54:www.ti.com | 1161:7-Oct-2026
+54:Orderable part number | 276:Material type | 379:Package | Pins | 490:Package qty I Carrier | 644:RoHS | 732:Lead finish/ | 862:MSL rating/ | 991:Op temp (°C) | 1131:Part marking
+231:(1) | 308:(2) | 655:(3) | 732:Ball material | 865:Peak reflow | 1163:(6)
+762:(4) | 893:(5)
+80:SN74LS11N.A | 221:Active | 284:Production | 386:PDIP (N) |14 | 523:25 / TUBE | 649:Yes | 744:NIPDAU | 851:N/A for Pkg Type | 1008:0 to 70 | 1135:SN74LS11N
+78:SN74LS11NE4 | 221:Active | 284:Production | 386:PDIP (N) |14 | 523:25 / TUBE | 648:Yes | 745:NIPDAU | 853:N/A for Pkg Type | 1007:O to 70 | 1135:SN74LS11N
+77:SN74LS11NSR | 221:Active | 284:Production | 384:SOP (NS) |14 | 500:2000  LARGE T&R | 649:Yes | 745:NIPDAU | 841:Level-1-260C-UNLIM | 1007:0 to 70 | 1147:74LS11
+71:SN74LS11NSR.A | 221:Active | 284:Production | 384:SOP (NS) /14 | 500:2000LARGE T&R | 648:Yes | 744:NIPDAU | 841:Level-1-260C-UNLIM | 1007:0 to 70 | 1147:74LS11
+79:SNJ54LS11FK | 221:Active | 284:Production | 380:LCCC (FK) |20 | 651:ON | 750:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1142:SNJ54LS
+1154:11FK
+72:SNJ54LS11FK.A | 221:Active | 286:Production | 381:LCCC (FK) |20 | 522:55| TUBE | 651:ON | 750:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1141:SNJ54LS
+1154:11FK
+82:SNJ54LS11J | 221:Active | 285:Production | 387:CDIP (J) |14 | 523:25 / TUBE | 752:SNPB | 853:N/A for Pkg Type | 1001:-55 to 125 | 1134:SNJ54LS11J
+77:SNJ54LS11J.A | 221:Active | 284:Production | 387:CDIP (J) 114 | 523:25 / TUBE | 651:No | 750:SNPB | 852:N/A for Pkg Type | 1001:-55 to 125 | 1132:SNJ54LS11J
+81:SNJ54LS11W | 221:Active | 284:Production | 386:CFP (W) 114 | 523:25 / TUBE | 651:No | 750:SNPB | 851:N/A for Pkg Type | 1000:-55 to 125 | 1130:SNJ54LS11W
+75:SNJ54LS11W.A | 221:Active | 284:Production | 387:CFP (W) |14 | 523:25 | TUBE | 651:No | 750:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1131:SNJ54LS11W
+87:SNJ54S11J | 221:Active | 284:Production | 387:CDIP (J) 114 | 523:25 / TUBE | 651:No | 750:SNPB | 851:N/A for Pkg Type | 1000:-55 to 125 | 1135:SNJ54S11J
+81:SNJ54S11J.A | 220:Active | 285:Production | 387:CDIP (J) |14 | 523:25 | TUBE | 651:ON | 750:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1135:SNJ54S11J
+30:(1) status: For more details on status, see our product life cycle.
+30:(2) Material type: When designated, preproduction parts are prototypes/experimental devices, and are not yet approved or released for full production. Testing and final process, including withoutlimitation qualty assurance
+33:waiver at checkout, and are intended for early internal evaluation purposes only. These items are sold without warranties of any kind.
+29:(3) RoHS values: Yes, No, RoHS Exempt. See the TI RoHS Statement for adionalinformatio and value defion.
+34:column width.
+32:Refer to the shipping label for the actual reflow temperature that will be used to mount the part to the printed circuit board.
+32:Muttiple part markings will be inside parentheses. Only one part marking contained in parentheses and separated by a"" willappear on a part. If a line is indented then it is a continuation of the previous line and the two
+33:combined represent the entire part marking for that device.
+586:Addendum-Page 2

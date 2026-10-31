@@ -1,0 +1,63 @@
+68:SN5474,SN54LS74A,SN54S74
+66:SN7474. SN74LS74A, SN74S74
+67:DUALD-TYPEPOSITIVE-EDGE-TRIGGERED FLIP-FLOPS WITH PRESETAND CLEAR
+68:SDLS119  DECEMBER 1983  REVISED MARCH 1988
+65:recommendedoperatingconditions
+556:SN54S74 | 679:SN74S74
+526:MIN | 561:NOM | 604:MAX | 649:MIN | 685:NOM | 729:MAX
+112:Supply voltage | 533:4.5 | 614:5.5 | 649:4.75 | 733:5.25
+77:VIH | 113:High-level input voltage
+77:VIL | 113:Low-level input voltage | 614:0.8 | 740:0.8
+77:IOH | 114:High-level output current | 780:mA
+76:OL | 114:Low-level output current | 618:20 | 745:20 | 780:mA
+401:CLK high
+77:tw | 114:Pulse duration | 402:CLK low | 534:7.3 | 658:7.3 | 785:ns
+401:CLRorPRElow
+402:High-level data | 784:ns
+77:tsu | 114:Setup time, before CLK t | 402:Low-level data
+74:th | 114:Input hold time-data after CLK t | 784:ns
+75:TA | 115:Operating free-air temperature | 527:55 | 614:125 | 743:OL
+69:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+557:SN54S74 | 682:SN74S74
+102:PARAMETER | 315:TEST CONDITIONSt | 567:TYP | 607:MAX | 656:MIN | 690:TYP | 732:MAX
+531:MIN
+81:VIK | 226:VCC"MIN, | 321:Ij * - 18mA, | 606:-1.2 | 732:- 1.2
+82:VOH | 224:VCC " MIN, | 321:ViH -2V, | 412:VIL = 0.8 V, | 538:2.5 | 579:3.4 | 662:2.7 | 705:3.4
+225:lOH"-1mA
+226:VCC = MIN, | 322:ViH*2V. | 413:VIL = 0.8 V. | 618:0.5 | 746:0.5
+82:VOL
+225:IOL=20 mA
+225:VCC-MAX, | 321:V,5.5 V | 787:mA
+624:50 | 749:50
+133:CLR | 226:VCC"MAX, | 322:VI = 2.7 V | 617:150 | 743:150
+134:PRE orCLK | 617:100 | 743:100
+617:-2 | 744:-2
+137:CLR! | 619:-6 | 743:-6
+226:VCC *MAX, | 322:V * 0.5 V | 787:mA
+137:PRE1 | 619:-4 | 745:-4
+135:CLK | 621:- 4 | 744:-4
+83:loss | 226:VCC-MAX | 532:-40 | 608:100 | 656: 40 | 730:- 100 | 787:mA
+226:VCC"MAX, | 323:See Note 2 | 586:15 | 625:25 | 710:15 | 749:25 | 787:mA
+74:fFor conditions shown as MiN or MAX, use the appropriate value specified under recommended operating conditions.
+74:*Alltypical values are at Vcc = 5 V. TA = 25°c.
+73:5Not more than one output should be shorted at a time, and the duration of the short circuit should not exceed one second.
+75:1Clear is tested with preset high and preset is tested with clear high.
+75:#Average per flip-flop.
+71:NOTE2: With alloutputs open,Icc is measured with the Q and  outputs high in turn.At the time of measurement, the clock input is
+125:grounded.
+72:switching characteristics, Vcc = 5 V,TA=25°c (see note 3)
+226:FROM | 356:TO | 659:MIN | 694:TYP | 737:MAX
+85:PARAMETER | 335:(OUTPUT) | 464:TEST CONDITIONS
+218:(INPUT)
+102:fmax | 670:75 | 697:110 | 786:MHZ
+102:IPLH | 193:PRE orCLR | 348:Qord | 791:ns
+194:PRE or CLR (CLK high) | 742:13.5
+103:tPHL | 351:dor Q | 444:RL = 280 n, | 551:CL = 15 pF
+194:PRE or CLR (CLK low)
+100:tPLH | 792:n5
+194:CLK | 348:Qord
+102:tPHL
+71:NOTE 3: Load circuits and voltage waveforms are shown in Section 1.
+403:TEXAS
+363:INSTRUMENTS
+328:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

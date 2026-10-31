@@ -1,0 +1,32 @@
+625:SN5451,SN54LS51,SN54S51
+624:SN7451,SN74LS51,SN74S51
+664:AND-OR-INVERT GATES
+592:SDLS113 DECEMBER 1983 REVISED MARCH 1988
+462:'LS51
+278:INPUTS | 637:VCC
+418:>20ks2 | 537:120 
+296:C-
+416:10kn
+613:OUTPUT
+382:20 ks
+409:10kn | 633:GND
+466:'S51
+613:VCC
+361:2.8 ks> | 436:900
+305:INPUTS
+495:3.5k
+590:OUTPUT
+365:2.8kn
+477:5002
+613:GND
+101:absolute maximum ratings over operating free-air temperature range (unless otherwise noted)
+136:Supplyvoltage,Vcc(SeeNote1):"51,"LS51,S51 | 834:7V
+135:Inputvoltage:51,"S51 | 821:5.5V
+235:'LS51 | 835:7V
+137:Operating free-air temperature range:SN54* | 756:55°℃to125°C
+381:SN74' | 774:0°℃to 70°℃
+137:Storage temperature range | 755:65°Cto150°℃
+101:NOTE 1: Voltage values are with respect to network ground terminal.
+412: TEXAS
+402:INSTRUMENTS
+367:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

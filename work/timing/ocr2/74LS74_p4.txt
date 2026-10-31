@@ -1,0 +1,62 @@
+68:SN5474,SN54LS74A,SN54S74
+66:SN7474.SN74LS74A, SN74S74
+67:DUALD-TYPEPOSITIVE-EDGE-TRIGGERED FLIP-FLOPS WITH PRESETAND CLEAR
+68:SDLS119  DECEMBER 1983 REVISED MARCH 1988
+68:recommended operatingconditions
+561:SN5474 | 682:SN7474
+526:MIN | 563:NOM | 606:MAX | 653:MIN | 689:NOM | 732:MAX
+113:Supply voltage | 534:4.5 | 617:5.5 | 653:4.75 | 737:5.25
+77:VIH | 115:High-level input voltage
+74:VIL | 113:Low-level input voltage | 618:0.8 | 744:0.8
+79:1OH | 114:High-level output current | 605:-0.4 | 733:0.4 | 784:mA
+76:TOL | 115:Low-level output current | 623:16 | 749:16 | 785:mA
+401:CLK high | 537:30 | 663:30
+77:tw | 115:Pulse duration | 402:CLK low | 537:37 | 663:37 | 789:ns
+401:PREorCLR low | 537:30 | 663:30
+74:tsu | 115:Input setup time before.CLKt | 538:20 | 664:20 | 789:ns
+113:Input hoid time-data after CLK t
+74:TA | 115:Operating free-air temperature | 527:-55 | 616:125 | 751:70
+67:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+555:SN5474 | 682:SN7474
+93:PARAMETER | 292:TEST CONDITIONSt | 606:MAX | 653:MIN | 732:MAX
+528:MIN
+76:VIK | 204:VCC=MIN, | 309:t,=-12mA | 607:-1.5 | 731:-1.5
+203:VCC"MIN, | 310:VIH " 2 V, | 400:VIL - 0.8 V, | 534:2.4 | 569:3.4 | 661:2.4 | 696:3.4
+78:VOH
+203:IOH-- 0.4mA
+203:VCC=MIN, | 312:Vih-2V, | 400:VIL * 0.8 V, | 570:0.2 | 618:0.4 | 696:0.2 | 745:0.4
+79:VOL
+203:IOL=16mA
+206:VCC-MAX, | 311:V,= 5.5 V | 785:mA
+622:40 | 750:40
+120:CLR | 616:120 | 744:120 | 789:μA
+204:VCC= MAX, | 309:V↓ = 2.4 V | 622:80 | 748:80
+122:All Other
+608:-1.6 | 744:1.6
+122:PRES | 607:- 1.6 | 733:-1.6
+203:VCC"MAX, | 309:Vi = 0.4 V | 786:mA
+122:CLAS | 608:3.2 | 733:3.2
+121:CLK | 605:-3.2 | 734:3.2
+75:los | 206:VCC=MAX | 527: 20 | 611:- 57 | 654:- 18 | 739: 57 | 786:mA
+74:Icc# | 204:VCC-MAX, | 311:See Note 2 | 571:8.5 | 625:15 | 697:8.5 | 786:mA
+69:tFor conditions shown as MIN or MAx, use the appropriate value specified under recommended operating conditions.
+68:*All typical values are at Vcc = 5 V. TA = 25°c.
+69:5Clear is tested with preset high and preset is tested with clear high.
+72:1Not more than one output should be shown at a time.
+71:#Average per flip-flop.
+67:NOTE 2: With ailoutputs open,Icc is measured with the Q and Q outputs high in turn. At the time of measurement, the clock input is
+121:grounded.
+69:switching charateristics, Vcc = 5 V, TA =25°c (see note 3)
+196:FROM | 305:TO | 442:TESTCONDITIONS | 658:MIN | 739:MAX | 785:UNIT
+83:PARAMETER | 191:(INPUT) | 286:(OUTPUT)
+99:fmax | 670:15 | 703:25 | 787:MHZ
+101:tPLH | 294:Q or a
+404:RL - 400 2, | 531:CL = 15 pF | 752:40
+100:tPHL
+100:tPLH | 293:Qord | 707:14 | 754:25 | 793:ns
+704:20 | 754:40 | 794:ns
+100:IPHL
+69:NOTE 3: Load circuits and voltage waveforms are shown in Section 1.
+403: TEXAS
+363:INSTRUMENTS
+328:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

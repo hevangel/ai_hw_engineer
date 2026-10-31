@@ -1,0 +1,51 @@
+665:SN54LS251SN74LS251,
+357:DATASELECTORS/MULTIPLEXERSWITH3-STATEOUTPUTS
+592:SDLS085  DECEMBER 1972  REVISED MARCH 1988
+101:absolute maximum ratings over operating free-air temperature range (unless otherwise noted)
+136:Supply voltage, Vcc (see Note 1) | 833:7V
+138:Input voltage | 834:7V
+137:Off-state output voltage | 822:5.5V
+137:Operating free-air temperature range:  | 366:SN54LS251 | 764:55Cto125
+366:SN74LS251 | 779:0°℃ to 70°℃
+138:Storage temperature range | 756:-65Cto 150
+101:NOTE 1: Voltage values are with respect to network ground terminal.
+101:recommendedoperatingconditions
+579:SN54LS251 | 706:SN74LS251
+811:UNIT
+556:MIN | 592:NOM | 636:MAX | 685:MIN | 720:NOM | 764:MAX
+111:VCC | 146:Supply voltage | 563:4.5 | 648:5.5 | 684:4.75 | 768:5.25
+111:VIH | 146:High-level input voltage
+109:VIL | 146:Low-level input voltage | 648:0.7 | 774:0.8
+145:High-level output current | 765:2.6 | 814:mA
+111:IOL | 147:Low-level output current | 814:mA
+112:TA | 149:Operating free-air temperature | 555: 55 | 646:125 | 776:70
+100:electrical characteristics over recommended operating free-airtemperature range (unless otherwise noted)
+580:SN54LS251 | 707:SN74LS251
+120:PARAMETER | 328:TEST CONDITIONSt
+560:MIN | 594:TYP*MAX | 687:MIN | 723:TYPMAX
+112:VIK | 217:VCC = MIN, | 306:I, -- 18mA | 640: 1.5 | 765:-1.5
+112:VOH | 216:VCC = MIN, | 307:Vih = 2 V, | 396:VIL = MAX | 564:2.4 | 610:3.4 | 692:2.4
+739:3.1
+216:"OH"MAX
+218:VCC =MIN, | 308:VIH = 2 V, | 466:lOL*4mA | 604:0.25 | 649:0.4 | 729:.0.25 | 777:0.4
+217:VIL = MAX | 465:OL-8mA | 730:0.35 | 775:0.5
+466:Vo*2.7 V | 653:20 | 779:20
+219:VCC = MAX, | 306:VIH=2V | 642:20 | 767:-20
+468:Vo-0.4 V
+219:VcC = MAX, | 306:v,-7V | 650:0.1 | 776:0.1 | 816:mA
+216:VCC"MAX, | 306:V,= 2.7 V | 654:20 | 780:20 | 818:μA
+149:EnableG | 639:0.2 | 767: 0.2
+217:VCC"MAX, | 308:V, = 0.4 | 639: 0.4 | 765: 0.4 | 817:mA
+152:All other
+216:VCC=MAX | 557:~ 30 | 635:130 | 687:30 | 761:-130 | 815:mA
+466:ConditionA | 610:6.1. | 654:10 | 738:6.1 | 780:10
+218:VCC"MAX, | 308:See Note 3 | 816:mA
+470:Condition B | 611:7.1 | 653:12 | 738:7.1 | 780:12
+101:t For conditions shown as MiN or MAX, use the appropriate value specified under recommended operating conditions for the appicab le type.
+100:+ All typicai values are at VCC "S V.TA =25°C.
+100:$ Not more than one output should be shorted at a time, and duration of the short-circuit should not exceed one second.
+196:Enable grounded.
+178:B. Strobe at 4.5 V.
+407:i TEXAS
+402:INSTRUMENTS
+367:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

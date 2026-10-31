@@ -1,0 +1,47 @@
+135:SN54S139,SN74S139A
+134:DUAL 2.LINE TO 4LINE | 312:DECODERS/DEMULTIPLIERS
+131:recommended operating conditions
+574:SN54S139 | 698:SN74S139A
+551:MIN | 588:NOM | 632:MAX | 679:MIN | 716:NOM | 759:MAX
+134:VCC | 198:Suppiy voltage | 555:4.5 | 641:5.5 | 673:4.75 | 761:5.25
+134:HIA | 198:High-lavel input voitage
+199:Low-level input voltage | 640:0.8 | 767:0.8
+199:High-lovel output current | 643:-1 | 810:mA
+132:NOL | 197:Low-level output current | 644:20 | 771:20 | 810:mA
+131:TA | 198:Operating free-air temperature | 549:-55 | 638:125 | 771:70
+129:electrical characteristics over recommended operating free-air temperature range (unless otherwise
+129:noted)
+699:SN54S139
+137:PARAMETER | 386:TEST CONDITIONSt | 696:SN74S139A | 805:UNIT
+677:MIN | 712:TYP* | 757:MAX
+152:VIK | 221:VCC. MIN, | 329:,= -18mA | 757:-1.2
+152:VOH | 220:VcC = MIN, | 331:VIH = 2 V. | 421:VIL = 0.8 V, | 569:SN54S' | 680:2.5 | 722:3.4
+220:JOH=-1mA | 680:2.7 | 722:3.4
+221:VCC - MIN, | 330:VIH - 2 V. | 421:VIL = 0.8 V..
+152:VOL | 765:0.5
+217:lOL = 20 mA
+217:VCC - MAX. | 330:Vi = 5.5 V | 807:mA
+219:VCC. MAX, | 330:Vi= 2.7 V | 769:50
+216:Yce.- max. | 329:VI - 0.5 V | 768:-2 | 807:mA
+147:los! | 219:VCC = MAX | 676:- 40 | 752:-100 | 807:mA
+150:Icc | 215:VcC MAx, | 331:Outputs enobled and open | 727:60 | 769:06 | 807:mA
+126:tFor conditions shown as MIN or MAx, use the appropriate value specified under recommended operating conditions.
+126:+Alltypical valuos are atVcc-5V,TA-25°C.
+126:Not more than one output should be shorted at a time, and duration of the short circuit test should not exceed one second.
+126:switching characteristics, Vcc - 5 V.TA = 25°c (see Note 2)
+696:SN54S139
+130:PARAMETER1 | 245:FROM | 412:LEVELS
+319:(OUTPUT) | 405:OF DELAY | 519:TEST CONDITIONS | 694:SN74S139A
+675:MIN | 716:TYP | 755:MAX
+149:tPLH. | 763:7.5 | 807:ne
+148:tPHL | 245:Binary | 336:Ary | 720:6.5 | 767:10 | 808:ns
+149:tPLH | 767:12 | 807:ns
+491:RL = 280 n, | 581:CL = 15 pF | 807:ns
+147:tPHL | 768:12
+244:Enable | 336:Any | 808:ns
+148:tPHL | 720:6.5 | 768:10 | 808:ns
+132:tPHL | 171:propagation delay time, high-to-low-level output
+122:NOTE 2: Load circuits and voltage weveforma are shown in Section 1.
+453:TEXAS
+409:INSTRUMENTS
+374:POST OFFICE BOX 655012 - DALLAS. TEXA5 76265

@@ -1,0 +1,48 @@
+SN54S138. SN74S138A
+3-LINE TO 8-LINE DECODERS/DEMULTIPLEXERS
+switching characteristics, Vcc - 5 V, TA - 25'C
+SN54S138
+FROM
+LEVELS
+SN74S138A
+TEST CONDITIQNS
+PARAMETERt
+Unit
+(INPut)
+{output?
+OF DELAY
+TYP
+MAX
+4.5
+IPLH
+ns
+Binary
+IPHL
+10.5
+ns
+Any
+7.5
+tPLH
+Select
+12
+ns
+RL = 280 ,
+CL = 15 pf,
+12
+tPHL
+tPLH
+See Note 2
+tph.
+Any
+ns
+Enable
+tPLH
+11
+ns.
+IPhL
+ftPLH = propagation delay time, low-to-high-level output
+tphl = propagation delay time, high-to-low-level output
+NoTe 2: Load circuits and voltage waveforms are shown in Section 1.
+TEXAS
+INSTRUMENTS
+PoST 3Ffice B0x 655012 - DAllAS. TEXAS 7265

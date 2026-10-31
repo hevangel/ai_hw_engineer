@@ -1,0 +1,41 @@
+238:SN54LS02, SN74IS02
+239:QUADRUPLE 2-INPUT POSITIVE-NOR GATES
+238:recommended operating conditions
+1083:$N54LS02 | 1300:Sn74Ls02
+1468:Uni't
+1034:Min | 1098:NoM | 1169:MAX | 1314:NoM | 1387:MAX
+260:Vec | 320:Suppiy voltage | 1044:4.5 | 1189:5.5 | 1251:4.75 | 1392:5.25
+323:High-level input voltage
+325:Low-ievel input voltage | 1189:0.7 | 1404:0.8
+321:High-levei output current | 1169: 0.4 | 1387: 0.4 | 1471:mA
+323:Low-level output currenit | 1471:mA
+321:Operating free-eir temperature | 1031:- 55 | 1184:125 | 1410:70
+237:electrical characteristics over recommended operating free-air termperature range (unless otherwise noted)
+1080:SN54LS02 | 1297:sn74LS02
+257:PAramETEr | 578:TEst conditions t | 1464:unit
+1031:MIN | 1165:MAX | 1249:Niw | 1305:TYP+
+286:VIK | 420:Vec + min. | 577:Ij = - 18 mA | 1164: 1.5 | 1381:- 1.5
+285:VOH | 419:Vce= min. | 577:Vil " max, | 735:IOH = -0.4mA | 1042:2.5 | 1113:3.4 | 1258:2.7 | 1321:3.4
+419:Vce- min, | 578:Vih +2v. | 734:lOL - 4mA | 1101:0.25 | 1187:0.4 | 1308:0.25 | 1400:0.4
+418:Vce - min. | 576:VIh = 2 V, | 731:IOL = 8 mA | 1401:0.5
+419:Vcc- max, | 575:V =7 | 1186:0.1 | 1399:0.1 | 1468:mA
+418:Vcc - MAx. | 577:VI = 2.7 V | 1193:20 | 1407:20 | 1473:HA
+419:Vcc " max. | 576:Vμ = 0.4 V | 1165:- 0.4 | 1380:- 0.4 | 1468:mA
+283:tos$ | 419:VGC - MAX | 1027:- 20 | 1161:- 100 | 1244:- 20 | 1377:- 100 | 1468:mA
+419:Vec = max, | 575:VI=V | 1112:1.6 | 1185:3.2 | 1331:1.6 | 1400:3.2 | 1467:mA
+284:IecL | 419:VCC = MAX, | 575:See Note 2 | 1112:2.B | 1184:5.4 | 1329:2.8 | 1399:5.4 | 1466:mA
+233:t for conditions shown as Min or Max, use the appropriate value specified under recommended pparating conditions.
+229:+ All typicaj values are at Vcc - 5 V, Ta - 25°c
+233:s Nat more than one output should be shorted at a tlme, and the duration ot the shart-circuit should not axcsed one sacond.
+233:NOTE Z: One input at 4.5 V, all athers at GND.
+231:switching characteristics, Vcc = 5 V, TA = 25°c (see note 3)
+448:FROM
+252:PARAMETER | 897:TESt CoNITIons | 1377:MAX
+440:IINPUt | 605:(outputi
+281:tph | 1329:10 | 1404:15 | 1470:ns
+446:A OrB | 837:Rl - 2 ks2. | 1047:CL = 15 pF
+280:tPhL | 1329:10 | 1404:15
+232:NoTE 3: Load circuits and voltage waveforms are shown in Sectipn 1.
+827:TEXAS
+754:INSTRUMENTS
+680:P05T 0FF1CE E0X 655012 - DA-LAS. TEXAS 75265

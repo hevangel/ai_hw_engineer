@@ -1,0 +1,38 @@
+1312:SN5402. SN7402
+940:QUADRUPLE 2-INPUT POSITIVE-NOR GATES
+247:recammended operating conditions
+1092:SN5402 | 1309:SN7402
+1476:uni't
+1041:MIN | 1178:Max | 1323:NoM | 1395:MAX
+329:Suppiy voltage | 1052:4.5 | 1197:5.5 | 1260:4.75 | 1403:5.25
+268:Vih | 332:High-level input voitage
+331:Low-level input voltage | 1199:0.8 | 1415:0.8
+331:High-level output current | 1177:- 0.4 | 1395:- 0.4 | 1481:mA
+332:Low-level output current | 1205:16 | 1421:16 | 1481:mA
+266:Ta. | 332:Operaling free-air temiperature | 1050: 55 | 1193:125 | 1420:70
+1089:SN5402 | 1308:SN7402
+265:PARAMETER | 588:TEST CONDITIONS + | 1476:unit
+1105:TyP+ | 1176:Max | 1257:MIN
+293:Vik | 430:Vcc = min, | 586:}=  12 mA | 1177:- 1.6 | 1392:- 1.5
+294:VoH | 429:Vce - min. | 586:Vil - 0.8 v. | 729:IOH = - D.4 mA | 1051:2.4 | 1126:3.4 | 1268:2.4 | 1342:3.4
+292:VOL | 429:Yec- min. | 587:Vih"2 v. | 727:loL = 16 mA | 1124:0.2 | 1193:0.4 | 1342:0.2 | 1411:0.4
+428:VCC = MAX, | 585:V = 5.5 V
+429:VCC = MAX. | 587:VI = 2.4 V | 1201:40 | 1417:40
+429:Ycc = max, | 586:VI = 0.4 V | 1179:1.6 | 1392:- 1.6 | 1477:mA
+293:1os5 | 428:Vcc = max | 1036:- 20 | 1181:- 55 | 1254:- 18 | 1395:- 55 | 1476:mA
+295:ICCH | 428:VcC = MAx, | 584:Vi-0V | 1201:16 | 1417:16 | 1478:mA
+294:Iccl | 428:Vcc = max. | 584:See Note 2 | 1131:14 | 1200:27 | 1348:14 | 1416:27 | 1478:mA
+237:+ All tvaical values are at ec - 5 v. Ta - 2s'c.
+240:§ Nat more than one output shauld be shorted at a time.
+240:NoTE 2: Qna input at 4.5 V, all others at GND.
+237:switching chatracteristics, Vcc = 5 V, TA = 25°c (see note 3)
+456:From
+259:PARAMETEr | 905:TesT condITIonS | 1252:MIN | 1388:MAX | 1468:unit
+448:(INPUTI | 613:(outPut)
+289:tPLH | 1340:12 | 1413:22
+454:A or B | 836:Rl - 400 s. | 1050:CL = 15 pF
+289:tPHL | 1413:15 | 1482:ns
+236:NoTE 3: Load circuits and valtage waveforms are shown in Section 1.
+842:TExAS
+766:INSTRUMENTS
+689:POST OF=ICE 6OX 655012 · DALLAS. TEXAS 75265

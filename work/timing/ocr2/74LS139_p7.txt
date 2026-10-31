@@ -1,0 +1,29 @@
+95:TEXAS | 901:PACKAGEOPTIONADDENDUM
+98:INSTRUMENTS
+53:www.ti.com | 1162:1-Oct-2026
+54:Orderable part number | 275:Material type | 379:Package | Pins | 490:Package qty I Carrier | 644:RoHS | 732:Lead finish/ | 863:MSL rating/ | 991:Op temp (°C) | 1131:Part marking
+231:(1) | 308:(2) | 655:(8) | 733:Ball material | 865:Peak reflow | 1162:(6)
+762:(4) | 893:(5)
+71:SNJ54LS139AJ.A | 221:Active | 284:Production | 387:CDIP (J) |16 | 522:25| TUBE | 651:ON | 751:SNPB | 852:N/A for Pkg Type | 1001:-55 to 125 | 1137:7600701EA
+1126:SNJ54LS139AJ
+74:SNJ54LS139AW | 221:Active | 284:Production | 386:CFP (W) I16 | 523:25 | TUBE | 651:ON | 751:SNPB | 852:N/A for Pkg Type | 1001:-55 to 125 | 1137:7600701FA
+1122:SNJ54LS139AW
+68:SNJ54LS139AW.A | 221:Active | 284:Production | 386:CFP (W) I16 | 523:25 I TUBE | 651:No | 751:SNPB | 852:N/A for Pkg Type | 1000:-55 to 125 | 1137:7600701FA
+1124:SNJ54LS139AW
+84:SNJ54S139J | 221:Active | 283:Production | 387:CDIP (J) |16 | 523:25 | TUBE | 651:ON | 750:SNPB | 851:N/A for Pkg Type | 1000:-55 to 125 | 1136:7700401EA
+1134:SNJ54S139J
+78:SNJ54S139J.A | 221:Active | 284:Production | 387:CDIP (J) |16 | 523:25 I TUBE | 651:ON | 752:SNPB | 852:N/A for Pkg Type | 1000:-55 to 125 | 1136:7700401EA
+1133:SNJ54S139J
+81:SNJ54S139W | 221:Active | 285:Production | 387:CFP (W) I16 | 523:25 | TUBE | 651:ON | 750:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1136:7700401FA
+1131:SNJ54S139W
+76:SNJ54S139W.A | 220:Active | 284:Production | 386:CFP (W) 116 | 651:No | 751:SNPB | 852:N/A for Pkg Type | 1001:-55 to 125 | 1136:7700401FA
+1130:SNJ54S139W
+29:(1) tatus: For more details on status, se our product lfe cycle.
+29:(2) Material type: When designated, preproduction parts are prototypes/experimental devices, and are not yet approved or released for fullproduction. Testing and final process, including without litationquality assurance
+32:waiver at checkout, and are intended for early internal evaluation purposes only. These items are sold without warranties of any kind.
+29:(3) RoHS values: Yes, No, RoHS Exempt. See the TI RoHS Statement fr aditional information and value definition.
+34:column width.
+33:Refer to the shipping label for the actual reflow temperature that will be used to mount the part to the printed circuit board.
+32:Multiple part markings will be inside parentheses. Only one part marking contained in parentheses and separated by a "~" will appear on a part. If a line is indented then it is a continuation of the previous line and the two
+33:combined represent the entire part marking for that device.
+588:Addendum-Page 3

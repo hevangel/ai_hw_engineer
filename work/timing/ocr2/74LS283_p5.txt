@@ -1,0 +1,59 @@
+688:SN54S283,SN74S283
+459:4-BITBINARY FULLADDERSWITHFASTCARRY
+592:SDLS095AOCTOBER 1976  REVISED MARCH 1988
+106:recommended operating conditions
+492:SN54S283 | 674:SN74S283
+556:MAX | 630:MIN | 684:NOM | 805:UNIT
+448:MIN | 504:NOM | 740:MAX
+128:Supply voltage, Vcc | 454:4.5 | 568:5.5 | 630:4.75 | 745:5.25
+126:High-level output current, OH | 306:Any output except C4 | 808:mA
+305:OutputC4 | 556:-500 | 738:-500 | 810:HA
+129:Low-level output current, IOL | 306:AnyoutputexceptC4 | 572:20 | 754:20
+808:mA
+306:Output C4 | 572:10 | 754:10
+127:Operating free-air temperature, TA | 451:-55 | 567:125 | 754:70
+189:PARAMETER | 469:TESTCONDITIONSt | 629:MIN | 684:TYP | 739:MAX | 801:UNIT
+127:VIH | 175:High-levef input voltage
+125:VIL | 174:Low-level input voltage | 751:0.8
+126:VIK | 175:Input clamp voltage | 431:VcC-MIN, | 520:I1-18mA | 744:-1.2
+128:VOH | 355:SN54S283 | 429:VCC-MIN, | 521:Vih-2v. | 637:2.5 | 694:3.4
+176:High-level output voltage
+355:SN74S283 | 431:Vi. * 0.8 V. | 520:"OH-MAX | 638:2.7 | 694:3.4
+129:VOL | 430:VCC" MIN. | 520:Vih -2v.
+177:Low-level output voltage | 431:VIL * 0.8 V. | 751:0.5
+522:IOL"MAX
+176:Inputcurrentatmaximum
+177:input voltage | 432:VCC * MAX, | 522:Vj = 5.5 V | 809:mA
+176:High-level input current | 432:VcC"MAX, | 522:V, - 2.7 V | 755:50
+177:Low-level input current | 432:VCC -MAX, | 522:V,-0.5 V | 753:-2 | 809:mA
+176:Short-circuit | 284:Any output except C4 | 635:40 | 739:-100
+127:los | 432:VCC *MAX | 807:mA
+176:output currents | 285:Output C4 | 634:20 | 741:100
+523:Alt B low,other
+432:VCC - MAX, | 523:inputs at 4.5V
+177:Supply current | 806:mA
+522:Alt inputs at
+523:4.5 V | 700:95 | 753:160
+109:tFor conditions shown as MiN or MAX, use the sppropriate value specifled under recommended operating conditions for the applicable devict
+116:type.
+110:fAil typical values are at Vcc5 V, TA 25°C.
+112:S Only one output should be shorted at a time, and duration of the short-circuit should not exceed one second.
+109:switching characteristics, Vcc = 5 V, TA = 25°C
+128:PARAMETER | 251:FROM (INPUT) | 359:TO (OUTPUT) | 492:TESTCONDITIONS | 631:MIN | 687:typ | 741:MAX | 803:UNIT
+160:tPLH | 755:18
+378:Any Z | 817:ns
+158:PHL | 470:CL  15 pF, RL * 280 n, | 696:12 | 755:18
+158:IPLH | 470:See Note 3 | 696:12 | 755:18
+268:Aj or Bi | 817:ns
+158:tPHL | 686:11.5 | 755:18
+159:tPLH
+268:CO | 378:C4 | 816:ns
+158:tPHL | 471:CL = 15 pF, RL = 560 n, | 697:7.5 | 755:11
+158:tPlH | 379:C4 | 471:See Note 3 | 696:7.5 | 755:12
+268:Aj or B; | 818:ns
+159:tPHL | 697:8.5 | 757:12
+117:tPHL = propagation delay time, high-to-low-level output
+109:NOTE 3: Load circuits and voltage waveforms are shown in Section 1.
+404:i TEXAS
+401:INSTRUMENTS
+368:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

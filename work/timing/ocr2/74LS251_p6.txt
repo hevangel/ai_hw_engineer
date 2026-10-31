@@ -1,0 +1,47 @@
+68:SN54LS251SN74LS251,(TIM9905),
+69:DATASELECTORS/MULTIPLEXERS | 361:SWITH3-STATEOUTPUTS
+66:SDLS085  DECEMBER 1972  REVISED MARCH 1988
+73:switching characteristics, Vcc = 5 V,TA = 25°C
+113:PARAMETERT | 267:FROM | 410:TO
+262:(INPUT) | 517:TEST CONDITIONS | 659:MIN | 698:TYP | 736:MAX | 773:UNIT
+133:tPLH | 257:A, B, or C | 744:45
+131:tPHL | 261:(4 levels) | 703:28 | 744:45 | 783:ns
+132:tPLH | 256:A, B, or C | 704:20 . | 743:33
+132:tPHL | 262:(3 levels) | 704:21 | 744:33
+133:PLH | 267:Any D | 706:17 | 745:28
+131:PHL | 531:CL = 15 pF, | 706:18 | 744:28 | 782:ns
+133:tPLH | 532:RL = 2 kD, | 704:10 | 745:15,
+266:Any D | 533:See Note 2 | 783:ns
+132:tPHL | 745:15
+131:tPZH | 704:30 | 743:45
+782:ns
+132:tPZL | 705:26 | 746:40
+132:tpZH | 705:17 | 746:27
+783:ns
+132:tpZL | 705:24 | 746:40
+132:tPHZ | 704:30 | 745:45
+534:CL = 5 pF, | 704:15 | 745:25 | 783:ns
+134:tpLZ | 534:RL = 2 k0,
+133:tPHZ | 704:37 | 743:55
+534:See Note 2 | 783:ns
+133:tPLZ | 706:15 | 745:25
+74:ItPLH = | 122:Propagation delay time, low-to-high-level output
+77:tPHL = Propagation delay time, high-to-low-level output
+76:tPZH = Output enable time to high level
+77:tpZL = Output enable time to low level
+75:tPHZ -Output disable time from high level
+79:tPLZ = Output disable time from low level
+73:NOTE 2: Load circuits and voltage waveforms are shown in Section 1.
+71:schematics of inputs and outputs
+119:EQUIVALENT OF G INPUT | 331:EQUIVALENT OFALLOTHER INPUTS | 600:TYPICAL OF BOTH OUTPUTS
+384:VCC | 734:VCC
+443:Req
+141:VCC | 641:100S2NOM
+219:10kS2NOM
+372:INPUT
+130:INPUT
+375:A.B.C:Req20knNOM
+353:DO thru D7: Req -17 kn NOM
+403: TEXAS
+365:INSTRUMENTS
+328:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

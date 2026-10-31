@@ -1,0 +1,57 @@
+69:SN54LS259B,SN74LS259B
+65:8-BIT ADDRESSABLE LATCHES
+65:SDLS086DECEMBER 1983REVISED MARCH 1988
+74:recommended operating conditions
+546:SN54LS259B | 670:SN74LS259B
+528:MIN | 564:NOM | 606:MAX | 653:MIN | 690:NOM | 731:MAX
+84:VcC | 119:Supply voltage | 534:4.5 | 617:5.5 | 653:4.75 | 737:5.25
+119:High-level input voltage
+82:VIL | 121:Low-level input voltage | 618:0.7 | 744:0.8
+83:IOH | 120:High-level output current | 607:- 0.4 | 731: 0.4 | 783:mA
+121:Low-level output current | 783:mA
+348:Glow | 538:17 | 662:17
+83:tw | 119:Pulse duration | 348:CLRlow | 537:10 | 663:10 | 783:. ns
+347:Data before Gt | 537:20 | 662:20
+83:tsu | 118:Set up time | 348:Addressbefore Gt | 538:17 | 663:17
+347:Address beforeG!
+348:Data after Gt
+85:th | 121:Hold time | 347:Address afterGt | 787:ns
+84:TA | 120:Operating free-air temperature | 527:-55 | 616:125 | 748:70
+74:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+544:SN54LS259B | 669:SN74LS259B
+83:PARAMETER | 285:TEST CONDITIONSt | 780:JINN
+528:MIN | 558:TYP | 606:MAX | 653:MIN | 687:TYP | 731:MAX
+105:VIK | 177:VCC = MIN, | 265:II= - 18mA | 603:-1.5 | 730:- 1.5
+105:VOH | 177:VCC = MIN, | 265:VIH * 2 V, | 355:VIL - MAX,
+533:25 | 575:3.4 | 658:2.7 | 701:3.4
+177:IOH=-0.4mA
+105:VOL | 177:VcC * MIN, | 266:Vih =2 V. | 440:IOL=4mA | 569:0.25 | 616:0.4 | 695:0.25 | 742:0.4
+176:VIL - MAX | 441:NOL=8mA | 694:0.35
+176:VCC =MAX, | 265:V,-7V | 616:0.1 | 742:0.1 | 783:mA
+176:VCC=MAX, | 265:V, -2.7 V | 619:20 | 745:20
+177:VCC = MAX, | 265:V, - 0.4 V | 605:- 0.4 | 729:- 0.4 | 782:mA
+176:VCC-MAX | 526: 20 | 602:-100 | 652: 20 | 727:- 100 | 782:mA
+176:VCC=MAX, | 266:See Note 2 | 579:27 | 618:36 | 705:22 | 746:36 | 782:mA
+73:fFor conditions shown as MiN or MAX, use the appropriate value specifled under recommended operating conditions
+72:+ All typical values are at Vcc = 5 V, TA = 25°c.
+73:g Not more than one output should be shorted at a time, and duration short-circuit should not exceed one second.
+72:NOTE 2: ICc is measured with the inputs grounded and the outputs open.
+71:switching characteristics, Vcc = 5 V,TA =25°c
+195:FROM
+83:PARAMETER | 439:TEST CONDITIONS | 652:MIN | 688:TYP | 731:MAX
+190:(INPUT) | 284:(OUTPUT)
+99:tPHL | 192:CLR | 294:Any Q | 698:12 | 746:18 | 786:n5
+97:tPLH. | 191:Data | 294:Any Q | 698:19 | 745:30
+697:13 | 745:20 | 786:ns
+98:tPHL | 400:CL = 15 pF, | 527:RL=2 kn,
+98:tPLH | 293:Any Q | 697:17 | 745:27
+98:tPHL | 192:Address | 400:See Note 3 | 697:14 | 745:20 | 786:ns
+97:tPLH | 697:15 | 745:24
+293:Any Q | 786:ns
+97:tPHL | 699:15 | 745:24
+70:tPLH = propagation delay time, low-to-high-level output
+71:tPHL | 98:= propagation delay time, high-to-low-level output
+70:NOTE 3: Load circuits and voltage waveforms are shown in Section 1.
+403: TEXAS
+364:INSTRUMENTS
+328:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

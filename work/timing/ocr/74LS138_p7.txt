@@ -1,0 +1,201 @@
+PACKAGE OPTION ADDENDUM
+TEXAS
+INSTRUMENTS
+www.ti.com
+30-Sep-2026
+PACKAGING INFORMATION
+MSL rating/
+Material type
+Package qty I Carrier
+Op temp (°C)
+Orderable part number
+Status
+Package I Pins
+RoHS
+Lead finish/
+Part marking
+Ball material
+(1)
+(2)
+(3)
+Peak reflow
+(6)
+(4)
+(5)
+Active
+No
+LCCC (FK) 120
+SNPB
+76005012A
+Production
+55 I TUBE
+N/A for Pkg Type
+-55 to 125
+76005012A
+SNJ54LS
+138FK
+Production
+25 I TUBE
+No
+7600501EA
+Active
+SNPB
+N/A for Pkg Type
+-55 to 125
+CDIP (J) 1 16
+7600501EA
+SNJ54LS138J
+No
+SNPB
+Active
+CDIP (J) 116
+7600501EA
+Production
+25 I TUBE
+N/A for Pkg Type
+-55 to 125
+7600501EA
+SNJ54LS138J
+Production
+No
+SNPB
+7600501FA
+Active
+25 I TUBE
+N/A for Pkg Type
+CFP (W) 116
+-55 to 125
+7600501FA
+SNJ54LS138W
+SNPB
+Active
+No
+7600501FA
+CFP (W) 116
+25 I TUBE
+Production
+N/A for Pkg Type
+-55 to 125
+7600501FA
+SNJ54LS138W
+Active
+Production
+No
+CDIP (J) 116
+25 I TUBE
+7604101EA
+SNPB
+N/A for Pkg Type
+-55 to 125
+7604101EA
+SNJ54S138J
+CDIP (J) 16
+No
+Production
+25 I TUBE
+SNPB
+N/A for Pkg Type
+7604101EA
+Active
+-55 to 125
+7604101EA
+SNJ54S138J
+No
+SNPB
+Active
+CFP (W) 116
+7604101FA
+Production
+25 / TUBE
+N/A for Pkg Type
+-55 to 125
+7604101FA
+SNJ54S138W
+25 I TUBE
+SNPB
+7604101FA
+Active
+Production
+N/A for Pkg Type
+-55 to 125
+CFP (W) 116
+7604101FA
+SNJ54S138W
+No
+SNPB
+Active
+CDIP (J) I16
+25 I TUBE
+JM38510/07701BEA
+Production
+N/A for Pkg Type
+-55to 125
+JM38510/
+07701BEA
+Active
+Production
+No
+CDIP (J) 116
+25 I TUBE
+SNPB
+JM38510/07701BEA
+N/A for Pkg Type
+-55 to 125
+JM38510/
+07701BEA
+Production
+CDIP (J) 116
+SNPB
+25 I TUBE
+No
+Active
+N/A for Pkg Type
+JM38510/07701BEA.A
+-55 to 125
+JM38510/
+07701BEA
+Active
+No
+SNPB
+CDIP (J) 116
+JM38510/07701BEA.A
+Production
+25 I TUBE
+N/A for Pkg Type
+-55 to 125
+JM38510/
+07701BEA
+Production
+No
+SNPB
+Active
+25 |TUBE
+N/A for Pkg Type
+-55 to 125
+CFP (W) 116
+JM38510/07701BFA
+JM38510/
+07701BFA
+Active
+Production
+No
+CFP (W) I16
+SNPB
+25 I TUBE
+N/A for Pkg Type
+JM38510/07701BFA
+-55 to 125
+JM38510/
+07701BFA
+Production
+CFP (W) 116
+No
+25 I TUBE
+SNPB
+N/A for Pkg Type
+-55 to 125
+Active
+JM38510/07701BFA.A
+JM38510/
+07701BFA
+Addendum-Page 1

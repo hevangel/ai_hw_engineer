@@ -1,0 +1,39 @@
+901:PACKAGEOPTIONADDENDUM
+98:INSTRUMENTS
+54:www.ti.com | 1154:23-Oct-2026
+54:Orderable part number | 275:Material type | 379:Package | Pins | 490:Package qty I Carrier | 644:RoHS | 732:Lead finish/ | 862:MSL rating/ | 991:Op temp (°C) | 1131:Part marking
+231:(1) | 308:(2) | 655:(5) | 733:Ball material | 865:Peak reflow | 1163:(6)
+762:(4) | 893:(5)
+67:M38510/30401BCA | 221:Active | 284:Production | 387:CDIP (J) I14 | 523:25 | TUBE | 651:ON | 750:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1140:JM38510/
+1139:30401BCA
+95:SN5451J | 221:Active | 284:Production | 387:CDIP (J) 114 | 523:25 / TUBE | 651:No | 752:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1144:SN5451J
+95:SN5451J | 221:Active | 285:Production | 387:CDIP (J) /14 | 523:25 / TUBE | 651:No | 752:SNPB | 851:N/A for Pkg Type | 1002:-55 to 125 | 1144:SN5451J
+86:SN5451J.A | 221:Active | 284:Production | 387:CDIP (J) 114 | 523:25 | TUBE | 651:No | 750:SNPB | 853:N/A for Pkg Type | 1001:-55 to 125 | 1143:SN5451J
+86:SN5451J.A | 221:Active | 284:Production | 387:CDIP (J) 114 | 523:25 / TUBE | 651:No | 750:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1144:SN5451J
+86:SN54LS51J | 221:Active | 284:Production | 387:CDIP (J) |14 | 523:25 | TUBE | 651:No | 751:SNPB | 853:N/A for Pkg Type | 1001:-55 to 125 | 1136:SN54LS51J
+86:SN54LS51J | 221:Active | 285:Production | 387:CDIP (J) 114 | 524:25 |TUBE | 651:No | 750:SNPB | 851:N/A for Pkg Type | 1002:-55 to 125 | 1136:SN54LS51J
+80:SN54LS51J.A | 221:Active | 283:Production | 387:CDIP (J) 114 | 523:25 / TUBE | 651:No | 750:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1137:SN54LS51J
+81:SN54LS51J.A | 221:Active | 284:Production | 387:CDIP (J) |14 | 523:25 | TUBE | 651:No | 752:SNPB | 851:N/A for Pkg Type | 1000:-55 to 125 | 1136:SN54LS51J
+90:SN54S51J | 221:Active | 284:Production | 388:CDIP (J) 114 | 523:25 / TUBE | 651:No | 750:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1140:SN54S51J
+84:SN54S51J.A | 221:Active | 284:Production | 387:CDIP (J) /14 | 523:25 / TUBE | 651:ON | 752:SNPB | 851:N/A for Pkg Type | 1000:-55 to 125 | 1141:SN54S51J
+84:SN74LS51D | 214:Obsolete | 284:Production | 385:SOIC (D) |14 | 750:Call TI | 880:Call TI | 1007:0 to 70 | 1152:LS51
+85:SN74LS51D | 214:Obsolete | 285:Production | 385:SOIC (D) / 14 | 750:Call TI | 880:Call I | 1007:O to 70 | 1153:LS51
+80:SN74LS51DR | 221:Active | 284:Production | 386:SOIC (D) |14 | 499:2500|LARGE T&R | 649:Yes | 745:NIPDAU | 841:Level-1-260C-UNLIM | 1007:O to 70 | 1153:LS51
+81:SN74LS51DR | 221:Active | 286:Production | 386:SOIC (D) |14 | 499:2500|LARGE T&R | 649:Yes | 745:NIPDAU | 841:Level-1-260C-UNLIM | 1008:O to 70 | 1153:LS51
+75:SN74LS51DR.A | 221:Active | 284:Production | 385:SOIC (D) /14 | 500:2500LARGE T&R | 649:Yes | 745:NIPDAU | 841:Level-1-260C-UNLIM | 1007:O to 70 | 1153:LS51
+76:SN74LS51DR.A | 221:Active | 284:Production | 385:SOIC (D) | 14 | 500:2500|LARGE T&R | 649:Yes | 745:NIPDAU | 841:Level-1-260C-UNLIM | 1008:O to 70 | 1153:LS51
+85:SN74LS51N | 221:Active | 284:Production | 386:PDIP (N) 114 | 523:25 / TUBE | 649:Yes | 745:NIPDAU | 853:N/A for Pkg Type | 1008:0 to 70 | 1135:SN74LS51N
+85:SN74LS51N | 221:Active | 283:Production | 385:PDIP (N) /14 | 522:25 | TUBE | 649:Yes | 744:NIPDAU | 852:N/A for Pkg Type | 1007:O to 70 | 1136:SN74LS51N
+79:SN74LS51N.A | 221:Active | 284:Production | 385:PDIP (N) |14 | 523:25 | TUBE | 649:Yes | 745:NIPDAU | 853:N/A for Pkg Type | 1007:O to 70 | 1134:SN74LS51N
+79:SN74LS51N.A | 221:Active | 284:Production | 386:PDIP (N) |14 | 524:25|TUBE | 649:Yes | 745:NIPDAU | 851:N/A for Pkg Type | 1007:O to 70 | 1135:SN74LS51N
+77:SN74LS51NSR | 221:Active | 285:Production | 383:SOP (NS) |14 | 499:2000|LARGE T&R | 649:Yes | 745:NIPDAU | 841:Level-1-260C-UNLIM | 1007:O to 70 | 1147:74LS51
+78:SN74LS51NSR | 221:Active | 284:Production | 384:SOP (NS) /14 | 499:2000|LARGE T&R | 649:Yes | 745:NIPDAU | 841:Level-1-260C-UNLIM | 1007:O to 70 | 1146:74LS51
+71:SN74LS51NSR.A | 221:Active | 284:Production | 383:SOP (NS) /14 | 499:2000|LARGE T&R | 649:Yes | 745:NIPDAU | 841:Level-1-260C-UNLIM | 1008:0 to 70 | 1147:74LS51
+71:SN74LS51NSR.A | 221:Active | 284:Production | 383:SOP (NS) |14 | 499:2000|LARGE T&R | 649:Yes | 745:NIPDAU | 841:Level-1-260C-UNLIM | 1007:O to 70 | 1148:74LS51
+88:SN74S51D | 225:Last | 284:Production | 385:SOIC (D) I 14 | 523:50 | TUBE | 649:Yes | 744:NIPDAU | 841:Level-1-260C-UNLIM | 1007:O to 70 | 1157:$51
+211:Time Buy
+88:SN74S51D | 225:Last | 285:Production | 386:SOIC (D) I14 | 523:50 | TUBE | 649:Yes | 745:NIPDAU | 841:Level-1-260C-UNLIM | 1008:0 to 70 | 1157:S51
+211:Time Buy
+83:SN74S51D.A | 225:Last | 284:Production | 386:SOIC (D) |14 | 522:50 |TUBE | 648:Yes | 744:NIPDAU | 841:Level-1-260C-UNLIM | 1007:O to 70 | 1157:$51
+212:Time Buy
+587:Addendum-Page 2

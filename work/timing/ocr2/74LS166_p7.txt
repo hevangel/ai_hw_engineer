@@ -1,0 +1,46 @@
+446:SN54166,SN54LS166A,SN74166,SN74LS166A
+504:PARALLEL-LOAD 8-BIT SHIFT REGISTERS
+297:PARAMETERMEASUREMENTINFORMATION
+163:TEST
+159:POINT
+132:FROM | 530:TEST TABLE FOR SYNCHRONOUS INPUTS
+132:OUTPUT
+132:UNDER | 507:DATA INPUT | 607:SHIFT/LOAD | 700:OUTPUT TESTED
+132:TEST | 267:(See Note D | 515:FOR TEST | 710:(SEE NOTE F)
+198:CL=15pF | 637:ov | 719:OH at tn+1
+213:(See Note C) | 529:Serial
+632:4.5 V | 719:OH at tn+8
+530:Input
+182:LOAD FOR OUTPUT UNDER TEST
+326:"w(clear) | 737:3V
+166:CLEAR INPUT | 277:Vref | 386:Vref
+465:tn+1 | 624:tn+1
+515:(See Note G)
+592:tn | 834:Devices
+260:Vref | 371:Vref | 734:3V
+166:CLOCK INPUT | 472:Vref | 633:Vref
+285:± tw(clock) | 421:tsu | 497:th
+734:3V
+182:INPUT | 432:Vref | 488:Vref | 649:Vref | 836:TTL
+181:(SEE TEST
+181:TABLE)
+260:tpHL | 602:tPHL
+251:(clear-Q) | 451: tPLH b | 615:(CLK-Q)
+459:(CLK-Q)l) | 732:VOH
+353:Vref | 512:Vref | 664:Vref
+730:VOL
+392:VOLTAGEWAVEFORMS
+105:NOTE: A. Al pulse generators have thefllowing characteristics: Zout50 for166,7ns and t7ns;for'LS166A,15 ns and
+156:ty ≤6 ns.
+138:B. The dock puise has the folowing characteristics: twiclock) ≤20 ns and PRR - 1 MHz. The dear pulse hasthefllowing
+139:C. C, includes probe and jig capacitance.
+138:D. All diodes are 1N3064, 1N916, or equivalent.
+138:E. A cler pulse is applied prior to each test.
+138:F.Propagation delay times (tpLH and tHL)are measured at tn+1.Propershifting of data is verified at tn+8 with afunctional test.
+140:G. tn = bit time before clocking transition
+153:tn+8 bit time afereight clocking transitions
+138:H. For *166 Vref = 1.5 V; for 'LS166A Vref = 1.3 V.
+431:FIGURE1
+422:TEXAS
+380:INSTRUMENTS | 801:2-535
+340:POST OFFICE BOX 655012 · DALLAS. TEXAS 75265

@@ -1,0 +1,9 @@
+135:TEXAS | 481:PACKAGEMATERIALSINFORMATION
+137:INSTRUMENTS
+93:www.ti.com | 811:10-Aug-2026
+99:TAPE AND REEL BOX DIMENSIONS
+93:*All dimensions are nominal
+149:Device | 257:Package Type | 358:Package Drawing | 470:Pins | 524:SPQ | 576:Length (mm) | 666:Width (mm) | 750:Height (mm)
+131:SN74LS11DR | 284:SOIC | 477:14 | 523:2500 | 597:353.0 | 684:353.0 | 773:32.0
+128:SN74LS11NSR | 286:SOP | 399:NS | 477:14 | 523:2000 | 597:353.0 | 684:353.0 | 773:32.0
+429:Pack Materials-Page 2

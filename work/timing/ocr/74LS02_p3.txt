@@ -1,0 +1,119 @@
+SN5402. SN7402
+QUADRUPLE 2-INPUT POSITIVE-NOR GATES
+recammended operating conditions
+SN5402
+SN7402
+uni't
+Max
+MIN
+NoM
+MAX
+5.5
+4.75
+4.5
+5.25
+Suppiy voltage
+Vih
+High-level input voitage
+0.8
+0.8
+Low-level input voltage
+- 0.4
+- 0.4
+High-level output current
+mA
+16
+16
+Low-level output current
+mA
+70
+125
+ 55
+Ta.
+Operaling free-air temiperature
+SN5402
+SN7402
+TEST CONDITIONS +
+PARAMETER
+unit
+TyP+
+Max
+MIN
+Vik
+- 1.6
+- 1.5
+Vcc = min,
+}=  12 mA
+VoH
+Vce - min.
+Vil - 0.8 v.
+2.4
+2.4
+3.4
+3.4
+IOH = - D.4 mA
+VOL
+Vih"2 v.
+0.2
+0.4
+0.2
+0.4
+Yec- min.
+loL = 16 mA
+VCC = MAX,
+V = 5.5 V
+40
+VCC = MAX.
+VI = 2.4 V
+40
+1.6
+- 1.6
+VI = 0.4 V
+Ycc = max,
+mA
+- 55
+- 18
+- 55
+1os5
+Vcc = max
+- 20
+mA
+ICCH
+Vi-0V
+16
+VcC = MAx,
+16
+mA
+14
+Iccl
+Vcc = max.
+See Note 2
+27
+14
+27
+mA
++ All tvaical values are at ec - 5 v. Ta - 2s'c.
+§ Nat more than one output shauld be shorted at a time.
+NoTE 2: Qna input at 4.5 V, all others at GND.
+switching chatracteristics, Vcc = 5 V, TA = 25°c (see note 3)
+From
+MIN
+MAX
+TesT condITIonS
+PARAMETEr
+unit
+(INPUTI
+(outPut)
+12
+tPLH
+22
+A or B
+Rl - 400 s.
+CL = 15 pF
+15
+tPHL
+ns
+NoTE 3: Load circuits and valtage waveforms are shown in Section 1.
+TExAS
+INSTRUMENTS
+POST OF=ICE 6OX 655012 · DALLAS. TEXAS 75265

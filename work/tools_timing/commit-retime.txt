@@ -1,0 +1,32 @@
+system/apple_ii: sample socket reads at the phi2 falling edge
+
+The directed socket test sampled read data 470 ns after the phi2 rising
+edge, 18 ns before the phase ends. With per-part datasheet delays the DRAM
+drives the bus at +469 ns (typical) and +472 ns (maximum), so that fixed
+sample landed 1-3 ns inside the valid window: the maximum-delay run failed
+on a timing coincidence in the harness, not on a board fault.
+
+Sample at the phi2 falling edge instead, where a 6502 latches read data,
+and print how long each DRAM bank took to drive the bus. Phi2 high lasts
+488.9 ns, so the measured margin is 60 ns at legacy delays, 20 ns at
+typical and 17 ns at maximum.
+
+With the socket result now meaningful at maximum delays, run_timing_sim.sh
+covers that test at both typical and maximum instead of typical only.
+
+The pixel-exact frame comparison stays on the legacy board, and the reason
+is measured rather than assumed: at datasheet delays composite_sync is
+produced after a deeper gate chain than the counter outputs the oracle
+derives it from, so a same-instant comparison fails, and no constant dot
+shift reconciles them (best agreement is 70% of the frame across shifts of
+-4..+4 samples). A delay-faithful video check needs an edge-time comparison
+rather than a per-dot sample.
+
+Verification (Icarus 12.0-3, apple-ii image), same authored CPU and
+unmodified Monitor ROM throughout:
+- run_timing_sim.sh passes: socket wiring and Monitor boot at typical and
+  maximum delays, measured arrivals +469 ns and +472 ns.
+- run_board_sim.sh with SIMULATOR=iverilog passes on the legacy board,
+  arrivals +429 ns.
+- tb_rev0_boot.sv is unchanged, so the legacy frame gate and the nine
+  video diagnostics are unaffected.

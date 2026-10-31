@@ -1,0 +1,38 @@
+707:SN5432.SN7432
+518:QUADRUPLE 2-INPUT POSITIVE-OR GATES
+134:recommended operating conditions
+590:SN5432 | 707:SN7432
+638:MAX | 680:MIN | 713:NOM | 754:MAX | 799:UNIT
+562:MIN | 596:NOM
+569:4.5 | 649:5.5 | 680:4.75 | 758:5.25
+146:YIH | 178:Hgh-level input voitege
+179:Low-level imput voltage | 648:0.8 | 765:0.8
+146:IOH | 177:High-level output current | 638:-0.8 | 755:-0.8 | 802:mA
+179:Low-level output current | 651:16 | 767:16 | 803:mA
+146:TA | 179:Operating fres-air tempersture | 562:55 | 646:125 | 767:70
+134:electrical characteristics over recommended operating free-air temperature range (untess otherwise noted)
+591:SN5432 | 708:SN7432
+147:PARAMETER | 322:TESTCONDITIONSt | 638:MAX | 754:MAX | 802:UNIT
+566:MIN | 683:MIN | 717:TYP
+163:VIK | 236:VCC=MiN. | 321:↑=-12 mA | 640:-1.5 | 763:1.5
+233:VCCMIN. | 320:AE-HIA | 405:IOH-0.BmA | 570:2.4 | 611:3.4 | 687:2.4 | 726:3.4
+162:VOL | 235:VCC-MIN. | 320:VIL =0.8 V. | 403:lOL=16mA | 611:0.2 | 649:0.4 | 727:0.2 | 766:0.4
+234:VCC-MAX | 319:VI-5.5V | 803:mA
+235:VCC - MAX, | 319:A2-1A | 651:40 | 768:40
+234:VCC-MAX, | 320:VI= 0.4 V | 647:1.6 | 755:-1.6 | 801:mA
+235:VCC-MAX | 563:- 20 | 642:-55 | 680:-18 | 757:- 65 | 802:mA
+162:ICCH | 236:VCC-MAX, | 319:See Note ? | 616:15 | 653:22 | 731:15 | 769:22 | 802:mA
+163:IccL | 236:VCC"MAX, | 318:V,-0V | 653:38 | 730:23 | 769:38 | 803:mA
+134:t For conditions shown as MIN or MAX. use the aDDropriate value specified under recommended operating conditions.
+135: All typical values are at Vcc = 5 V. Ta = 25°C.
+134:S Not more than one output should be shorted at a time.
+135:NOTE 2: One input at 4.5 V, all others at GND.
+134:switching characteristics, Vcc=5V, TA=25°C (see note 3)
+250:FROM | 352:TO
+143:PARAMETER | 246:(INPUT) | 333:(OUTPUT) | 480:TEST CONDITIONS | 680:MIN | 753:MAX
+139:tPLH | 722:10 | 765:15
+136:tPHL | 249:A or B | 443:RL= 400 2 | 562:CL = 15 pF | 722:14 | 766:22
+134:NOTE 3: Load circuit5 and voltege weveformg are shown in Section 1.
+460:TEXAS
+418:INSTRUMENTS
+383:POST OFFICE BOX 655012 + DALLAS, TEXAS 75265

@@ -1,0 +1,41 @@
+696:SN54S20,SN74S20
+555:DUAL4-INPUTPOSITIVE-NANDGATES
+132:recommended operating conditions
+593:SN54S20 | 715:SN74S20
+567:MIN | 603:NOM | 644:MAX | 688:MIN | 722:NOM | 764:MAX
+141:YCC | 573:4.5 | 654:5.5 | 687:4.75 | 767:5.25
+140:VIH | 173:High-level input voitage
+173:Low-levei input voltage | 654:0.8 | 772:0.8
+174:High-level output current | 810:mA
+138:IOL | 173:Low-ievel output current | 657:20 | 775:20 | 810:mA
+140:TA | 174:Operating free-air temperature | 649:125 | 777:70 | 812:°℃
+128:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+596:SN54S20 | 716:SN74S20
+140:PARAMETER | 317:TEST CONDITIONS | 808:UNIT
+567:MIN | 602:TYP+ | 637:MAX | 685:NIW | 722:TYP+ | 763:MAX
+231:VCC"MIN, | 317:If = 18 mA | 647:-1.2 | 767:-1.2
+156:VOH | 228:VCC=MIN, | 317:VIL - D.8 V. | 401:IOH=-1mA | 574:2.5 | 616:3.4 | 694:2.7 | 732:3.4
+155:VOL | 230:YCC - MIN. | 316:Yih 2 y. | 401:loL~20mA | 654:0.5 | 773:0.5
+230:VcC = MAX, | 315:V,=55V
+230:Vcc *MAX. | 656:50 | 776:50
+230:VCC - MAX, | 314:V, = 0.5 v | 655:-2 | 805:mA
+156:los5 | 230:VcC=MAX | 568:-40 | 644:-100 | 689:40 | 762:-100 | 807:mA
+155:ICCH | 226:VCC-MAx. | 807:mA
+154:*CCL | 229:YcC - MAX. | 315:V, = 4.5 V | 617:10 | 655:18 | 737:10 | 776:18 | 805:mA
+124:t For conditions shown es MiN or MAx,use the appropriate value speeified under recommended operating conditions.
+123:5 Not more than one output should be shorted at a time, and the duration of the short-circuit should not exceed one second.
+124:switching characteristics, Vcc = 5 V, TA =25°c (see note 2)
+248:FROM | 352:TO
+139:PARAMETER | 498:TEST CONDITIONS | 687:MIN | 724:TYP | 764:MAX | 809:UNIT
+245:(INPUT)
+155:tPLH | 774:4.5 | 813:ns
+461:RL - 280 2. | 578:CL * 15 pF
+156:tPHL
+236:A, B, C or D
+155:tPLH | 734:4.5 | 812:ns
+460:RL ~ 280 n2, | 577:CL = 50 pF
+154:tPHL | 812:ns
+127:NOTE 2: Load circuits and voftage waveforms are shown in Section 1.
+454:TEXAS
+413:INSTRUMENTS
+374:POST OFFICE BOX 655012 · OALLAS. TEXAS 75265

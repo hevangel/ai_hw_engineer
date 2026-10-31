@@ -1,0 +1,46 @@
+565:SN54194,SN54LS194A,SN54S194,
+570:SN74194,SN74LS194A,SN74S194
+441:4-BITBIDIRECTIONALUNIVERSAL SHIFTREGISTERS
+318:PARAMETERMEASUREMENTINFORMATION
+519:TEST TABLE FOR SYNCHRONOUS INPUTS
+322:VcC | 512:DATA INPUT | 600:S1 | 667:OUTPUTTESTED
+519:FOR TEST | 679:(SEE NOTE E)
+180:FROM | 592:4.5V | 633:4.5 V | 688:QA at tn+1
+168:OUTPUT | 592:4.5V | 632:4.5 V | 689:Og at tn+1
+174:UNDER | 332:(See Note C) | 593:4.5V | 630:4.5V | 688:Qc at tn+1
+187:TEST | 268:CL=15F | 592:4.5V | 630:4.5 v | 688:Qp at In+1
+276:(See Note B) | 513:L Serial Input | 593:4.5V | 687:QA at tnt4
+512:R Serial Enput | 633:4.5 V | 688:Oo at tn+4
+199:LOAD FOR OUTPUT UNDER TEST
+405:fw(clear) | 785:3V
+156:CLEAR | 277:Vref | 393:VYret
+420:tsu | 477:i'n+1 | 659:tn+1
+536:ISee Note F)
+785:3V
+157:CLOCK | 257:Vref | 379:Vref | 492:Vref | 668:Vref
+289:twtclocki | 400:tsu
+785:3V
+156:DATA | 396:Vref | 506:Vret | 581:Vref | 689:Vret
+156:INPUT
+157:ISEE TEST
+159:TABLE)
+709:tPHL
+259:IPHL
+788:VOH
+157:OUTPUT Q | 359:Vref | 703:Vref
+788:VOL
+419:VOLTAGEWAVEFORMS
+127:NOTES: | 175:A. The clockpulse enerator has thefollowing characteristies: Zout 50 and Pan1mhz, For'194.t7ns and t 7ns.
+196:For'LS194A.t,5.15 ns and tf ≤6ns.For'S194.t,$2.5ns and tf ≤2.5ns.When testing fmax.varyPRR.
+183:B. | 197:Cu includes probe and jig caacitance.
+184:C. | 197:Ail diodes are 1N3064 or 1N915.
+197:A clear pulse is apptied prior to each test.
+183:E. | 194:For '104 and 'S194, Vref= 1.5 V: for 'LS194A. Vref =1.3 V.
+179:F.Propagation delay times (tpLH and tpHL)aremeasured at Tn1.Propershiting ofdate is verifiedat tnt4 withafunctional test.
+180:G. tn = bit time before clocking transition.
+197:In+1 = bit time after one clocking transition.
+198:tnt4 = bit time ater four clocking transitions.
+405:FIGURE 1-SWITCHING TIMES
+457:TEXAS
+414:INSTRUMENTS
+378:POST OFFICE 5OX 6550*2 - DALLAS. TEXAS 75265

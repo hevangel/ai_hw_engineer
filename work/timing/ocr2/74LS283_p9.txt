@@ -1,0 +1,27 @@
+133:TEXAS | 481:PACKAGEMATERIALSINFORMATION
+137:INSTRUMENTS
+93:www.ti.com | 811:10-Aug-2026
+95:TAPEANDREELINFORMATION
+131:REEL DIMENSIONS | 521:TAPE DIMENSIONS
+472:立个KO | 524:个PI→
+655:BO
+308:Reel
+295:Diameter
+489:Cavity | 552:业A0不
+396:A0 | 422:Dimension designed to accommodate the component width
+394:B0 | 422:Dimension designed to accommodate the component length
+394:K0 | 422:Dimension designed to accommodate the component thickness
+422:Overall width of the carrier tape
+394:P1 | 421:Pitch between successive cavity centers
+301:Reel Width (W1)
+252:QUADRANT ASSIGNMENTS FOR PIN 1 ORIENTATION IN TAPE
+572: Sprocket Holes
+431:Q1 1 Q2
+434:Q3 | 460:to | 555:User Direction of Feed
+390:Pocket Quadrants
+95:*Alldimensions are nominal
+148:Device | 245:Package | 300:Package | 357:Pins | 402:SPQ | 458:Reel | 516:Reel | 570:A0 | 614:BO | 658:K0 | 701:P1 | 790:Pin1
+253:Type | 300:Drawing | 446:Diameter | 510:Width | 563:(ww) | 606:(mm) | 650:(mm) | 693:(ww) | 736:(ww) | 777:Quadrant
+457:(mm) | 504:W1 (mm)
+121:SN74LS283NSR | 256:SOP | 315:NS | 364:16 | 402:2000 | 456:330.0 | 517:16.4 | 569:8.1 | 610:10.4 | 696:12.0 | 739:16.0 | 796:Q1
+429:Pack Materials-Page 1

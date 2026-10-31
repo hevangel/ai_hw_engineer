@@ -1,0 +1,211 @@
+PACKAGE OPTION ADDENDUM
+TEXAS
+INSTRUMENTS
+www.ti.com
+30-Sep-2026
+MSL rating/
+Material type
+RoHS
+Orderable part number
+Status
+Package qty I Carrier
+Lead finish/
+Op temp (°C)
+Package IPins
+Part marking
+Ball material
+(1)
+(2)
+(3)
+Peak reflow
+(6)
+(4)
+(5)
+Production
+25 I TUBE
+No
+Active
+CFP (W) I16
+SNPB
+JM38510/07701BFA.A
+N/A for Pkg Type
+-55 to 125
+JM38510/
+07701BFA
+Production
+Active
+LCCC (FK) 120
+No
+SNPB
+JM38510/30701B2A
+55 I TUBE
+N/A for Pkg Type
+-55 to 125
+JM38510/
+30701B2A
+Production
+No
+55 I TUBE
+SNPB
+N/A for Pkg Type
+-55 to 125
+JM38510/30701B2A
+Active
+LCCC (FK) 120
+JM38510/
+30701B2A
+No
+SNPB
+JM38510/30701B2A.A
+Active
+LCCC (FK) 120
+55 I TUBE
+N/A for Pkg Type
+Production
+-55 to 125
+JM38510/
+30701B2A
+Active
+LCCC (FK) 120
+No
+55 I TUBE
+SNPB
+N/A for Pkg Type
+Production
+-55 to 125
+JM38510/30701B2A.A
+JM38510/
+30701B2A
+25 I TUBE
+No
+Active
+CDIP (J) I16
+SNPB
+N/A for Pkg Type
+JM38510/30701BEA
+Production
+-55 to 125
+JM38510/
+30701BEA
+No
+SNPB
+CDIP (J) I16
+JM38510/30701BEA
+Active
+Production
+25 / TUBE
+N/A for Pkg Type
+-55 to 125
+JM38510/
+30701BEA
+Production
+CDIP (J) I16
+No
+25 I TUBE
+Active
+SNPB
+N/A for Pkg Type
+JM38510/30701BEA.A
+-55 to 125
+JM38510/
+30701BEA
+Active
+No
+CDIP (J) I16
+SNPB
+JM38510/30701BEA.A
+Production
+25 / TUBE
+N/A for Pkg Type
+-55 to 125
+JM38510/
+30701BEA
+CFP (W) 116
+No
+25 I TUBE
+SNPB
+Active
+Production
+N/A for Pkg Type
+-55 to 125
+JM38510/30701BFA
+JM38510/
+30701BFA
+Active
+Production
+No
+CFP (W) I16
+25 I TUBE
+SNPB
+JM38510/30701BFA
+N/A for Pkg Type
+-55 to 125
+JM38510/
+30701BFA
+Active
+No
+SNPB
+Production
+CFP (W) 116
+25 I TUBE
+N/A for Pkg Type
+JM38510/30701BFA.A
+-55 to 125
+JM38510/
+30701BFA
+No
+25 I TUBE
+SNPB
+N/A for Pkg Type
+Active
+Production
+CFP (W) I16
+-55 to 125
+JM38510/30701BFA.A
+JM38510/
+30701BFA
+CDIP (J) I16
+No
+Active
+SNPB
+JM38510/30701SEA
+Production
+25 /TUBE
+N/A for Pkg Type
+-55 to 125
+JM38510/
+30701SEA
+Active
+CDIP (J) I16
+No
+N/A for Pkg Type
+Production
+25 / TUBE
+SNPB
+-55 to 125
+JM38510/30701SEA
+JM38510/
+30701SEA
+25 I TUBE
+No
+Active
+CDIP (J) I16
+SNPB
+JM38510/30701SEA.A
+Production
+N/A for Pkg Type
+-55 to 125
+JM38510/
+30701SEA
+No
+CDIP (J) I16
+SNPB
+N/A for Pkg Type
+JM38510/30701SEA.A
+Active
+Production
+25 / TUBE
+-55 to 125
+JM38510/
+30701SEA
+Addendum-Page 2

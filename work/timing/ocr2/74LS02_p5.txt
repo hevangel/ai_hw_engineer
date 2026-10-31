@@ -1,0 +1,44 @@
+1264:SN54S02. SN74S02
+932:QUADRUPLE 2-INPUT POSITIVE-NOR GATES
+237:recommended operating conditions
+1081:SN54S02 | 1297:SN74S02
+1465:Unit
+1032:Min | 1096:NOM | 1167:MAX | 1247:MIN | 1309:Nom | 1384:MAX
+319:Supply voltage | 1042:4.5 | 1186:6.6 | 1245:4.75 | 1389:5.25
+320:High-level input voltage
+320:Low-level input voltage | 1185:0.8 | 1400:0.8
+256:lOH | 319:High-level output current | 1397:- 1 | 1469:mA
+320:Low-levei output current | 1192:20 | 1407:20 | 1467:mA
+319:Operating free-alr temperature | 1027:- 55 | 1180:125 | 1407:70
+236:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+1081:SN54S02 | 1300:SN74S02
+260:PAAAMETER | 579:TEST CONDITIONS t | 1466:unit
+1096:Typ+ | 1165:MAX | 1311:+dal | 1385:MAX
+287:Vik | 422:Ycc - min. | 579:I↓ → --18 mA | 1175:-1.2 | 1391:-1.2
+422:Vee = min. | 580:Vil = 0.8 V. | 734:lOH = -1 mA | 1042:2.5 | 1118:3.4 | 1261:2.7 | 1333:3.4
+286:vor | 421:Vec = min. | 579:Vih =2 v. | 733:IOL = 20 mA | 1187:0.5 | 1403:0.5
+422:Vcc = max. | 578:V, = 5.5 V | 1464:mA
+420:Vcc =max. | 579:VI = 2.7 V | 1192:50 | 1408:50 | 1467:MA
+423:VCC = maX. | 579:Vi = 0.5 V | 1187:-2 | 1404:-2 | 1463:mA
+287:los$ | 420:VCC = MAX | 1037:40 | 1168:-100 | 1251:40 | 1383:1100 | 1463:mA
+286:ICCH | 419:Vcc = max. | 574:VI=0V | 1123:17 | 1192:29 | 1338:17 | 1408:29 | 1463:mA
+285:IceL | 419:Vcc = max. | 577:See Note 2 | 1123:26 | 1194:45 | 1338:26 | 1408:45 | 1463:mA
+236:t For conditions shourn as MiN or MAX, use tha appropriate vatue specified under recommended operating conditions.
+230:+ All typicbi values are t Vcc = S V, Ta - 25'c.
+230:S Not more than one autput shouid be sharted at a tima, and the duration of the short-cireuit should not axceed one second.
+230:NOtE 2: One input at 4.5 V, all others at GND.
+228:switching characteristics, Vcc = 5 V, TA = 25°c (sea note 3)
+453:FROM
+255:PARAMETEA | 902:Tes'T condITIons | 1245:min | 1381:MAX | 1462:Unit
+443:(INPUT) | 608:(qutPut)
+284:tpLH | 1329:3.5 | 1399:5.5 | 1472:ns
+840:Rl - 280 0, | 1052:CL - 15pF
+283:tpHL | 1328:3.5 | 1473:ns
+450:Aor B
+284:tPLH | 1472:ns
+846:Rl = 280 s2. | 1050:CL = 50 pF
+283:tphl | 1471:ns
+228:NoTE 3: Load circuits and voltage waveforms are shown in Section 1.
+825:TEXAS
+749:INSTRUMENTS
+680:20ST 0FF1CE B0X 655012 - 3ALL4S. TEX4S 75265

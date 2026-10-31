@@ -1,0 +1,55 @@
+324:OBSOLETE -No Longer Available | 609:SN5486, SN54LS86A, SN54S86
+610:SN7486, SN74LS86A,  | 790:SN74S86
+484:QUADRUPLE2-INPUT.EXCLUSIVE-OR.GATES
+592:SDLS124 DECEMBER 1972  REVISED MARCH 1988
+105:absolute maximum ratings over operating free-air temperature range (unless otherwise noted)
+142:Supply voltage, Vcc (see Note 1) | 829:7V
+141:Input voltage | 818:5.5 V
+142:Operating free-air temperature range: | 368:SN5486 | 754:55°C to 125°c
+369:SN7486 | 778:0°℃to70°℃
+141:Storage temperature range | 755:65Cto150°℃
+103:NOTE 1: Voltage values are with respect to network ground terminal.
+106:recommendedoperatingconditions
+608:SN5486 | 729:SN7486
+814:UNIT
+575:MIN | 614:NOM | 655:MAX | 696:MIN | 736:NOM | 774:MAX
+109:Supply voltage, VC | 582:4.5 | 662:5.5 | 695:4.75 | 776:5.25
+108:High-level output current, lOH | 652:-800 | 772:800
+109:Low-level output current, 'oL | 668:16 | 788:16
+107:Operating free-air temperature, TA | 577:55 | 661:125 | 787:70
+106:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+422:TEST CONDITIONSt | 609:SN5486 | 729:SN7486
+212:PARAMETER | 576:MIN | 612:TYP | 656:MAX | 697:MIN | 732:TYP | 775:MAX
+148:High-level input vol tage
+109:VIL | 150:Low-level input voltage | 665:0.8 | 785:0.8
+109:VIK | 150:Input clamp voltage | 399:VCC MIN, | 477:I,- -8 mA | 658:1.5 | 777:1.5
+398:VCC=MIN, | 475:VIH = 2 V, | 583:2.4 | 621:3.4 | 704:2.4 | 741:3.4
+111:VOH | 148:High-level output vol tage | 399:VIL - 0.8 V.
+474:IOH= -800 μA
+111:VOL | 398:VCC *MIN, | 476:VIH *2V | 621:0.2 | 665:0.4 | 742:0.2
+150:Low-level output voltage | 786:0.4
+399:VIL = 0.8 V, | 475:lOL16mA
+150:Input current at maximum input voltage | 399:VCC=MAX, | 478:V, * 5.5 V | 818:mA
+149:High-level input current | 398:VCC"MAX, | 477:V, = 2.4 V | 667:40 | 789:40
+150:Low-level input current | 398:VCC-MAX, | 478:V, - 0.4 V | 658:1.6 | 778:1.6 | 818:mA
+148:Short-circuit output currents | 398:VCC-MAX | 577:--20 | 661:-55 | 700:-18 | 781:-55 | 818:mA
+148:Suppiy current | 399:VcC-MAX, | 478:See Note 2 | 624:30 | 669:43 | 742:30 | 788:50 | 819:mA
+107:For conditions shown as MIN or MAx, use the appropriatevafue specified under recommended operating conditions for the applicable type.
+108: All typical values are at VcC = 5 V, TA = 25°C.
+107:S Not more than one output should be shorted at a time.
+107:NOTE 2: Icc is measured with the inputs grounded and the outputs open.
+104:switching characteristics,Vcc=5V,TA=25°C
+162:PARAMETERS | 384:FROM | 698:MIN | 776:MAX | 812:UNIT
+540:TEST CONDITIONS
+379:(INPUT)
+191:tPLH | 744:15 | 782:23
+192:tPHL | 383:Aor B | 501:Other input low | 608:CL * 15 pF, | 823:ns
+609:RL *400 2, | 786:17
+190:tPLH | 383:Aor B | 746:18 | 783:30
+501:Other input high | 608:See Note 3 | 783:22 | 822:ns
+189:tPHL | 746:13
+110:tPHLpropagation delay time,high-to-low-level output
+104:NOTE 3: Load circuits and voltage waveforms are shown in Section 1.
+441: TEXAS
+402:INSTRUMENTS
+367:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

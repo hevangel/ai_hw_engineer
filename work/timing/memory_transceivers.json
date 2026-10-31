@@ -1,0 +1,57 @@
+{
+  "parts": {
+    "4116": {
+      "tpd_typ_ns": null,
+      "tpd_max_ns": 200,
+      "parameter": "tRAC",
+      "source": "https://minuszerodegrees.net/memory/4116/datasheet_MK4116-2_and_MK4116-3.pdf",
+      "document": "Mostek MK4116(J/N/E)-2/3, 16,384 x 1-bit dynamic RAM (United Technologies Mostek), databook section IV",
+      "page": "p. IV-19 (PDF p.3), 'Electrical Characteristics and Recommended AC Operating Conditions'",
+      "notes": "MK4116-3 column: tRAC max 200 ns, tCAC max 135 ns, tRAS min 200 ns, tCAS min 135 ns, tRCD min 25 / max 65 ns, tRC min 320 ns. MK4116-2 column on the same table: tRAC 150 ns, tCAC 100 ns, tRAS 150 ns, tCAS 100 ns, tRCD 20/50 ns, so the Mostek '-2' is the FASTER grade, not the 200 ns part. tRAC is published as a maximum only, hence tpd_typ_ns null. Second source TI TMS4116 (https://www.minuszerodegrees.net/memory/4116/datasheet_TMS4116.pdf, p.4-7): TMS4116-20 tRAC 200 / tCAC 135 ns, TMS4116-15 150 / 100 ns, TMS4116-25 250 / 165 ns. Adopted value is the 200 ns class; the fitted grade is not documented by Apple, see speed_grade_evidence."
+    },
+    "2513": {
+      "tpd_typ_ns": 500,
+      "tpd_max_ns": 600,
+      "parameter": "tCA (character address A4-A9 access time)",
+      "source": "https://static.wikitide.net/gemuwiki/c/c1/1977_Signetics_Bipolar_and_MOS_Memory.pdf",
+      "document": "Signetics 1977 Bipolar and MOS Memory data manual, '2560-Bit Static Character Generator (64x8x5), 2513 / 2513-I,N'",
+      "page": "p.259 (PDF p.260), 'AC Electrical Characteristics'",
+      "notes": "tCA typ 500 / max 600 ns; tRA row address A1-A3 typ 450 / max 500 ns; tCE output chip enable max 150 ns (no typical published). Supplies VCC +5 V, VDD -5 V, VGG -12 V, tri-state output. In the Apple II the character code drives A4-A9 and the row scan drives A1-A3, so tCA bounds address access. Test load: one TTL load plus 10 pF per the datasheet test circuit."
+    },
+    "9316B": {
+      "tpd_typ_ns": null,
+      "tpd_max_ns": 450,
+      "parameter": "tACC",
+      "source": "https://static.wikitide.net/gemuwiki/c/c1/1977_Signetics_Bipolar_and_MOS_Memory.pdf",
+      "document": "Signetics 2616 / 2616-1, 16,384-bit static MOS ROM (2048 x 8); the Signetics MOS memory cross-reference on p.14 lists GI 9316A/B as the 2616 equivalent",
+      "page": "p.251 (PDF p.252), 'AC Electrical Characteristics'; cross-reference p.14 (PDF p.15)",
+      "notes": "tACC max 450 ns for the 2616, 350 ns for the faster 2616-1; tCO chip-select delay max 200 ns (150 ns for -1); tDF chip-deselect delay max 200 ns (150 ns for -1); tOH previous-data-valid min 20 ns. No datasheet titled '9316B' was located. Corroboration: Intel 2316E (https://w140.com/tekwiki/images/7/74/Intel_2316E_data_sheet.pdf) states 450 ns max access time and three programmable chip selects; MOS Technology 2316 (https://6502.org/documents/datasheets/mos/mos_2316_rom_feb_1979.pdf) gives tACC 450 / tCO 200 / tDF 175 ns."
+    },
+    "8T28": {
+      "tpd_typ_ns": null,
+      "tpd_max_ns": 17,
+      "parameter": "tpd (tON/tOFF, DOUT to ROUT and DIN to DOUT)",
+      "source": "https://xdevs.com/doc/eBooks/Interface%20Databook%201979_text.pdf",
+      "document": "National Semiconductor Interface Databook 1979, DS8T26A / DS8T28 4-bit bidirectional bus transceivers",
+      "page": "p.2-26 (PDF p.153), 'Switching Characteristics'",
+      "notes": "Max 17 ns on all four propagation paths (receiver paths CL = 30 pF, driver paths CL = 300 pF). National publishes maxima only - no typical value; the feature list instead states 'fast switching times (20 ns)'. Enable/disable: driver tPZL 28 / tPLZ 23 ns, receiver tPZL 23 / tPLZ 18 ns. The identical table appears in the 1983 National interface databook at p.2-91, so the numbers are stable across editions."
+    },
+    "8T97": {
+      "tpd_typ_ns": 8,
+      "tpd_max_ns": 13,
+      "parameter": "tpd (tPHL, the slower direction; tPLH max 12 ns)",
+      "source": "http://www.applelogic.org/files/8T97.pdf",
+      "document": "Signetics 8T95 / 8T96 / 8T97 / 8T98 hex 3-state buffers and inverters, product specification dated 4 December 1985",
+      "page": "p.6-53 (PDF p.4), 'AC Electrical Characteristics'; typical-delay table p.6-50",
+      "notes": "CL = 50 pF, RL = 200 ohm, TA = 25 C, VCC = 5.0 V: tPLH max 12 ns, tPHL max 13 ns, tPZH/tPZL max 25 ns, tPHZ max 10 ns, tPLZ max 12 ns; typical propagation delay 8 ns (p.6-50). National's own TTL cross-reference maps 8T97 to DM7097/8097, and the National DM70/8097 datasheet (1976 National TTL Data Book, p.3-8) gives tPLH 10 typ / 16 max and tPHL 14 typ / 22 max with CL = 50 pF. No National-branded 8T97 datasheet was located, so the 8T97-titled source is used and the slower National equivalent numbers are recorded here; if the fitted die is the DM8097 equivalent, 22 ns is the applicable max."
+    }
+  },
+  "speed_grade_evidence": "Not established from Apple primary documentation. (1) Apple II Reference Manual (1978) schematic Fig. S-8 '4K to 48K RAM memory with data latch' (https://apple2history.org/dl/Apple_II_Redbook.pdf, PDF p.156) labels every device simply 'RAM' and prints only a generic 'RAM PINOUT DETAIL' (VBB/VDD/VCC, RAS/CAS, R/W, A0-A6, pin 13 marked '4K/16K'); no speed suffix, no Apple part number. (2) Mike Willegal's rev-0 replica parts list (https://www.willegal.net/appleii/assembly-v2.2.pdf, p.2) lists only '4116 DRAM ram 16k*1, qty 24'. Secondary evidence points to the 200 ns class: a VCFED owner reports 'MK4116J-3GP' fitted in an Apple II Plus and states '-3=200ns' versus '-2=150' (https://forum.vcfed.org/index.php?threads/memory-in-an-apple-ii.75959, post #1), which matches the Mostek table (MK4116-3 = 200 ns, MK4116-2 = 150 ns); Applefritter guidance for Apple II/II+ 4116 replacements is 'as long as you use 200ns or less, it should be ok' (https://www.applefritter.com/content/apple-iiii-plusiie-replacement-chip-alternatives, post #7). Adopted value 200 ns, i.e. Mostek -3 or TI TMS4116-20; treat as inference, not as an Apple-sourced grade.",
+  "unresolved": [
+    "Rev-0 DRAM speed grade: no Apple schematic annotation, BOM line or service document naming 4116-2 / 4116-3 / -20 was found; 200 ns is inferred from secondary sources (an Apple II Plus board carrying MK4116J-3GP and community 200 ns guidance).",
+    "Which DRAM density rev 0 actually shipped: Fig. S-8 carries a 4K/16K pin-13 option and the manual describes 4K to 48K configurations, so some early boards may have been populated with 4Kx1 devices rather than 4116.",
+    "'9316B' itself has no located manufacturer datasheet; its timing is taken from the Signetics 2616, which Signetics' cross-reference lists as the GI 9316A/B equivalent, corroborated by the Intel 2316E and MOS 2316 datasheets.",
+    "8T97 vendor identity: no National-branded 8T97 datasheet was found; National lists DM7097/8097 as the direct replacement (max 16/22 ns) while the Signetics 8T97 datasheet specifies max 12/13 ns (typ 8 ns). The slower National figure should be used if the fitted die is unknown.",
+    "8T28, 2513 tCE and 9316B publish no typical value, so those tpd_typ_ns entries are null rather than estimated."
+  ]
+}

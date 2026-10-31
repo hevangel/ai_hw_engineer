@@ -1,0 +1,38 @@
+SN54LS138. SN54S138. SN74LS138. SN74S138A
+3-LINE TO 8-LINE DECODERS/DEMULTIPLEXERS
+schematics of inputs and outputs
+EQUIVALENT OF EACH
+EQUIVALENT OF EACH
+TYPICAL OF OUTPUTS
+SELECT INPUT oF 'Ls138
+ENABLE INPUT OF 'LS138
+0F 'LS138
+CC
+120 ?NOMS
+kO NOM
+20 k2 NOM
+INPUT
+OUTPUT
+INPUT
+EQUIVALENT OF EAcH
+TYPIcAL OF QuTPuts
+INPUT OF SN54S138. SN74S138A
+OF SN54S138. SN74ST3BA
+Vcc
+50 2 NoM 2
+.8 k? NOM
+INPUT
+Dutput
+absolute maximum ratings over operating free-air temperature range (unless otherwise noted)
+Supply voltage, Vcc (see Note 1h .
+7V
+Input voltage
+7V
+Operating free-air temperature range: SN54Ls138, SN54s138
+-55°Ct0125°C
+SN74LS138. SN74S138A
+0°℃ to 70°C
+Starage temperature range
+-65°C to 150°C
+TEXAS
+INSTRUMENTS

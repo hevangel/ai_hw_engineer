@@ -1,0 +1,39 @@
+689:SN54S32,SN74S32
+521:QUADRUPLE2-INPUTPOSITIVE-ORGATES
+132:recommended operating conditions
+587:SN54$32 | 706:SN74S32
+561:MIN | 594:NOM | 635:MAX | 676:MIN | 712:NOM | 753:MAX
+138:Vcc | 171:Supply valtage | 567:4.5 | 646:5.5 | 677:4.75 | 757:5.25
+135:VIH | 171:High-ievel input voitage
+136:VIL | 173:Low-evel input voltage | 646:0.8 | 764:0.8
+170:High-level output current | 762:-1 | 801:mA
+136:TOL | 171:Low-level output current | 648:20 | 766:20 | 801:mA
+135:TA | 171:Operating free-air temperature | 559:- 55 | 643:125 | 766:70
+128:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+138:PARAMETER | 313:TEST CONDITIONS t | 586:SN54S32 | 704:SN74S32 | 797:JINN
+559:MIN | 592:TYP+ | 633:MAX | 676:MIN | 709:TYPI MAX
+154:VIK | 228:VCC=MIN, | 312:II = - 18 mA | 635:-1.2 | 753:-1.2
+154:VOH | 226:VCC-MIN. | 312:AZ.HIA | 398:IOH =-1mA | 567:2.5 | 607:3.4 | 685:2.7 | 725:3.4
+153:VOL | 226:VCC-MIN, | 313:VIL-0.8 V, | 397:IOL- 20 mA | 644:0.5 | 762:0.5
+226:VCC =MAX, | 313:V5.5V | 800:mA
+153:HH | 226:VCC=MAX, | 312:VI=2.1 V | 647:50 | 766:50
+226:VCC =MAX, | 312:VI- 0.5 V | 642:-2 | 761:-2 | 799:mA
+152:los 5 | 228:VCC-MAX | 557: 40 | 631:100 | 676:- 40 | 749:-100 | 799:mA
+151:'CCH | 225:VCC-MAx, | 311:See Note 2 | 610:18 | 646:32 | 727:18 | 766:32 | 799:mA
+153:ICCL | 226:VCC=MAX. | 313:Vi-0V | 610:38 | 726:38 | 799:mA
+125:Foronditions shownMIN or MAX,uestheappropriata valuaspifled undarraeommandadoperating conditions.
+125:1 Ail typicel vafuos ero ot YCC 5 V. TA 25°c.
+126:S Not more than one output should be shorted at a time and the duration of the chort-eireuit should not axcaad one second.
+126:NOTE 2: One inDut at 4.5 V, all others at GND.
+126:switching characteristics, Vcc=5V,TA=25° (seenote3)
+244:FROM | 348:TO
+136:PARAMETER | 239:(INPUT) | 329:(OUTPUT) | 476:TEST CONDITIONS | 678:MIN | 751:MAX
+150:tPLH | 440:RL * 280 0, | 557:CL - 15 pF
+243:AorB | 802:ns
+151:tPHL
+149:PLH | 242:AorB | 440:RL * 280 S2, | 802:ns
+150:tPHL | 802:ns
+127:NOTE 3: Load circuits and voitage waveforms are shown in Sectlon 1.
+451:TEXAS
+410:INSTRUMENTS
+372:POST OFFICE BOX 655012 · OALLAS. TEXAS 75265

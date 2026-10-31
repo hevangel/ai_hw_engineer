@@ -1,0 +1,99 @@
+SN54S138. SN74S138A
+3-LINE TO 8-LINE DECODERSIOEMULTIPLEXERS
+absolute maximum ratings over operating free-air temperature range (unless otherwise noted)
+Supply voltage, Vcc (see Note 1) .
+input voltage
+5.5 V
+Operating free-air temperature range: SN54s138
+-55°C to 125°C
+SN74S138A
+0°C to 70C
+Starage temperature range
+65°C to150°C
+NoTE 1: Voltage valltes are with respect to network ground terminal.
+recommended operating conditions
+Sn54s138
+SN74S138A
+unit
+Min
+Min
+Nom
+MAX
+NoM
+Vec
+Supply voltage
+4.5
+5.5
+4.75
+5.25
+Vih
+High-levef input voltage
+0.8
+VIL
+0.8
+Low-level input valtage
+1OH
+-1
+High-level output current
+mA
+20
+20
+Low-level output current
+mA
+70
+125
+TA
+-56
+Operating free-air temperature
+electrical characteristics over recommended operating free-air temperature range (uniess otherwise
+noted)
+SN54S138
+SN74S138A
+TEST CONDITIONSt
+PARAMETER
+Unit
+Min
+VIK
+-1.2
+Ycc - Min.
+-18 mA
+2.5
+SN54S'
+3.4
+VcC - MIN.
+VIH = 2 V,
+Vil = 0.8 v.
+-I mA
+2.7
+Sn74s'
+Yih *2 v.
+loL = 20 mA
+0.5
+Ycc - min,
+Vil - o.s v.
+= 5.5 V
+ = MAX.
+mA
+50
+MAX.
+2.7 V
+Max.
+= 0.5 V
+-2
+mA
+los 
+- 40
+- 100
+VCC = MAX
+mA
+49
+Outputs enabled and open
+Ycc - Max.
+74
+MA
+t For conditions shown as MiN or Max. use the appropriate vatue specified under recammended operating conditians.
+ All typical values are at Vcc = 5 V, Ta = 25aC.
+$ Not more than one output should be shorted at a time, and duration of the short cireuit test should not exceed one second.
+TExAS
+INSTRUMENTS
+PCSTOFFICESOX6550:2-DALLAS"EXAS75255

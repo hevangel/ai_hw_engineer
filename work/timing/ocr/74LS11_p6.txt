@@ -1,0 +1,152 @@
+PACKAGE OPTION ADDENDUM
+TEXAS
+INSTRUMENTS
+www.ti.com
+7-Oct-2026
+Material type
+MSL rating/
+RoHS
+Op temp (°C)
+Orderable part number
+Status
+Package qty I Carrier
+Lead finish/
+Package IPins
+Part marking
+Ball material
+(1)
+(2)
+(3)
+Peak reflow
+(6)
+(4)
+(5)
+Production
+PDIP (N) 114
+25 I TUBE
+SN74LS11N.A
+Active
+Yes
+NIPDAU
+N/A for Pkg Type
+0 to 70
+SN74LS11N
+Yes
+Active
+SN74LS11NE4
+Production
+PDIP (N) 114
+25 / TUBE
+NIPDAU
+N/A for Pkg Type
+0 to 70
+SN74LS11N
+SOP (NS) I14
+SN74LS11NSR
+Active
+Production
+Yes
+NIPDAU
+Level-1-260C-UNLIM
+0 to 70
+2000ILARGE T&R
+74LS11
+SN74LS11NSR.A
+Active
+Production
+SOP (NS) /14
+Yes
+NIPDAU
+2000ILARGE T&R
+0 to 70
+Level-1-260C-UNLIM
+74LS11
+Production
+No
+Active
+SNPB
+SNJ54LS11FK
+LCCC (FK) 120
+55 I TUBE
+N/A for Pkg Type
+-55 to 125
+SNJ54LS
+11FK
+No
+SNPB
+LCCC (FK) 120
+SNJ54LS11FK.A
+Active
+Production
+55 / TUBE
+N/A for Pkg Type
+-55 to 125
+SNJ54LS
+11FK
+Production
+25 I TUBE
+No
+SNJ54LS11J
+Active
+SNPB
+N/A for Pkg Type
+CDIP (J) 114
+-55 to 125
+SNJ54LS11J
+Production
+CDIP (J) I14
+25 I TUBE
+No
+SNJ54LS11J.A
+Active
+SNPB
+N/A for Pkg Type
+-55 to 125
+SNJ54LS11J
+Active
+No
+SNJ54LS11W
+CFP (W) 114
+25 I TUBE
+Production
+SNPB
+N/A for Pkg Type
+-55 to 125
+SNJ54LS11W
+CFP (W) 114
+No
+SNPB
+25 I TUBE
+SNJ54LS11W.A
+Active
+Production
+N/A for Pkg Type
+-55 to 125
+SNJ54LS11W
+Active
+No
+SNPB
+CDIP (J) I14
+SNJ54S11J
+Production
+25 / TUBE
+N/A for Pkg Type
+-55 to 125
+SNJ54S11J
+No
+Active
+SNPB
+N/A for Pkg Type
+SNJ54S11J.A
+Production
+CDIP (J) 114
+25 I TUBE
+-55 to 125
+SNJ54S11J
+(1) Status: For more details on status, see our product life cycle.
+reliability performance testing, and/or process qualification, may not yet be complete, and this item is subject to further changes or possible discontinuation. If available for ordering, purchases will be subject to an additional
+waiver at checkout, and are intended for early internal evaluation purposes only. These items are sold without warranties of any kind.
+column width.
+Refer to the shipping label for the actual reflow temperature that will be used to mount the part to the printed circuit board.
+combined represent the entire part marking for that device.
+Addendum-Page 2

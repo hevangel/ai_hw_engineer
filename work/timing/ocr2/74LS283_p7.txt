@@ -1,0 +1,33 @@
+95:TEXAS | 901:PACKAGEOPTIONADDENDUM
+98:INSTRUMENTS
+54:www.ti.com | 1152:18-Sep-2026
+54:Orderablepartnumber | 276:Material type | 379:Package | Pins | 490:Package qty I Carrier | 644:RoHS | 731:Lead finish/ | 862:MSL rating/ | 991:Op temp (°C) | 1131:Part marking
+231:(1) | 308:(2) | 655:(3) | 733:Ball material | 862:Peak reflow | 1162:(6)
+762:(4) | 892:(5)
+75:SN74LS283NE4 | 221:Active | 284:Production | 385:PDIP (N) 116 | 523:25 / TUBE | 649:Yes | 744:NIPDAU | 851:N/A for Pkg Type | 1007:O to 70 | 1133:SN74LS283N
+73:SN74LS283NSR | 221:Active | 284:Production | 384:SOP (NS) /16 | 499:2000|LARGE T&R | 648:Yes | 745:NIPDAU | 841:Level-1-260C-UNLIM | 1007:O to 70 | 1144:74LS283
+68:SN74LS283NSR.A | 221:Active | 284:Production | 384:SOP (NS) |16 | 499:2000|LARGE T&R | 649:Yes | 745:NIPDAU | 841:Level-1-260C-UNLIM | 1007:O to 70 | 1143:74LS283
+85:SN74S283N | 221:Active | 284:Production | 386:PDIP (N) 16 | 523:25 / TUBE | 648:Yes | 744:NIPDAU | 851:N/A for Pkg Type | 1007:O to 70 | 1135:SN74S283N
+79:SN74S283N.A | 221:Active | 284:Production | 387:PDIP (N) |16 | 523:25 | TUBE | 648:Yes | 744:NIPDAU | 853:N/A for Pkg Type | 1007:O to 70 | 1135:SN74S283N
+77:SNJ54LS283FK | 221:Active | 286:Production | 381:LCCC (FK) 120 | 523:55 | TUBE | 651:ON | 752:SNPB | 851:N/A for Pkg Type | 1002:-55 to 125 | 1137:76043012A
+1141:SNJ54LS
+1150:283FK
+70:SNJ54LS283FK.A | 221:Active | 284:Production | 380:LCCC (FK) 120 | 651:ON | 751:SNPB | 852:N/A for Pkg Type | 1001:-55 to 125 | 1137:76043012A
+1143:SNJ54LS
+1149:283FK
+80:SNJ54LS283J | 221:Active | 285:Production | 387:CDIP (J) |16 | 651:ON | 750:SNPB | 851:N/A for Pkg Type | 1000:-55 to 125 | 1137:7604301EA
+1130:SNJ54LS283J
+74:SNJ54LS283J.A | 221:Active | 285:Production | 387:CDIP (J) |16 | 523:25 |TUBE | 752:SNPB | 851:N/A for Pkg Type | 1002:-55 to 125 | 1136:7604301EA
+1129:SNJ54LS283J
+78:SNJ54LS283W | 221:Active | 284:Production | 386:CFP (W) |16 | 651:ON | 751:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1135:7604301FA
+1127:SNJ54LS283W
+72:SNJ54LS283W.A | 221:Active | 286:Production | 386:CFP (W) I16 | 522:25| TUBE | 651:ON | 750:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1136:7604301FA
+1126:SNJ54LS283W
+84:SNJ54S283J | 221:Active | 285:Production | 387:CDIP (J) 116 | 523:25 / TUBE | 651:No | 750:SNPB | 852:N/A for Pkg Type | 1000:-55 to 125 | 1133:SNJ54S283J
+78:SNJ54S283J.A | 221:Active | 284:Production | 387:CDIP (J) |16 | 523:25 | TUBE | 651:No | 750:SNPB | 850:N/A for Pkg Type | 1001:-55 to 125 | 1132:SNJ54S283J
+29:(1) status: For more details on status, see our product ife cycle.
+32:reliability performance testing,and/orprocess qualificationmay not yet be completeand this item is subject tofurther changes or possible discontinuation.If availablefor ordering, purchases will be subject to an additional
+32:waiver at checkout, and are intended for early internal evaluation purposes only. These items are sold without warranties of any kind.
+29:(3) RoHS values: Yes, No, RoHS Exempt. See the TI RoHS Statement for aditional information and value definition.
+33:column width.
+586:Addendum-Page 2

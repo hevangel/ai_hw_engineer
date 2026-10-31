@@ -1,0 +1,14 @@
+{
+  "sim_time": 851971,
+  "assertion_sites": 4,
+  "assertion_pass_total": 6815752,
+  "assertion_fail_total": 0,
+  "assertions": [
+    {"file": "/workspace/design/ttl_74xx/tb/tb_ttl_74x16470.sv", "line": 9, "span_start": 318, "kind": "assert", "pass": 1703938, "fail": 0},
+    {"file": "/workspace/design/ttl_74xx/tb/tb_ttl_74x16470.sv", "line": 11, "span_start": 431, "kind": "assert", "pass": 1703938, "fail": 0},
+    {"file": "/workspace/design/ttl_74xx/tb/tb_ttl_74x16470.sv", "line": 13, "span_start": 544, "kind": "assert", "pass": 1703938, "fail": 0},
+    {"file": "/workspace/design/ttl_74xx/tb/tb_ttl_74x16470.sv", "line": 15, "span_start": 669, "kind": "assert", "pass": 1703938, "fail": 0}
+  ],
+  "covergroups": [
+  ]
+}

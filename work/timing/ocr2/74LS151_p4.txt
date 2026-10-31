@@ -1,0 +1,56 @@
+129:SN54150,SN54151A,SN74150,SN74151A
+129:DATA SELECTORS/MULTIPLEXERS
+128:recommended operating conditions
+617:SN54" | 731:SN74'
+580:MIN | 618:NOM | 657:MAX | 696:MIN | 732:NOM | 771:MAX
+133:Supply voltage, Vcc | 586:4.5 | 664:5.6 | 695:4.75 | 772:5.26
+132:High-level output current, IOH | 653:-800 | 766:-800
+133:Low-level output current, loL | 667:16 | 781:16 | 812:mA
+133:Operating free-air temperature, Ta | 582:-55 | 662:125 | 779:70 | 817:3.
+128:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+587:'150 | 710:151A
+219:PARAMETER | 399:TEST CONDITIONSt
+547:MIN | 583:TYP | 631:MAX | 677:MIN | 711:TYPE | 756:MAX
+133:VIH | 164:High-level input voltage
+164:Low-level input voltage | 637:0.8 | 764:0.8
+131:VIK | 163:Input clump voitage | 371:Vcc  Min. | 447:I-.-8 mA | 629:- 1.5 | 756:-1.5
+371:VCC = MIN, | 445:VIH = 2 V,
+134:VoH High-level output voltage | 551:2.4 | 593:3.4 | 678:2.4 | 720:3.4
+371:VIL=0.8V. | 444:OH=-800μA
+371:VCC - MIN, | 446:YIH = 2 V. | 763:0.4
+135:VOL | 162:Low-level output voltage | 372:VIL - 0.8 V, loL - 16 mA | 593:0.2 | 638:0.4 | 721:0.2
+162:Input curront at maximum input voltego | 372:VCC = MAX. VI - 5.5 V | 802:mA
+163:High-level input current | 372:VcC = MAX, Vi - 2.4 V | 640:40 | 765:40
+162:Low-level input current | 370:VCC - MAX, | 458:1= 0.4 V | 628:-1.6 | 755:-1.6 | 805:mA
+479:SN54 | 546:-20 | 632:-66 | 672:-20 | 757:-55
+134:los | 161:Short-circuit output currents | 370:VCC = MAX | 480:SN74 | 545:-18 | 632:-55 | 673:-18 | 759:-55 | 804:mA
+129:ICC | 162:Supply current | 368:VcC  MAX. See Note 3 | 596:40 | 641:68 | 723:29 | 766:48 | 805:mA
+124:For conditians shownas MINor MAX, usethe appropriete valuespeeified under recommended operating conditions for the applicable device type.
+124:+all typlcal values at Vcc 5 .Ta.25oc.
+124:5Normors than one output ofthe'151A should be shorted atatime.
+123:NOTE 3: Icc Is measured with the strobe and datu select inputs at 4.5 Y, al other inputs and outputs open.
+126:switching characteristics, VcC= 5 V,TA=25"C
+276:FROM | 383:TO | 489:TEST | 619:'150 | 733:151A
+144:PARAMETER | 365:(OUTPUT) | 466:CONDITIONS | 577:MIN | 619:TYP | 655:MAX
+271:(INPUT) | 693:MIN | 732:TYP | 768:MAX
+170:tPLH | 268:A, B, or C | 737:25 | 775:38
+169:tPHL | 271:(4 teveis) | 738:25 | 774:38
+169:tPLH | 260:A, B, C, or D | 628:23 | 662:35 | 738:17 | 775:26
+271:(3 levels) | 628:22 | 662:33 | 737:19 | 774:30 | 813:ns
+169:tPHL
+169:tPLH | 268:Strobe G | 456:CL * 15 pF. | 737:21 | 775:33
+168:tPHL | 738:22 | 774:33 | 812:ns
+454:RL = 400 2.
+168:tPLH | 266:Strobe 6 | 457:See Note 4i | 618:15.6 | 663:24 | 738:14 | 776:21
+168:tPHL | 628:21 | 661:30 | 739:15 | 774:23 | 812:ns
+168:tPLH | 262:DO thru D7 | 738:13 | 774:20
+737:18 | 774:27 | 812:ns
+168:IPHL
+168:"PLH | 251:E0 thru E15,or | 624:8.5 | 661:14 | 775:14
+263:D0 thru D7 | 629:13 | 661:20 | 775:14 | 812:ns
+167:PHL
+124:1tPLH | 151:H = propagation delay time, low-to-high-level output
+130:tPHL | 170:propagation deley time, high-to-low-lovel output
+120:NOTE 4: Load circuits and voftage waveforms are shown in Section 1.
+407:INSTRUMENTS.
+372:POST OFFICS BOX 655012 + DALLAS. TEXAS 75265

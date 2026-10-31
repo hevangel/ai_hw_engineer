@@ -1,0 +1,61 @@
+69:SN54LS283,SN74LS283
+66:4-BITBINARY FULL.ADDERSWITHFASTCARRY
+68:SDLS095AOCTOBER 1976REVISED MARCH 1988
+75:recommended operating conditions
+568:SN54LS283 | 688:SN74LS283
+548:MIN | 585:NOM | 625:MAX | 668:MIN | 706:NOM | 746:MAX
+79:Supply voltage, Vcc | 553:4.5 | 637:5.5 | 668:4.75 | 752:5.25
+79:High-level output current, lOH | 628:400 | 748:400
+79:Low-level output current, loL | 787:mA
+79:Operatingfree-airtmperature, | 551:55 | 635:125 | 763:70
+569:SN54LS283 | 689:SN74LS283
+144:PARAMETER | 357:TESTCONDITIONSt | 746:MAX | 785:UNIT
+548:MIN | 584:TYP | 626:MAX | 669:MIN | 705:TYP+
+79:VIH | 115:High-level input voltage
+79:VIL | 116:Low-level input voltage | 639:0.7 | 759:8°0
+81:VIK | 114:Input clamp voltage | 289:VCC-MIN, | 381:Ij=-18mA | 630:-1.5 | 752:1.5
+288:VCC"MIN, | 382:VH *2V. | 453:VIL - VIL max,
+83:VOH | 116:High-level output voltage | 555:2.5 | 594:3.4 | 676:2.7 | 715:3.4
+290:1OH=-400 μA
+82:VOL | 114:Low-level output voitage | 288:VCC" MIN, | 382:VIH " 2 V, | 453:OL-4mA | 588:0.25 | 639:0.4 | 709:0.25 | 758:0.4
+291:VIL - VIL max | 454:OL-8mA | 709:0.35 | 759:90
+116:Input current | 211:Any A or B | 639:0.2 | 759:0.2
+115:at maximum | 291:VCC"MAX, | 379:VI-7V | 791:mA
+212:CO | 639:0.1 | 760:0.1
+116:input voltage
+115:High-level | 210:Any A or 8 | 642:40 | 762:40
+290:VcC"MAX, | 383:Vj = 2.7 V
+117:input current | 211:CO | 642:20 | 763:20
+117:Low-level | 211:Any A or B | 292:VCC* MAX, | 632:0.8" | 752:80-
+210:CO | 383:V↓ * 0.4 V | 791:mA
+116:input current | 631:0.4 | 751:0.4
+81:los | 114:Short-circuit output currents | 291:Vcc"MAX | 550:20 | 629:100 | 672:20 | 748:100 | 791:mA
+454:Allinputs
+598:22 | 642:39 | 718:22 | 763:39
+453:grounded
+289:VcC- Max, | 455:All B low,other
+82:IcC | 116:Supply current | 599:19 | 642:34 | 791:mA
+289:udo sindino | 454:inputs at 4.5V
+455:Allinputs at | 599:19 | 642:34 | 720:19
+454:4.5V
+76:tFor conditions shown as MIN or MAX,use the appropriatevaluespecifled under recommended opersting conditions.
+77:tAll typical valuesaroatVcc5V.TA-25°c.
+78:SOnly one output should be shorted ata time and duration of the short-circuit should not exceed one second.
+77:switching characteristics,Vcc=5V,TA=25°C
+100:PARAMETER1 | 226:FROM (INPUT) | 353:TO (OUTPUT) | 502:TEST CONDITIONS | 668:MIN | 710:TYP | 748:MAX | 785:UNIT
+126:tPLH | 720:16 | 763:24
+261:CO | 372:Any 2 | 795:ns
+126:tPHL | 720:15 | 762:24
+126:tPLH | 248:A; or B; | 720:15 | 763:24 | 793:ns
+126:tPHL | 468:CL = 15 pF, | 575:RL= 2 kn, | 720:15 | 764:24
+126:tPLH | 469:See Note 3 | 719:11
+261:CO | 383:C4 | 795:ns
+126:tPHL | 763:22
+126:tPLH | 720:11 | 764:17
+248:A; or B; | 383:C4 | 795:ns
+126:tPHL | 720:12 | 764:17
+82:tPHL propagation delay time, high-to-low-level output
+77:NOTE 3: Load circuits and voltage waveforms are shown in Section 1.
+402: TEXAS
+362:INSTRUMENTS
+328:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

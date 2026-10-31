@@ -1,0 +1,24 @@
+612:SN5474,SN54LS74A,SN54S74
+612:SN7474.SN74LS74A,SN74S74
+159:DUALD-TYPEPOSITIVE-EDGE-TRIGGERED FLIP-FLOPS WITHPRESETAND CLEAR
+593:SDLS119  DECEMBER 1983  REVISED MARCH1988
+100:schematic
+454:"LS74A
+173:1208 | 288:$9kn | 369:M16kn | 527:16kn | 605:9kn | 688:1200
+235:3.3ka | 284:1.7ka | 579:1.7k2
+116:CLR | 805:PRE
+326:16kg | 552:16km
+218:18 kn
+115:CLK | 606:36km
+809:GND
+99:absolute maximum ratings over operating free-air temperature range (unless otherwise noted)
+135:Supply voltage, Vcc (see Note 1) | 835:7 V
+133:Inputvoitage:74,"s74 | 820:5.5 v
+234:'LS74A. | 836:7 V
+133:Operating free-air temperature range: SN54 | 754:55℃to125℃
+378:SN74' | 773:0°℃to70°℃
+135:Storage temperature range | 750:-65Cto150°C
+98:NOTE 1: Voltage values are with respect to network ground terminal.
+410:i TEXAS
+402:INSTRUMENTS
+367:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

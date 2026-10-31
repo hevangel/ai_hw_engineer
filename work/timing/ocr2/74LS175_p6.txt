@@ -1,0 +1,60 @@
+69:SN54S174,SN54S175,SN74S174,SN74S175
+68:HEX/QUADRUPLED-TYPEFLIP-FLOPS WITH CLEAR
+66:SDLS068ADECEMBER 1972REVISED OCTOBER 2001
+65:absolute maximum ratings over operating free-air temperature range (unless otherwise noted)
+102:Supply voltage, Vcc (see Note 1) | 794:7V
+103:Input voltage | 783:5.5V
+103:Operatingfree-airtemperaturerange:SN54S174,SN54S175Circuits | 719:-55°cto125°℃
+332:SN74S174, SN74S175 Circuits | 743:0°℃to 70°℃
+103:Storage temperature range | 718:-65to 150℃
+66:NOTE 1: Voltage values are with respect to network ground terminal.
+71:recommended operating conditions
+522:SN54S174, SN54S175 | 653:SN74S174, SN74S175
+525:MIN | 566:NOM | 611:MAX | 657:MIN | 698:NOM | 743:MAX | 783:IIN
+75:Supply voltage, Vcc | 530:4.5 | 618:5.5 | 657:4.75 | 746:5.25
+77:High-level output current, IOH | 620:-1 | 754:-1 | 788:mA
+76:Low-level output current, loL | 623:20 | 755:20 | 786:mA
+76:Clock frequency.flock | 623:75 | 758:75 | 784:MHZ
+77:Puise width, tw | 400:Clock
+401:Clear | 535:10 | 670:10 | 792:ns
+77:Setup time, tsu | 401:Data input
+402:Clear inactive-state | 793:ns
+78:Data hold time, th | 792:ns
+78:Operating free-air temperature, TA | 528:-55 | 618:125 | 759:70
+70:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+181:PARAMETER | 451:TEST CONDITIONSt | 663:MIN | 747:MAX | 784:UNIT
+111:High-level input voltage
+74:VIL | 110:Low-level input voltage | 759:0.8
+72:VIK | 111:Input clamp voltage | 367:VcC= MIN, | 443:I↓ = -18 mA | 752:1.2
+366:VCC = MIN, | 443:VIH" 2 V, | 603:SN54S' | 671:2.5 | 708:3.4
+77:VOH  | 110:High-level output voltage | 604:SN74S' | 708:3.4
+366:VIL  0.8 V, | 442:IOH=-1 mA | 672:2.7
+365:VCC-MIN, | 442:VIH = 2 V, | 760:0.5
+76:VOL | 111:Low-level output voltage | 367:VIL= 0.8 V.
+441:IOL=20mA
+113:Input current at maximum input voltage | 366:Vcc=MAX, Vj- 5.5 V | 792:mA
+113:High-level input current | 367:Vcc = MAX, V,- 2.7 V | 764:50 | 792:HA
+113:Low-level input current | 368:VcC-MAX, | 439:V,-0.5 V | 763:-2 | 792:mA
+112:Short-circuit output current§ | 367:VcC=MAX | 670:-40 | 750:100 | 792:mA
+606:'174 | 713:90 | 758:144
+75:IcC | 113:Supply current | 369:Vcc = MAX, See Note 2 | 605:175 | 764:96 | 792:mA
+714:60
+72:fFor conditions shown as MiN or MAx, use the appropriate value specified under recommended operating conditions for the applicable device
+80:type.
+72:Alltypical values are at Vcc.5VTA25°c.
+71:SNot more than one output should be shorted at a time, and duration of the short-circuit should not exceed one second.
+69:NOTE 2: With all outputs open and 4.5 V applied to all data and clear inputs, icc is measured after a momentary ground, then 4.5 V, is
+125:applied to clock.
+70:switching characteristics,VcC=5V,TA=25°c
+270:PARAMETER | 545:TEST CONDITIONS | 664:MIN | 710:TYP | 749:MAX | 785:UNIT
+76:fmax | 114:Maximum clock frequency | 672:75 | 711:110 | 789:MH2
+115:Propagation delay time, low-to-high-level Q output from clear | 565:CL = 15 pF, | 719:10 | 760:15
+77:tPLH | 115:(SN54S175, SN74S175 only) | 797:ns
+76:tPHL | 565:RL = 280 S2, | 720:13 | 758:22 | 797:ns
+114:Propagation delay time, high-to-low-level Q output from clear | 564:See Note 3
+74:tPLH Propagation delay time,low-to-high-level output from clock | 758:12
+74:tPHL | 114:Propagation time, high-to-low-level output from clock | 710:11.5 | 760:17 | 797:ns
+70:NOTE 3: Load circuits and voltage waveforms are shown in Section 1.
+367:i TEXAS
+363:INSTRUMENTS
+326:POST OFFICE BOX 655303 DALLAS, TEXAS 75265

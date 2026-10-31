@@ -1,0 +1,14 @@
+PACKAGE OPTION ADDENDUM
+TEXAS
+INSTRUMENTS
+www.ti.com
+7-Oct-2026
+makes no representation or warranty as to the accuracy of such information. Efforts are underway to better integrate information from third parties. Ti has taken and continues to take reasonable steps to provide representative
+and other limited information may not be available for release.
+In no event shall TI's liability arising out of such information exceed the total purchase price of the TI part(s) at issue in this document sold by TI to Customer on an annual basis.
+.Catalog : SN74LS11
+.Military : SN54LS11
+NOTE:QualifiedVersionDefinitions:
+. Catalog - Tl's standard catalog product
+. Military - QML certified for Military and Defense Applications
+Addendum-Page 3

@@ -1,0 +1,14 @@
+94:TEXAS | 901:PACKAGEOPTIONADDENDUM
+97:INSTRUMENTS
+54:www.ti.com | 1162:7-Oct-2026
+32:Important Information and Disclaimer:The information provided on this page represents TI's knowledge and belief as of the date that it is provided. TI bases its knowledge and belief on information provided by third parties, and
+32:makes no representation or warranty as to the accuracy of such information. Efforts are underway to better integrate information from third parties. TI has taken and continues to take reasonable steps to provide representative
+31:and other limited information may not be available for release.
+32:In no event shall TI's liability arising out of such information exceed the total purchase price of the TI part(s) at issue in this document sold by TI to Customer on an annual basis.
+33:OTHER QUALIFIEDVERSIONS OF SN54LS11,SN74LS11 :
+32:.Catalog : SN74LS11
+33:.Military : SN54LS11
+33:NOTE: Qualified Version Definitions:
+77:. Catalog - TI's standard catalog product
+77:,Military - QML certified for Military and Defense Applications
+587:Addendum-Page 3

@@ -1,0 +1,32 @@
+901:PACKAGEOPTIONADDENDUM
+98:INSTRUMENTS
+54:www.ti.com | 1155:15-Oct-2026
+54:Orderablepart number | 275:Material type | 379:Package | Pins | 490:PackageqtyICarrier | 644:RoHS | 731:Lead finish/ | 862:MSL rating/ | 991:Op temp (°C) | 1131:Part marking
+231:(1) | 308:(2) | 654:(5) | 734:Ball material | 865:Peak reflow | 1162:(6)
+762:(4) | 893:(5)
+79:SNJ54LS20FK | 221:Active | 284:Production | 380:LCCC (FK) |20 | 523:55 | TUBE | 651:No | 750:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1143:SNJ54LS
+1153:20FK
+74:SNJ54LS20FK.A | 221:Active | 284:Production | 381:LCCC (FK) 120 | 651:ON | 752:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1143:SNJ54LS
+1153:20FK
+73:SNJ54LS20FK.A | 221:Active | 284:Production | 379:LCCC (FK) |20 | 651:ON | 750:SNPB | 851:N/A for Pkg Type | 1000:-55 to 125 | 1141:SNJ54LS
+1153:20FK
+83:SNJ54LS20J | 221:Active | 284:Production | 388:CDIP (J) 114 | 523:25 / TUBE | 651:No | 751:SNPB | 852:N/A for Pkg Type | 1000:-55 to 125 | 1133:SNJ54LS20J
+83:SNJ54LS20J | 221:Active | 284:Production | 387:CDIP (J) |14 | 522:25 | TUBE | 750:SNPB | 851:N/A for Pkg Type | 1000:-55 to 125 | 1133:SNJ54LS20J
+78:SNJ54LS20J.A | 221:Active | 284:Production | 388:CDIP (J) 114 | 523:25 / TUBE | 651:No | 750:SNPB | 852:N/A for Pkg Type | 1000:-55 to 125 | 1134:SNJ54LS20J
+78:SNJ54LS20J.A | 221:Active | 285:Production | 387:CDIP (J) 114 | 522:25|TUBE | 651:No | 751:SNPB | 852:N/A for Pkg Type | 1001:-55 to 125 | 1133:SNJ54LS20J
+81:SNJ54LS20W | 221:Active | 285:Production | 386:CFP (W) |14 | 522:25| TUBE | 651:No | 750:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1131:SNJ54LS20W
+81:SNJ54LS20W | 221:Active | 284:Production | 386:CFP (W) |14 | 523:25 / TUBE | 651:No | 750:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1131:SNJ54LS20W
+74:SNJ54LS20W.A | 221:Active | 285:Production | 386:CFP (W) |14 | 523:25 / TUBE | 651:ON | 752:SNPB | 852:N/A for Pkg Type | 1001:-55 to 125 | 1130:SNJ54LS20W
+75:SNJ54LS20W.A | 221:Active | 284:Production | 386:CFP (W) |14 | 523:25 / TUBE | 651:No | 751:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1131:SNJ54LS20W
+86:SNJ54S20J | 221:Active | 284:Production | 388:CDIP (J) 114 | 523:25 / TUBE | 651:No | 751:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1137:SNJ54S20J
+86:SNJ54S20J | 221:Active | 284:Production | 387:CDIP (J) |14 | 523:25 | TUBE | 651:ON | 750:SNPB | 853:N/A for Pkg Type | 1001:-55 to 125 | 1137:SNJ54S20J
+80:SNJ54S20J.A | 221:Active | 285:Production | 388:CDIP (J) 14 | 524:25|TUBE | 651:No | 752:SNPB | 851:N/A for Pkg Type | 1002:-55 to 125 | 1137:SNJ54S20J
+81:SNJ54S20J.A | 221:Active | 284:Production | 387:CDIP (J) 114 | 523:25 / TUBE | 651:No | 750:SNPB | 851:N/A for Pkg Type | 1000:-55 to 125 | 1137:SNJ54S20J
+84:SNJ54S20W | 221:Active | 285:Production | 386:CFP (W) |14 | 523:25 | TUBE | 651:No | 752:SNPB | 853:N/A for Pkg Type | 1000:-55 to 125 | 1134:SNJ54S20W
+84:SNJ54S20W | 220:Active | 284:Production | 386:CFP (W) |14 | 523:25 / TUBE | 650:No | 750:SNPB | 850:N/A for Pkg Type | 1000:-55 to 125 | 1133:SNJ54S20W
+79:SNJ54S20W.A | 221:Active | 284:Production | 386:CFP (W) |14 | 523:25 / TUBE | 750:SNPB | 851:N/A for Pkg Type | 1000:-55 to 125 | 1133:SNJ54S20W
+78:SNJ54S20W.A | 221:Active | 284:Production | 386:CFP (W) 14 | 523:25 | TUBE | 651:ON | 750:SNPB | 851:N/A for Pkg Type | 1000:-55 to 125 | 1134:SNJ54S20W
+32:reliability performance testing,and/or process qualification,may not yet be completeand this item is subject to further changes or possible discontinuation. If available for ordering,purchases will be subject to an additional
+32:waiver at checkout, and are intended for early internal evaluation purposes only. These items are sold without warranties of any kind.
+34:column width.
+587:Addendum-Page 4

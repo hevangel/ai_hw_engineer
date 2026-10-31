@@ -1,0 +1,42 @@
+66:SN5408,SN54LS08,SN54S08
+68:SN7408,SN74LS08, S | 234:SN74S08
+68:QUADRUPLE2-INPUTPOSITIVE-ANDGATES
+68:SDLS033DECEMBER 1983REVISED MARCH 1988
+74:recommendedoperatingconditions
+556:SN54LS08 | 682:SN74LS08
+529:MIN | 563:NOM | 607:MAX | 653:MIN | 689:NOM | 730:MAX
+84:VCC | 120:Supply voltage | 536:4.5 | 617:5.5 | 653:4.75 | 736:5.25
+84:VIH | 120:High-level input voltage
+83:VIL | 121:Low-level input voltage | 618:0.7 | 743:0.8
+84:IOH | 121:High-level output current | 606: 0.4 | 731:- 0.4 | 781:mA
+84:IOL | 120:Low-levei output current | 781:mA
+84:TA | 119:Operating free-air temperature | 528:55 | 616:125 | 747:70 | 784:°℃
+73:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+554:SN54LS08 | 680:SN74LS08
+83:PARAMETER | 269:TEST CONDITIONS t
+530:MIN | 607:MAX | 654:MIN | 730:MAX
+179:VCC-MIN, | 268:lj-18mA | 607:1.5 | 730:-1.5
+101:VOH | 178:VCC"MIN, | 269:VIH"2V. | 357:IOH-0.4mA | 535:2.5 | 575:3.4 | 659:2.7 | 702:3.4
+178:VCC-MIN, | 269:VILMAX, | 357:IOL*4mA | 569:0.25 | 618:0.4 | 696:0.25 | 743:0.4
+101:VOL
+178:VCC"MIN, | 270:VIL " MAX, | 357:lOL*8mA | 696:0.35 | 743:0.5
+179:VCC-MAX, | 269:V, - 7 V | 618:0.1 | 742:0.1 | 782:mA
+180:VCCMAX, | 269:VI= 2.7 V | 621:20 | 746:20
+180:VCC-MAX, | 269:V, = 0.4 V | 608: 0.4 | 731: 0.4 | 782:mA
+101:loss | 179:VCC-MAX | 528: 20 | 604:~ 100 | 654: 20 | 728: 100 | 782:mA
+101:ICCH | 179:VCC-MAX, | 270:Vi = 4.5 V | 577:2.4 | 618:4.8 | 702:2.4 | 742:4.8 | 782:mA
+101:ICCL | 180:VCC"MAX. | 577:4.4 | 618:8.8 | 703:4.4 | 743:8.8 | 783:mA
+73:tFor conditions shown ss MiN or MAX,use the appropriate value specified under recommended operating conditions.
+74: All typical values are at Vcc = 5 V, TA = 25°c
+73:5 Not more than one output should be shorted at a time, and the duration of the short-circuit should not exceed one second.
+75:switching characteristics,Vcc=5V,TA=25°C (see note2)
+201:FROM
+87:PARAMETER | 459:TEST CONDITIONS | 657:MIN | 695:TYP | 736:MAX
+197:(INdNI)
+105:tPLH | 747:15 | 788:ns
+201:Aor B | 418:RL =2kn, | 544:CL - 15 pF
+105:tPHL | 706:10 | 750:20 | 789:ns
+76:NOTE 2: Load circuits and voltage waveforms are shown in Section 1.
+402: TEXAS
+363:INSTRUMENTS
+328:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

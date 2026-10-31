@@ -1,0 +1,16 @@
+133:TEXAS | 481:PACKAGEMATERIALSINFORMATION
+136:INSTRUMENTS
+93:www.ti.com | 811:10-Aug-2026
+93:TUBE
+130:T- Tube
+138:height | 488:L - Tube length
+191:W - Tube.
+204:width
+135:-B - Alignment groovewidth
+94:*All dimensions are nominal
+149:Device | 256:Package Name | 355:Package Type | 459:Pins | 524:SPQ | 581:L (mm) | 645:w (mm) | 713:T (μm) | 787:B (mm)
+129:SN74LS259BN | 382:PDIP | 465:16 | 531:25 | 591:506 | 652:13.97 | 715:11230 | 795:4.32
+129:SN74LS259BN | 382:PDIP | 465:16 | 530:25 | 591:506 | 652:13.97 | 714:11230 | 795:4.32
+123:SN74LS259BN.A | 382:PDIP | 465:16 | 529:25 | 591:506 | 652:13.97 | 714:11230 | 794:4.32
+123:SN74LS259BN.A | 382:PDIP | 465:16 | 531:25 | 591:506 | 652:13.97 | 715:11230 | 795:4.32
+429:Pack Materials-Page 3

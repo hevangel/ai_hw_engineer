@@ -1,0 +1,133 @@
+SN54LS11, SN54S11.
+SN74LS11, SN74S11
+TRIPLE 3-INPUT POSITVE-AND GATES
+SDLS131-APRIL1985-REVISEDMARCH1988
+recommended operating conditions
+SN54S11
+SN74S11
+UNIT
+NOM
+MAX
+MIN
+MIN
+NOM
+MAX
+Vcc
+4.5
+5.5
+4.75
+5.25
+Supply voltage
+High-level input voltage
+VIL
+Low-level input voltage
+0.8
+0.8
+IOH
+High-level output current
+-1
+mA
+tOL
+Low-level outputcurrent
+20
+20
+mA
+Operating free-airtemperature
+- 55
+125
+70
+electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+SN54S11
+SN74S11
+PARAMETER
+TEST CONDITIONS t
+unit
+MAX
+MIN
+MIN TYP
+TyP +
+MAX
+- 1.2
+- 1.2
+Vcc = MIN,
+I; = - 18 mA
+VOH
+2.7
+2.5
+3.4
+3.4
+Vih = 2 v.
+Vcc = MIN,
+lOH = - 1 mA
+VOL
+0.5
+Vcc = Min,
+Vil = 0.8 V.
+0.5
+IOL = 20 mA
+Vcc = Max.
+V, = 5.5 V
+mA
+50
+50
+Vcc * MAx.
+VI = 2.7 V
+-2
+- 2
+V/ = 0.5 V
+Vcc = MAX,
+mA
+tos S
+- 100
+- 40
+- 100
+- 40
+Vcc = MAX
+mA
+13.5
+ICCH
+13.5
+24
+24
+Vcc  MAx,
+V/ = 4.5 V
+mA
+24
+24
+IccL
+42
+42
+VcC = MAX,
+mA
+t For conditions shown as MiN or MAX, use the appropriate value specified under recommended operating conditions.
++ All typical values are at Vcc = 5 V, TA = 25°c.
+S Not more than one output should be shorted at a time, and the duration of the short-circuit should not exceed one second.
+switching characteristics, Vcc = 5 V, TA = 25°c (see note 2)
+FROM
+MIN
+MAX
+PARAMETER
+TEST CONDITIONS
+UNIT
+(INPUT)
+(OUTPUT)
+4.5
+tpLH
+ns
+RL  280 s2,
+CL = 15 pF
+tPhL
+7.5
+ns
+A, B or C
+tPLH
+ns
+RL = 280 2,
+CL = 50 pF
+7.5
+tphL
+ns
+NOTE 2: Load circuits and voltage waveforms are shown in Section 1.
+TEXAS
+INSTRUMENTS
+POST OFFICE BOX655303DALLAS, TEXAS75265

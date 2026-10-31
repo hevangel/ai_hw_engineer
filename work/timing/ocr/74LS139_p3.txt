@@ -1,0 +1,145 @@
+SN54LS139A. SN74LS139A
+DUAL 2-LINE TO 4-LINE DECODERS/DEMULTIPLEXERS
+recommended operating conditions
+SN54LS139A
+SN74LS139A
+Nom
+unit
+Min
+Min
+NoM
+Supply voltage
+4.75
+4.5
+5.5
+5.25
+Vih
+High-level input vaitage
+Low-level input voltage
+0.7
+0.8
+High-level autput current
+-0.4
+-0.4
+mA
+tal
+Low-level output current
+mA
+TA
+Operating freo-air temperature
+125
+70
+electrical characteristics over recommended operating free-air temperature range (unfess otherwise
+noted!
+SN54LS139A
+SN74LS139A
+PARAMETER
+TEST CONDITIONSt
+unit'
+Typt
+Max
+Typt
+Min
+Vcc - min.
+ = -18 mA
+-1.5
+-1.5
+VCc = miN.
+Vih = 2 V.
+Vil = max.
+2.5
+3.4
+2.7
+3.4
+IOH =.-0.4 mA
+Ycc - min.
+Vih = 2 V,
+0.25
+0.4
+IOL = 4 mA
+0.25
+0.4
+VL = MAX
+lOL= 8 mA
+0.35
+0.5
+= MAX,
+V = 7 V
+0.1
+0.1
+mA
+Vee
+Max.
+Vi = 2.7 V
+20
+20
+HA
+MAX,
+V1. - 0.4 V
+-0.4
+-0.4
+mA
+Tos?
+MAX
+- 20
+-100
+- 20
+- 100
+mA
+= MAX,
+Outputs enabted and apen
+6.8
+11
+6.8
+mA
+t For conditians shown as MIN ar MAx, use the appropriate value specified under recammended operating canditions.
++All typical values are at Vcc = 5 V, TA = 25°C.
+ENot more than one autput should be shorted at a time, and duration of the shont circuit test shouid not exceed one secand.
+switching characteristics, VcC - 5 V, TA - 25'C (see Note 2)
+SN54LS139A
+FROM
+to
+LeveLs
+PARAMETERT
+TEST CONDITIONS
+SN74LS139A
+unit
+(InPut)
+(OUTPUT)
+OF delay
+Typ
+Min
+MAX
+tPLH
+13
+20
+ns
+tPHL
+Binary
+22
+33
+Any
+ns
+tPLH
+Select
+18
+29
+ns
+RL = 2 k2.
+CL = 15 pF
+tPHL
+25
+tplh
+16
+24
+Any
+Enable
+tPhL
+21
+32
+1 tpLH = propagation delay time, low-to-high-level output
+tpHL = prapagation delay time, high-to-low-ievel autput
+NOTE 2: Load circuits and voltage waveforms are shown in Section 1.
+Texas
+INSTRUMENTS
+DOST OFFICE EOX 6S5Q12 * DALLAS. TEXAS 75265

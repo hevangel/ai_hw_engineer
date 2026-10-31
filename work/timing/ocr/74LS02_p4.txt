@@ -1,0 +1,127 @@
+SN54LS02, SN74IS02
+QUADRUPLE 2-INPUT POSITIVE-NOR GATES
+recommended operating conditions
+$N54LS02
+Sn74Ls02
+Uni't
+MAX
+NoM
+Min
+NoM
+MAX
+Vec
+4.5
+5.5
+4.75
+5.25
+Suppiy voltage
+High-level input voltage
+0.7
+0.8
+Low-ievel input voltage
+ 0.4
+High-levei output current
+ 0.4
+mA
+Low-level output currenit
+mA
+70
+- 55
+125
+Operating free-eir temperature
+electrical characteristics over recommended operating free-air termperature range (unless otherwise noted)
+SN54LS02
+sn74LS02
+TEst conditions t
+PAramETEr
+unit
+MAX
+Niw
+TYP+
+MIN
+VIK
+Vec + min.
+Ij = - 18 mA
+ 1.5
+- 1.5
+VOH
+Vce= min.
+Vil " max,
+2.5
+3.4
+3.4
+2.7
+IOH = -0.4mA
+Vih +2v.
+lOL - 4mA
+0.4
+0.25
+Vce- min,
+0.25
+0.4
+Vce - min.
+VIh = 2 V,
+IOL = 8 mA
+0.5
+V =7
+0.1
+Vcc- max,
+0.1
+mA
+Vcc - MAx.
+VI = 2.7 V
+20
+20
+HA
+Vμ = 0.4 V
+- 0.4
+Vcc " max.
+- 0.4
+mA
+tos$
+- 100
+- 20
+- 20
+- 100
+VGC - MAX
+mA
+Vec = max,
+VI=V
+1.6
+3.2
+1.6
+3.2
+mA
+2.B
+5.4
+IecL
+See Note 2
+2.8
+5.4
+VCC = MAX,
+mA
+t for conditions shown as Min or Max, use the appropriate value specified under recommended pparating conditions.
++ All typicaj values are at Vcc - 5 V, Ta - 25°c
+s Nat more than one output should be shorted at a tlme, and the duration ot the shart-circuit should not axcsed one sacond.
+NOTE Z: One input at 4.5 V, all athers at GND.
+switching characteristics, Vcc = 5 V, TA = 25°c (see note 3)
+FROM
+PARAMETER
+MAX
+TESt CoNITIons
+IINPUt
+(outputi
+10
+tph
+15
+ns
+A OrB
+Rl - 2 ks2.
+CL = 15 pF
+10
+tPhL
+15
+NoTE 3: Load circuits and voltage waveforms are shown in Sectipn 1.
+TEXAS
+INSTRUMENTS
+P05T 0FF1CE E0X 655012 - DA-LAS. TEXAS 75265

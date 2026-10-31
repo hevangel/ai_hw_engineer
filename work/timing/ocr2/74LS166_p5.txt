@@ -1,0 +1,57 @@
+651:SN54166, SN74166
+489:PARALLEL-LOAD 8-BIT S | 662:SHIFT REGISTERS
+88:absolute maximum ratings over operating free-air temperature range (unless otherwise noted)
+121:Supply voltage, Vcc (see Note 1) | 778:7V
+124:Input voltage | 768:5.5 V
+124:Operating free-air temperature range:  | 337:SN54166 | 393:s (see Note 2) | 706:-55to125°℃
+339:SN74166 | 727:0°℃ to 70°℃
+124:Storage temperature range | 706:-65Cto150°℃
+91:recommended operating conditions
+571:SN54166 | 682:SN74166
+546:MIN | 581:NOM | 617:MAX | 657:MIN | 692:NOM | 728:MAX
+128:Supply voltage,Vcc | 548:4.5 | 621:5.5 | 654:4.75 | 727:5.25
+126:High-level output current, 'H | 610:-800 | 723:800 | 769:HA
+125:Low-leveloutputcurent,L | 626:16 | 738:16 | 770:mA
+129:Clock frequency,fclock | 624:25 | 739:25 | 767:MH2
+129:Width of clock or clear pulse, tw (see Figure 1) | 552:20 | 666:20 | 774:ns
+129:Mode-control setup time, tsu | 553:30 | 666:30 | 775:ns
+129:Data setup time, tsu (see Figure 1) | 552:20 | 665:20 | 774:ns
+129:Hold time at any input, th (see Figure 1)
+130:Operating free-air temperature, TA (see Note 2) | 545:-55 | 618:125 | 739:70 | 818: Devices
+90:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+214:PARAMETER | 409:TEST CONDITIONSt | 575:SN54166 | 683:SN74166
+551:MIN | 584:TYP | 620:MAX | 660:MIN | 692:TYP | 730:MAX
+131:VIH | 164:High-level input voltage
+128:VIL | 165:Low-level input voltage | 631:0.8 | 740:0.8
+129:VIK | 166:Input clamp voltage | 384:VCC= MIN, | 456:I=-12mA | 624:1.5 | 732:-1,5
+157: High-level output voltage | 381:VcC-MIN, | 454:VIH = 2 V,
+132:VOH | 383:VIL - 0.8 V. | 455:IOH = 800 μA | 560:2.4 | 588:3.4 | 668:2.4 | 696:3.4
+131:VOL | 382:VcC - MIN, | 456:VIH =2 V,
+165:Low-level output voltage | 382:VIL - 0.8 V. | 588:0.2 | 632:0.4 | 696:0.2 | 741:0.4
+456:OL=16mA
+165:Input current at maximum input voltage | 383:VCCMAX, | 455:V,-5.5 V | 771:mA
+166:High-level input current | 383:VCC=MAX, | 455:V,  2.4 V | 634:40 | 744:40 | 772:HA
+166:Low-level input current | 383:VcC=MAX, | 456:V, = 0.4 V | 625:-1.6 | 732:-1.6 | 771:mA
+165:Short-circuit output currents | 382:VCC=MAX | 554:20 | 629:57 | 661:-18 | 738:57 | 770:mA
+129:ICC | 166:Supply current | 380:VcC -MAX, | 456:See Note 3 | 593:90 | 629:127 | 702:06 | 738:127 | 770:mA
+87:tFor conditions shown as MIN or MAX, use the appropriate value specifled under recommended operating conditions.
+86:tAll typical vaiues are at Vcc * 5 V, TA= 25°c.
+89:S Not more than one output should be shorted at a time.
+90:NOTES: | 132:1. Voltage values are with respect to network ground terminal.
+141:2. | 154:An SN54166 in the W package operating at free-air temperatures above 113°C requires a heat-sink that provides a thermal
+156:resistance from case to free air, RoCA. of not more than 48°C/W.
+141:3.  | 153:With all outputs open,4.5 .appied to the serial input, all other inputs except the clock grounded, Icc is measured aftera
+157:momentary ground, then 4.5 V, is applied to the clock.
+85:switching characteristics, Vcc =5 V,TA= 25°C
+211:PARAMETER | 459:TEST CONDITIONS | 653:MIN | 691:TYP | 725:MAX | 759:UNIT
+127:fmax | 160:Maximum clock frequency | 660:25 | 694:35 | 761:MHZ
+161:Propagation delay time, high-to- | 695:23
+127:tPHL | 160:low-level output from clear | 732:35 | 768:ns
+437:CL * 15 pF, | 525:RL = 400 $2.
+161:Propagation delay time, high-to- | 439:See Figure 1 | 695:20
+128:IPHL | 160:low-level output from clock | 732:30 | 768:ns
+162:Propagation delay time, low-to- | 697:17
+127:tPLH | 160:high-level output from clock | 732:26 | 769:ns
+413:TEXAS
+372:INSTRUMENTS | 789:2-533
+337:POST OFFICE BOX 655012 · DALLAS. TEXAS 75265

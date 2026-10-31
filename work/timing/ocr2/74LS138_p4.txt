@@ -1,0 +1,48 @@
+137:SN54tS138,SN74LS138
+136:3-LINETO8-LINEDECODERS/DEMULTIPLEXERS
+134:recommended operating conditions
+568:SN54LS138 | 695:SN74LS138 | 801:UNIT
+548:MIN | 585:NOM | 629:MAX | 677:MIN | 713:NOM | 754:MAX
+136:Vce | 200:Supply voltage | 552:4.5 | 637:5.5 | 667:4.75 | 757:5.25
+199:High-levet input voltage
+199:Low-level input voltage | 637:0.7 | 763:0.8
+199:High-ievel output current | 630:-0.4 | 754:-0.4
+134:COL | 199:Low-level output current | 803:mA
+133:TA | 201:Operating free-air temperature | 547:-55 | 635:t25 | 766:70
+132:electrical characteristics over recommended operating free-air temperature range (unless otherwise
+131:noted)
+140:PARAMETER | 322:TEST CONDITIONST | 568:SN54LS138 | 694:SN74LS138
+547:MIN | 581:TYP+ | 627:MAX | 674:MIN | 707:TYPt | 754:MAX
+220:YCC.-MIN, | 315:=-18mA | 628:-1.5 | 753:-1.5
+157:VOH | 221:VCC = MIN, | 315:VH = 2 V, VIL = MAX,
+221:IOH = -0.4 mA | 552:2.5 | 592:3.4 | 679:2.7 | 720:3.4
+222:VCC - MIN, | 314:VIH - 2 V. | 464:IOL - 4 mA] | 586:0.25 | 637:0.4 | 712:0.25 | 761:0.4
+156:VOL | 220:VIL - MAX | 464:lOL-8mA | 711:0.35 | 760:0.5
+222:VCC= MAX. | 635:0.1 | 760:0.1 | 802:mA
+248:- MAX, | 314:V=2.7 V | 639:20 | 765:20
+465:Enable | 627:-0.4 | 752:-0.4 | 802:mA
+221:VCC - MAX. | 314:VI = 0.4 V | 464:A, B, C | 628:-0.2 | 752:0.2
+220:VCC - MAX | 546:-20 | 625:-100 | 672:20 | 749:-100 | 803:mA
+217:VCC - MAX. | 313:Outputs enabled and open | 592:6.3 | 641:10 | 718:6.3 | 766:10 | 803:mA
+129:tFor conditions shown as MIN or MAX, use the appropriate value specified under recommended operating conditions.
+131:+All typical values are at VcC = 5 V. TA = 25°C.
+131:5 Not more than one output should be shorted at a time, and duration of the short-circuit test should not exceed one second.
+131:switchingcharacteristics,Vcc | 348:C5V,TA-25°C
+692:SN54LS138
+134:PARAMETERT | 248:FROM | 342:TO | 411:L.EVELS | 517:TEST CONDITIONS | 692:SN74LS138
+244:(INPUT) | 322:(OUTPUT) | 405:OF DELAY | 672:MIN | 713:TYP | 750:MAX
+154:tPLH | 763:20 | 804:ns
+153:PHL | 247:Binary | 721:18 | 763:41
+153:tPLH | 247:Select | 339:Any | 721:21 | 763:27 | 803:ns
+153:PHL | 490:RL = 2 kn. | 575:CL = 15 pF, | 721:20 | 763:39 | 804:ns
+152:IPLH | 491:See Note 2 | 721:12 | 763:18 | 803:n5
+153:tPHL | 719:20 | 762:32 | 803:ns
+246:Enable | 339:Any | 721:14 | 762:26
+153:tPLH
+152:tPHL. | 721:13 | 762:38 | 803:ns
+126:tpLH = propagation delay time low-to-high-level uput
+137:tPHL | 176:propagation delay time, high-to-low-level output
+129:NOTE 2: Load circuits and voltage waveforms are shown in Section 1.
+453:TEXAS
+411:INSTRUMENTS
+377:*OST OFFICE BOX 055012 · DALLAS. TEXAS 75285

@@ -1,0 +1,31 @@
+PACKAGE MATERIALS INFORMATION
+TEXAS
+INSTRUMENTS
+www.ti.com
+10-Aug-2026
+TAPEANDREELBOXDIMENSIONS
+*All dimensions are nominal
+Package Type
+Package Drawing
+SPQ
+Device
+Pins
+Length (mm)
+Width (mm)
+Height (mm)
+SN74LS11DR
+SOIC
+14
+2500
+353.0
+353.0
+32.0
+NS
+SOP
+14
+SN74LS11NSR
+2000
+353.0
+353.0
+32.0
+Pack Materials-Page 2

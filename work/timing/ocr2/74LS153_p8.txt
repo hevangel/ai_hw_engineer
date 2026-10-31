@@ -1,0 +1,27 @@
+901:PACKAGEOPTIONADDENDUM
+100:INSTRUMENTS
+53:www.i.com | 1152:18-Sep-2026
+54:Orderable part number | 276:Material type | 380:Package | Pins | 492:Package qtyICarrier | 644:RoHS | 733:Lead finish/ | 864:MSL rating/ | 991:Op temp (°C) | 1131:Part marking
+231:(1) | 308:(2) | 655:(5) | 732:Ball material | 865:Peak reflow | 1163:(6)
+763:(4) | 893:(5)
+81:SNJ54LS153J | 221:Active | 284:Production | 387:CDIP (J) |16 | 523:25 |TUBE | 752:SNPB | 852:N/A for Pkg Type | 1001:-55 to 125 | 1135:7601101EA
+1130:SNJ54LS153J
+75:SNJ54LS153J.A | 221:Active | 285:Production | 387:CDIP (J) |16 | 523:25 | TUBE | 651:No | 752:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1137:7601101EA
+1129:SNJ54LS153J
+79:SNJ54LS153W | 221:Active | 285:Production | 386:CFP (W) |16 | 522:25|TUBE | 651:No | 752:SNPB | 852:N/A for Pkg Type | 1000:-55 to 125 | 1136:7601101FA
+1128:SNJ54LS153W
+72:SNJ54LS153W.A | 221:Active | 284:Production | 386:CFP (W) I16 | 523:25 |TUBE | 651:No | 752:SNPB | 850:N/A for Pkg Type | 1000:-55 to 125 | 1136:7601101FA
+1128:SNJ54LS153W
+30:(1) status: For more details on status, see our product life cycle.
+32:waiver at checkout, and are intended for early internal evaluation purposes only. These items are sold without warranties of any kind.
+30:(3) RoHS values: Yes, No, RoHS Exempt. See the TI RoHS Statement for additional information and value definition.
+34:column width.
+33:Refer to the shipping label for the actual reflow temperature that will be used to mount the part to the printed circuit board.
+30:(6) Part marking: There may be an additional marking, which relates to the logo, the lt race code information, or the environmental category of the part.
+32:Multiple part markings will be inside parentheses. Only one part marking contained in parentheses and separated by a "" will appear on a part. If a line is indented then it is a continuation of the previous line and the two
+33:combined represent the entire part marking for that device.
+32:Important Information and Disclaimer:The information provided on this page represents TI's knowledge and belief as of the date that it is provided. TI bases its knowledge and belief on information provided by third parties, and
+31:makes no representation or warranty as to the accuracy of such information. Efforts are underway to better integrate information from third parties. TI has taken and continues to take reasonable steps to provide representative
+33:and other limited information may not be available for release.
+33:In no event shall TI's liability arising out of such information exceed the total purchase price of the TI part(s) at issue in this document sold by TI to Customer on an annual basis.
+588:Addendum-Page 2

@@ -1,0 +1,38 @@
+139:SN54LS20,SN74LS20
+139:DUAL4-INPUTPOSITIVE-NAND GATES
+139:recommended operating conditions
+603:SN54LS20 | 719:SN74LS20
+574:MIN | 611:NOM | 650:MAX | 693:MIN | 728:NOM | 769:MAX
+149:VCC | 182:Supply voitage | 580:4.5 | 661:5.5 | 694:4.76 | 773:5.25
+147:YIH | 181:High-level input voltage
+147:Vil | 181:Low-level input voltage | 660:0.7. | 779:0.8
+181:High-ievel output current | 649:- 0.4 | 769:- 0.4 | 815:mA
+147:'ot. | 182:Low-iavet output curront | 814:mA
+147:TA | 180:Operating free-air temperature | 573:- 65 | 658:125 | 782:70
+134:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+599:SN54LS20 | 721:SN74LS20
+147:PARAMETER | 326:TEST CONDITIONS 
+573:MIN | 649:MAX | 694:MIN | 768:MAX
+237:VCC=MIN, | 321:I↓ = - 18 mA | 646:-1.6 | 766:- 1.5
+237:VCC - MIN, | 323:Yil "Max. | 408:IOH--0.4mA | 579:2.5 | 618:3.4 | 699:2.7 | 740:3.4
+237:VCCMIN, | 323:Vih *2 V. | 407:'OL*4mA | 613:0.25 | 661:0.4 | 778:0.4
+161:VoL
+236:VCC " MIN. | 323:Vih*2 v. | 407:IOL=8mA | 731:0.25 | 777:0.5
+235:VCC - MAX, | 320:V,-?v | 659:0.1 | 777:0.1 | 812:mA
+235:VCC = MAX, | 323:V↓ = 2.7 V | 660:20 | 814:MA
+235:VCC = MAX. | 323:V} = 0.4 V | 647:- 0.4 | 767: 0.4 | 814:mA
+235:VCC-MAX | 570: 20 | 655:100 | 690:- 20 | 772:100 | 813:mA
+161:ICCH | 234:VCC-MAX. | 617:0.4 | 657:0.8 | 734:0.4 | 774:0.8
+161:ICCL | 235:VCC -MAX, | 321:Vi - 4.5 V | 617:1.2 | 655:2.2 | 734:1.2 | 777:2.2 | 813:mA
+132:t For conditions shown as MiN or Max, use the appropriate vatue specified under recommended operating conditions.
+133:I Alttypicalvalues areatVcc.-.5.Y.TA-z5'c.
+130:g Not more tnan one output should be sharied at & time, and tne duration of the short-circuit should not exeed one second.
+130:switching characteristics, Vcc =5 V, TA =25°c (see note 2)
+252:FROM
+143:PARAMETER | 499:TEST CONDITIONS | 691:Ntw | 725:TYP | 765:MAX
+158:tPLH | 778:15 | 814:ns
+259:Any | 462:RL=2k. | 581:CL = 15 pF
+157:tPHL | 736:10 | 778:15
+127:NOTE 2: Load circuits and voltage waveforms are shown in Section 1.
+418:INSTRUMENTS
+378:POST OFFICE B0X 655012 + DALLAS. TEXA5 75Z55

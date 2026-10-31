@@ -1,0 +1,87 @@
+PACKAGE MATERIALS INFORMATION
+TEXAS
+INSTRUMENTS
+www.ti.com
+10-Aug-2026
+TAPE AND REEL INFORMATION
+REEL DIMENSIONS
+TAPE DIMENSIONS
+P→
+母母
+BO
+Reel
+Diameter
+Cavity
+A0
+Dimension designedtoaccommodatethe componentwidth
+BO
+Dimensiondesigned to accommodatethecomponent length
+K0
+Dimension designed to accommodate the component thickness
+Overall width of the carrier tape
+P1
+Pitch between successive cavity centers
+Reel Width (W1)
+QUADRANT ASSIGNMENTS FOR PIN 1 ORIENTATION IN TAPE
+04
+Sprocket Holes
+Q2
+Q1
+Q1
+！Q2
+Q3
+Q4
+Q4
+User Direction of Feed
+Pocket Quadrants
+*All dimensions are nominal
+Device
+Package
+A0
+B0
+K0
+SPQ
+Reel
+P1
+Package
+Pins
+Reel
+Pin1
+Type
+Drawing
+Width
+(ww)
+(mm)
+Diameter
+(mm)
+(mm)
+(ww)
+Quadrant
+(mm)
+W1 (mm)
+14
+SOIC
+2500
+16.4
+6.5
+9.0
+8.0
+16.0
+SN74LS11DR
+330.0
+2.1
+Q1
+NS
+14
+8.1
+2.5
+SOP
+2000
+330.0
+16.4
+10.4
+12.0
+16.0
+SN74LS11NSR
+Q1
+Pack Materials-Page 1

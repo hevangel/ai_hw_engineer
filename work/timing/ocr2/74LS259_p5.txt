@@ -1,0 +1,24 @@
+901:PACKAGEOPTIONADDENDUM
+100:INSTRUMENTS
+54:www.ti.com | 1154:11-Nov-2025
+35:PACKAGINGINFORMATION
+54:Orderable part number | 220:Status | 275:Material type | 379:Package | Pins | 492:Package qty I Carrier | 645:RoHS | 732:Lead finish/ | 863:MSL rating/ | 991:Op temp (°C) | 1131:Part marking
+231:(1) | 308:(2) | 655:(3) | 733:Ball material | 866:Peak reflow | 1163:(6)
+762:(4) | 892:(5)
+79:SN74LS259BD | 213:Obsolete | 284:Production | 386:SOIC (D) |16 | 750:Call TI | 880:Call TI | 1009:0 to 70 | 1146:LS259B
+74:SN74LS259BDR | 221:Active | 285:Production | 386:SOIC (D) /16 | 499:2500 I LARGE T&R | 649:Yes | 745:NIPDAU | 841:Level-1-260C-UNLIM | 1008:0 to 70 | 1146:LS259B
+68:SN74LS259BDR.A | 221:Active | 285:Production | 386:SOIC (D) |16 | 499:2500|LARGE T&R | 649:Yes | 745:NIPDAU | 841:Level-1-260C-UNLIM | 1008:O to 70 | 1147:LS259B
+79:SN74LS259BN | 221:Active | 284:Production | 385:PDIP (N) 116 | 523:25 / TUBE | 649:Yes | 745:NIPDAU | 851:N/A for Pkg Type | 1007:0 to 70 | 1129:SN74LS259BN
+72:SN74LS259BN.A | 221:Active | 285:Production | 385:PDIP (N) |16 | 524:25|TUBE | 649:Yes | 745:NIPDAU | 850:N/A for Pkg Type | 1007:O to 70 | 1129:SN74LS259BN
+29:(1) status: For more details on status, see our produc life cycle.
+32:reliability performance testing, and/or process qualification, may not yet be complete, and this item is subject to further changes or possible discontinuation. If available for ordering, purchases will be subject to an additional
+32:waiver at checkout, and are intended for early internal evaluation purposes only. These items are sold without warranties of any kind.
+34:column width.
+32:Refer to the shipping label for the actual reflow temperature that will be used to mount the part to the printed circuit board.
+32:Multiple part markings will be inside parentheses. Only one part marking contained in parentheses and separated by a "" will appear on a part. If a line is indented then it is a continuation of the previous line and the two
+33:combined represent the entire part marking for that device.
+31:Important Information and Disclaimer:The information provided on this page represents TI's knowledge and belief as of the date that it is provided. TI bases its knowledge and belief on information provided by third parties, and
+32:makes no representation or warranty as to the accuracy of such information. Efforts are underway to better integrate information from third parties. TI has taken and continues to take reasonable steps to provide representative
+33:and other limited information may not be available for release.
+33:In no event shall TI's liability arising out of such information exceed the total purchase price of the TI part(s) at issue in this document sold by TI to Customer on an annual basis.
+588:Addendum-Page 1

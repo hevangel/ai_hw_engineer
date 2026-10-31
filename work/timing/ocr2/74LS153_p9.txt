@@ -1,0 +1,10 @@
+95:TEXAS | 901:PACKAGEOPTIONADDENDUM
+97:INSTRUMENTS
+54:www.ti.com | 1152:18-Sep-2026
+34:OTHER QUALIFIED VERSIONS OF SN54LS153,SN74LS153:
+32:.Catalog : SN74LS153
+31:Military : SN54LS153
+33:NOTE: Qualified Version Definitions:
+77:, Catalog - T's standard catalog product
+77:, Military - QML certified for Military and Defense Applications
+587:Addendum-Page 3

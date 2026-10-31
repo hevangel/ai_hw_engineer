@@ -1,0 +1,131 @@
+SN5408. SN54LS08. SN54S08
+SN7408, SN74LS08, SN74S08
+QUADRUPLE 2-INPUT POSITVE-AND GATES
+SDLS033-DECEMBER1983-REVISEDMARCH1988
+recommended operating conditions
+SN5408
+SN7408
+NOM
+MAX
+Min
+NOM
+MAX
+4.75
+5.25
+5.5
+4.5
+Vcc.
+Supply vottage
+VIH
+High-level input voltage
+0.8
+0.8
+Low-levet input voltage
+- 0.8
+- 0.8
+mA
+IOH
+High-level output current
+16
+16
+mA
+toL
+Low-level output current
+70
+- 55
+125
+Ta
+Operating free-air temperature
+electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+SN5408
+SN7408
+TEST CONDITIONS t
+PARAMETER
+MAX
+MIN
+Min
+MAX
+- 1.5
+- 1.5
+VIK
+Vcc = min.
+lg = - 12 mA
+3.4
+2.4
+2.4
+3.4
+VOH
+Vcc = min.
+Vih = 2 v.
+lOH = - 0.8 mA
+0.2
+0.4
+0.2
+0.4
+Vil = 0.8 V.
+1OL = 16 mA
+Vol
+Vcc " Min,
+Vcc = max,
+Vi = 5.5 V
+mA
+40
+40
+Vcc = Max,
+VI = 2.4 V
+- 1.6
+- 1.6
+mA
+Vcc = max,
+V = 0.4 V
+- 18
+- 55
+~ 55
+- 20
+los§
+Vcc= max
+mA
+11
+21
+21
+11
+ICCH
+Vcc = max,
+Vi = 4.5 V
+mA
+20
+33
+33
+20
+Iccl
+VI=0V
+Vcc - Max,.
+mA
++ All typical values are at Vcc = 5 V, TA = 25°c.
+S Not more than one output should be shorted at a time.
+switching characteristics, Vcc = 5 V, TA = 25°C (see note 2)
+FROM
+TO
+MAX
+Typ
+MIN
+TEST CONDITIONS
+unit
+PARAMETER
+(INPUT)
+(Output)
+17.5
+27
+tpLh
+ns
+RL = 400 2,
+A or B
+CL = 15 pF
+12
+19
+tPHL
+ns
+NOTE 2: Load circuits and voltage waveforms are shown in Section 1.
+TEXAS
+INSTRUMENTS
+POSTOFFICEBOX655303DALLAS,TEXAS75265

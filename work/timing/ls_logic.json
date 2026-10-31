@@ -1,0 +1,245 @@
+{
+  "parts": {
+    "74LS00": {
+      "tpd_typ_ns": 10,
+      "tpd_max_ns": 15,
+      "parameter": "tPLH/tPHL",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://www.ti.com/lit/ds/symlink/sn74ls00.pdf",
+      "document": "SDLS025D",
+      "page": "7",
+      "notes": "Table 6.9 (SNx4LS00), RL=2k. tPLH 9/15, tPHL 10/15. Worst-case row tPHL used."
+    },
+    "74LS02": {
+      "tpd_typ_ns": 10,
+      "tpd_max_ns": 15,
+      "parameter": "tPLH/tPHL",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://www.ti.com/lit/ds/symlink/sn74ls02.pdf",
+      "document": "SDLS027",
+      "page": "4",
+      "notes": "SN54/74LS02 switching characteristics, RL=2k. tPLH 10/15, tPHL 10/15."
+    },
+    "74LS04": {
+      "tpd_typ_ns": 10,
+      "tpd_max_ns": 15,
+      "parameter": "tPLH/tPHL",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://www.ti.com/lit/ds/symlink/sn74ls04.pdf",
+      "document": "SDLS029C",
+      "page": "6",
+      "notes": "SN54/74LS04 table, RL=2k. tPLH 9/15, tPHL 10/15. Worst-case row tPHL used."
+    },
+    "74LS08": {
+      "tpd_typ_ns": 10,
+      "tpd_max_ns": 20,
+      "parameter": "tPLH/tPHL",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://www.ti.com/lit/ds/symlink/sn74ls08.pdf",
+      "document": "SDLS033",
+      "page": "4",
+      "notes": "SN54/74LS08 table, RL=2k. tPLH 8/15, tPHL 10/20. Worst-case row tPHL used."
+    },
+    "74LS11": {
+      "tpd_typ_ns": 10,
+      "tpd_max_ns": 20,
+      "parameter": "tPLH/tPHL",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://www.ti.com/lit/ds/symlink/sn74ls11.pdf",
+      "document": "SDLS131",
+      "page": "3",
+      "notes": "SN54/74LS11 table, RL=2k. tPLH 8/15, tPHL 10/20. Worst-case row tPHL used."
+    },
+    "74LS20": {
+      "tpd_typ_ns": 10,
+      "tpd_max_ns": 15,
+      "parameter": "tPLH/tPHL",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://www.ti.com/lit/ds/symlink/sn74ls20.pdf",
+      "document": "SDLS079",
+      "page": "4",
+      "notes": "SN54/74LS20 table, RL=2k. tPLH 9/15, tPHL 10/15. Worst-case row tPHL used."
+    },
+    "74LS32": {
+      "tpd_typ_ns": 14,
+      "tpd_max_ns": 22,
+      "parameter": "tPLH/tPHL",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://www.ti.com/lit/ds/symlink/sn74ls32.pdf",
+      "document": "SDLS100",
+      "page": "4",
+      "notes": "SN54/74LS32 table, RL=2k. tPLH 14/22, tPHL 14/22."
+    },
+    "74LS51": {
+      "tpd_typ_ns": 12.5,
+      "tpd_max_ns": 20,
+      "parameter": "tPLH/tPHL",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://www.ti.com/lit/ds/symlink/sn74ls51.pdf",
+      "document": "SDLS113",
+      "page": "5",
+      "notes": "SN54/74LS51 table, RL=2k. tPLH 12/20, tPHL 12.5/20. Worst-case row tPHL used."
+    },
+    "74LS74": {
+      "tpd_typ_ns": 25,
+      "tpd_max_ns": 40,
+      "parameter": "tPLH/tPHL",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://www.ti.com/lit/ds/symlink/sn74ls74a.pdf",
+      "document": "SDLS119",
+      "page": "5",
+      "notes": "SN74LS74A table, RL=2k, CL=15pF. tPLH 13/25, tPHL 25/40 (clock/clear/set to output). Worst-case row tPHL used."
+    },
+    "74LS86": {
+      "tpd_typ_ns": 20,
+      "tpd_max_ns": 30,
+      "parameter": "tPLH/tPHL",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://www.ti.com/lit/ds/symlink/sn74ls86a.pdf",
+      "document": "SDLS124",
+      "page": "4",
+      "notes": "SN74LS86A table, RL=2k. Other input low: tPLH 12/23, tPHL 10/17. Other input high: tPLH 20/30, tPHL 13/22. Worst case 20/30."
+    },
+    "74LS138": {
+      "tpd_typ_ns": 18,
+      "tpd_max_ns": 41,
+      "parameter": "tPLH/tPHL",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://www.ti.com/lit/ds/symlink/sn74ls138.pdf",
+      "document": "SDLS014",
+      "page": "4",
+      "notes": "RL=2k. Paths (typ/max): select 2-level 11/20, 18/41; select 3-level 21/27, 20/39; enable 2-level 12/18, 20/32; enable 3-level 14/26, 13/38. Worst pair 18/41."
+    },
+    "74LS139": {
+      "tpd_typ_ns": 25,
+      "tpd_max_ns": 38,
+      "parameter": "tPLH/tPHL",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://www.ti.com/lit/ds/symlink/sn74ls139a.pdf",
+      "document": "SDLS013A",
+      "page": "3",
+      "notes": "SN74LS139A, RL=2k. Select 2-level 13/20, 22/33; select 3-level 18/29, 25/38; enable 16/24, 21/32. Worst pair 25/38."
+    },
+    "74LS151": {
+      "tpd_typ_ns": 25,
+      "tpd_max_ns": 38,
+      "parameter": "tPLH/tPHL",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://www.ti.com/lit/ds/symlink/sn74ls151.pdf",
+      "document": "SDLS054",
+      "page": "4",
+      "notes": "SN74LS151 ('151A column), RL=400 ohm. Select 4-level 25/38; 3-level 17/26, 19/30; strobe 21/33, 22/33 and 14/21, 15/23; data 13/20, 18/27 and 8/14. Worst 25/38."
+    },
+    "74LS153": {
+      "tpd_typ_ns": 25,
+      "tpd_max_ns": 38,
+      "parameter": "tPLH/tPHL",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://www.ti.com/lit/ds/symlink/sn74ls153.pdf",
+      "document": "SDLS055A",
+      "page": "5",
+      "notes": "SN74LS153, RL=2k. Data 10/15, 17/26; select 19/29, 25/38; strobe 16/24, 21/32. Worst pair 25/38."
+    },
+    "74LS161": {
+      "tpd_typ_ns": null,
+      "tpd_max_ns": 30,
+      "parameter": "tPLH/tPHL",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://eater.net/datasheets/74ls161.pdf",
+      "document": "DS006397 (Fairchild DM74LS161A/DM74LS163A)",
+      "page": "6",
+      "notes": "Fairchild AC table gives Min/Max only (no Typ column). At CL=15pF: clock-to-RC 25/30; clock-to-Q 22/27 and 24/27; enable-T 14/15; clear 28. Worst max 30 (tPHL clock to ripple carry). Typ not published."
+    },
+    "74LS166": {
+      "tpd_typ_ns": 19,
+      "tpd_max_ns": 30,
+      "parameter": "tPHL/tPLH",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://www.ti.com/lit/ds/symlink/sn74ls166a.pdf",
+      "document": "not printed in this scan (SN54LS166A/SN74LS166A)",
+      "page": "6",
+      "notes": "RL=2k. fmax 25/35 MHz; clear-to-output tPHL 19/30; clock-to-output tPHL 14/25 and tPLH 11/20. Worst pair 19/30 (clear)."
+    },
+    "74LS174": {
+      "tpd_typ_ns": 23,
+      "tpd_max_ns": 35,
+      "parameter": "tPLH/tPHL",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://www.ti.com/lit/ds/symlink/sn74ls174.pdf",
+      "document": "SDLS068A",
+      "page": "5",
+      "notes": "Combined LS174/LS175 table, RL=2k, 'LS174 columns. Clock 20/30 (tPLH), 21/30 (tPHL); clear 20/30, 23/35. Worst pair 23/35."
+    },
+    "74LS175": {
+      "tpd_typ_ns": 20,
+      "tpd_max_ns": 30,
+      "parameter": "tPLH/tPHL",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://www.ti.com/lit/ds/symlink/sn74ls175.pdf",
+      "document": "SDLS068A",
+      "page": "5",
+      "notes": "Combined LS174/LS175 table, RL=2k, 'LS175 columns. Clock 13/25 (tPLH), 16/25 (tPHL); clear 20/30, 20/30. Worst pair 20/30."
+    },
+    "74LS194": {
+      "tpd_typ_ns": 19,
+      "tpd_max_ns": 30,
+      "parameter": "tPHL/tPLH",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://www.ti.com/lit/ds/symlink/sn74ls194a.pdf",
+      "document": "SDLS075",
+      "page": "7",
+      "notes": "SN74LS194A, RL=2k. fmax 25/36 MHz; clock 14/22 (tPLH), 17/26 (tPHL); clear 19/30. Worst pair 19/30."
+    },
+    "74LS195": {
+      "tpd_typ_ns": 19,
+      "tpd_max_ns": 30,
+      "parameter": "tPLH/tPHL",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://www.sycelectronica.com.ar/semiconductores/74LS195.pdf",
+      "document": "ON Semiconductor SN74LS195A (no doc number printed)",
+      "page": "4",
+      "notes": "AC CHARACTERISTICS TA=25C, VCC=5.0V, CL=15pF. fMAX 30/39 MHz; clock 14/22 (tPLH), 17/26 (tPHL); MR 19/30. Worst pair 19/30."
+    },
+    "74LS251": {
+      "tpd_typ_ns": 29,
+      "tpd_max_ns": 45,
+      "parameter": "tPLH/tPHL",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://www.ti.com/lit/ds/symlink/sn74ls251.pdf",
+      "document": "SDLS085",
+      "page": "6",
+      "notes": "RL=2k. Select 4-level 29/45, 28/45; 3-level 20/33, 21/33; D->Y 17/28, 18/28; D->W 10/15, 9/15. Enable/disable paths use tPZH/tPZL/tPHZ/tPLZ (30/45 etc, disable at CL=5pF). Worst tpd 29/45."
+    },
+    "74LS257": {
+      "tpd_typ_ns": null,
+      "tpd_max_ns": 21,
+      "parameter": "tPLH/tPHL",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://www.datasheets.pl/elementy_czynne/IC/7/74LS257.pdf",
+      "document": "Signetics 257 (54S/74S257, 54LS/74LS257); no document number printed",
+      "page": "3",
+      "notes": "AC CHARACTERISTICS VCC=+5.0V, TA=25C, 54/74LS columns at CL=15pF; Min/Max only, no Typ. In->Zn max 18, S->Zn max 21, enable 30, disable 30/25. Worst tpd 21. RL for LS propagation rows not stated (enable/disable rows note RL=2k). TI SN74LS257B publishes only CL=45pF data."
+    },
+    "74LS259": {
+      "tpd_typ_ns": 19,
+      "tpd_max_ns": 30,
+      "parameter": "tPLH/tPHL",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://www.ti.com/lit/ds/symlink/sn74ls259b.pdf",
+      "document": "SDLS086",
+      "page": "4",
+      "notes": "SN74LS259B, RL=2k. CLR 12/18; data 19/30, 13/20; address 17/27, 14/20; G 15/24, 15/24. Worst pair 19/30."
+    },
+    "74LS283": {
+      "tpd_typ_ns": 16,
+      "tpd_max_ns": 24,
+      "parameter": "tPLH/tPHL",
+      "conditions": "VCC=5V, CL=15pF, TA=25C",
+      "source": "https://www.ti.com/lit/ds/symlink/sn74ls283.pdf",
+      "document": "SDLS095A",
+      "page": "4",
+      "notes": "SN74LS283, RL=2k. C0->sum 16/24, 15/24; Ai/Bi->sum 15/24; C0->C4 11/17, 11/22; Ai/Bi->C4 11/17, 12/17. Worst pair 16/24."
+    }
+  },
+  "unresolved": []
+}

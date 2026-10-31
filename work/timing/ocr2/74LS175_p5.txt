@@ -1,0 +1,61 @@
+455:SN54LS174,SN54LS175,SN74LS174,SN74LS175
+425:HEX/QUADRUPLED-TYPEFLIP-FLOPS WITH CLEAR
+571:SDLS068ADECEMBER 1972REVISED OCTOBER2001
+108:absolute maximum ratings over operating free-air temperature range (unless otherwise noted)
+141:Supply voltage, Vcc (see Note 1) | 834:7V
+145:Input voltage | 835:7V
+142:Operating free-air temperature range:S | 373:SN54LS174,SN54LS175 Circuits | 760:-55Cto125°c
+374:SN74LS174, SN74LS175 Circuits | 783:0°℃ to 70°℃
+142:Storage temperature range | 760:65°C to 150°c
+106:NOTE 1: Voltage values are with respect to network ground terminal.
+103:recommended operating conditions
+612:SN54LS174 | 724:SN74LS174
+611:SN54LS175 | 726:SN74LS175
+593:MIN | 629:NOM | 667:MAX | 706:MIN | 743:NOM MAX
+108:Supply voltage, Vcc | 602:4.5 | 681:5.5 | 706:4.75 | 787:5.25
+109:High-level output current, lOH | 669:400 | 783:400|
+107:Low-leveloutputcurrent,l
+110:Clock frequency,fclock | 684:30 | 800:30|r | 819:MH2
+108:Width of clock or clear pulse,tw | 605:20 | 718:20 | 826:ns
+111:Setup time,tsu | 481:Data input | 605:20 | 718:20 | 827:ns
+478:Clear inactive-state | 607:25 | 720:25 | 827:ns
+110:Data hold time, th | 827:ns
+111:Operating free-air temperature, TA | 598:-55 | 678:125 | 800:70
+618:SN54LS174 | 733:SN74LS174
+175:PARAMETER | 401:TEST CONDITIONSt | 618:SN54LS175 | 733:SN74LS175 | 821:UNIT
+594:MIN TYPMAX | 709:MIN | 743:TYPMAX
+109:VIH | 156:High-level input voltage
+156:Low-level input voltage | 682:0.7 | 798:0.8
+111:VIK | 156:Input clamp voltage | 343:VCC= MIN, | 430:lj--18mA | 675:-1.5 | 791:1.5
+111:VOH | 343:VcC " MIN, | 431:VIH = 2 V,
+156:High-level output voltage | 599:2.5 | 637:3.5 | 714:2.7 | 752:3.5
+344:VIL = VILmax, lOH=400 μA
+111:VOL | 342:VCC-MIN, | 432:Vih=2 V. | 519:OL"4mA | 631:0.25 | 683:0.4 | 746:0.25 | 795:0.4
+158:Low-level output voltage | 344:VIL = VIL max
+519:LOL-8mA | 745:0.35 | 797:0.5
+157:Input current at | 344:VC = MAX, | 433:Vi=7 V | 684:0.1 | 798:0.1
+156:maximum input voltage | 827:mA
+158:High-level input current | 343:VcC = MAX, | 432:V, = 2.7 V | 686:20 | 801:20| | 827:μA
+157:Low-level input current | 343:VcC-MAX. | 433:Vj " 0.4 V | 677:-0.4 | 790:0.4| | 827:mA.
+157:Short-circuit output current$ | 343:VcC MAX | 596:20 | 675:100 | 713:20 | 787:100] | 826:mA
+524:'LS174 | 642:16 | 686:26 | 756:16 | 796:26
+158:Supply current | 342:VcC = MAX, | 433:See Note 2 | 827:mA
+525:'LS175 | 690:18 | 798:18
+100:.1For conditions shown as MIN or MAx,use the appropriate value specified under recommended operating conditions.
+99:'#Alltypical values are at Vcc " 5 v. TA  25"c.
+102:SNot more than one output should be shorted ata time,and duration of the short-circuit should not exceed one second.
+101:NOTE 2: wWith all outputs open and 4.5 V applied to all data and clear inputs, Icc is measured after a momentary ground, then 4.5 V,is
+158:applied to clock.
+105:switching characteristics,Vc=5V,TA=25°C
+627:'LS174 | 738:"LS175
+247:PARAMETER | 479:TEST CONDITIONS
+596:MIN | 635:TYP | 672:MAX | 708:MIN | 748:TYP | 784:MAX
+113:fmax Maximum clock frequency | 608:30 | 644:40 | 721:30 | 757:40 | 822:MHZ
+109:tPLH Propagation delay time,low-to-high-level output from clear | 501:CL = 15 pF, | 758:20 | 799:30 | 828:ns
+110:tPHL Propagation delay time, high-to-low-level output from clear | 501:RL=2k2, | 646:23 | 686:35 | 758:20 | 800:30 | 830:ns
+111:tPLH Propagation delay time, low-to-high-level output from clock | 503:See Note 3 | 645:20 | 685:30 | 760:13 | 800:25 | 829:ns
+109:tPHL Propagation delay time, high-to-low-level output from clock | 645:21 | 685:30 | 760:16 | 799:25 | 829:ns
+102:NOTE 3: Load circuits and voltage waveforms are shown in Section 1.
+406:i TEXAS
+402:INSTRUMENTS
+367:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

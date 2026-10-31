@@ -1,0 +1,57 @@
+104:SN54LS166A,SN74LS166A
+102:PARALLEL-LOAD8-BITSHIFTREGISTERS
+100:absolute maximum ratings over operating free-air temperature range (unless otherwise noted)
+135:Supply voltage, Vcc (see Note 1) | 790:7V
+789:7V
+134:Operating free-air temperature range: $ | 350:SN54LS166A.... | 724:55cto125c
+351:SN74LS166A | 741:0°℃ to 70°℃
+133:Storage temperature range | 723:65°Cto150°c
+101:NOTE 1: Voltage values are with respect to network ground terminal.
+101:recommended operating conditions
+545:SN54LS166A | 662:SN74LS166A
+527:MIN | 563:TYP | 604:MAX | 646:MIN | 682:TYP | 722:MAX
+175:Supply voltage | 536:4.5 | 615:5.5 | 644:4.75 | 725:5.25
+104:VIH | 174:High-level input voltage
+104:VIL | 177:Low-level input voltage | 614:0.7 | 731:0.8
+175:High-level output current | 605: 0.4 | 729:0.4 | 770:mA
+102:DOL | 176:Low-level output current | 770:mA
+102:Felock | 175:Clock frequency | 618:25 | 737:25 | 769:MH2
+174:Width of clear pulse (See Figure 1) | 539:20 | 658:20 | 774:ns
+175:Width of clock pulse (See Figure 1) | 539:25 | 656:25
+175:Mode-control setup time | 539:30 | 656:30 | 774:ns
+59:TTL | 174:Data setup time (See Figure 1) | 537:20 | 658:20 | 775:ns
+174:Hold time at any input (See Figure 1 and Note 4) | 775:ns
+174:Operating free air temperature | 612:125 | 738:70
+60:Devices | 109:NOTE 4: | 157:The hold time limit of O ns applies only if the rise time is less than or equal to 10 ns.
+99:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+542:SN54LS166A | 659:SN74LS166A
+102:PARAMETER | 279:TEST CONDITIONS↑
+524:MIN | 558:TYP+ | 589:MAX | 642:MIN | 679:TYP | 715:MAX
+119:VIK | 191:VCC= MIN, | 275:I1- - 18mA | 598:- 1.5 | 717:- 1.5
+119:VOH | 191:VCC=MIN, | 277:VIH = 2 V, | 362:VIL = MAX, | 564:3.4
+192:IOH-0.4mA | 532:2.5 | 651:2.7 | 684:3.4
+119:VOL | 192:VCC= MIN, | 278:VIH=2V, | 357:OL-4mA | 558:0.25 | 608:0.4 | 677:0.25 | 728:0.4
+193:VIL = MAX | 358:LOL-8mA | 677:0.35 | 728:0.5
+192:VcC=MAX, | 279:vi-7 V | 609:0.1 | 727:0.1 | 766:mA
+192:VCC=MAX, | 277:Vi- 2.7 V | 612:20 | 730:20 | 767:MA
+192:VCC= MAX, | 276:V, = 0.4 V | 607:0.4 | 717: 0.4 | 767:mA
+118:loss | 191:VCC-MAX | 609:100 | 652:20 | 724:100 | 766:mA
+119:ICC | 192:VcC-MAX, | 274:See Note 5 | 568:20 | 613:32 | 686:20 | 731:32 | 766:mA
+95:tForconditions shownasMINorMAX,use theapropriatevaluespecified underreommendedoperating condition
+96:tAlltypical values are at Vcc = 5 V, TA = 25°C.
+95:Notmorethanoneoutput shouldbeshoredatatimeanddurationforshort-circuitshouldnotexceedonesecond.
+95:NOTE 5:With all outputs open, 4.5 V applied to the serial input and all other inputs except the clock grounded, Iccis measured after a momentary ground,
+143:than 4.5 V, is applied to clock.
+99:switching characteristics, Vcc = 5 V, TA = 25°c
+208:PARAMETER | 458:TEST CONDITIONS | 651:MIN | 686:TYP | 725:MAX | 770:UNIT
+111:fmax | 143:Maximum clock frequency | 662:25 | 693:35 | 771:MHZ
+144:Propagation delay time, high-to-
+113:tPHL | 140:low-level output from clear | 696:19 | 741:30 | 777:ns
+145:Propagation delay time, high-to- | 447:CL = 15 pF, | 520:RL =2kS2,
+113:tPHL | 447:See Figure 1 | 696:14 | 740:25 | 781:ns
+144:low-level output from clock
+113:tPLH | 145:Propagation delay time, low-to- | 695:11 | 739:20
+142:high-level output from clock | 780:ns
+421:TEXAS
+72:2-534 | 381:INSTRUMENTS
+344:POST OFFICE BOX 655012 · DALLAS, TEXAS 75265

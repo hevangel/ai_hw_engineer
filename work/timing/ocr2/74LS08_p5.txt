@@ -1,0 +1,44 @@
+623:SN5408,SN54LS08,SN54S08
+624:SN7408,SN74LS08,SN74S08
+491:QUADRUPLE2-INPUTPOSITIVE-AND.GATES
+592:SDLS033 DECEMBER 1983  REVISED MARCH 1988
+102:recommendedoperatingconditions
+589:SN54S08 | 713:SN74S08
+812:UNIT
+561:MIN | 595:NOM | 638:MAX | 684:MIN | 720:NOM | 765:MAX
+115:VCC | 150:Supply voltage | 567:4.5 | 649:5.5 | 684:4.75 | 765:5.25
+115:VH | 150:High-level input voitage
+114:VIL | 151:Low-level input voltage | 649:0.8 | 775:80
+115:IOH | 151:High-level output current | 814:mA
+114:IOL | 150:Low-level output current | 652:20 | 778:20 | 814:mA
+114:TA | 151:Operating free-air temperature | 558:- 55 | 647:125 | 778:70
+589:SN54S08 | 715:SN74S08
+116:PARAMETER | 302:TEST CONDITIONS | 811:UNIT
+561:MIN | 598:TYP+ | 639:MAX | 685:MIN | 723:TYP+ | 766:MAX
+132:VIK | 212:VCC-MIN, | 300:I, - -18 mA | 644:-1.2 | 768:-1.2
+133:VOH | 212:VCC-MIN, | 303:VIH=2V, | 393:IOH"-1mA | 568:2.5 | 611:3.4 | 692:2.7 | 736:3.4
+134:VOL | 211:VCCMIN, | 303:VIL*0.8 V | 389:IOL=20 mA | 651:0.5 | 777:0.5
+211:VCC-MAX, | 301:Vj*5.5 V | 813:mA
+212:VCC"MAX, | 300:V↓ = 2.7 V | 654:50 | 780:50
+212:VcC -MAX, | 301:Vi = 0.5 V | 654:-2 | 779:-2 | 813:mA
+134:los5 | 213:VCC*MAX | 566:-40 | 642:-100 | 689:40 | 767:100 | 812:mA
+133:ICCH | 211:VCC"MAX, | 302:Vj= 4.5 V | 614:18 | 656:32 | 740:18 | 781:32 | 814:mA
+133:ICCL | 210:VCC "MAX. | 616:32 | 655:57 | 741:32 | 781:57 | 815:mA
+102:1 For conditions shown as MiN or MAX, use the appropriate value specified under recommended operating conditions.
+100:1Alltypical values are et VcC-5V.TA=25°c.
+102:S Not more than one output should be shorted at a time, and the duration of the short-circuit shouid not exceed one second.
+103:switching characteristics, Vcc =5 V,TA=25°c (see note 2)
+229:FROM
+117:PARAMETER | 490:TEST CONDITIONS | 686:MIN | 726:TYP | 765:MAX | 813:JINN
+227:(INdNI)
+134:tPLH | 734:4.5 | 819:ns
+452:RL = 280 n, | 575:CL = 15 pF
+134:tPHL | 778:7.5 | 819:ns
+230:Aor B
+134:tPLH | 819:ns
+453:RL = 280 2, | 574:CL = 50 pF
+134:tPHL | 734:7.5
+104:NOTE 2: Load circuits and voltage waveforms are shown in Section 1.
+441: TEXAS
+401:INSTRUMENTS
+368:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

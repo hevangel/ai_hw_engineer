@@ -1,0 +1,46 @@
+127:SN54153,SN74153
+130:DUAL4-LINETO | 248:1-LINEDATASELECTORS/MULTIPLEXERS
+126:recommended operating conditions
+610:SN54153 | 725:SN74153
+697:MIN | 734:NOM | 774:MAX | 810:UNIT
+581:MIN | 620:NOM | 659:MAX
+130:Supply voltage, Vc | 588:4.5 | 666:5.5 | 697:4.75 | 775:5.25
+131:High-levei output current, loH | 655:800 | 771:800
+130:Low-level ousput current, loL | 670:16 | 786:16 | 816:mA
+132:Operating free-air temperature, TA | 583:-55 | 664:125 | 786:70
+126:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+609:SN54153 | 725:SN74153
+230:PARAMETER | 434:TEST CONDITIONSt | 580:MIN | 659:MAX | 697:MIN | 775:MAX
+169:High-ievel input voltage
+169:Low-lgvel input voltage | 667:0.8 | 783:0.8
+130:VIK | 170:Input clamp voitage | 410:VCC"MIN. | 487:=-12mA | 661:-1.5 | 776:-1.5
+409:YCC-MIN, | 485:VIH -2 V. | 704:2.4 | 739:3.4
+133:VOH | 167:High-level output voltage | 409:Vit = 0.8 v. | 485:IOH  -800 μA | 589:2.4 | 624:3.4
+408:VCC - MIN, | 487:ViH=2V. | 739:0.2 | 783:0.4
+132:VOL | 170:Low-level ou tput oltage | 408:YIL - 0.8 v. | 624:0.2 | 669:0.4
+488:IOL " 18 mA
+169:Input current at maxinum input voitage | 408:VcC-MAX, | 487:VI- 5.5V | 815:mA
+169:High-level input current | 405:VCCMAX, | 488:V)= 2.4 V | 669:40 | 785:40
+168:Low-level input current | 407:VcC-MAX, | 488:V↓ = 0.4 V | 660:-1.6 | 776:-1.6 | 815:mA
+168:Short-circuit output current s | 408:VcC-MAX | 585:20 | 664:65 | 698:-18 | 778:-57 | 815:mA
+130:ICCL | 169:Supply current, output tow | 409:VCC-MAX, | 488:See Note 2 | 627:36 | 672:62 | 742:36 | 785:60 | 815:mA
+127:TFor conditions shown as MIN or MAX, usethe appropriate vafue specified under recommended opsrating conditions.
+129:IAll typicai valuos are at Vcc5 V,TA=25'C.
+127:Not more than one output should be shorted at a time.
+127:NOTE 2: | 177:'CCL i measured with ths outpute opon and allinpute grounded.
+125:switching characteristics,Vcc =5V,TA=25°c
+309:FROM | 448:TO | 772:MAX UNIT
+154:PARAMETER | 555:TEST CONDITIONS
+429:(OUTPUT)
+179:IPLH | 314:Data | 742:12 | 782:18 | 819:ns
+179:IPHL | 314:Data | 741:15 | 781:23 | 818:ns
+179:tPLH | 308:Select | 530:CL = 30 pF, | 601:RL = 400 $2, | 741:22 | 779:34 | 817:ns
+180:tPHL | 309:Select | 531:See Note 3 | 741:22 | 781:34 | 819:ns
+179:tPLH | 304:Strobe G | 743:19 | 818:ns
+179:tPHL | 304:StrobeG | 744:15 | 782:23 | 818:ns
+127:ItpLH = propagation dalay time, low-to-high-leval output
+132:tPHL  propagation delay time, high-to-low-level output
+126:NOTE 3: Load ctrcuits and voltage waveforms are shown in Section 1.
+452:TEXAS
+409:INSTRUMENTS
+371:POST CFFICE BOX 655012 · DALLAS, TEXAS 75265

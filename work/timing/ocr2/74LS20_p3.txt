@@ -1,0 +1,37 @@
+722:SN5420,SN7420
+555:DUAL4-INPUTPOSITIVE-NANDGATES
+130:recommended operating conditions
+595:SN5420 | 715:SN7420
+808:JINN
+568:MIN | 603:NOM | 643:MAX | 687:MIN | 723:WON | 762:MAX
+140:Vec | 172:Suppiy voltage | 573:4.5 | 653:5.5 | 687:4.75 | 766:5.25
+173:High-tevel input voltage
+173:Low-leveal input voitage | 653:0.8 | 772:80
+139:IOH | 172:High-level output current | 643:- 0.4 | 760:- 0.4 | 810:mA
+172:Low-level output current | 657:16 | 777:16 | 809:mA
+136:TA | 173:Operating frse-air temperature | 567: 55 | 648:125 | 778:70
+598:SN5420 | 719:SN7420
+140:PARAMETER | 319:TEST CONDITIONS 
+566:MIN | 643:MAX | 688:MIN | 762:MAX
+157:VIK | 231:YCC-MiN, | 314:--12mA | 641:- 1.5 | 763: 1.5
+230:VCC =MIN, | 315:VIL * D.8 V. | 394:IOH-0.4mA | 573:2.4 | 614:3.4 | 694:2.4 | 733:3.4
+155:VOL | 228:VCC"MIN, | 315:VIH *2 V. | 396:IOL*16mA | 615:0.2 | 653:0.4 | 734:0.2 | 774:0.4
+230:VCC - MAX, | 315:VI-5.5 V | 810:mA
+228:VCC-MAX, | 315:VI-2.4 V | 656:40 | 775:40
+230:VcC=MAX, | 317:VI = 0.4 V | 642:- 1.6 | 761:- 1.6. | 809:mA
+154:loss | 228:VCC- MAX | 561:- 20 | 655:55 | 694:18 | 765:- 55 | 809:mA
+154:IcCH | 230:VcC-Max. | 316:V, =0V | 809:mA
+154:Icc. | 229:VcC " MAx, | 315:V, - 4.5 V | 771:11 | 811:mA
+122:IAll typical values areat Vcc"5V.TA"25c.
+122: Not more than one output should be shorted at a tim8.
+122:switching characteristics, Vcc =5V, TA= 25°c (see note 2)
+247:FROM | 351:TO
+136:PARAMETER | 495:TEST CONDITIONS | 686:MIN | 760:MAX
+243:(INPUT) | 332:(OUTPUT)
+153:tPLH | 736:12 | 774:22
+253:Any | 455:RL-400 . | 573:CL = 15 pF
+774:15 | 812:ns
+122:NOTE 2: Load eireuits and voltage waveforms are shown in Section 1.
+454:TEXAS
+412:INSTRUMENTS
+373:POST OFFICE BOX 655012 · OALLAS. *EXAS 75265

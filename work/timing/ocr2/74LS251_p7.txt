@@ -1,0 +1,42 @@
+687:SN54S251SN74S251,
+358:DATASELECTORS/MULTIPLEXERSWITH3-STATEOUTPUTS
+593:SDLS085  DECEMBER 1972  REVISED MARCH 1988
+107:absolute maximum ratings over operating free-air temperature range (unless otherwise noted)
+140:Supply voltage, Vcc (see Note 1) | 829:7V
+143:Inputvoltage | 818:5.5V
+142:Off-state output voltage | 817:5.5V
+143:Operating free-air temperature range: S | 368:SN54S251 | 754:55to125℃
+369:SN74S251 | 777:0°℃to70°℃
+141:Storage temperature range | 755:65°℃to150°c
+107:NOTE 1: Voltage values are,with respect to network ground terminal.
+110:recommendedoperatingconditions
+603:SN54S251 | 724:SN74S251.
+580:MIN | 619:NOM | 658:MAX | 698:MIN | 738:NOM | 776:MAX | 816:UNIT
+112:Supply voltage, Vcc | 585:4.5 | 665:5.5 | 698:4.75 | 777:5.25
+111:High-leveloutput current,l | 667:-2 | 775:6.5 | 820:mA
+113:Low-level output current, loL | 669:20 | 786:20 | 818:mA
+108:Operating free-air temperature, TA | 579:-55 | 664:125 | 787:70
+106:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+257:PARAMETER | 505:TEST CONDITIONS | 696:MIN | 731:TYPMAX | 809:UNIT
+112:VIH | 160:High-level input voltage
+160:Low-level input voltage | 783:0.8
+110:VIK | 159:Input clamp voltage | 416:VCC- MIN, | 514:lj = 18 mA | 777:-1.2
+416:VCC " MIN, | 511:VIH = 2 V. | 634:SN54S' | 705:2.4 | 738:3.4
+114:VOH | 160:High-level output vol tage | 416:VIL - 0.8 V. | 512:IOH=MAX | 634:SN74S' | 704:2.4 | 737:3.2
+113:VOL | 415:VCC=MIN, | 511:VIH = 2 V,
+159:Low-level ou tput vol tage | 785:0.5
+417:ViL*0.8 V. | 513:IOL =20 mA
+113:loz | 417:VCC =MAX, | 540:Vo-2.4V | 788:50
+160:Off-state (high-impedance-state) output current | 416:ViH = 2 V | 540:Vo -0.5 V | 782:50
+159:Input current at maximum input voltage | 416:VCC =MAX, | 512:Vj = 5.5 V | 817:mA
+160:High-levet input current | 415:VCC-MAX, | 511:V,-2.7 V | 788:50
+159:Low-level input current | 415:VcC -MAX, | 513:V,-0.5 V | 787:-2 | 817:mA
+110:os | 159:Short-circuit output current s | 415:VCCMAX | 700:40 | 774:100 | 817:mA
+415:VCC=MAX, | 514:All inputs at 4.5 V. | 742:55 | 788:85 | 817:mA
+113:ICC | 160:Supply current | 416:All outputs open
+108:IFor conditions shown as MIN or MAX, use the appropriate value specified under r | 543:recommended operating conditions for the applicable type.
+107:+All typical values are at Vcc = 5 V, TA ~ 25°c.
+104:Notmore thanone output should be shorted ata time,anddurationoftheshortcircuitshould notexceed one second.
+406: TEXAS
+402:INSTRUMENTS
+366:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

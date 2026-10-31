@@ -1,0 +1,44 @@
+66:SN5451,SN54LS51, SN54S51
+66:SN7451, SN74LS51,SN74S51
+65:AND-OR-INVERT GATES
+68:SDLS113DECEMBER 1983REVISED MARCH 1988
+67:recommended operatingconditions
+549:SN54S51 | 674:SN74S51 | 773:JINN
+521:MIN | 556:NOM | 600:MAX | 645:MIN | 683:NOM | 724:MAX
+77:Vcc | 112:Supply voltage | 529:4.5 | 611:5.5 | 645:4.75 | 728:5.25
+75:VIH | 111:High-level input voltage
+76:VIL | 113:Low-level input voltage | 612:0.8 | 737:0.8
+75:JOH | 113:High-level output current | 776:mA
+114:Low-level output current | 615:20 | 740:20 | 777:mA
+114:Operating free-air temperature | 523:-55 | 610:125 | 741:70
+69:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+553:SN54S51 | 676:SN74S51
+80:PARAMETER | 278:TEST CONDITIONS+ | 649:MIN | 686:TYP | 727:MAX
+526:MIN | 560:TYP | 603:MAX
+102:VIK | 175:VCC-MIN, | 266:Ij= 18mA | 605:-1.2 | 729:-1.2
+102:VOH | 175:VCC =MIN, | 266:VIL -0.8 V, | 354:lOH--1mA | 533:2.5 | 574:3.4 | 657:2.7 | 699:3.4
+103:VOL | 175:VccMIN, | 264:VIH-2V, | 353:oL=20mA | 616:0.5 | 741:0.5
+176:VcC=MAX, | 265:Vi=5.5V | 780:mA
+173:VCC-MAX, | 265:V,-2.7 V | 619:50 | 743:50
+175:Vc=MAX, | 265:V, - 0.5 V | 615:-2 | 739:-2 | 780:mA
+103:loss | 175:VCC-MAX | 525: 40 | 603:-100 | 650:- 40 | 726:-100 | 780:mA
+103:ICCH | 174:VCC-MAX, | 265:V,-0 V | 575:8.2 | 610:17.8 | 700:8.2 | 734:17.8 | 780:mA
+103:ICCL | 175:Vcc -MAX, | 266:See Note 2 | 569:13.6 | 618:22 | 695:13.6 | 744:22 | 781:mA
+71:t For conditions shown as MIN or MAX,use the appropriate value specified under recommended operating conditions.
+70:tAlltypical values arest Vcc=5V,TA25°c.
+72:SNot more than one output should be shorted at a time,and the duration of the short-circuit should not exceed one second.
+72:NOTE 2: All inputs of one AND gate at 4.5 V,all others at GND.
+70:switchingcharacteristics,Vcc=5V,TA=25°c (see note3)
+192:FROM | 293:TO | 651:MIN | 729:MAX
+79:PARAMETER | 439:TESTCONDITIONS
+188:(INPUT) | 275:(OUTPUT)
+101:tPLH | 693:3.5 | 740:5.5 | 784:ns
+400:RL*2802, | 526:CL = 15 pF | 693:3.5 | 741:5.5
+102:tPHL | 784:ns
+102:tPLH | 201:Any | 783:ns
+401:RL280 , | 526:CL =50 pF
+102:tPHL | 693:5.5 | 785:ns
+72:NOTE 3: Load circuits and voltage waveforms are shown in Section 1.
+404:TEXAS
+363:INSTRUMENTS
+328:POST OFFICE BOX 655303 ° DALLAS, TEXAS 75265

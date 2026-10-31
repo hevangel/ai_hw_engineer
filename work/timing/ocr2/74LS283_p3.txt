@@ -1,0 +1,63 @@
+711:SN54283,SN74283
+456:4-BITBINARYFULL.ADDERSWITH.FASTCARRY
+591:SDLS095AOCTOBER 1976 REVISED MARCH 1988
+107:recommended operating conditions
+603:SN54283 | 722:SN74283
+575:MIN | 613:NOM | 693:MIN | 811:UNIT
+653:MAX | 733:NOM | 772:MAX
+111:Supply Voltage, Vc | 578:4.5 | 658:5.5 | 692:4.75 | 775:5.25
+443:Anyoutput except C4 | 647:-800 | 771:800
+112:High-level output current, IOH
+443:OutputC4 | 648:400 | 769:-400
+112:Low-level outputcurrent,lL | 446:Any output except C4 | 786:16
+444:OutputC4 | 814:mA
+113:Operating free-air temperature, TA | 574:-55 | 657:125 | 786:70
+108:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+606:SN54283 | 724:SN74283
+214:PARAMETER | 427:TEST CONDITIONSt
+578:MIN | 613:TYP | 654:MAX | 696:MIN | 732:TYP | 773:MAX
+112:VIH | 149:High-level input voltage
+112:VIL | 150:Low-level input voitage | 664:0.8 | 783:0.8
+113:VIK | 150:Input clamp voltage | 401:VCC-MIN. | 478:Ij--12mA | 657:-1.5 | 776:-1.5
+400:VCC - MIN, | 479:ViH"2V.
+114:VOH | 150:High-level output volitage | 584:2.4 | 619:3.6 | 702:2.4 | 738:3.6
+401:VIL-0.8V, | 480:IOH =MAX
+401:VCC -MIN, | 478:ViH-2v.
+115:VOL | 151:Low-level output voltage | 479:'OL = MAX | 620:0.2 | 664:0.4 | 739:0.2 | 784:0.4
+402:VIL-0.8 V,
+153:Input current at maximum
+152:inputvoltage | 402:VCC"MAX, | 480:Vj = 5.5 V | 816:mA
+151:High-level input current | 403:VcC-MAX, | 480:Vj= 2.4 V | 668:40 | 787:40
+154:Low-level input current | 400:VCCMAX, | 480:V, - 0.4 V | 657:-1.6 | 777:-1.6 | 816:mA
+152:Short-circuit | 267:Anyoutput exceptC4 | 579:20 | 660:55 | 699:-18 | 778:-55
+402:VCC"MAX | 816:mA
+153:output current | 268:Output C4 | 581:-20 | 661:-70 | 700:-18 | 780:-70
+480:All B low, other
+402:VcC * Max. | 623:56 | 742:56
+152:Supply current | 481:inputs at 4.5 V
+479:Allinputs at | 817:mA
+622:66 | 668:66 | 742:66
+481:4.5V | 782:110
+113:fFor conditions shown as MIN or MAX, use the appropriate value specified under recommended operating conditions.
+112:tAll typical values are at Vcc * 5 V, TA - 25"cC.
+112: Only one output should be shorted at a time.
+111:switching characteristics, Vcc = 5 V, TA= 25°C
+138:PARAMETER | 275:FROM(INPUT) | 413:TO (OUTPUT) | 551:TEST CONDITIONS | 698:MIN | 740:TYP | 777:MAX | 813:UNIT
+166:tPLH | 744:14 | 783:21
+166:tPHL | 308:CO | 434:Any Z | 822:ns
+528:CL*15 pF, | 599:RL = 400 $2, | 744:12 | 783:21
+165:IPLH | 526:See Note 3 | 745:16 | 783:24
+295:A; or B; | 822:ns
+165:tPHL | 746:16 | 783:24
+165:tPLH | 784:14
+306:CO | 444:C4 | 822:ns
+165:tPHL | 527:CL * 15 pF, | 600:RL  780 52, | 745:11 | 784:16
+167:tPLH | 527:See Note 3 | 785:14
+295:Aj or B; | 444:C4 | 823:ns
+165:tPHL | 747:11 | 786:16
+112:1tpLH = propagation delay time, low-to-high-level output
+120:tPHL | 144:, = propagation delay time, high-to-low-level output
+112:NOTE 3: Load circuits and voltage waveforms are shown in Section 1.
+403: TEXAS
+400:INSTRUMENTS
+368:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

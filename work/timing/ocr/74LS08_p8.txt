@@ -1,0 +1,282 @@
+PACKAGE OPTION ADDENDUM
+TEXAS
+INSTRUMENTS
+www.ti.com
+23-Oct-2026
+Material type
+MSL rating/
+RoHS
+Orderable part number
+Status
+Package qty I Carrier
+Lead finish/
+Op temp (°C)
+Package I Pins
+Part marking
+Ball material
+(2)
+(3)
+(1)
+Peak reflow
+(6)
+(4)
+(5)
+CDIP (J) I 14
+Production
+25 I TUBE
+No
+Active
+SNPB
+M38510/31004BCA
+N/A for Pkg Type
+-55 to 125
+JM38510/
+31004BCA
+Production
+Active
+No
+SNPB
+CDIP (J) I14
+25 I TUBE
+M38510/31004BCA
+N/A for Pkg Type
+-55 to 125
+JM38510/
+31004BCA
+Production
+No
+25 I TUBE
+SNPB
+N/A for Pkg Type
+Active
+CFP (W) 114
+-55 to 125
+M38510/31004BDA
+JM38510/
+31004BDA
+No
+Active
+CFP (W) I14
+25 I TUBE
+SNPB
+N/A for Pkg Type
+M38510/31004BDA
+Production
+-55 to 125
+JM38510/
+31004BDA
+Active
+CDIP (J) I14
+No
+25 I TUBE
+SNPB
+N/A for Pkg Type
+Production
+-55 to 125
+M38510/31004SCA
+JM38510/
+31004SCA
+25 I TUBE
+No
+Active
+CDIP (J) I14
+SNPB
+N/A for Pkg Type
+M38510/31004SCA
+Production
+-55 to 125
+JM38510/
+31004SCA
+CFP (W) 114
+SNPB
+No
+M38510/31004SDA
+Active
+Production
+25 / TUBE
+N/A for Pkg Type
+-55 to 125
+JM38510/
+31004SDA
+CFP (W) 114
+No
+25 I TUBE
+Active
+Production
+SNPB
+N/A for Pkg Type
+-55 to 125
+M38510/31004SDA
+JM38510/
+31004SDA
+Active
+No
+SNPB
+SN54LS08J
+Production
+CDIP (J) 14
+25 / TUBE
+N/A for Pkg Type
+-55 to 125
+SN54LS08J
+Active
+No
+SNPB
+SN54LS08J
+Production
+CDIP (J) 114
+25 / TUBE
+N/A for Pkg Type
+-55 to 125
+SN54LS08J
+CDIP (J) I14
+25 I TUBE
+No
+Active
+Production
+SNPB
+N/A for Pkg Type
+-55 to 125
+SN54LS08J.A
+SN54LS08J
+Production
+No
+SN54LS08J.A
+Active
+SNPB
+N/A for Pkg Type
+-55 to 125
+CDIP (J) 114
+25 I TUBE
+SN54LS08J
+No
+Production
+CDIP (J) 114
+25 I TUBE
+N/A for Pkg Type
+Active
+SNPB
+-55 to 125
+SN54S08J
+SN54S08J
+No
+Active
+SNPB
+CDIP (J) I14
+SN54S08J
+Production
+25 I TUBE
+N/A for Pkg Type
+-55 to 125
+SN54S08J
+Active
+No
+CDIP (J) I14
+SNPB
+SN54S08J.A
+Production
+25 / TUBE
+N/A for Pkg Type
+-55 to 125
+SN54S08J
+No
+SNPB
+Active
+Production
+N/A for Pkg Type
+-55 to 125
+SN54S08J.A
+CDIP (J) 114
+25 I TUBE
+SN54S08J
+Yes
+Active
+50 | TUBE
+Level-1-260C-UNLIM
+SN74LS08D
+Production
+SOIC (D) 1 14
+NIPDAU
+0 to 70
+LS08
+Active
+Production
+Yes
+NIPDAU
+50 I TUBE
+SN74LS08D
+SOIC (D) / 14
+0 to 70
+Level-1-260C-UNLIM
+LS08
+Active
+Yes
+Production
+SOIC (D) 1 14
+50 | TUBE
+SN74LS08D.A
+NIPDAU
+0 to 70
+Level-1-260C-UNLIM
+LS08
+SOIC (D) 1 14
+SN74LS08D.A
+Active
+Production
+50 | TUBE
+Yes
+NIPDAU
+0 to 70
+Level-1-260C-UNLIM
+LS08
+Production
+SSOP (DB) 1 14
+Yes
+Active
+NIPDAU
+0 to 70
+SN74LS08DBR
+2000ILARGE T&R
+Level-1-260C-UNLIM
+LS08
+Yes
+Active
+Production
+NIPDAU
+0 to 70
+SN74LS08DBR
+SSOP (DB) 114
+2000ILARGET&R
+Level-1-260C-UNLIM
+LS08
+Yes
+SN74LS08DBR.A
+Active
+Production
+NIPDAU
+Level-1-260C-UNLIM
+0 to 70
+SSOP (DB)  14
+2000ILARGE T&R
+LS08
+Yes
+SN74LS08DBR.A
+Active
+Production
+SSOP (DB) 14
+NIPDAU
+Level-1-260C-UNLIM
+0 to 70
+2000ILARGE T&R
+LS08
+Active
+Yes
+SN74LS08DR
+Production
+NIPDAU
+0 to 70
+SOIC (D) 1 14
+2500ILARGE T&R
+Level-1-260C-UNLIM
+LS08
+Addendum-Page 3

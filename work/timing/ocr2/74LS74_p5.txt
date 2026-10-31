@@ -1,0 +1,64 @@
+611:SN5474,SN54LS74A, SN54S74
+609:SN7474.SN74LS74A, S | 790:SN74S74
+157:DUALD-TYPEPOSITIVE-EDGE-TRIGGEREDFLIP-FLOPSWITHPRESETAND.CLEAR
+593:SDLS119  DECEMBER 1983  REVISED MARCH 1988
+99:recommended operatingconditions
+580:SN54LS74A | 715:SN74LS74A
+640:MAX | 724:NOM | 768:MAX | 816:JING
+562:MIN | 599:NOM | 687:MIN
+167:Supply voltago | 569:4.5 | 651:5.5 | 687:4.75 | 771:5.25
+113:VIH | 168:High-level input voltage
+168:Low-level input voltage | 653:0.7 | 779:0.8
+113:IOH | 169:High-level output current | 642: 0.4 | 769:0.4 | 819:mA
+112:TOL | 169:Low-level output current | 819:mA
+114:felock | 169:Clock frequency | 656:25 | 782:25 | 818:MHZ
+436:CLK high | 573:25 | 698:25
+113:tw | 169:Puise duration | 573:25 | 698:25 | 824:ns
+437:PREorCLRlow
+436:High-level data | 573:20 | 698:20
+114:tsu | 167:Setup time-before CLKt | 573:20 | 698:20 | 824:ns
+437:Low-level data
+168:Hold time-data after CLK t | 824:ns
+114:TA | 170:Operating free-air temperature | 564: 55 | 652:125 | 785:70
+101:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+580:SN54LS74A | 704:SN74LS74A
+140:PARAMETER | 326:TEST CONDITIONSt | 813:JINN
+559:MIN | 592:TYP | 637:MAX | 685:MIN | 761:MAX
+109:VIK | 254:VCC -MIN, | 360:II= - 18 mA | 637:- 1.5 | 763:-1.5
+110:VOH | 254:VCC"MIN, | 360:ViH = 2 V, | 449:VIL - MAX, | 566:2.5 | 691:2.7 | 733:3.4
+253:IOH - 0.4mA
+252:VCC-MIN, | 360:VIL " MAX, | 449:Vih -2 V, | 603:0.25 | 649:0.4 | 728:0.25 | 776:0.4
+111:VOL | 254:lOL=4mA
+253:VCC=MIN, | 362:VIL - MAX, | 450:VIH =2 V, | 728:0.35 | 776:0.5
+253:lOL=8mA
+161:DorCLK | 649:0.1 | 776:0.1 | 817:mA
+255:VCC  MAX, | 360:Vi =7V | 649:0.2 | 776:0.2
+162:CLRorPRE
+164:D or CLK | 654:20 | 779:20
+255:VCC " MAX, | 360:VI = 2.7 V | 779:40
+161:CLR orPRE | 654:40
+164:D or CLK | 640:0.4 | 765:0.4 | 818:mA
+255:VCC "MAX, | 362:VI = 0.4 V | 640:0.8 | 766:0.8
+161:CLRorPRE
+111:loss | 254:VCC -MAX, | 362:See Note 4 | 561: 20 | 637:100 | 685: 20 | 761:- 100 | 816:mA
+112:ICC (Total) | 253:VCC-MAX, | 363:See Note 2 | 818:mA
+110:For conditions shown as MIN or MAX, use the appropriste value specified under recommended operating conditions.
+101:+ All typical values are at Vcc = 5 V, TA = 25°c.
+101:S.Not more than one output should be shorted at a time, and the guration of the short circuit should not exceed one second.
+99:NOTE 2: With all outputs open, Icc is measured with the Q and Q outputs high in turn. At the time of measurement, the clock input is
+156:grounded.
+102:NOTE4: | 154:For certain devices where state commutation can be caused by shorting an output to ground, an equivalent test may | 780:be performed
+154:with Vo =2.25 V and 2.125 V for the 54 famity and the 74 family,respectively,with the minimum and maximum limits reduced to
+156:one half of their stated values.
+101:switching characteristics, Vcc = 5 V,TA = 25°C (see note 3)
+253:FROM | 384:TO | 724:TYP
+115:PARAMETER | 509:TEST CONDITIONS | 687:MIN | 768:MAX
+247:(INPUT) | 366:(OUTPUT)
+130:fmax | 699:25 | 733:33 | 817:MHZ
+131:tPLH | 472:RL = 2 k2. | 580:CL = 15 pF | 736:13 | 782:25 | 822:ns
+223:CLR, PRE or CLK | 371:Qor
+130:tPHL | 733:25 | 782:40 | 823:ns
+104:Note 3: Load circuits and voltage waveforms are shown in Section 1.
+405:i TEXAS
+402:INSTRUMENTS
+367:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

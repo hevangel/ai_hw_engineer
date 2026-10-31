@@ -1,0 +1,40 @@
+624:SN5408,SN54LS08,SN54S08
+624:SN7408,SN74LS08,SN74S08
+491:QUADRUPLE2-INPUTPOSITIVE-AND.GATES
+592:SDLS033 DECEMBER 1983  REVISED MARCH 1988
+100:recommended operatingconditions
+589:SN5408 | 711:SN7408
+559:MIN | 595:NOM | 637:MAX | 681:MIN | 719:NOM | 762:MAX
+114:VCC | 148:Supply voltage | 566:4.5 | 648:5.5 | 683:4.75 | 766:5.25
+114:VIH | 150:High-level input voltage
+114:VIL | 150:Low-level input volitage | 648:0.8 | 774:80
+150:High-level output current | 640:-0.8 | 765:-0.8 | 813:mA
+113:TOL | 151:Low-level output current | 652:16 | 779:16 | 813:mA
+115:TA | 149:Operating free-air temperature | 559: 55 | 646:125 | 779:70
+102:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+595:SN5408 | 720:SN7408
+116:PARAMETER | 301:TEST CONDITIONSt
+561:MIN | 639:MAX | 687:MIN | 766:MAX
+134:VIK | 210:VCC= MIN, | 300:Ig-12mA | 638:- 1.5 | 763:- 1.5
+133:VOH | 210:VCC-MIN, | 301:Vih"2 v. | 383:IOH-0.8mA | 569:2.4 | 612:3.4 | 692:2.4 | 736:3.4
+134:VOL | 210:VCC"MIN. | 302:VIL -0.8 V. | 383:IOL=16mA | 612:0.2 | 649:0.4 | 736:0.2 | 776:0.4
+211:VCC=MAX, | 302:Vi * 5.5 V | 813:mA
+211:VCC"MAX, | 301:VI = 2.4 V | 655:40 | 780:40
+213:VCC=MAX, | 301:V↓ = 0.4 V | 640:-1.6 | 766: 1.6 | 816:mA
+134:loss | 212:VCC"MAX | 562: 20 | 643:-55 | 685:-18 | 768:- 55
+135:'CCH | 212:VCC-MAX, | 302:Vi = 4.5 V | 655:21 | 741:11 | 780:21 | 816:mA
+135:ICCL | 212:VCC * MAX, | 303:V_=0 V | 617:20 | 654:33 | 742:20 | 781:33 | 818:mA
+105:I For conditions shown as MiN or MAX, use the appropriate value specified under recommended operating conditions.
+105:+Alltypical values areat Vcc."5V.TA25°c.
+106:S Not more than one output should be shorted at a time.
+104:switching characteristics, Vcc= 5 V, TA=25°c (see note 2)
+230:FROM | 340:TO
+118:PARAMETER | 488:TEST CONDITIONS | 686:MIN | 767:MAX | 813:UNIT
+227:(INPUT)
+134:tPLH | 730:17.5 | 779:27 | 820:n5
+229:Aor B | 448:RL =4002, | 571:CL =15 pF | 779:19
+135:tPHL | 822:ns
+104:NOTE 2: Load circuits and voltage waveforms are shown in Section 1.
+442: TEXAS
+402:INSTRUMENTS
+368:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

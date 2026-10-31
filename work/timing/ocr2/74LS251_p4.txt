@@ -1,0 +1,46 @@
+66:SN54251SN74251,
+69:DATASELECTORS/MULTIPLEXERSWITH3-STATEOUTPUTS
+66:SDLS085  DECEMBER 1972  REVISED MARCH 1988
+69:switching characteristics, Vcc= 5 V,TA = 25°c
+106:PARAMETERt | 267:FROM
+518:TESTCONDITIONS | 662:MIN | 705:TYP | 743:MAX | 779:UNIT
+263:(INPUT) | 392:(OUTPUT)
+130:tPLH | 259:A, B, or C | 708:29 | 749:45
+262:(4 levels) | 708:28 | 749:45 | 789:ns
+131:tPHL
+131:PLH | 259:A, B, or C | 708:20 | 749:33
+130:tPHL | 263:(3 leveis) | 709:21 | 749:33 | 789:ns
+131:H7 | 535:CL = 50 pF, | 708:17 | 749:28
+267:Any D | 710:18 | 750:28 | 790:ns
+132:tPHL | 534:RL = 400 S2,
+131:tPLH | 267:Any D | 535:See Note 2 | 710:10 | 750:15
+130:tPHL | 750:15 | 790:ns
+130:tPZH | 708:17 | 750:27
+130:tPZL | 708:26 | 750:40 | 790:ns
+131:tPZH | 710:17 | 751:27
+708:24 | 750:40 | 790:ns
+131:tPZL
+125:.tPHZ | 535:CL = 5 pF, | 790:ns
+130:tPLZ | 711:15 | 750:23
+535:RL *4002,
+131:tpHZ | 536:See Note 2
+710:15 | 751:23 | 790:ns
+131:tPLZ
+70:ItPLH = P | 121:Propagation delay time, low-to-high-level output
+74:tPHL = Propagation delay time, high-to-low-level output
+74:tPZH = Output enable time to high level
+74:tpZL Output enable time to low level
+73:tPHZ - Output disable time from high level
+73:tPLZ  Output disable time from low level
+66:NOTE 2: Load circuits and voltage waveforms are shown in Section 1.
+71:schematics of inputs andoutputs
+176:EQUIVALENT OFEACHINPUT | 553:TYPICAL OF BOTM OUTPUTS
+697:VCC
+192:VCC- | 578:100  NOM
+183:INPUT
+693:OUTPUT
+207:Select: | 246:Req=6kaNOM
+173:Other inputs: | 248:Req | 268:-4k2NOM
+401: TEXAS
+363:INSTRUMENTS
+328:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

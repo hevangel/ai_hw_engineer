@@ -1,0 +1,20 @@
+[tasks]
+cover
+
+[options]
+cover: mode cover
+cover: depth 60
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal -sv mos_6502_cycle.sv cover_one.sv
+prep -top cover_one
+flatten
+memory_map
+opt
+
+[files]
+../src/mos_6502_cycle.sv
+cover_one.sv

@@ -1,0 +1,30 @@
+677:MECHANICALDATA
+92:D (R-PDSO-G16) | 593:PLASTIC SMALL OUTLINE
+301:0.394 (10,00)
+303:0.386 (9,80)
+615:0.244 (6,20)
+614:0.228 (5,80)
+534:0.157 (4,00)
+536:0.150 (3,80)
+115:Pin 1- | 479:0.020 (0,51)
+116:Index Area | 292:0.050 (1,27
+477:0.012 (0,31)
+482:$0.010 (0,25)
+539:0.010 (0,25
+145:0.069 (1,75) Max | 541:0.004 (0,10)
+223:0.010 (0,25)
+223:0.005 (0,13)
+592:0.004 (0,10)
+191:Gouge Plone
+576:Seating Plane
+196:0.010 (0,25) | 302:0'8
+281:0.050 (1,27)
+282:0.016 (0,40)
+711:40400476/M06/11
+94:NOTES: | 153:A. | 173:All linear dimensions are in inches (millimeters),
+152:B. | 175:This drawing is sub ject to change without notice.
+172:Body length does not include mold flash, protrusions, or gate burrs. | 554:Mold flash, protrusions, or gate burrs shll
+174:not exceed 0.006 (0,15) each side.
+152:E. | 173:Reference JEDEC MS-012 variation AC.
+424:INSTRUMENTS
+433:www.ti.com

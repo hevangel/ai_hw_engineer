@@ -1,0 +1,281 @@
+PACKAGE OPTION ADDENDUM
+TEXAS
+INSTRUMENTS
+www.ti.com
+23-Oct-2026
+MSL rating/
+Material type
+RoHS
+Orderable part number
+Op temp (°C)
+Status
+Package I Pins
+Package qty I Carrier
+Lead finish/
+Part marking
+Ball material
+(3)
+(1)
+(2)
+Peak reflow
+(6)
+(4)
+(5)
+Production
+Active
+Yes
+NIPDAU
+0 to 70
+SN74LS08DR
+SOIC (D) 1 14
+2500|LARGE T&R
+Level-1-260C-UNLIM
+LS08
+Yes
+SN74LS08DR.A
+Active
+Production
+SOIC (D) I 14
+2500ILARGE T&R
+NIPDAU
+Level-1-260C-UNLIM
+0 to 70
+LS08
+SOIC (D) / 14
+Yes
+SN74LS08DR.A
+Active
+Production
+NIPDAU
+0 to 70
+2500|LARGE T&R
+Level-1-260C-UNLIM
+LS08
+SOIC (D) / 14
+Yes
+SN74LS08DRE4
+Active
+Production
+NIPDAU
+2500|LARGE T&R
+0 to 70
+Level-1-260C-UNLIM
+LS08
+Yes
+Active
+Production
+0 to 70
+SN74LS08DRE4
+SOIC (D) 1 14
+2500ILARGET&R
+NIPDAU
+Level-1-260C-UNLIM
+LS08
+Active
+Yes
+SN74LS08N
+N/A for Pkg Type
+Production
+PDIP (N) 14
+25 / TUBE
+NIPDAU
+0 to 70
+SN74LS08N
+Active
+SN74LS08N
+PDIP (N) 114
+25 I TUBE
+Production
+Yes
+NIPDAU
+N/A for Pkg Type
+0 to 70
+SN74LS08N
+Active
+PDIP (N) 114
+25 I TUBE
+Yes
+SN74LS08N.A
+Production
+NIPDAU
+N/A for Pkg Type
+0 to 70
+SN74LS08N
+Active
+Yes
+PDIP (N) /14
+NIPDAU
+N/A for Pkg Type
+SN74LS08N.A
+Production
+25 I TUBE
+0 to 70
+SN74LS08N
+PDIP (N) 114
+25 I TUBE
+Yes
+NIPDAU
+Active
+Production
+N/A for Pkg Type
+SN74LS08NE4
+0 to 70
+SN74LS08N
+PDIP (N) 114
+Yes
+25 I TUBE
+SN74LS08NE4
+Active
+Production
+NIPDAU
+N/A for Pkg Type
+0 to 70
+SN74LS08N
+SN74LS08NSR
+Active
+Production
+SOP (NS) /14
+Yes
+NIPDAU
+Level-1-260C-UNLIM
+0 to 70
+2000ILARGET&R
+74LS08
+SOP (NS)
+Active
+Production
+114
+Yes
+NIPDAU
+0 to 70
+SN74LS08NSR
+2000LARGE T&R
+Level-1-260C-UNLIM
+74LS08
+Yes
+Active
+0 to 70
+SN74LS08NSR.A
+Production
+SOP (NS) I14
+2000ILARGE T&R
+NIPDAU
+Level-1-260C-UNLIM
+74LS08
+Active
+Production
+Yes
+NIPDAU
+0 to 70
+SN74LS08NSR.A
+SOP (NS) 114
+2000ILARGET&R
+Level-1-260C-UNLIM
+74LS08
+Production
+SOIC (D) / 14
+Last
+50 I TUBE
+Yes
+SN74S08D
+NIPDAU
+0 to 70
+Level-1-260C-UNLIM
+S08
+Time Buy
+Production
+Last
+SN74S08D
+50 I TUBE
+Yes
+NIPDAU
+SOIC (D) 1 14
+Level-1-260C-UNLIM
+0 to 70
+S08
+Time Buy
+Yes
+Last
+SOIC (D) I 14
+NIPDAU
+Level-1-260C-UNLIM
+SN74S08D.A
+Production
+50|TUBE
+0 to 70
+S08
+Time Buy
+SOIC (D) / 14
+Last
+50 I TUBE
+Yes
+SN74S08D.A
+Production
+NIPDAU
+0 to 70
+Level-1-260C-UNLIM
+S08
+Time Buy
+Production
+Yes
+25 I TUBE
+Active
+N/A for Pkg Type
+SN74S08N
+PDIP (N) 114
+NIPDAU
+0 to 70
+SN74S08N
+Active
+Production
+Yes
+PDIP (N) 114
+SN74S08N
+25 /TUBE
+NIPDAU
+N/A for Pkg Type
+0 to 70
+SN74S08N
+Active
+PDIP (N) 114
+25 I TUBE
+Yes
+SN74S08N.A
+Production
+NIPDAU
+N/A for Pkg Type
+0 to 70
+SN74S08N
+Production
+Yes
+Active
+NIPDAU
+N/A for Pkg Type
+0 to 70
+SN74S08N.A
+PDIP (N) 114
+25 I TUBE
+SN74S08N
+Active
+Production
+No
+SNPB
+-55 to 125
+SNJ54LS08FK
+LCCC (FK) 1 20
+55 I TUBE
+N/A for Pkg Type
+SNJ54LS
+08FK
+Active
+LCCC (FK) 1 20
+No
+55 I TUBE
+SNPB
+SNJ54LS08FK
+Production
+N/A for Pkg Type
+-55 to 125
+SNJ54LS
+08FK
+Addendum-Page 4

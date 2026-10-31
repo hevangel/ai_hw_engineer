@@ -1,0 +1,60 @@
+68:SN54LS257B,SN54LS258B,SN54S257,SN54S258
+68:SN74LS257B,SN74LS258B,SN74S257,SN74S258
+68:QUADRUPLE2-LINETO.1-LINEDATASELECTORS/MULTIPLEXERS
+68:SDLS148OCTOBER 1976  REVISED MARCH 1988
+73:recommended operating conditions
+558:SN54LS | 683:SN74LS'
+527:MIN | 563:NOM | 606:MAX | 653:MIN | 688:NOM | 732:MAX | 779:JINN
+82:VCC | 117:Supply voltage | 534:4.5 | 617:5.5 | 653:4.75 | 732:5.25
+82:VIH | 117:High-level input voltage
+80:VIL | 118:Low-level input voltage | 618:0.7 | 743:0.8
+78:JOH | 117:High-level output current | 732: 2.6 | 783:mA
+80:IOL | 118:Low-level output current | 621:12 | 746:24 | 783:mA
+75:TA | 118:Operating free-eir temperature | 527:-55 | 615:125 | 746:70
+71:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+119:PARAMETER | 558:SN54LS | 683:SN74LS'
+317:TEST CONDITIONS | 781:JINN
+528:MIN | 605:MAX | 653:MIN | 690:TYP | 730:MAX
+81:VIK | 249:YcC-MIN, | 339:II = - 18 mA | 606:1.5 | 732:-1.5
+82:VOH | 247:VCC = MIN, | 340:ViH-2V, | 421:VIL = MAX,
+249:"OH-MAX | 535:2.4 | 577:3.4 | 660:2.4 | 702:3.1
+83:VOL | 250:VCC = MIN, | 338:VIH = 2V, | 419:oL-12mA | 571:0.25 | 619:0.4 | 696:0.25 | 743:0.4
+249:VIL = MAX, | 419:OL- 24 mA | 696:0.35
+81:1OZH | 248:VcC=MAX, | 339:Vih-2v. | 421:Vo-2.7V | 621:20 | 746:20
+248:VCC-MAX, | 339:ViH=2V, | 421:Vo=0.4V | 784:HA
+248:VCC-MAX, | 337:Vi-7V | 618:0.1 | 743:0.1 | 784:mA
+250:VcC -MAX, | 339:Vi= 2.7 V | 621:20 | 746:20
+246:VCC-MAX, | 337:Vi= 0.4 V | 606: 0.4 | 730: 0.4 | 784:mA
+249:VcC= MAX, | 528:-30 | 603:-130 | 653: 30 | 729:130 | 784:mA
+135:All outputs high | 622:12 | 747:12
+134:All outputs low | 421:'LS257B | 580:12 | 622:18 | 706:12 | 747:18
+82:ICC | 136:All outputs off | 580:13 | 622:19 | 706:13 | 747:19
+134:Alloutputs high | 249:VCC "MAX, | 338:See Note 2 | 784:mA
+135:All outputs low | 422:'LS258B | 580:10 | 621:15 | 705:10 | 747:15
+134:All outputs off | 581:11 | 623:16 | 746:16
+69:tFor conditions shown as MIN or MAx, use the appropriate valfue specified under recommended operating conditions.
+70:tAll typical values are at Vcc 5 V.TA-25°c.
+69:SNot more than one output should be shorted at a time and duration of the short-circuit should not exceed one second.
+69:NOTE 2: icc is measured with all outputs open and all possible inputs grounded while achieving the stated output conditions.
+69:switching characteristics, Vcc =5V, TA= 25°C,RL=6672
+80:PARAMETER | 181:FROM | 268:TO | 558:'LS257B | 683:'LS258B
+360:TEST CONDITIONS | 779:UNIT
+177:(INPUT) | 250:(OUTPUT) | 526:MIN | 563:TYP | 606:MAX | 653:MIN | 689:TYP | 731:MAX
+98:tPLH | 265:Any | 621:13 | 746:12
+98:tPHL | 573:10 | 622:15 | 698:11 | 746:17 | 787:ns
+97:tPLH | 620:21 | 698:14 | 746:21
+178:Select | 265:Any | 330:CL = 45 pF, | 438:See Note 3 | 787:ns
+97:tPHL | 572:17 | 620:24 | 697:19 | 746:24
+97:tPZH | 572:15 | 620:30 | 697:15 | 745:30
+265:Any | 787:ns
+97:PZL | 179:Control | 572:19 | 620:30 | 697:20 | 745:30
+97:tPHZ | 572:18 | 621:30 | 698:18 | 745:30
+266:Any | 330:CL =5 pF, | 437:See Note 3 | 787:ns
+98:tpLZ | 179:Control | 572:16 | 620:25 | 697:16 | 745:25
+70:1tpLH = propagation delay time, low-to-high-level output | 496:tpZL  output enable time to low level
+77:tPHL  propagation delay time, high-to-low-level output | 496:tPHZ  output disable time from high level
+79:tPZH | 105:I = output enable time to high level | 499:tPLZ | 529: output disable time from low level
+69:NOTE 3: Load circuits and voltage waveforms are shown in Section 1.
+403: TEXAS
+363:INSTRUMENTS
+328:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

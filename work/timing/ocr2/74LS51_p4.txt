@@ -1,0 +1,40 @@
+66:SN5451,SN54LS51, SN54S51
+66:SN7451, SN74LS51,SN74S51
+66:AND-OR-INVERTGATES
+68:SDLS113DECEMBER 1983REVISED MARCH 1988
+67:recommended operating conditions
+560:SN5451 | 686:SN7451
+529:MIN | 564:NOM | 608:MAX | 655:MIN | 691:NOM | 733:MAX
+115:Supply voltage | 535:4.5 | 621:5.5 | 656:4.75 | 739:5.25
+78:VIH | 116:High-level input voltage
+115:Low-level input voltage | 620:0.8 | 746:0.8
+79:OH | 117:High-level output current | 609:- 0.4 | 734:- 0.4 | 786:mA
+115:Low-level output current | 624:16 | 749:16 | 787:mA
+79:TA | 117:Operating free-air temperature | 531:-55 | 618:125 | 750:70
+68:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+562:SN5451 | 687:SN7451
+81:PARAMETER | 280:TEST CONDITIONS+ | 531:MIN | 609:MAX | 656:MIN | 694:TYP | 736:MAX
+174:VCC-MIN, | 266:I.--12mA | 611:1.5 | 737:1.5
+103:VOH | 176:VCC=MIN, | 267:VIL - 0.8 V, | 358:IOH--0.4mA | 538:2.4 | 580:3.4 | 664:2.4 | 706:3.4
+103:VOL | 177:VcC- MIN, | 267:Vih-2 v. | 356:lOL-16mA | 581:0.2 | 622:0.4 | 707:0.2 | 748:0.4
+176:VCC-MAX, | 266:V,= 5.5 V | 788:mA
+176:VcC =MAX, | 267:V,= 2.4 V | 625:40 | 752:40
+176:VcC-MAX, | 267:Vi- 0.4 V | 610:-1.6 | 737:- 1.6 | 788:mA
+103:loss | 176:VCC-MAX | 531:-20 | 614:-55 | 657:-18 | 739:-55 | 788:mA
+103:ICCH | 176:VcC-MAX, | 788:mA
+103:ICCL | 176:Vcc=MAX, | 267:See Note 2 | 581:7.4 | 625:14 | 708:7,4 | 752:14 | 788:mA
+71:t For conditions shown as MIN or MAX,use the appropriate value specified under recommended operating conditions,
+69:+Alltypical values are atVcc.=5V,TA"25°c.
+72:S Not more than one output should be shorted at a time.
+71:NOTE 2:All inputs of one AND gate at 4.5 V,all others at GND.
+72:switchingcharacteristics,Vcc=5V,TA=25°c(see note3)
+194:FROM | 293:TO
+79:PARAMETER | 441:TEST CONDITIONS | 657:MIN | 734:MAX
+189:(INPUT) | 274:(OUTPUT)
+101:tPLH | 704:13 | 750:22
+201:Any | 405:RL = 400 n2, | 531:CL=15pF | 751:15 | 791:ns
+102:tPHL
+68:NOTE 3: Load circuits and voltage waveforms are shown in Section 1.
+403: TEXAS
+363:INSTRUMENTS
+328:POST OFFICE BOX 655303 ° DALLAS, TEXAS 75265

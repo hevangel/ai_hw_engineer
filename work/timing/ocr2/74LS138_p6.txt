@@ -1,0 +1,20 @@
+135:SN54S138,SN74S13BA
+134:3-LINETO 8-LINEDECODERS/DEMULTIPLEXERS
+132:switching characteristics,Vcc= | 379:5V,TA=25°C
+138:PARAMETERT | 251:FROM | 345:TO | 415:LEVELS | 522:TEST CONDITIONS | 696:SN74S13BA | 802:UNIT
+247:(INPUT) | 324:(OUTPUT) | 408:OF DELAY | 674:MIN | 718:TVP
+755:MAX
+158:tPLH | 720:4.5 | 808:ns
+157:tPHL | 251:Binery | 757:10.5 | 808:ns
+341:Any
+251:Select | 720:7.5 | 769:12 | 807:ns
+157:tPHL | 490:RL = 280 0. | 581:CL = 15 DF. | 769:12
+157:tPLH | 495:See Note 2 | 808:n3
+157:tPHL | 249:Enablte | 341:Any
+157:tPLH | 808:ns.
+158:PHL | 808:ns
+138:tpHL,propagatlon delay time,high-to-low-leveloutput
+133:NOTE 2: Load circuits and voitage waveforms are shown in Section 1.
+454:TEXAS
+411:INSTRUMENTS
+378:POST OFFICE 8OX 655012 · DALLAS. TEXAS 7$265

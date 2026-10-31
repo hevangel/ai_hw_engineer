@@ -1,0 +1,28 @@
+93:TEXAS | 901:PACKAGEOPTIONADDENDUM
+98:INSTRUMENTS
+54:www.ti.com | 1155:23-Oct-2026
+54:Orderable part number | 276:Material type | 380:Package | Pins | 490:Package qty I Carrier | 644:RoHS | 732:Lead finish/ | 863:MSL rating/ | 991:Op temp (°C) | 1131:Part marking
+231:(1) | 308:(2) | 655:(3) | 733:Ball material | 865:Peak reflow | 1162:(6)
+762:(4) | 893:(5)
+73:SNJ54LS86AW.A | 222:Active | 284:Production | 386:CFP (W) I14 | 523:25 / TUBE | 651:ON | 751:SNPB | 852:N/A for Pkg Type | 1001:-55 to 125 | 1126:SNJ54LS86AW
+71:SNJ54LS86AW.A | 221:Active | 284:Production | 387:CFP (W) |14 | 523:25 / TUBE | 651:No | 750:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1127:SNJ54LS86AW
+86:SNJ54S86J | 221:Active | 284:Production | 386:CDIP (J) /14 | 523:25 / TUBE | 651:ON | 750:SNPB | 853:N/A for Pkg Type | 1001:-55 to 125 | 1137:SNJ54S86J
+86:SNJ54S86J | 221:Active | 285:Production | 387:CDIP (J) 114 | 523:25 / TUBE | 651:No | 750:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1136:SNJ54S86J
+81:SNJ54S86J.A | 221:Active | 284:Production | 386:CDIP (J) /14 | 522:25 | TUBE | 651:No | 750:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1137:SNJ54S86J
+82:SNJ54S86J.A | 220:Active | 284:Production | 387:CDIP (J) |14 | 523:25 | TUBE | 651:ON | 750:SNPB | 851:N/A for Pkg Type | 1000:-55 to 125 | 1137:SNJ54S86J
+30:(1) status: For more details on status, see our product life cycle.
+32:reliability performance testing, and/or process qualification, may not yet be complete, and this item is subject to further changes or possible discontinuation. If available for ordering, purchases will be subject to an additional
+33:waiver at checkout, and are intended for early internal evaluation purposes only. These items are sold without warranties of any kind.
+30:(3) RoHS values: Yes, No, RoHS Exempt. See the TI RoHS Statement for aditional information and value definition.
+34:column width.
+28:rating/eakrlwhemoisturesensiviylevelratingsad pksde (refwtemperaurehenthat apart hasmultile moisure sensitity atingsonly the lwestlvel per sandads show
+33:Refer to the shipping label for the actual reflow temperature that will be used to mount the part to the printed circuit board.
+30:(6) Part marking: There may be an additional marking, which relates to the logo, the lt race code information, or the environmental category of the part.
+31:Multiple part markings will be inside parentheses. Only one part marking contained in parentheses and separated by a "" will appear on a part. If a line is indented then it is a continuation of the previous line and the two
+33:combined represent the entire part marking for that device.
+32:Important Information and Disclaimer:The information provided on this page represents TI's knowledge and belief as of the date that it is provided. TI bases its knowledge and belief on information provided by third parties, and
+33:makes no representation or warranty as to the accuracy of such information. Efforts are underway to better integrate information from third parties. TI has taken and continues to take reasonable steps to provide representative
+33:and other limited information may not be available for release.
+33:In no event shall TI's liability arising out of such information exceed the total purchase price of the TI part(s) at issue in this document sold by TI to Customer on an annual basis.
+33:OTHER QUALIFIED VERSIONS OF SN54LS86A,SN74LS86A :
+588:Addendum-Page 4

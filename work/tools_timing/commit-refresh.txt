@@ -1,0 +1,34 @@
+system/apple_ii: measure DRAM refresh coverage (review item P2)
+
+The 4116 model retains data indefinitely, so the board's reliance on the
+video scan for refresh was an assumption rather than a checked property.
+Review item P2 asked for a counter that turns it into one.
+
+tb/apple_ii_refresh_check.sv watches the RAS/row-address bus, which all
+eight banks share, records the gap between successive accesses to each row
+and counts gaps beyond the 4116's 2 ms requirement. The Monitor gate
+instantiates it, asserts that all 128 rows are refreshed, and prints the
+measured margin.
+
+Measured with Icarus 12.0-3 in the Apple II tools image:
+- authored Monitor boot, CPU running (183 ms): 128/128 rows, 373,928 RAS
+  accesses, worst same-row gap 1.9668 ms, no gap over 2 ms;
+- video scan only, CPU socket idle (40 ms): 128/128 rows, 81,635 accesses,
+  worst gap 2.2215 ms, 48 gaps over 2 ms.
+
+The second row is a finding, not a pass: part of the refresh budget is
+carried by CPU accesses, and the video-only path runs 11% past the device
+limit. The real machine works, so either the tolerance is wider than the
+datasheet figure at room temperature or the model's row addressing differs
+from silicon. That question is recorded as open rather than explained away;
+what changed is that the margin is now measured.
+
+scripts/run_refresh_check.sh runs the video-only configuration as a
+negative control and requires at least one violation, so a checker stuck at
+zero cannot pass the Monitor gate for the wrong reason.
+
+Chip and system assumption ledgers updated: retention stays ideal, but
+refresh coverage is measured.
+
+Not run here: scripts/run_reference_boot.sh (transistor-level CPU through
+VPI), whose compile line now also includes the checker.

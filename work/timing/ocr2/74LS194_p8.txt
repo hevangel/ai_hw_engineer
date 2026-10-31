@@ -1,0 +1,58 @@
+144:SN54S194,SN74S194
+143:4-BITBIDIRECTIONALUNIVERSALSHIFTREGISTERS
+139:absolute maximum ratings over operating free-air temperature range (unless otherwise noted)
+174:Supply voltage, Vcc (see Note 1) | 820:7V
+174:Input voltage | 809:5.5 V
+173:Operating free-air temperature range: | 385:SN54S194 | 750:-55°℃to125℃
+387:SN74S194 | 770:0°C to 70°℃
+173:Storage temperature range | 749:-65°C to 150c
+139:NOTE 1: Voltage velues are with respect to network ground terminal.
+139:recommended operating conditions
+604:SN54S194 | 717:SN74S194
+581:MIN | 617:NOM | 654:MAX | 692:MIN | 766:MAX | 802:UNIT
+730:NOM
+141:Supply voltage, Vcc | 586:4.5 | 666:5.5 | 692:4.75 | 771:5.25
+140:High-level output current, lOH | 805:mA
+141:Low-level output current, lOL | 669:20 | 782:20 | 805:mA
+141:Clock frquency,fclock | 670:70 | 782:70 | 802:MH2
+140:Width of clock pulse, twlelock) | 810:ns
+137:Width of cleer pulse, tw(ctear | 589:12 | 703:12
+445:Mode controf | 703:11
+141:Setup time, Igu | 443:Serial and parallel data
+444:Clear inactlivestate | 808:ns
+140:Hoid time at any input, th
+138:Operating free-air temperature,A | 582:55 | 663:125
+134:electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+239:PARAMETER | 439:TEST CONDITIONST | 602:SN54S194 | 714:SN74S194
+577:MIN | 689:MIN | 762:MAX | 799:UNIT
+610:TYP | 652:MAX
+171:High-level input voltage
+137:VIL | 172:Low-level input voltage | 662:0.8 | 775:0.8
+136:VIK | 172:Input clamp votage | 413:VCC-MIN, | 490:II- -18mA | 656:-1.2 | 769:-1.2
+139:VOH | 172:High-tevel output voltage | 412:VCC-MIN, | 487:VIH"2V,
+412:VIL = 0.8 V. | 488:IOH= -1 mA | 584:2.5 | 619:3.4 | 697:2.7 | 730:3.4
+137:VOL | 171:Low-ievel output voitage | 411:YCC-MIN, | 487:Vih-2v. | 662:0.5
+414:VL = 0.8 V, | 487:fOL - 20 mA | 774:0.5
+170:Input current at maximum Input voltage | 412:VcC - MAX, | 488:V,-5.5 V | 802:mA
+171:High-level input current | 412:VcC-MAX, | 490:V,= 2.7 V | 664:50 | 778:50 | 803:MA
+172:Low-level input current | 411:VCC-MAX, | 489:V,-0.5 V | 664:-2 | 776:-2 | 801:mA
+134:Dos | 170:Short-cireuit output currents | 411:VCC-MAX | 579:40 | 652:100 | 692:-40 | 763:-100 | 801:mA
+411:VCCMAX. | 621:85 | 658:135 | 732:85 | 770:135
+411:YCC - MAX,
+139:ICC | 171:Supply current | 410:TA=125'C, | 486:W peckage | 658:110 | 804:mA
+412:See Note 2
+133:IFor conditions shown as MIN or MAX, use tha appropriste vatue specified under reeommandad oparating eanditions.
+132:tAlltyical valus are at VCC=5 V.TA =25"C.
+130:SNot mere than one output should ba shortad at a time, and duration of the short-circuit should not exceed ona second.
+130:NOTE 2: With all outputs Dpen, inputs A through D orounded, and 4.5 V applies to SO, S1, clsar, and the serial inputs, Icc is tested with a
+182:momemtarv GND, then 4.5 V, applied to clock.
+127:switching characteristics,Vcc -5V,TA -25°C
+295:PARAMETER | 541:TEST CONDITIONS | 665:MIN | 705:TYP | 743:MAX | 788:UNIT
+133:fmax | 179:Maximum clock frequency | 555:CL = 15 pf, | 672:70 | 706:106 | 790:MHZ
+131:tPHL | 178:Propagation delay time, high-to-iow-level output from clear | 555:RL- 280 0. | 703:12.5 | 745:18.5 | 795:ns
+131:tPLH | 177:Propagation delay time, low-to-high-level output frorm clock | 755:12 | 794:ns
+127:tehl | 178:Propagation delay time, high-to-low-level output from clock | 556:See Figure 1 | 743:16.5
+713:11 | 794:ns
+453:TEXAS
+412:INSTRUMENTS
+374:POST OFFICE BOX 655012 · DALLAS. TEXA5 75265

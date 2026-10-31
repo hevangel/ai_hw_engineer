@@ -1,0 +1,204 @@
+PACKAGE OPTION ADDENDUM
+TEXAS
+INSTRUMENTS
+www.ti.com
+23-Oct-2026
+PACKAGING INFORMATION
+MSL rating/
+Material type
+Package I Pins
+Package qty I Carrier
+Op temp (°C)
+Orderable part number
+Status
+RoHS
+Lead finish/
+Part marking
+Ball material
+(1)
+(2)
+(3)
+Peak reflow
+(6)
+(4)
+(5)
+Production
+Last
+CDIP (J) I14
+No
+JM38510/08003BCA
+25 / TUBE
+SNPB
+N/A for Pkg Type
+-55 to 125
+JM38510/
+Time Buy
+08003BCA
+Production
+CDIP (J) I14
+No
+SNPB
+Last
+25 I TUBE
+N/A for Pkg Type
+-55 to 125
+JM38510/08003BCA.A
+JM38510/
+Time Buy
+08003BCA
+Last
+Production
+CDIP (J) 114
+No
+SNPB
+25 I TUBE
+N/A for Pkg Type
+JM38510/08003BCA.A
+-55 to 125
+JM38510/
+Time Buy
+08003BCA
+Active
+No
+Production
+CFP (W) 114
+25 I TUBE
+SNPB
+JM38510/08003BDA
+N/A for Pkg Type
+-55 to 125
+JM38510/
+08003BDA
+Production
+CFP (W) 114
+No
+Active
+25 I TUBE
+SNPB
+N/A for Pkg Type
+-55 to 125
+JM38510/08003BDA
+JM38510/
+08003BDA
+CFP (W) I14
+No
+SNPB
+Active
+25 I TUBE
+Production
+N/A for Pkg Type
+-55 to 125
+JM38510/08003BDA.A
+JM38510/
+08003BDA
+No
+25 I TUBE
+Active
+Production
+SNPB
+N/A for Pkg Type
+CFP (W) 114
+-55 to 125
+JM38510/08003BDA.A
+JM38510/
+08003BDA
+No
+Active
+LCCC (FK) 120
+55 I TUBE
+SNPB
+JM38510/31004B2A
+Production
+N/A for Pkg Type
+-55 to 125
+JM38510/
+31004B2A
+SNPB
+No
+JM38510/31004B2A
+Active
+Production
+LCCC (FK) 120
+55 / TUBE
+N/A for Pkg Type
+-55 to 125
+JM38510/
+31004B2A
+Production
+LCCC (FK) 120
+No
+55 I TUBE
+N/A for Pkg Type
+Active
+SNPB
+JM38510/31004B2A.A
+-55 to 125
+JM38510/
+31004B2A
+Active
+No
+SNPB
+LCCC (FK) 120
+N/A for Pkg Type
+JM38510/31004B2A.A
+Production
+55 / TUBE
+-55 to 125
+JM38510/
+31004B2A
+Production
+CDIP (J) I14
+No
+Active
+25 I TUBE
+SNPB
+N/A for Pkg Type
+JM38510/31004BCA
+-55 to 125
+JM38510/
+31004BCA
+Active
+Production
+No
+SNPB
+JM38510/31004BCA
+CDIP (J) I14
+25 I TUBE
+N/A for Pkg Type
+-55 to 125
+JM38510/
+31004BCA
+Active
+No
+SNPB
+CDIP (J) I14
+25 I TUBE
+N/A for Pkg Type
+-55 to 125
+Production
+JM38510/31004BCA.A
+JM38510/
+31004BCA
+No
+Production
+CDIP (J) 114
+Active
+25 I TUBE
+SNPB
+N/A for Pkg Type
+JM38510/31004BCA.A
+-55 to 125
+JM38510/
+31004BCA
+25 I TUBE
+No
+SNPB
+Active
+Production
+CFP (W) 114
+N/A for Pkg Type
+-55 to 125
+JM38510/31004BDA
+JM38510/
+31004BDA
+Addendum-Page 1

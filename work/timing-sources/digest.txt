@@ -1,0 +1,72 @@
+===== 74LS00 (https://www.ti.com/lit/ds/symlink/sn74ls00.pdf)
+  pages=40 docids=['SDLS025D']
+  p2: Switching Characteristics: SNx400 ........................... 7 | 6.9 | Switching Characteristics: SNx4LS00....................... 7 | 6.10 | Switching Characteristics: SNx4S00....................... 7 | 6.11 | Typical Characteristics............................................ 8 | 7 | Parameter Measurement Information .................. 9 | 7.1 | Propagation Delays, Setup and Hold Times, and | Pulse Width................................................................ 9 | 8 | Detailed Description ............................................ 10 | 8.1 | Overview ................................................................. 10 | 8.2 | Functional Block Diagram ....................................... 10 | 8.3 | Feature Description................................................. 10 | 8.4 | Device Functional Modes....................................... 10 | 9 | Application and Implementation ........................ 11 | 9.1 | Application Information............................................ 11 | 9.2 | Typical Application .................................................. 11 | 10 | Power Supply Recommendations ..................... 12 | 11 | Layout................................................................... 13 | 11.1 | Layout Guidelines ................................................. 13 | 11.2 | Layout Example .................................................... 13 | 12 | Device and Documentation Support ................. 14 | 12.1 | Documentat
+===== 74LS02 (https://www.ti.com/lit/ds/symlink/sn74ls02.pdf)
+  pages=27 docids=[]
+  NO switching-characteristics heading found
+===== 74LS04 (https://www.ti.com/lit/ds/symlink/sn74ls04.pdf)
+  pages=32 docids=['SDLS029C']
+  p6: switching characteristics, VCC = 5 V, TA = 25°C (see Figure 1) | PARAMETER | FROM | (INPUT) | TO | (OUTPUT) | TEST CONDITIONS | SN5404 | SN7404 | UNIT | PARAMETER | (INPUT) | (OUTPUT) | TEST CONDITIONS | MIN | TYP | MAX | UNIT | tPLH | A | Y | RL | 400 Ω | CL | 15 pF | 12 | 22 | ns | tPHL | A | Y | RL = 400 Ω, | CL = 15 pF | 8 | 15 | ns | recommended operating conditions (see Note 3) | SN54LS04 | SN74LS04 | SN54LS04 | SN74LS04 | UNIT | MIN | NOM | MAX | MIN | NOM | MAX | UNIT | VCC | Supply voltage | 4.5 | 5 | 5.5 | 4.75 | 5 | 5.25 | V | VIH | High-level input voltage | 2 | 2 | V | VIL | Low-level input voltage | 0.7 | 0.8 | V | IOH | High-level output current | −0.4 | −0.4 | mA | IOL | Low-level output current | 4 | 8 | mA | TA | Operating free-air temperature | −55 | 125 | 0 | 70 | °C | NOTE 3: | All unused inputs of the device must be held at VCC or GND to ensure proper device operation. Refer to the TI application report, | Implications of Slow or Floating CMOS Inputs, literature number SCBA004. | electrical characteristics over recommended operating free-air temperature range (unless | otherwise noted) | PARAMETER | TEST CONDITIONS† | SN54LS04 | SN74LS04 | UNIT | PARAMETER | TEST CONDITIONS† | MIN | TYP‡ | MAX | MIN | TYP‡ | MAX | UNIT | VIK | VCC = MIN, | II = −18 mA | −1.5 | −1.5 | V | VOH | VCC = MIN, | VIL = MAX, | IOH = −0.4 mA | 2.5 | 3.4 | 2.7 | 3.4 | V | VOL | VCC | MIN | VIH | 2 V | IOL = 4 mA | 0.25 | 0.4 | 0.4 | V | VOL | VCC = MIN, | VIH = 2 V | IOL = 8 mA | 0.25 | 0.5 | V | II | VCC = MAX, | VI = 7 V | 0.1 | 0.1 | mA | IIH | VCC = MAX, | VI = 2.7 V | 20 | 20 | µA | IIL | VCC = MAX, | VI = 0.4 V | −0.4 | −0.4 | mA | IOS§ | VCC = MAX | −20 | −100 | −20 | −100 | mA | ICCH | VCC = 
+===== 74LS08 (https://www.ti.com/lit/ds/symlink/sn74ls08.pdf)
+  pages=29 docids=['SDLS033']
+  NO switching-characteristics heading found
+===== 74LS11 (https://www.ti.com/lit/ds/symlink/sn74ls11.pdf)
+  pages=21 docids=['SDLS131']
+  NO switching-characteristics heading found
+===== 74LS20 (https://www.ti.com/lit/ds/symlink/sn74ls20.pdf)
+  pages=24 docids=[]
+  NO switching-characteristics heading found
+===== 74LS32 (https://www.ti.com/lit/ds/symlink/sn74ls32.pdf)
+  pages=30 docids=[]
+  NO switching-characteristics heading found
+===== 74LS51 (https://www.ti.com/lit/ds/symlink/sn74ls51.pdf)
+  pages=24 docids=['SDLS113']
+  NO switching-characteristics heading found
+===== 74LS74 (https://www.ti.com/lit/ds/symlink/sn74ls74a.pdf)
+  pages=30 docids=['SDLS119']
+  NO switching-characteristics heading found
+===== 74LS86 (https://www.ti.com/lit/ds/symlink/sn74ls86a.pdf)
+  pages=24 docids=['SDLS124']
+  NO switching-characteristics heading found
+===== 74LS138 (https://www.ti.com/lit/ds/symlink/sn74ls138.pdf)
+  pages=26 docids=[]
+  NO switching-characteristics heading found
+===== 74LS139 (https://www.ti.com/lit/ds/symlink/sn74ls139a.pdf)
+  pages=20 docids=[]
+  NO switching-characteristics heading found
+===== 74LS151 (https://www.ti.com/lit/ds/symlink/sn74ls151.pdf)
+  pages=22 docids=[]
+  NO switching-characteristics heading found
+===== 74LS153 (https://www.ti.com/lit/ds/symlink/sn74ls153.pdf)
+  pages=21 docids=['SDLS055A']
+  NO switching-characteristics heading found
+===== 74LS161 (https://eater.net/datasheets/74ls161.pdf)
+  pages=10 docids=[]
+  p6: Switching Characteristics | at VCC = 5V and TA = 25°C  | Symbol | Parameter | Conditions | Min | Typ | Max | Units | (Note 4) | VI | Input Clamp Voltage | VCC = Min, II = −18 mA | −1.5 | V | VOH | HIGH Level  | VCC = Min, IOH = Max | 2.7 | 3.4 | V | Output Voltage | VIL = Max, VIH = Min | VOL | LOW Level  | VCC = Min, IOL = Max | 0.35 | 0.5 | Output Voltage | VIL = Max, VIH = Min | V | IOL = 4 mA, VCC = Min | 0.25 | 0.4 | II | Input Current @ Max | VCC = Max | Enable T | 0.2 | Input Voltage | VI = 7V | Clock | 0.2 | mA | Load | 0.2 | Others | 0.1 | IIH | HIGH Level  | VCC = Max | Enable T | 40 | Input Current | VI = 2.7V | Clock | 40 | µA | Load | 40 | Others | 20 | IIL | LOW Level  | VCC = Max | Enable T | −0.8 | Input Current | VI = 0.4V | Clock | −0.8 | mA | Load | −0.8 | Others | −0.4 | IOS | Short Circuit Output Current | VCC = Max (Note 5) | −20 | −100 | mA | ICCH | Supply Current with Outputs HIGH VCC = Max (Note 6) | 18 | 31 | mA | ICCL | Supply Current with Outputs LOW | VCC = Max (Note 7) | 19 | 32 | mA | From (Input) | RL = 2 kΩ | Symbol | Parameter | To (Output) | CL = 15 pF | CL = 50 pF | Units | Min | Max | Min | Max | fMAX | Maximum Clock Frequency | 25 | 20 | MHz | tPLH | Propagation Delay Time | Clock to | 25 | 30 | ns | LOW-to-HIGH Level Output | Ripple Carry | tPHL | Propagation Delay Time | Clock to | 30 | 38 | ns | HIGH-to-LOW Level Output | Ripple Carry | tPLH | Propagation Delay Time | Clock to Any Q | 22 | 27 | ns | LOW-to-HIGH Level Output | (Load HIGH) | tPHL | Propagation Delay Time | Clock to Any Q | 27 | 38 | ns | HIGH-to-LOW Level Output | (Load HIGH) | tPLH | Propagation Delay Time | Clock to Any Q | 24 | 30 | ns | LOW-to-HIGH Level Outp
+===== 74LS166 (https://www.ti.com/lit/ds/symlink/sn74ls166a.pdf)
+  pages=24 docids=[]
+  NO switching-characteristics heading found
+===== 74LS174 (https://www.ti.com/lit/ds/symlink/sn74ls174.pdf)
+  pages=16 docids=['SDLS068A']
+  NO switching-characteristics heading found
+===== 74LS175 (https://www.ti.com/lit/ds/symlink/sn74ls175.pdf)
+  pages=16 docids=['SDLS068A']
+  NO switching-characteristics heading found
+===== 74LS194 (https://www.ti.com/lit/ds/symlink/sn74ls194a.pdf)
+  pages=15 docids=[]
+  NO switching-characteristics heading found
+===== 74LS195 (https://www.sycelectronica.com.ar/semiconductores/74LS195.pdf)
+  pages=7 docids=[]
+  NO switching-characteristics heading found
+===== 74LS251 (https://www.ti.com/lit/ds/symlink/sn74ls251.pdf)
+  pages=23 docids=['SDLS085']
+  NO switching-characteristics heading found
+===== 74LS257 (https://www.datasheets.pl/elementy_czynne/IC/7/74LS257.pdf)
+  pages=3 docids=[]
+  NO switching-characteristics heading found
+===== 74LS259 (https://www.ti.com/lit/ds/symlink/sn74ls259b.pdf)
+  pages=11 docids=['SDLS086']
+  NO switching-characteristics heading found
+===== 74LS283 (https://www.ti.com/lit/ds/symlink/sn74ls283.pdf)
+  pages=12 docids=['SDLS095A']
+  NO switching-characteristics heading found

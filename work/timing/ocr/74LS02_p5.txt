@@ -1,0 +1,130 @@
+SN54S02. SN74S02
+QUADRUPLE 2-INPUT POSITIVE-NOR GATES
+recommended operating conditions
+SN54S02
+SN74S02
+Unit
+MIN
+MAX
+Nom
+Min
+NOM
+MAX
+Supply voltage
+4.75
+5.25
+4.5
+6.6
+High-level input voltage
+Low-level input voltage
+0.8
+0.8
+High-level output current
+lOH
+- 1
+mA
+Low-levei output current
+20
+20
+mA
+- 55
+125
+70
+Operating free-alr temperature
+electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+SN54S02
+SN74S02
+TEST CONDITIONS t
+PAAAMETER
+unit
++dal
+Typ+
+MAX
+MAX
+Vik
+Ycc - min.
+I↓ → --18 mA
+-1.2
+-1.2
+2.5
+3.4
+Vee = min.
+2.7
+3.4
+Vil = 0.8 V.
+lOH = -1 mA
+vor
+Vec = min.
+0.5
+0.5
+Vih =2 v.
+IOL = 20 mA
+Vcc = max.
+V, = 5.5 V
+mA
+Vcc =max.
+50
+50
+VI = 2.7 V
+MA
+Vi = 0.5 V
+-2
+VCC = maX.
+-2
+mA
+40
+-100
+40
+1100
+los$
+VCC = MAX
+mA
+17
+29
+17
+Vcc = max.
+VI=0V
+29
+ICCH
+mA
+IceL
+Vcc = max.
+26
+45
+26
+See Note 2
+45
+mA
+t For conditions shourn as MiN or MAX, use tha appropriate vatue specified under recommended operating conditions.
++ All typicbi values are t Vcc = S V, Ta - 25'c.
+S Not more than one autput shouid be sharted at a tima, and the duration of the short-cireuit should not axceed one second.
+NOtE 2: One input at 4.5 V, all others at GND.
+switching characteristics, Vcc = 5 V, TA = 25°c (sea note 3)
+FROM
+min
+MAX
+Tes'T condITIons
+PARAMETEA
+Unit
+(INPUT)
+(qutPut)
+3.5
+tpLH
+5.5
+ns
+Rl - 280 0,
+CL - 15pF
+tpHL
+3.5
+ns
+Aor B
+tPLH
+ns
+Rl = 280 s2.
+CL = 50 pF
+tphl
+ns
+NoTE 3: Load circuits and voltage waveforms are shown in Section 1.
+TEXAS
+INSTRUMENTS
+20ST 0FF1CE B0X 655012 - 3ALL4S. TEX4S 75265

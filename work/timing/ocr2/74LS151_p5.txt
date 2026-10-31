@@ -1,0 +1,55 @@
+658:SN54LS151,SN74LS151
+587:DATA SELECTORS/MULTIPLEXERS
+128:recommended operating conditions
+603:SN54LS151 | 718:SN74LS151 | 810:UNIT
+581:MIN | 620:NOM | 657:MAX | 696:MIN | 734:NOM | 772:MAX
+131:Supplv voltage, Vcc. | 587:4.5 | 664:5.5 | 697:4.75 | 774:5.25
+131:High-tevet output current, IOH | 656:-400 | 770:-400
+130:Low-level ourputcurrent, loL. | 814:mA
+131:Operating free-air temporature, Ta | 583:55 | 664:126 | 785:70
+664: (unless otherwise noted)
+569:SN54LS151 | 696:SN74LS151
+188:PARAMETER | 372:TEST CONDITIONSt | 804:UNIT
+550:MIN | 584:TYp+ | 630:MAX | 674:MIN | 712:TYP* | 758:MAX
+135:VIH | 162:High-level input voltage
+131:VIL | 163:Low-ieveil input voltage | 637:0.7 | 766:0.B
+134:VIK | 164:Input clamp voltage | 342:MIN, | 402:I= -18mA | 631:-1.5 | 759:-1.5
+314:VCC - MIN, | 401:VIH - 2 v.
+132:VoH High-level output voltage | 553:2.5 | 595:3.4 | 680:2.7 | 722:3.4
+317:VIL - VILmax. | 401:OH -.- 400 μA
+134:VOL | 314:YCC - MIN, | 400:VIH - 2 V.DOL | 493:- 4 mAI | 587:0.25 | 638:0.4 | 714:0.25 | 764:0.4
+162:Low-level output voltage | 317:Vi. - ViLmax | 491:-8mA | 714:0.35 | 764:0.5
+162:Input current at | 316:VCC - MAX, | 402:VI - 7 V | 637:0.1 | 764:0.1
+163:maximum input voltage | 807:mA
+162:High-level input current | 314:Yce.  Max,. | 401:Y1 - 2.7 V | 641:20 | 767:20
+162:Low-level input current | 341:MAX, | 401:Vi - 0.4 V | 629:-0.4 | 755:-0.4 | 805:mA
+160:Short-circuit output crrents | 314:VCC - MAX | 547:-20 | 625:-100 | 673:- 20 | 753:-100 | 804:mA
+315:VCC = MAX. | 401:Outputs open,
+161:Supply current | 594:6.0 | 641:10 | 720:6.0 | 768:10 | 803:mA
+315:All inputs at 4.5 V
+124:IFor conditions shown as MIN or MAX,use the appropriate value specified underrecommended operating conditions for the applicable device type.
+124:+ All ypical values are ot VCC.-- 5V.TA- 25°C.
+124:3 Not more than one output should be shorted at a time and duration of short-circuit should not exceed one second.
+122:switchlng characteristics, Vcc = 5 V.TA 25°c
+310:FROM | 430:TO
+160:PARAMETERT | 531:TEST CONDITIONS | 670:MIN | 715:TYP | 753:MAX | 801:UNIT
+307:(INPUT) | 413:(OUTPUT)
+185:tPLH | 720:27 | 764:43
+185:tPHL | 302:(4 levele) | 721:18 | 765:30 | 807:ns
+185:tPLH | 300:A, B, or C | 721:14 | 766:23
+185:tPHL | 303:(3 levels) | 722:20 | 765:32 | 807:ns
+185:tPLH. | 721:26 | 764:42
+185:tPHL | 302:StrobeG | 544:CL = 15 DF. | 764:32 | 807:ns
+547:RL - 2 kn, | 722:20
+184:TPLH | 721:15 | 763:24
+304:Strobe G | 550:See Note 4 | 764:30 | 806:ns
+185:tPHL | 722:18
+186:tPLH | 309:Any D | 720:20 | 764:32
+186:tPHL | 720:16 | 764:26 | 806:ns
+185:IPLH | 309:Any D | 721:13 | 764:21
+185:tPHL | 720:12 | 764:20 | 806:n5
+129:tPHL | 158:± propagatilon delay time, high-to-low-level output
+121:NOTE 4: Load circuits and voltage waveforms are shown in Section 1.
+451:TEXAS
+406:INSTRUMENTS
+373:POST DFFICE BOX 555012 · 2ALLAS. TEXAS 75Z55

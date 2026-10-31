@@ -1,0 +1,62 @@
+69:SN54174,SN54175,SN74174,SN74175
+68:HEX/QUADRUPLED-TYPEFLIP-FLOPS WITHCLEAR
+66:SDLS068ADECEMBER 1972REVISED OCTOBER 2001
+66:absolute maximum ratings over operating free-air temperature range (unless otherwise noted)
+105:Supply voltage, Vcc (see Note 1) | 791:7V
+106:Input voltage | 780:5.5V
+104:Operating free-air temperature range:S | 332:SN54174, SN54175 Circuits | 718:-55°C to 125
+333:SN74174, SN74175 Circuits | 740:0°℃ to 70°℃
+105:Storage temperature range | 717:65C to150°℃
+69:NOTE 1: Voltage values are with respect to network ground terminal.
+71:recommended operating conditions
+538:SN54174,SN54175 | 659:SN74174, SN74175
+777:JINN
+539:MIN | 577:NOM | 617:MAX | 658:MIN | 696:NOM | 737:MAX
+111:Supply voltage, Vcc | 548:4.5 | 626:5.5 | 659:4.75 | 739:5.25
+112:High-level output current, loH | 616:-800 | 737:-800
+112:Low-level output current, loL | 629:16 | 751:16 | 782:mA
+113:Clock frequency, felock | 631:25 | 750:25 | 780:MHZ
+113:Width of ciock or clear pulse, tw | 550:20 | 670:20 | 788:ns
+114:Setup time, tsu | 413:Data input | 550:20 | 670:20 | 788:ns
+414:Clear inactive-state | 550:25 | 670:25 | 787:ns
+113:Data hold time,th | 788:ns
+114:Operating free-air temperature,TA | 543:-55 | 626:125 | 752:70
+241:PARAMETER | 494:TEST CONDITIONSt | 659:MIN | 697:TYP | 738:MAX | 777:UNIT
+115:VIH | 148:High-level input voltage
+114:VIL | 149:Low-level input voltage | 748:0.8
+114:VIK | 151:Input clamp voltage | 453:Vcc = MIN, | 534:Ij= -12mA | 742:-1.5
+452:VCC MIN, | 534:VIH =2V,
+115:VOH | 149:High-level output voltage | 669:2.4 | 705:3.4
+453:VIL * 0.8 V, | 534:IOH" -800 μA
+452:VCC-MIN, | 534:ViH * 2 V, | 705:0.2 | 749:0.4
+115:VOL | 150:Low-level output voltage
+453:VIL = 0.8 V, | 534:loL=16mA
+151:Input current at maximum input voltage | 454:Vcc=MAX, | 536:Vj = 5.5 V | 784:mA
+151:High-level input current | 452:VCC=MAX, | 535:Vi = 2.4 V | 753:40
+151:Low-level input current | 452:VCC-MAX, | 535:V, = 0.4 V | 743:1.6 | 784:mA
+603:SN54' | 664:20 | 745:57
+115:los | 149:Short-circuit output currents | 452:VCC = MAX | 786:mA
+604:SN74 | 664:-18 | 746:57
+603:174 | 707:45 | 753:65
+151:Supply current | 454:VCC = MAX, | 536:See Note 2 | 706:30 | 753:45 | 786:mA
+606:'175
+73:fFor conditions shown as MiIN or MAX,use the appropriate value specified under recommended operating conditions for the applicable device
+82:ty pe.
+72:Alltypical values are at Vcc5 V, TA 25°c.
+73:S Not more than one output should be shorted at a time.
+72:NOTE 2: With all outputs open and 4.5 V applied to all data and clear inputs, Icc is measured after a momentary ground, then 4.5 V, is
+126:applied to clock.
+75:switching characteristics, Vcc=5 V,TA =25°c
+287:PARAMETER | 541:TEST CONDITIONS | 664:MIN | 705:TYP | 742:MAX | 780:UNIT
+122:fmax | 158:Maximum clock frequency | 669:25 | 708:35 | 780:MH2
+121:tPLH | 159:Propagation delay time, low-to-high-level output from clear | 561:CL = 15 pF, | 709:16 | 751:25 | 789:ns
+159:(SN54175,SN74175 only)
+560:RL=400 2, | 709:23 | 750:35
+121:tPHL | 160:Propagation delay time, high-to-low-level output from clear | 788:ns
+561:See Note 3 | 709:20
+122:tPLH | 159:Propagation delay time, low-to-high-level output from clock | 751:30 | 789:ns
+123:tPHL | 159:Propagation delay time, high-to-low-level output from clock | 709:24 | 752:35 | 790:ns
+77:NOTE 3: Load circuits and voltage waveforms are shown in Section 1.
+368:ti | 397:TEXAS
+363:INSTRUMENTS
+326:POST OFFICE BOX 655303  DALLAS, TEXAS 75265

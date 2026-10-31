@@ -1,0 +1,134 @@
+SN5408. SN54LS08. SN54S08
+SN7408, SN74LS08, SN74S08
+QUADRUPLE 2-INPUT POSITIVE-AND GATES
+SDLS033-DECEMBER1983-REVISEDMARCH1988
+recommended operating conditions
+SN54LS08
+SN74LS08
+UNIT
+MIN
+MAX
+MIn
+NOM
+NOM
+MAX
+Vcc
+4.75
+5.25
+4.5
+5.5
+Supply voltage
+VIH
+High-level input voltage
+0.7
+0.8
+Vil
+Low-level input voltage
+ 0.4
+- 0.4
+High-tevel output current
+mA
+IOL
+Low-level output current
+mA
+70
+125
+- 55
+Operatingfree-airtemperature
+electrical characteristics over recommended operating free-air temperature range (unless otherwise noted)
+SN64LS08
+SN74LS08
+TEST CONDITIONS t
+PARAMETER
+UNIT
+MAX
+MIN
+MIN
+MAX
+- 1.5
+- 1.5
+Vcc = min,
+Ij=-18mA
+2.7
+3.4
+VOH
+3.4
+2.5
+VIH " 2 V.
+Vcc = MIN,
+tOH = - 0.4 mA
+0.4
+0.25
+0.25
+VcC = MIN,
+Vil " max,
+IOL = 4 mA
+0.4
+VOL
+0.35
+VCC = MIN,
+Vil " Max,
+10L*8mA
+0.5
+0.1
+0.1
+V=7 V
+Vcc = Max,
+mA
+20
+20
+VcC = MAX,
+VI = 2.7 V
+- 0.4
+ 0.4
+V, = 0.4 V
+Vcc = max,
+- 100
+ 100
+ 20
+- 20
+tos$
+VcC * MAX
+mA
+4.8
+ICCH
+2.4
+2.4
+4.8
+V1 = 4.5 V
+Vcc " MAx.
+mA
+4.4
+8.8
+4.4
+8.8
+ICCL
+Vcc = Max,
+V*0V
+mA
+t For conditions shown as MiN or MAX, use the appropriate vaiue specified under recommended operating conditions.
+t All typical values are at Vcc = 5 V, TA = 25°c
+S Not more than one output should be shorted at a time, and the duration of the short-circuit shouid not exceed one second.
+switching characteristics, Vcc = 5 V, TA = 25°C (see note 2)
+FROM
+PARAMETER
+MAX
+typ
+TEST CONDITIONS
+UNIT
+(INPUT)
+(OUTPUT)
+tpLH
+15
+ns
+A or B
+RL = 2 kS2,
+CL = 15 pF
+10
+tphL
+20
+ns
+NoTE2:LoadcircuitsandvoltagewaveformsareshowninSection1.
+TEXAS
+INSTRUMENTS
+POSTOFFICEBOX655303·DALLAS,TEXAS75265

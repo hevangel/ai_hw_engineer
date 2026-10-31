@@ -1,0 +1,15 @@
+95:TEXAS | 901:PACKAGEOPTIONADDENDUM
+99:INSTRUMENTS
+54:www.ti.com | 1163:1-Oct-2026
+32:Important Information and Disclaimer:The information provided on this page represents TI's knowledge and belief as of the date that it is provided. TI bases its knowledge and belief on information provided by third parties, and
+32:makes no representation or warranty as to the accuracy of such information. Efforts are underway to better integrate information from third parties. TI has taken and continues to take reasonable steps to provide representative
+32:and other limited information may not be available for release.
+32:In no event shall T's liability arising out of such information exceed the total purchase price of the TI part(s) at issue in this document sold by TI to Customer on an annual basis.
+33:.Catalog : SN74LS139A, SN54LS139A
+31:.Military : SN54LS139A
+31:.Space : SN54LS139A-SP
+33:NOTE: Qualified Version Definitions:
+75:. Catalog - TI's standard catalog product
+77:. Military - QML certified for Military and Defense Applications
+76:. Space - Radiation tolerant, ceramic packaging and qualified for use in Space-based application
+588:Addendum-Page 4

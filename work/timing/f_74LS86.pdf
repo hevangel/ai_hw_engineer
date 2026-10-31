@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+    	<meta charset="utf-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+		<meta name="description" content="Page Not Found on www.futurlec.com">
+		<meta name="keywords" content="electronics,integrated circuits,electronic components,resistor,electronic parts,capacitor,semiconductor,supplier,diode,IC,transistor,SCR">
+
+		<title>Page Error</title>
+		
+		<link rel="stylesheet" href="/style-responsive_2col.css" type="text/css">
+		
+		<script src="/mobile.js"></script>
+		
+		<style>
+		
+			h1 {
+				text-decoration: none;
+				color: #c41010;
+				font-size: 16px;
+				font-family: Verdana, Tahoma, sans-serif;
+				font-weight: bold;
+				font-style: normal;
+				line-height: 20px;
+				margin-left: 20px;
+			}
+			
+			.style1 {
+				font-family: verdana;
+				font-size: 14px;
+				font-weight: bold;
+				color: #cc9900;
+				margin-top: 0px;
+				margin-left: 55px;
+			}
+			
+			.style2 {
+				font-family: verdana;
+				font-size: 14px;
+				font-weight: bold;
+				color: #c41010;
+				margin-top: 0px;
+				margin-left: 40px;
+			}
+		
+			ol.wnew {
+				margin: 0;
+				padding: 0;
+			}
+		
+			.wnew li {
+				font-family: verdana;
+				font-size: 13px;
+				color: #000000;
+				line-height: 1.4285;
+				margin-top: 2px;
+				margin-bottom: 2px;
+				margin-left: 85px;
+				margin-right: 20px;
+			}
+			
+			ul.site {
+				margin-top: 0px;
+				margin-bottom: 0px;
+				margin-left: 0px;
+				padding-top: 0px;
+				padding-bottom: 0px;
+				padding-left: 20px;
+				list-style-type: disc;
+			} 
+		
+			.site li {
+				font-family: verdana;
+				font-size: 13px;
+				color: #000000;
+				line-height: 1.4285;
+				padding-bottom: 2px;
+				margin-bottom: 0px;
+				padding-top: 0px;
+				margin-top: 10px;
+				margin-left: 40px;
+				margin-right: 20px;
+			}
+			
+			.left_sidebar {
+				
+				margin-bottom: -9000px;
+				padding-bottom: 9000px;
+			}
+		
+		</style>
+		
+		
+	</head>
+	
+	<body>
+	
+		
+		<div class="sidenav" id="mySidebar">
+			<a href="#" class="closebtn" onclick="closeNav(); return false;">&times;</a>
+			<ul>
+				<li><a href="/">Home</a>
+                	<ul>
+                    	<li><a style="border-top: 0px;margin: 0px 20px;padding: 8px 0;color: #606060;text-decoration: underline;" href="#">Corporate</a></li>
+                		<li><a style="border-top: 0px;margin: 0px 30px;padding: 8px 0;" href="/AboutUs.shtml">About Us</a></li>
+                    	<li><a style="border-top: 0px;margin: 0px 30px;padding: 8px 0;" href="/Delivery.shtml">Delivery</a></li>
+                        <li><a style="border-top: 0px;margin: 0px 30px;padding: 8px 0;" href="/Guarantee.shtml">Guarantee</a></li>
+                        <li><a style="border-top: 0px;margin: 0px 20px;padding: 8px 0;color: #606060;text-decoration: underline;" href="#">Services</a></li>
+                        <li><a style="border-top: 0px;margin: 0px 30px;padding: 8px 0;" href="/PCBService.shtml">PCB Manufacturing</a></li>
+                        <li><a style="border-top: 0px;margin: 0px 30px;padding: 8px 0;" href="/PCBDesign.shtml">PCB Design</a></li>
+                        <li><a style="border-top: 0px;margin: 0px 30px;padding: 8px 0;" href="/BoardAssembly.shtml">Board Assembly</a></li>
+                        <li><a style="border-top: 0px;margin: 0px 20px;padding: 8px 0;color: #606060;text-decoration: underline;" href="#">Need Help</a></li>
+                        <li><a style="border-top: 0px;margin: 0px 30px;padding: 8px 0;" href="/Contact_Us.shtml">Contact Us</a></li>
+                        <li><a style="border-top: 0px;margin: 0px 30px;padding: 8px 0;" href="/News.shtml">News</a></li>
+                        <li><a style="border-top: 0px;margin: 0px 30px;padding: 8px 0;" href="/LatestProducts.shtml">Latest Products</a></li>
+                        <li><a style="border-top: 0px;margin: 0px 30px;padding: 8px 0;" href="/OrderingInformation.shtml">Ordering Information</a></li>
+                	</ul>
+                </li>
+				<li><a href="/Components.shtml">Electronic Components</a></li>
+				<li><a href="/HardwareMain.shtml">Hardware</a></li>
+				<li><a href="/Boards.shtml">Microcontroller Boards</a></li>
+				<li><a href="/BooksMain.shtml">Books</a></li>
+				<li><a href="/Kits.shtml">Electronic Kits</a></li>
+			</ul>
+		</div>
+	
+		<header>
+			<div class="desktop">
+			
+				
+				<div class="Banner">
+					<div class="lftBanner">
+						<a href="https://www.futurlec.com/" title="Futurlec - The Electronic Components and Semiconductor Superstore"><img src="/Futurlec2.gif" width="200" height="50" alt="Futurlec - The Electronic Components and Semiconductor Superstore"></a>
+					</div>
+					<div class="cenBanner">
+						<img src="/Tab-Welcome3.gif" width="550" height="30" alt="Welcome Section" USEMAP="#top_nav_map">
+					</div>
+					<div class="rhtBanner">
+						<a href="/cgi-bin/redicart/smart.cgi?command=review" title="Shopping Cart"><img src="/Shopping-Cart.gif" width="24" height="18" alt="Shopping Cart"></a>	
+					</div>
+			
+					<MAP NAME="top_nav_map">
+						<AREA SHAPE="RECT" COORDS="2,2,95,30" href="/" alt="Home">
+						<AREA SHAPE="RECT" COORDS="99,2,220,30" href="/Components.shtml" alt="Electronic Components">
+						<AREA SHAPE="RECT" COORDS="224,2,319,30" href="/HardwareMain.shtml" alt="Hardware">
+						<AREA SHAPE="RECT" COORDS="324,2,402,30" href="/Boards.shtml" alt="Microcontroller Boards">
+						<AREA SHAPE="RECT" COORDS="406,2,477,30" href="/BooksMain.shtml" alt="Books">
+						<AREA SHAPE="RECT" COORDS="482,2,535,30" href="/Kits.shtml" alt="Kits">
+					</MAP>
+				</div>
+
+			
+				<div class="lftCommandbar">
+					<ul>
+						<li><a href="/SupportInf.shtml">SUPPORT</a></li>
+						<li><a href="/OrderingInformation.shtml">ORDER</a></li>
+					</ul>
+				</div>
+				<div class="rhtCommandbar">
+					<ul>
+						<li><a href="/Specials.shtml">SPECIALS</a></li>
+						<li><a href="/SiteMap.shtml">SITE MAP</a></li>
+					</ul>
+				</div>
+				
+			</div>
+			
+			
+			<div class="mobile">
+			
+				
+				<div style="display:table;width:100%;background-color:white;padding:0 10px;">
+					<div style="cursor:pointer;display:table-cell;float:left;padding-top: 2px;" onclick="openNav()">
+						<div class="bar"></div>
+						<div class="bar"></div>
+						<div class="bar"></div>
+					</div>
+					<div style="display:table-cell;float:left;padding-left:20px;padding-top:2px;">
+						<a href="https://www.futurlec.com/" title="Futurlec - The Electronic Components and Semiconductor Superstore"><img src="/Futurlec2.gif" height="34" width="136" alt="Futurlec - The Electronic Components and Semiconductor Superstore"></a>
+					</div>
+					<div style="display:table-cell;float:right;padding-top: 12px;">
+						<a href="/cgi-bin/redicart/smart.cgi?command=review" title="View Cart"><img src="/Shopping-Cart.gif" width="24" height="18" alt="View Cart" style="cursor:pointer;"></a>
+					</div>
+				</div>
+			
+				<div style="width:100%;height:50px;background-color:#169253;padding-top:5px;padding-bottom:5px;">
+					<form class="search" action="/cgi-bin/search/search.cgi" style="margin:auto;padding: 0 10px;">
+						<input type="text" placeholder="Search Part Number or Keyword..." name="Q" maxlength="80">
+						<input type="hidden" name="E" value="1">
+						<input type="hidden" name="X" value="0">
+						<button type="submit">Search</button>
+					</form>
+				</div>
+				
+			</div>
+		</header>
+		
+		<main>
+			<div class="row">
+				
+				<div class="wrapper">
+
+					<div class="left_sidebar">
+					
+						
+						<div style="padding-bottom: 3px;" >
+							<label for="search_text"><span class="menuSearch">Search</span></label><br>
+							<form style="margin:0px 0px 0px 5px;" method="post" action="/cgi-bin/search/search.cgi">
+								<input type="text" name="Q" id="search_text" maxlength="80" class="resizedTextbox">
+								<input type="image" src="/search.gif" name="search" alt="Search" width="60" height="20" style="vertical-align:middle;">
+								<input type="hidden" name="E" value="1">
+								<input type="hidden" name="X" value="0">
+							</form>
+						</div>
+					
+						<hr>
+					
+						<div class="OrderStatus" >
+							<a href="/OrderStatus.shtml"><img class="order_status" src="/orderstatus.gif" alt="Order Status"></a>
+							<a class="OrderStatus" href="/OrderStatus.shtml">Order Status</a>
+						</div>
+					
+						<hr>
+						
+
+						
+			
+						<h3>Corporate</h3>
+						<div class="sidebar_nav">
+							<ul>
+								<li><a href="/AboutUs.shtml"><img class="dot" src="/dot.gif" alt="dot">About Us</a></li>
+								<li><a href="/Delivery.shtml"><img class="dot" src="/dot.gif" alt="dot">Delivery</a></li>
+								<li><a href="/Guarantee.shtml"><img class="dot" src="/dot.gif" alt="dot">Guarantee</a></li>
+							</ul>
+						</div>
+			
+						<hr>
+			
+						<h3>Services</h3>
+						<div class="sidebar_nav">
+							<ul>
+								<li><a href="/PCBService.shtml"><img class="dot" src="/dot.gif" alt="dot">PCB Manufacturing</a></li>
+								<li><a href="/PCBDesign.shtml"><img class="dot" src="/dot.gif" alt="dot">PCB Design</a></li>
+								<li><a href="/BoardAssembly.shtml"><img class="dot" src="/dot.gif" alt="dot">Board Assembly</a></li>
+							</ul>
+						</div>
+			
+						<hr>
+			
+						<h3>Need Help</h3>
+						<div class="sidebar_nav">
+							<ul>
+								<li><a href="/Contact_Us.shtml"><img class="dot" src="/dot.gif" alt="dot">Contact Us</a></li>
+								<li><a href="/News.shtml"><img class="dot" src="/dot.gif" alt="dot">News</a></li>
+								<li><a href="/LatestProducts.shtml"><img class="dot" src="/dot.gif" alt="dot">Latest Products</a></li>
+								<li><a href="/OrderingInformation.shtml"><img class="dot" src="/dot.gif" alt="dot">Ordering Information</a></li>
+							</ul>
+						</div>
+			
+						<hr>
+					
+					</div>
+					
+					<div class="content_area">
+						<p style="margin-bottom: 15px;" ></p>
+
+
+						<p style="margin-bottom: 5px;" ></p>
+	
+						<br>
+
+							<h1>404 - Page Error</h1>
+							<br>
+                            
+                            <h2 class="features" style="margin-left: 20px; margin-right: 20px;">Oops - The page you have requested is not available or has been moved.
+                            Please check the links below for the current pages or Search for the part required.</h2>
+
+							<br>
+                            <br>
+                            
+                            <ul class="site">
+                                <li><a class="mainText" href="/"><b>Welcome</b></a>
+                                    <ul class="site" style="padding-left: 0px;" >
+                                        <li><a class="mainText" href="/AboutUs.shtml">About Us</a></li>
+                                        <li><a class="mainText" href="/Delivery.shtml">Delivery</a></li>
+                                        <li><a class="mainText" href="/Guarantee.shtml">Guarantee</a></li>
+                                        <li><a class="mainText" href="/News.shtml">News</a></li>
+                                        <li><a class="mainText" href="/LatestProducts.shtml">Latest Products</a></li>
+                                        <li><a class="mainText" href="/OrderingInformation.shtml">Ordering Information</a></li>
+                                        <li><a class="mainText" href="/Specials.shtml">Specials</a></li>
+                                        <li><a class="mainText" href="/Bestsellers.shtml">Bestsellers</a></li>
+                                        <li><a class="mainText" href="/SupportInf.shtml">Support</a></li>
+                                        <li><a class="mainText" href="/Technical.shtml">Technical</a></li>
+                                        <li><a class="mainText" href="/Help.shtml">Help</a></li>
+                                        <li><a class="mainText" href="/Contact_Us.shtml">Contact Us</a></li>
+                                        <li><a class="mainText" href="/Copyright.shtml">Copyright</a></li>
+                                        <li><a class="mainText" href="/PCBService.shtml">PCB Manufacturing</a></li>
+                                        <li><a class="mainText" href="/PCBDesign.shtml">PCB Design</a></li>
+                                        <li><a class="mainText" href="/BoardAssembly.shtml">PCB Assembly</a></li>
+                                    </ul>
+                                </li>
+                                <li><a class="mainText" href="/Components.shtml"><b>Components</b></a>
+                                    <ul class="site" style="padding-left: 0px;">
+                                        <li><a class="mainText" href="/IntegratedCircuits.shtml">Integrated Circuits</a>
+                                            <ul class="site" style="padding-left: 0px;">
+                                                <li><a class="mainText" href="/IC7400Series.shtml">7400 Series</a></li>
+                                                <li><a class="mainText" href="/IC74LS00Series.shtml">74LS00 Series</a></li>
+                                                <li><a class="mainText" href="/IC74HC00Series.shtml">74HC00 Series</a></li>
+                                                <li><a class="mainText" href="/IC4000Series.shtml">4000 Series</a></li>
+                                                <li><a class="mainText" href="/ICLinearSeries.shtml">Linear Series</a></li>
+                                                <li><a class="mainText" href="/ICMicroprocessors.shtml">Microprocessors</a></li>
+                                                <li><a class="mainText" href="/ICMicrocontrollers.shtml">Microcontrollers</a></li>
+                                                <li><a class="mainText" href="/ICADConv.shtml">A/D and D/A Convertors</a></li>
+                                                <li><a class="mainText" href="/ICEPROM.shtml">EPROMs</a></li>
+                                                <li><a class="mainText" href="/ICEEPROM.shtml">EEPROMs</a></li>
+                                                <li><a class="mainText" href="/ICRAM.shtml">RAMs</a></li>
+                                                <li><a class="mainText" href="/ICSpecialFunction.shtml">Special Function</a></li>
+                                                <li><a class="mainText" href="/ICCrystals.shtml">Crystals</a></li>
+                                            </ul>
+                                        </li>
+                                        <li><a class="mainText" href="/Transistors.shtml">Transistors</a>
+                                            <ul class="site" style="padding-left: 0px;">
+                                                <li><a class="mainText" href="/TransGen.shtml">General Purpose</a></li>
+                                                <li><a class="mainText" href="/TransPower.shtml">Power</a></li>
+                                                <li><a class="mainText" href="/TransMos.shtml">Mosfet</a></li>
+                                                <li><a class="mainText" href="/TransSMD.shtml">SMD</a></li>
+                                            </ul>
+                                        </li>
+                                        <li><a class="mainText" href="/Diodes.shtml">Diodes</a>
+                                            <ul class="site" style="padding-left: 0px;">
+                                                <li><a class="mainText" href="/DiodesGen.shtml">General Purpose</a></li>
+                                                <li><a class="mainText" href="/DiodesZener.shtml">Zener Diodes</a></li>
+                                                <li><a class="mainText" href="/DiodesPower.shtml">Power Diodes</a></li>
+                                                <li><a class="mainText" href="/DiodesSCR.shtml">SCRs & Triacs</a></li>
+                                                <li><a class="mainText" href="/DiodesBridge.shtml">Bridge Rectifiers</a></li>
+                                            </ul>
+                                        </li>
+                                        <li><a class="mainText" href="/Resistors.shtml">Resistors</a>
+                                            <ul class="site" style="padding-left: 0px;">
+                                                <li><a class="mainText" href="/Res14W.shtml">1/4W Resistors</a></li>
+                                                <li><a class="mainText" href="/Res12W.shtml">1/2W Resistors</a></li>
+                                                <li><a class="mainText" href="/Res1W.shtml">1W Resistors</a></li>
+                                                <li><a class="mainText" href="/Res5W.shtml">5W Resistors</a></li>
+                                                <li><a class="mainText" href="/ResNetworks.shtml">Resistors Networks</a></li>
+                                            </ul>
+                                        </li>
+                                        <li><a class="mainText" href="/Capacitors.shtml">Capacitors</a>
+                                            <ul class="site" style="padding-left: 0px;">
+                                                <li><a class="mainText" href="/CapMylar.shtml">Mylar</a></li>
+                                                <li><a class="mainText" href="/CapCer.shtml">Ceramic</a></li>
+                                                <li><a class="mainText" href="/CapElectro.shtml">Electrolytic</a></li>
+                                                <li><a class="mainText" href="/CapTant.shtml">Tantalum</a></li>
+                                                <li><a class="mainText" href="/CapTrimmer.shtml">Trimmer Capacitor</a></li>
+                                            </ul>
+                                        </li>
+                                        <li><a class="mainText" href="/LEDs.shtml">LED's</a>
+                                            <ul class="site" style="padding-left: 0px;">
+                                                <li><a class="mainText" href="/LEDGen.shtml">General</a></li>
+                                                <li><a class="mainText" href="/LEDDisp.shtml">LED Displays</a></li>
+                                                <li><a class="mainText" href="/LEDInfrared.shtml">Infrared</a></li>
+                                                <li><a class="mainText" href="/LEDOpto.shtml">OptoIsolators</a></li>
+                                            </ul>
+                                        </li>
+                                        <li><a class="mainText" href="/Potentiometers.shtml">Potentiometers</a>
+                                            <ul class="site" style="padding-left: 0px;">
+                                                <li><a class="mainText" href="/PotRot.shtml">Rotary</a></li>
+                                                <li><a class="mainText" href="/PotTrim.shtml">Trimpots</a></li>
+                                                <li><a class="mainText" href="/PotRect.shtml">Rectangular</a></li>
+                                            </ul>
+                                        </li>
+                                        <li><a class="mainText" href="/Switches.shtml">Switches</a>
+                                            <ul class="site" style="padding-left: 0px;">
+                                                <li><a class="mainText" href="/SwKnob.shtml">Knobs</a></li>
+                                                <li><a class="mainText" href="/SwToggle.shtml">Toggle Switches</a></li>
+                                                <li><a class="mainText" href="/SwPush.shtml">Pushbuttons</a></li>
+                                                <li><a class="mainText" href="/SwDip.shtml">DIP Switches</a></li>
+                                                <li><a class="mainText" href="/SwRocker.shtml">Rocker Switches</a></li>
+                                                <li><a class="mainText" href="/SwRotary.shtml">Rotary Switches</a></li>
+                                            </ul>
+                                        </li>
+                                        <li><a class="mainText" href="/Relays.shtml">Relays</a>
+                                            <ul class="site" style="padding-left: 0px;">
+                                                <li><a class="mainText" href="/RelGen.shtml">General Purpose</a></li>
+                                                <li><a class="mainText" href="/RelDip.shtml">DIP Relays</a></li>
+                                                <li><a class="mainText" href="/RelSS.shtml">Solid State</a></li>
+                                            </ul>
+                                        </li>
+                                        <li><a class="mainText" href="/Heatsinks.shtml">Heatsinks</a>
+                                            <ul class="site" style="padding-left: 0px;">
+                                                <li><a class="mainText" href="/HeatTO3.shtml">TO-3</a></li>
+                                                <li><a class="mainText" href="/HeatTO220.shtml">TO-220</a></li>
+                                                <li><a class="mainText" href="/HeatAccess.shtml">Accessories</a></li>
+                                            </ul>
+                                        </li>
+                                        <li><a class="mainText" href="/Sockets.shtml">Sockets</a>
+                                            <ul class="site" style="padding-left: 0px;">
+                                                <li><a class="mainText" href="/SockIC.shtml">Sockets</a></li>
+                                                <li><a class="mainText" href="/SockZIF.shtml">ZIF Sockets</a></li>
+                                                <li><a class="mainText" href="/SockPLCC.shtml">PLCC Sockets</a></li>
+                                            </ul>
+                                        </li>
+                                        <li><a class="mainText" href="/Connectors.shtml">Connectors</a>
+                                            <ul class="site" style="padding-left: 0px;">
+                                                <li><a class="mainText" href="/ConnHead.shtml">Headers</a></li>
+                                                <li><a class="mainText" href="/ConnIDC.shtml">IDC Sockets</a></li>
+                                                <li><a class="mainText" href="/ConnTerm.shtml">Terminal Blocks</a></li>
+                                                <li><a class="mainText" href="/ConnDSub.shtml">D-Subminiature</a></li>
+                                                <li><a class="mainText" href="/ConnBNC.shtml">BNC</a></li>
+                                            </ul>
+                                        </li>
+                                        <li><a class="mainText" href="/ValuePacks.shtml">Value Packs</a></li>
+                                    </ul>
+                                </li>
+                                <li><a class="mainText" href="/HardwareMain.shtml"><b>Hardware</b></a>
+                                    <ul class="site" style="padding-left: 0px;">
+                                        <li><a class="mainText" href="/Batteries.shtml">Batteries</a></li>
+                                        <li><a class="mainText" href="/Breadboards.shtml">Breadboards</a></li>
+                                        <li><a class="mainText" href="/Buzzers.shtml">Buzzers</a></li>
+                                        <li><a class="mainText" href="/Cable.shtml">Cable</a></li>
+                                        <li><a class="mainText" href="/Camera.shtml">Camera</a></li>
+                                        <li><a class="mainText" href="/Hardware.shtml">Hardware</a></li>
+                                        <li><a class="mainText" href="/Keypads.shtml">Keypads</a></li>
+                                        <li><a class="mainText" href="/Microphones.shtml">Microphones</a></li>
+                                        <li><a class="mainText" href="/Multimeters.shtml">Multimeters</a></li>
+                                        <li><a class="mainText" href="/Panel_Meters.shtml">Panel Meters</a></li>
+                                        <li><a class="mainText" href="/Photocells.shtml">Photocells</a></li>
+                                        <li><a class="mainText" href="/Plugs.shtml">Plugs</a></li>
+                                        <li><a class="mainText" href="/ProjectBoxes.shtml">Project Boxes</a></li>				
+                                        <li><a class="mainText" href="/Protoboards.shtml">Proto Boards</a></li>
+                                        <li><a class="mainText" href="/RFID_Cards.shtml">RFID Cards</a></li>
+                                        <li><a class="mainText" href="/Sensors.shtml">Sensors</a></li>
+                                        <li><a class="mainText" href="/Servo_Motor.shtml">Servo Motors</a></li>
+                                        <li><a class="mainText" href="/Sirens.shtml">Sirens</a></li>
+                                        <li><a class="mainText" href="/Smart_Cards.shtml">Smart Cards</a></li>
+                                        <li><a class="mainText" href="/Solar.shtml">Solar</a></li>
+                                        <li><a class="mainText" href="/Solder.shtml">Solder</a></li>
+                                        <li><a class="mainText" href="/Speakers.shtml">Speakers</a></li>
+                                        <li><a class="mainText" href="/StepperMotors.shtml">Stepper Motors</a></li>
+                                        <li><a class="mainText" href="/Tools.shtml">Tools</a></li>
+                                    </ul>
+                                </li>
+                                <li><a class="mainText" href="/Boards.shtml"><b>Boards</b></a>
+                                    <ul class="site" style="padding-left: 0px;">
+                                        <li><a class="mainText" href="/DevelopmentBoards.shtml">Development Boards</a>
+                                            <ul class="site" style="padding-left: 0px;">
+                                                <li><a class="mainText" href="/ATMegaDevBoard.shtml">ATmega</a></li>
+                                                <li><a class="mainText" href="/ATMEGA8_Educational_Board.shtml">ATmega8</a></li>
+                                                <li><a class="mainText" href="/ATMEGA8535_Educational_Board.shtml">ATmega8535</a></li>
+                                                <li><a class="mainText" href="/ET-AVR_Stamp_Board.shtml">ET-AVR</a></li>
+                                                <li><a class="mainText" href="/PICDevBoard.shtml">PIC16F877</a></li>
+                                                <li><a class="mainText" href="/PIC18F458_Development_Board.shtml">PIC18F458</a></li>
+                                                <li><a class="mainText" href="/PIC18F4550_Board.shtml">PIC18F4550 USB</a></li>
+                                                <li><a class="mainText" href="/dsPIC30F2010_Board.shtml">dsPIC30F2010</a></li>
+                                                <li><a class="mainText" href="/P89C51DevBoard.shtml">P89C51</a></li>
+                                                <li><a class="mainText" href="/T89C51DevBoard.shtml">T89C51</a></li>
+                                                <li><a class="mainText" href="/AT89C51RE2DevBoard.shtml">AT89C51RE2</a></li>
+                                                <li><a class="mainText" href="/8051_Educational_Board.shtml">8051</a></li>
+                                                <li><a class="mainText" href="/ET-ARM_Stamp_Board.shtml">ET-ARM</a></li>
+                                                <li><a class="mainText" href="/ARM2148_USB_Development_Board.shtml">ARM2148 USB</a></li>
+                                                <li><a class="mainText" href="/STM32_Development_Board.shtml">STM32F103</a></li>
+                                                <li><a class="mainText" href="/USBDevBoard.shtml">USB</a></li>
+                                                <li><a class="mainText" href="/DevBoardAccessories.shtml">Accessories</a></li>
+                                            </ul>
+                                        </li>
+                                        <li><a class="mainText" href="/TrainingBoards.shtml">Training Boards</a>
+                                            <ul class="site" style="padding-left: 0px;">
+                                                <li><a class="mainText" href="/ATMegaTraining.shtml">ATmega</a></li>
+                                                <li><a class="mainText" href="/PIC18F458Training.shtml">PIC18F458</a></li>
+                                                <li><a class="mainText" href="/T89C51Training.shtml">T89C51</a></li>
+                                                <li><a class="mainText" href="/Z8_Training.shtml">Z8</a></li>
+                                                <li><a class="mainText" href="/TrainingBoardAccessories.shtml">Accessories</a></li>
+                                            </ul>
+                                        </li>
+                                        <li><a class="mainText" href="/BasicControllers.shtml">Controllers</a>
+                                            <ul class="site" style="padding-left: 0px;">
+                                                <li><a class="mainText" href="/ADUC_Controller.shtml">ADuC832</a></li>
+                                                <li><a class="mainText" href="/ADuC842_Controller.shtml">ADuC842</a></li>
+                                                <li><a class="mainText" href="/LPC1768_Controller.shtml">LPC1768</a></li>
+                                                <li><a class="mainText" href="/ARM2103_Controller.shtml">ARM2103</a></li>
+                                                <li><a class="mainText" href="/ARM2368_Controller.shtml">ARM2368</a></li>
+                                                <li><a class="mainText" href="/ARM7024_Controller.shtml">ARM7024</a></li>
+                                                <li><a class="mainText" href="/ATMEGA_Controller.shtml">ATmega</a></li>
+                                                <li><a class="mainText" href="/XMEGA_Controller.shtml">XMEGA</a></li>
+                                                <li><a class="mainText" href="/ATMEGA8535_Controller.shtml">ATmega8535</a></li>
+                                                <li><a class="mainText" href="/AT89C51AC3_Controller.shtml">AT89C51AC3</a></li>
+                                                <li><a class="mainText" href="/AT89C51ED2_Controller.shtml">AT89C51ED2</a></li>
+                                                <li><a class="mainText" href="/AT89LP4052_Controller.shtml">AT89LP4052</a></li>
+                                                <li><a class="mainText" href="/Basic_Controller.shtml">Basic</a></li>
+                                                <li><a class="mainText" href="/Ethernet_Controller.shtml">Ethernet</a></li>
+                                                <li><a class="mainText" href="/ET-Easy328_Controller.shtml">ET-Easy 328</a></li>
+                                                <li><a class="mainText" href="/PIC16F628_Controller.shtml">PIC16F628</a></li>
+                                                <li><a class="mainText" href="/PIC16F877_Controller.shtml">PIC16F877</a></li>
+                                                <li><a class="mainText" href="/PIC18F458_Controller.shtml">PIC18F458</a></li>
+                                                <li><a class="mainText" href="/PIC18F4550_Controller.shtml">PIC18F4550</a></li>
+                                                <li><a class="mainText" href="/PIC18F46K22_Controller.shtml">PIC18F46K22</a></li>
+                                                <li><a class="mainText" href="/PIC18F8720_Controller.shtml">PIC18F8720</a></li>
+                                                <li><a class="mainText" href="/PIC18F8722_Controller.shtml">PIC18F8722</a></li>
+                                                <li><a class="mainText" href="/PIC32MX250_Controller.shtml">PIC32MX250</a></li>
+                                                <li><a class="mainText" href="/dsPIC30F2010_Controller.shtml">dsPIC30F2010</a></li>
+                                                <li><a class="mainText" href="/dsPIC30F4011_Controller.shtml">dsPIC30F4011</a></li>
+                                                <li><a class="mainText" href="/P8X32_Controller.shtml">P8X32</a></li>
+                                                <li><a class="mainText" href="/StepperMotorController.shtml">Stepper Motor</a></li>
+                                                <li><a class="mainText" href="/Z51F6412_Controller.shtml">Z51F6412</a></li>
+                                            </ul>
+                                        </li>
+                                        <li><a class="mainText" href="/Stamps.shtml">Stamps &amp; Modules</a>
+                                            <ul class="site" style="padding-left: 0px;">
+                                                <li><a class="mainText" href="/ET-ARM_Stamp.shtml">ET-ARM</a></li>
+                                                <li><a class="mainText" href="/ET-STM32_Stamp.shtml">ET-STM32</a></li>
+                                                <li><a class="mainText" href="/ET-ADUC7024_Stamp.shtml">ET-ADuC7024</a></li>
+                                                <li><a class="mainText" href="/ET-ADUC847_Stamp.shtml">ET-ADuC847</a></li>
+                                                <li><a class="mainText" href="/ET-AVR_Stamp.shtml">ET-AVR</a></li>
+                                                <li><a class="mainText" href="/ET-Easy168_Stamp.shtml">ET-Easy168</a></li>
+                                                <li><a class="mainText" href="/ET-PIC_Stamp.shtml">ET-PIC</a></li>
+                                                <li><a class="mainText" href="/ET-PIC-II_Stamp.shtml">ET-PIC II</a></li>
+                                                <li><a class="mainText" href="/Bluetooth.shtml">Bluetooth</a></li>
+                                                <li><a class="mainText" href="/GPS.shtml">GPS</a></li>
+                                                <li><a class="mainText" href="/Radio.shtml">Radio</a></li>
+                                                <li><a class="mainText" href="/USB.shtml">USB</a></li>
+                                                <li><a class="mainText" href="/ZigBee.shtml">ZigBee</a></li>
+                                                <li><a class="mainText" href="/Ethernet_Module.shtml">Ethernet</a></li>
+                                            </ul>
+                                        </li>
+                                        <li><a class="mainText" href="/InterfaceBoards.shtml">Interface Boards</a>
+                                            <ul class="site" style="padding-left: 0px;">
+                                                <li><a class="mainText" href="/Input_Pushbutton.shtml">Input Pushbutton</a></li>
+                                                <li><a class="mainText" href="/Input_DIP.shtml">Input DIP</a></li>
+                                                <li><a class="mainText" href="/Input_ADC.shtml">Input ADC</a></li>
+                                                <li><a class="mainText" href="/Output_LED.shtml">Output LED</a></li>
+                                                <li><a class="mainText" href="/Acceleration_Sensor.shtml">Acceleration</a></li>
+                                                <li><a class="mainText" href="/Distance_Sensor_Board.shtml">Distance</a></li>
+                                                <li><a class="mainText" href="/Light_To_Frequency_Sensor.shtml">Light-To-Frequency</a></li>
+                                                <li><a class="mainText" href="/AC_Opto_Input_4.shtml">AC Opto Input 4</a></li>
+                                                <li><a class="mainText" href="/AC_Opto_Output_4.shtml">AC Opto Output 4</a></li>
+                                                <li><a class="mainText" href="/DC_Opto_Input_4.shtml">DC Opto Input 4</a></li>
+                                                <li><a class="mainText" href="/DC_Opto_Input_8.shtml">DC Opto Input 8</a></li>
+                                                <li><a class="mainText" href="/DC_Opto_Output_4.shtml">DC Opto Output 4</a></li>
+                                                <li><a class="mainText" href="/DC_Opto_Output_8.shtml">DC Opto Output 8</a></li>
+                                                <li><a class="mainText" href="/DC_Opto_Motor.shtml">DC Motor</a></li>
+                                                <li><a class="mainText" href="/Relay_4.shtml">Relay 4</a></li>
+                                                <li><a class="mainText" href="/Relay_8.shtml">Relay 8</a></li>
+                                                <li><a class="mainText" href="/Opto_Relay_4.shtml">Opto Relay 4</a></li>
+                                                <li><a class="mainText" href="/Output_Test.shtml">Output Test</a></li>
+                                                <li><a class="mainText" href="/SSRAC.shtml">Solid State Relay</a></li>
+                                                <li><a class="mainText" href="/Servo_Board.shtml">Servo</a></li>
+                                                <li><a class="mainText" href="/3V3_Regulator.shtml">3.3V Regulator</a></li>
+                                                <li><a class="mainText" href="/Touch_Keypad.shtml">Touch Keypad</a></li>
+                                                <li><a class="mainText" href="/Touch_Pad.shtml">Touch Pad</a></li>
+                                                <li><a class="mainText" href="/Touch_Pad_Latching.shtml">Touch Pad - Latching</a></li>
+                                                <li><a class="mainText" href="/Touch_Pad_Momentary.shtml">Touch Pad - Momentary</a></li>
+                                            </ul>
+                                        </li>
+                                        <li><a class="mainText" href="/MiniBoards.shtml">Mini Boards</a>
+                                            <ul class="site" style="padding-left: 0px;">
+                                                <li><a class="mainText" href="/Mini_74HC595.shtml">74HC595</a></li>
+                                                <li><a class="mainText" href="/Mini_Audio.shtml">Audio</a></li>
+                                                <li><a class="mainText" href="/Mini_CAN_Board.shtml">CAN</a></li>
+                                                <li><a class="mainText" href="/mini-mcp4922.shtml">DAC</a></li>
+                                                <li><a class="mainText" href="/Mini_DC_Motor.shtml">DC Motor</a></li>
+                                                <li><a class="mainText" href="/Mini_DS1307.shtml">DS1307 RTC</a></li>
+                                                <li><a class="mainText" href="/mini-ds3232.shtml">DS3232 RTC</a></li>
+                                                <li><a class="mainText" href="/Mini_EEPROM.shtml">EEPROM</a></li>
+                                                <li><a class="mainText" href="/Mini_Ethernet.shtml">Ethernet</a></li>
+                                                <li><a class="mainText" href="/Mini_FLASH.shtml">Flash Memory</a></li>
+                                                <li><a class="mainText" href="/Mini_GPS_Board.shtml">GPS</a></li>
+                                                <li><a class="mainText" href="/Mini_74165.shtml">Input Shift Register</a></li>
+                                                <li><a class="mainText" href="/IO_Expander_Mini_Board.shtml">IO Expander</a></li>
+                                                <li><a class="mainText" href="/ISD2548_Mini_Board.shtml">ISD2548 Voice</a></li>
+                                                <li><a class="mainText" href="/Mini_Keypad.shtml">Keypad</a></li>
+                                                <li><a class="mainText" href="/Keypad_Decoder_Board.shtml">Keypad Decoder</a></li>
+                                                <li><a class="mainText" href="/Mini_Logic.shtml">Logic Converter</a></li>
+                                                <li><a class="mainText" href="/Bi-Directional_Logic_Level_Converter.shtml">Bi-Directional Logic</a></li>
+                                                <li><a class="mainText" href="/mcp3424-mini-board.shtml">MCP3424 A/D</a></li>
+                                                <li><a class="mainText" href="/Mini_MP3.shtml">MP3</a></li>
+                                                <li><a class="mainText" href="/Mini_MT8870.shtml">MT8870 DTMF</a></li>
+                                                <li><a class="mainText" href="/Mini_Opto_Isolator.shtml">Opto-Isolator</a></li>
+                                                <li><a class="mainText" href="/Mini_TPIC6B595.shtml">Output Shift Register</a></li>
+                                                <li><a class="mainText" href="/mini-pcf8574.shtml">PCF8574 I/O</a></li>
+                                                <li><a class="mainText" href="/mini-pcf8583.shtml">PCF8583 RTC</a></li>
+                                                <li><a class="mainText" href="/Mini_Power.shtml">+5V Power Supply</a></li>
+                                                <li><a class="mainText" href="/Mini_5V_High_Power.shtml">5V 3A Power Supply</a></li>
+                                                <li><a class="mainText" href="/Mini_Power_Dual_5V.shtml">Dual 5V Power Supply</a></li>
+                                                <li><a class="mainText" href="/Mini_Power_Dual_12V.shtml">Dual 12V Power Supply</a></li>
+                                                <li><a class="mainText" href="/Mini_Power_Variable.shtml">Variable Power Supply</a></li>
+                                                <li><a class="mainText" href="/Mini_Power_5V_and_Variable.shtml">Variable and Fixed Power Supply</a></li>
+                                                <li><a class="mainText" href="/Power_Relay_Mini_Board.shtml">Power Relay</a></li>
+                                                <li><a class="mainText" href="/Mini_Relay.shtml">Relay</a></li>
+                                                <li><a class="mainText" href="/Mini_RS232_TTL_3V.shtml">RS232/TTL 3V</a></li>
+                                                <li><a class="mainText" href="/Mini_RS232_TTL_5V.shtml">RS232/TTL 5V</a></li>
+                                                <li><a class="mainText" href="/Mini_RS422.shtml">RS422/RS485</a></li>
+                                                <li><a class="mainText" href="/RS422_Isolation_Board.shtml">RS422 Isolation</a></li>
+                                                <li><a class="mainText" href="/Mini_SC.shtml">SD Card</a></li>
+                                                <li><a class="mainText" href="/Mini_microSD_Board.shtml">microSD Card</a></li>
+                                                <li><a class="mainText" href="/Mini_Seven-Segment.shtml">Seven Segment</a></li>
+                                                <li><a class="mainText" href="/Mini_SMCC.shtml">Stepper Motor</a></li>
+                                                <li><a class="mainText" href="/Mini_USB.shtml">USB</a></li>
+                                                <li><a class="mainText" href="/W5100_Ethernet_Mini_Board.shtml">W5100 Ethernet</a></li>
+                                            </ul>
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li><a class="mainText" href="/BooksMain.shtml"><b>Books</b></a>
+                                    <ul class="site" style="padding-left: 0px;">
+                                        <li><a class="mainText" href="/arduino-books.shtml">Arduino</a></li>
+                                        <li><a class="mainText" href="/BooksAudio.shtml">Audio</a></li>
+                                        <li><a class="mainText" href="/BeagleBone_Books.shtml">BeagleBone</a></li>
+                                        <li><a class="mainText" href="/BooksCircuit.shtml">Circuit Books</a></li>
+                                        <li><a class="mainText" href="/BooksData.shtml">Data Books</a></li>
+                                        <li><a class="mainText" href="/BooksElectronic.shtml">Electronics</a></li>
+                                        <li><a class="mainText" href="/internet_of_things_books.shtml">Internet-of-Things</a></li>
+                                        <li><a class="mainText" href="/BooksOpAmp.shtml">Op-Amp</a></li>
+                                        <li><a class="mainText" href="/BooksMicrocontroller.shtml">Microcontroller</a></li>
+                                        <li><a class="mainText" href="/BooksPIC.shtml">PIC Microcontrollers</a></li>
+                                        <li><a class="mainText" href="/BooksPCB.shtml">Printed Circuit Boards</a></li>
+                                        <li><a class="mainText" href="/BooksRadio.shtml">Radio</a></li>
+                                        <li><a class="mainText" href="/Raspberry_Pi_Books.shtml">Raspberry Pi</a></li>				
+                                        <li><a class="mainText" href="/BooksRobotic.shtml">Robotic</a></li>
+                                        <li><a class="mainText" href="/BooksService.shtml">Service</a></li>
+                                        <li><a class="mainText" href="/BooksSolar.shtml">Solar</a></li>
+                                        <li><a class="mainText" href="/BooksMagazines.shtml">Magazines</a></li>
+                                    </ul>
+                                </li>
+                                <li><a class="mainText" href="/Kits.shtml"><b>Kits</b></a>
+                                    <ul class="site" style="padding-left: 0px;">
+                                        <li><a class="mainText" href="/CarBatteryMonitor.shtml">Car Battery Monitor</a></li>
+                                        <li><a class="mainText" href="/CANNode.shtml">CAN Node</a></li>
+                                        <li><a class="mainText" href="/SolarRegulator10A.shtml">Solar Regulator</a></li>
+                                        <li><a class="mainText" href="/MiniMaximiser.shtml">Mini Maximiser</a></li>
+                                        <li><a class="mainText" href="/TouchSwitch.shtml">Touch Switch</a></li>
+                                        <li><a class="mainText" href="/LCDUnit.shtml">3.5 Digit LCD Module</a></li>
+                                        <li><a class="mainText" href="/Ultimate_Prototyping_Board.shtml">Ultimate Prototyping Board</a></li>
+                                    </ul>
+                                </li>
+                            </ul>                    
+                            
+                            
+
+
+						<br>
+							
+						<hr>
+					
+						<hr class="baseline">
+
+					</div>
+
+				</div>
+			
+			</div>
+		</main>
+		
+		<footer>			
+			
+<div style="text-align:center;">
+	<a class="mainText" href="/Help.shtml" >How To Order</a> &nbsp;|&nbsp;
+	<a class="mainText" href="/WhatsNew.shtml" >What's New</a> &nbsp;|&nbsp;
+	<a class="mainText" href="/Contact_Us.shtml" >Your Account</a> &nbsp;|&nbsp;
+	<a class="mainText" href="/OrderStatus.shtml" >Order Status</a> &nbsp;|&nbsp;
+	<a class="mainText" href="/Help.shtml" >Help</a>
+</div>
+
+<br>
+
+<div style="text-align:center;">
+	<a class="mainText" href="/AboutUs.shtml" >About Us</a> &nbsp;|&nbsp;
+	<a class="mainText" href="/Contact_Us.shtml" >Contact Us</a>
+</div>
+
+<br>
+
+<div style="text-align:center;">
+	<p>
+	<a class="mainText" href="/Copyright.shtml" >Copyright Information</a> 
+	&copy; 2026, Futurlec<br>
+	&nbsp;<br></p>
+</div>
+
+        <script src="/check_cookie.js"></script>
+        
+        <script>
+			checkCookie();
+		</script>
+
+
+
+		</footer>
+		
+
+	</body>
+</html>

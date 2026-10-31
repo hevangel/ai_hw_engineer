@@ -1,0 +1,36 @@
+901:PACKAGEOPTIONADDENDUM
+98:INSTRUMENTS
+54:www.ti.com | 1154:23-Oct-2026
+54:Orderable part number | 275:Material type | 379:Package | Pins | 490:Package qty I Carrier | 644:RoHS | 731:Lead finish/ | 862:MSL rating/ | 991:Op temp (°C) | 1131:Part marking
+231:(1) | 308:(2) | 655:(5) | 733:Ball material | 865:Peak reflow | 1162:(6)
+762:(4) | 893:(5)
+83:SN74S51D.A | 225:Last | 284:Production | 385:SOIC (D) I14 | 523:50 | TUBE | 649:Yes | 744:NIPDAU | 841:Level-1-260C-UNLIM | 1157:S51
+212:Time Buy
+89:SN74S51N | 221:Active | 285:Production | 386:PDIP (N) |14 | 523:25 / TUBE | 649:Yes | 744:NIPDAU | 852:N/A for Pkg Type | 1008:O to 70 | 1138:SN74S51N
+88:SN74S51N | 221:Active | 285:Production | 386:PDIP (N) 14 | 523:25 / TUBE | 649:Yes | 745:NIPDAU | 851:N/A for Pkg Type | 1008:0 to 70 | 1137:SN74S51N
+83:SN74S51N.A | 221:Active | 284:Production | 385:PDIP (N) |14 | 523:25 | TUBE | 649:Yes | 745:NIPDAU | 851:N/A for Pkg Type | 1007:O to 70 | 1138:SN74S51N
+83:SN74S51N.A | 221:Active | 284:Production | 386:PDIP (N) |14 | 523:25 / TUBE | 649:Yes | 745:NIPDAU | 851:N/A for Pkg Type | 1007:O to 70 | 1137:SN74S51N
+90:SNJ5451J | 221:Active | 284:Production | 387:CDIP (J) |14 | 523:25 | TUBE | 651:ON | 751:SNPB | 853:N/A for Pkg Type | 1001:-55 to 125 | 1140:SNJ5451J
+91:SNJ5451J | 221:Active | 285:Production | 387:CDIP (J) 114 | 524:25|TUBE | 651:No | 750:SNPB | 851:N/A for Pkg Type | 1002:-55 to 125 | 1141:SNJ5451J
+84:SNJ5451J.A | 221:Active | 284:Production | 387:CDIP (J) 114 | 523:25 / TUBE | 651:No | 750:SNPB | 850:N/A for Pkg Type | 1001:-55 to 125 | 1140:SNJ5451J
+83:SNJ5451J.A | 221:Active | 284:Production | 387:CDIP (J) |14 | 523:25 | TUBE | 651:No | 751:SNPB | 851:N/A for Pkg Type | 1000:-55 to 125 | 1140:SNJ5451J
+88:SNJ5451W | 221:Active | 284:Production | 387:CFP (W) |14 | 523:25 / TUBE | 651:No | 750:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1137:SNJ5451W
+87:SNJ5451W | 221:Active | 284:Production | 386:CFP (W) |14 | 523:25 / TUBE | 651:ON | 752:SNPB | 851:N/A for Pkg Type | 1000:-55 to 125 | 1137:SNJ5451W
+82:SNJ5451W.A | 221:Active | 284:Production | 386:CFP (W) |14 | 523:25 / TUBE | 651:No | 750:SNPB | 851:N/A for Pkg Type | 1000:-55 to 125 | 1137:SNJ5451W
+82:SNJ5451W.A | 221:Active | 284:Production | 387:CFP (W) |14 | 523:25 | TUBE | 651:No | 750:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1137:SNJ5451W
+83:SNJ54LS51J | 221:Active | 284:Production | 388:CDIP (J) 14 | 523:25 | TUBE | 651:No | 750:SNPB | 852:N/A for Pkg Type | 1001:-55 to 125 | 1134:SNJ54LS51J
+84:SNJ54LS51J | 221:Active | 285:Production | 387:CDIP (J) 114 | 523:25 |TUBE | 651:No | 752:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1133:SNJ54LS51J
+78:SNJ54LS51J.A | 221:Active | 284:Production | 387:CDIP (J) /14 | 523:25 | TUBE | 651:No | 750:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1134:SNJ54LS51J
+78:SNJ54LS51J.A | 221:Active | 284:Production | 387:CDIP (J) |14 | 523:25 | TUBE | 651:No | 750:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1134:SNJ54LS51J
+81:SNJ54LS51W | 221:Active | 284:Production | 386:CFP (W) |14 | 523:25 / TUBE | 651:No | 751:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1130:SNJ54LS51W
+81:SNJ54LS51W | 221:Active | 283:Production | 386:CFP (W) |14 | 523:25 / TUBE | 651:No | 750:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1131:SNJ54LS51W
+75:SNJ54LS51W.A | 221:Active | 284:Production | 387:CFP (W) |14 | 523:25 | TUBE | 651:No | 750:SNPB | 853:N/A for Pkg Type | 1001:-55 to 125 | 1131:SNJ54LS51W
+75:SNJ54LS51W.A | 221:Active | 284:Production | 386:CFP (W) |14 | 523:25 / TUBE | 651:No | 752:SNPB | 852:N/A for Pkg Type | 1001:-55 to 125 | 1129:SNJ54LS51W
+82:SNJ54S51FK | 221:Active | 284:Production | 379:LCCC (FK) |20 | 523:55 | TUBE | 651:No | 752:SNPB | 851:N/A for Pkg Type | 1000:-55 to 125 | 1146:SNJ54S
+1153:51FK
+76:SNJ54S51FK.A | 221:Active | 285:Production | 381:LCCC (FK) 120 | 523:55 | TUBE | 651:ON | 750:SNPB | 851:N/A for Pkg Type | 1001:-55 to 125 | 1146:SNJ54S
+1154:51FK
+87:SNJ54S51J | 221:Active | 284:Production | 387:CDIP (J) |14 | 523:25 | TUBE | 651:No | 750:SNPB | 853:N/A for Pkg Type | 1001:-55 to 125 | 1136:SNJ54S51J
+81:SNJ54S51J.A | 221:Active | 285:Production | 387:CDIP (J) |14 | 524:25 | TUBE | 651:No | 750:SNPB | 851:N/A for Pkg Type | 1002:-55 to 125 | 1137:SNJ54S51J
+32:(1) Status: F | 96:For more details on status, see our product life cycle.
+587:Addendum-Page 3
