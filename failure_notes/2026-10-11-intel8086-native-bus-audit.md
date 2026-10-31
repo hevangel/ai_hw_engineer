@@ -1,6 +1,6 @@
 # Intel 8086 native bus assumptions missed by instruction tests
 
-Date: 2026-10-11. Design: [intel_8086](../design/intel_8086/README.md).
+Date: 2026-10-11. Design: [intel_8086](../design/intel_8086_8088/intel_8086/README.md).
 
 ## External oracle and observation
 
@@ -22,7 +22,7 @@ The EU now exposes an ownership-inhibit signal for the whole odd-word pair, inde
 
 Prefetch cancellation now uses a persistent discard flag cleared only when a new prefetch begins. A separate formal monitor remembers every abandoned active fetch until its completion, with a cover for two redirects before the response. The old implementation fails that property; the corrected implementation passes bounded and unbounded checks.
 
-The final `design/intel_8086/scripts/run_all.sh` reruns strict lint, all nine formal tasks and 18 non-vacuous covers, eight UVM scenarios, 153 architectural controls, 25 native scenarios, 566,721 physical instruction cases through each of three interfaces, original DEBUG.COM through all three interfaces and synthesis of both tops. See the [verification report](../design/intel_8086/report/final_report.md) for results and scope.
+The final `design/intel_8086_8088/intel_8086/scripts/run_all.sh` reruns strict lint, all nine formal tasks and 18 non-vacuous covers, eight UVM scenarios, 153 architectural controls, 25 native scenarios, 566,721 physical instruction cases through each of three interfaces, original DEBUG.COM through all three interfaces and synthesis of both tops. See the [verification report](../design/intel_8086_8088/intel_8086/report/final_report.md) for results and scope.
 
 ## Prevention
 

@@ -5,7 +5,7 @@ Target: the original January 1983 NTSC Apple IIe with NMOS 6502, MMU
 remain authoritative: [MMU](../../../design/apple_iie_mmu/spec/spec.md),
 [IOU](../../../design/apple_iie_iou/spec/spec.md),
 [PAL](../../../design/apple_iie_pal/spec/spec.md), and
-[CPU](../../../design/mos_6502/spec/spec_full_isa.md).
+[CPU](../../../design/mos_6502_family/mos_6502/spec/spec_full_isa.md).
 
 Primary sources: Apple IIe Technical Reference Manual, second edition,
 Chapter 7, Tables 7-8/7-9/7-10 (timing, RA multiplexing, RAM/ROM selection),

@@ -217,10 +217,11 @@ RUN curl -fsSL "https://github.com/Z3Prover/z3/releases/download/z3-${Z3_VERSION
     mv /tmp/z3/z3-* /opt/z3 && rm /tmp/z3.zip
 FROM base AS final
 
-# Python driver (SBY, EQY) runtime dependencies. Keep this in the final
+# Python driver (SBY, EQY) and independent Java-oracle dependencies. Keep this in the final
 # stage so changes do not invalidate the expensive compiler-tool build stages.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-click \
+    default-jdk-headless \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=verilator-build /opt/verilator /opt/verilator
@@ -256,6 +257,8 @@ RUN set -eux; \
     sby --help >/dev/null; \
     z3 --version; \
     yices-smt2 --version; \
+    java -version; \
+    javac -version; \
     test -x /opt/eqy/bin/eqy; \
     eqy --help >/dev/null; \
     test -x /opt/xezim/bin/xezim; \

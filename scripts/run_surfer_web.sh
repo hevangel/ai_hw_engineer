@@ -7,7 +7,7 @@ REPO_DIR=$(dirname "$SCRIPT_DIR")
 
 if [ "$#" -ne 1 ]; then
     echo "Usage: $0 <waveform-file>" >&2
-    echo "Example: $0 design/alu_74181/work/sim/alu_74181.fst" >&2
+    echo "Example: $0 design/ttl_74xx/work/sim/alu_74181.fst" >&2
     exit 2
 fi
 

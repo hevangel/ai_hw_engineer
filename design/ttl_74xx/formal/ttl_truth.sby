@@ -1,0 +1,66 @@
+[tasks]
+check
+cover
+
+[options]
+check: mode prove
+cover: mode cover
+depth 1
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal ../src/ttl_74x00.sv ../src/ttl_74x01.sv ../src/ttl_74x03.sv ../src/ttl_74x24.sv ../src/ttl_74x26.sv ../src/ttl_74x37.sv ../src/ttl_74x38.sv ../src/ttl_74x39.sv ../src/ttl_74x132.sv ../src/ttl_74x02.sv ../src/ttl_74x28.sv ../src/ttl_74x33.sv ../src/ttl_74x36.sv ../src/ttl_74x128.sv ../src/ttl_74x04.sv ../src/ttl_74x05.sv ../src/ttl_74x06.sv ../src/ttl_74x14.sv ../src/ttl_74x16.sv ../src/ttl_74x19.sv ../src/ttl_74x07.sv ../src/ttl_74x17.sv ../src/ttl_74x34.sv ../src/ttl_74x35.sv ../src/ttl_74x08.sv ../src/ttl_74x09.sv ../src/ttl_74x10.sv ../src/ttl_74x12.sv ../src/ttl_74x11.sv ../src/ttl_74x15.sv ../src/ttl_74x13.sv ../src/ttl_74x18.sv ../src/ttl_74x20.sv ../src/ttl_74x22.sv ../src/ttl_74x40.sv ../src/ttl_74x140.sv ../src/ttl_74x21.sv ../src/ttl_74x27.sv ../src/ttl_74x29.sv ../src/ttl_74x32.sv ../src/ttl_74x86.sv ../src/ttl_74x136.sv ../src/ttl_74x266.sv ../src/ttl_74x260.sv ../src/ttl_74x23.sv ../src/ttl_74x25.sv ttl_truth_tables_props.sv
+prep -top ttl_truth_tables
+async2sync
+dffunmap
+
+[files]
+../src/ttl_74x00.sv
+../src/ttl_74x01.sv
+../src/ttl_74x03.sv
+../src/ttl_74x24.sv
+../src/ttl_74x26.sv
+../src/ttl_74x37.sv
+../src/ttl_74x38.sv
+../src/ttl_74x39.sv
+../src/ttl_74x132.sv
+../src/ttl_74x02.sv
+../src/ttl_74x28.sv
+../src/ttl_74x33.sv
+../src/ttl_74x36.sv
+../src/ttl_74x128.sv
+../src/ttl_74x04.sv
+../src/ttl_74x05.sv
+../src/ttl_74x06.sv
+../src/ttl_74x14.sv
+../src/ttl_74x16.sv
+../src/ttl_74x19.sv
+../src/ttl_74x07.sv
+../src/ttl_74x17.sv
+../src/ttl_74x34.sv
+../src/ttl_74x35.sv
+../src/ttl_74x08.sv
+../src/ttl_74x09.sv
+../src/ttl_74x10.sv
+../src/ttl_74x12.sv
+../src/ttl_74x11.sv
+../src/ttl_74x15.sv
+../src/ttl_74x13.sv
+../src/ttl_74x18.sv
+../src/ttl_74x20.sv
+../src/ttl_74x22.sv
+../src/ttl_74x40.sv
+../src/ttl_74x140.sv
+../src/ttl_74x21.sv
+../src/ttl_74x27.sv
+../src/ttl_74x29.sv
+../src/ttl_74x32.sv
+../src/ttl_74x86.sv
+../src/ttl_74x136.sv
+../src/ttl_74x266.sv
+../src/ttl_74x260.sv
+../src/ttl_74x23.sv
+../src/ttl_74x25.sv
+ttl_truth_tables_props.sv

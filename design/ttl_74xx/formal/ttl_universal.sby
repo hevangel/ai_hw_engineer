@@ -1,0 +1,22 @@
+[tasks]
+check
+cover
+
+[options]
+check: mode prove
+cover: mode cover
+depth 8
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal ../src/ttl_74x16334.sv ../src/ttl_74x162835.sv ttl_universal_contract_props.sv
+prep -top ttl_universal_contract
+async2sync
+dffunmap
+
+[files]
+../src/ttl_74x16334.sv
+../src/ttl_74x162835.sv
+ttl_universal_contract_props.sv

@@ -19,7 +19,7 @@ ai_hw_engineer/
 ├── libs/uvm/               — UVM reference library (git submodule)
 ├── design/                 — Chip designs
 │   ├── _template/          — Design template (copy for new chips)
-│   └── <chip_name>/        — One folder per chip
+│   └── <chip_or_family>/   — Canonical issue folder; member folders inside a family
 ├── system/                 — Historical systems built from chip designs
 │   ├── README.md           — System index and integration overview
 │   ├── TEMPLATE.md         — System README and screenshot conventions
@@ -31,9 +31,71 @@ ai_hw_engineer/
 └── CONTRIBUTING.md         — Contribution guidelines
 ```
 
+## Chip issue and family layout
+
+Use one canonical `design/<issue_slug>/` folder per chip or family issue. A series keeps one parent issue and one family README; add one native sub-issue and member subfolder per physical chip. Alternative implementations of one chip belong to the same chip sub-issue. Existing migrations are listed in `scripts/design_families.json`. Keep historical dates, sources, reports and implementation limits in member READMEs. Update all scripts, source lists, system references, index links and ignored generated paths when moving a design.
+
+## GitHub issue lifecycle
+
+Follow the cross-repository [issue lifecycle guide](https://github.com/hevangel/ai_engineer/blob/codex/issue-lifecycle-audit/spec/github_issues.md). Before substantive work, transfer a misplaced issue to its owning repository, set project Path to `ai_hw_engineer/<relative-path>`, retain/set its first actual Start date, move Status to Researching or Building, and register the working coding Agent. Keep evidence and blockers current. Clear Agent whenever work finishes/stops or is handed to inactive review; preserve Path and the first Start date. Sprint is a Scrum planning commitment, not a default assignment. Read live field options/IDs before mutations. A passing version command does not qualify a complete tool workflow; record scoped, reproducible tests and limitations.
+
+### Using the GitHub CLI for task updates
+
+Use `gh` to update the existing task issue and its item in the `ai_engineer`
+project owned by `hevangel`. Search existing issues before creating a
+duplicate, and record the canonical issue URL in the task plan or handoff.
+
+1. Read the issue, acceptance criteria, current Agent and recent activity.
+   Coordinate an existing active claim before taking ownership. Inspect live
+   project fields and item IDs:
+
+   ```sh
+   gh project list --owner hevangel --format json
+   gh project field-list PROJECT_NUMBER --owner hevangel --format json
+   gh project item-list PROJECT_NUMBER --owner hevangel --limit 1000 --format json
+   ```
+
+   Account for pagination; a missing item in a partial listing is not proof
+   that it is absent. Resolve option IDs from live definitions rather than
+   copying IDs from another issue or a previous chat.
+2. Keep implementation issues in `hevangel/ai_hw_engineer`. If misplaced,
+   capture their existing project fields and relationships, then transfer with
+   `gh issue transfer ISSUE_URL hevangel/ai_hw_engineer`. Record the returned
+   URL and re-read the issue and project item IDs. Transfers can remove project
+   membership: restore it with `gh project item-add`, then restore captured
+   fields and relationships, preserving intentional Sprint commitments.
+3. Set fields with `gh project item-edit`, supplying the discovered item,
+   project and field IDs. Use `--single-select-option-id` for Agent and Status,
+   `--date YYYY-MM-DD` for Start date, and `--text` for Path. Path names the
+   owning repository and relative implementation location, for example
+   `ai_hw_engineer/design/intel_80286`, without a host drive or worktree path.
+   Preserve an evidenced first Start date on resume or transfer; follow the
+   lifecycle guide's historical procedure when reconciling older work.
+4. Register the working Agent and use Researching for active investigation or
+   Building for implementation. Add a concise ownership comment with scope,
+   branch/worktree, plan and intended checks where useful. Check recent
+   comments to avoid duplicate notices on every resume. Write comment text to
+   a temporary file and use `gh issue comment ISSUE_URL --body-file FILE`.
+5. Update evidence, blockers and PR links at meaningful checkpoints. Keep
+   partial milestones distinct from the issue's full acceptance. Use
+   `AI verified` only after inspecting the required scoped evidence;
+   `Human verified` requires explicit human approval. Clear Agent with
+   `gh project item-edit --id ITEM_ID --project-id PROJECT_ID --field-id AGENT_FIELD_ID --clear`
+   when active work stops, finishes or moves to inactive review. Preserve Path,
+   the first Start date and other unrelated fields.
+6. Read back the saved fields and comments to verify each update. An attempted
+   command does not establish success. Record an access blocker and continue
+   independent work when an issue update is unavailable.
+
+Check CLI authentication with `gh auth status`. Project edits require the
+`project` scope. If missing, ask the user to run
+`gh auth refresh -h github.com -s project` and complete browser authorization.
+Distinguish network or sandbox access failures from invalid credentials before
+asking the user to log in again.
+
 ## Creating a New Chip Design
 
-1. Run `./scripts/new_design.sh <chip_name>` or manually copy `design/_template/` to `design/<chip_name>/`.
+1. Run `./scripts/new_design.sh <chip_slug>` for a standalone chip or `./scripts/new_design.sh <family_slug>/<member_slug>` for a series member; alternatively copy `design/_template/` to that canonical issue/member path.
 2. Fill in `spec/spec.md` with the chip specification before writing RTL.
 3. Write the implementation plan in `plans/implementation_plan.md`.
 4. Implement RTL in `src/`, assertions in `formal/`, testbench in `tb/`.
@@ -290,6 +352,21 @@ When changing tool versions or adding tools:
 1. Update the relevant build stage
 2. Update `docs/` if CLI options changed
 3. Test the build: `docker build -t ai-hw-engineer .`
+4. If the image's usage, tools or environment changed, update the Docker Hub
+   overview template `docs/dockerhub/overview.md`.
+
+### Publishing the Docker Image
+
+Publish only when the user asks, and only a reviewed commit on `main`:
+run `./scripts/publish_docker.sh --dry-run`, then `./scripts/publish_docker.sh`
+(the wrapper runs the script with `uv`; on Windows use
+`uv run --no-project --script scripts/publish_docker.py`).
+The script reads `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` from the environment
+or the user's Git-ignored root `.env`; never read, print, copy or commit that
+file or the token, and never ask for the token in chat. The script builds, smoke-tests, pushes
+the dated and `latest` tags, keeps the repository public and regenerates the
+Docker Hub overview. Report the pushed digest it prints. Change the Docker Hub
+page only through the template and script.
 
 ## Error Handling
 

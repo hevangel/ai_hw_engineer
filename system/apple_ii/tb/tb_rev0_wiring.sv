@@ -11,6 +11,9 @@ module tb_rev0_wiring;
     tri video_data, composite_sync, speaker, cassette_out, paddle_trigger_n;
     tri [3:0] annunciators;
     int cpu_edges = 0;
+    time edge_time = 0;
+    int arrive_ns = -1;
+    logic reading = 0;
     assign data = rw ? 8'bz : write_data;
     apple_ii_rev0_digital dut (
         .master_oscillator(osc), .reset_n(reset_n),
@@ -23,7 +26,15 @@ module tb_rev0_wiring;
         .composite_sync(composite_sync), .speaker(speaker), .cassette_out(cassette_out),
         .annunciators(annunciators), .paddle_trigger_n(paddle_trigger_n)
     );
-    initial forever #34.921 osc = ~osc;
+    // Delayed continuous assignments start as X everywhere, so the netlist gets
+    // a static settle window before the real oscillator starts. Silicon has no
+    // equivalent X state; this only removes a time-zero artifact.
+    initial begin #2000; forever #34.921 osc = ~osc; end
+
+    // Record how long the DRAM took to drive a defined value in the read phase.
+    always @(data)
+        if (reading && arrive_ns < 0 && data !== 8'bz && !$isunknown(data))
+            arrive_ns = $time - edge_time;
     // ASSUMPTION: one legal power-up state is selected explicitly by this
     // diagnostic harness. The motherboard contains no artificial reset wire.
     initial begin
@@ -46,13 +57,19 @@ module tb_rev0_wiring;
             repeat(2) @(negedge phi0);
             #10; rw=1;
             repeat(2) @(posedge phi0);
-            #470;
+            // The 6502 latches read data at the phi2 falling edge, so the socket
+            // harness samples there instead of 18 ns early. A fixed early sample
+            // sits 1-3 ns inside the valid window once package delays are real.
+            edge_time = $time; arrive_ns = -1; reading = 1;
+            @(negedge phi0);
+            reading = 0;
             if(data !== 8'(8'h5a+i)) begin
                 $display("phi %b rw %b cpuD %h H10: en %b/%b bus %b rx %b",phi0,rw,data,dut.H10.p1,dut.H10.p15,dut.H10.p3,dut.H10.p2);
                 $display("DRAM C3 ras %b cas %b we %b row %h col %h DO %b C2 %h B1 %h",dut.C3.p4,dut.C3.p15,dut.C3.p3,dut.C3.row,dut.C3.column,dut.C3.p14,dut.C2.q,dut.B1.q);
                 $display("C3 active/read %b/%b power %b B6 sel/oe %b/%b LD %b DO %b dataout %b",dut.C3.cas_active,dut.C3.read_cycle,dut.C3.powered,dut.B6.p1,dut.B6.p15,dut.B6.p10,dut.B6.p9,dut.C3.data_out);
                 $fatal(1,"RAM row %0d read %h",i,data);
             end
+            $display("READ row %0d data=%h at +%0d ns after phi2 rise",i,data,arrive_ns);
             @(negedge phi0); #10;
         end
         $display("PASS revision-0 socket wiring and three physical DRAM banks");

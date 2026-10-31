@@ -2,7 +2,7 @@
 scripts/new_system.sh text eol=lf
 scripts/update_docker.sh text eol=lf
 scripts/update_tool_docs.sh text eol=lf
-design/intel_4004/scripts/*.sh text eol=lf
+design/intel_mcs4/intel_4004/scripts/*.sh text eol=lf
 design/intel_8275/scripts/*.sh text eol=lf
 design/intel_8237/scripts/*.sh text eol=lf
 system/busicom_141pf/scripts/*.sh text eol=lf
@@ -18,28 +18,44 @@ design/apple_iie_pal/scripts/*.sh text eol=lf
 
 # AMD historical-series scripts are also executed in Linux containers.
 design/amd_*/scripts/*.sh text eol=lf
-design/intel_3205/scripts/*.sh text eol=lf
-design/intel_3404/scripts/*.sh text eol=lf
+design/intel_mcs8/intel_3205/scripts/*.sh text eol=lf
+design/intel_mcs8/intel_3404/scripts/*.sh text eol=lf
 
 # mos_6502 scripts are executed in Linux containers; references stay byte-exact.
-design/mos_6502/scripts/*.sh text eol=lf
-design/mos_6502/references/*.hex -text
+design/mos_6502_family/mos_6502/scripts/*.sh text eol=lf
+design/mos_6502_family/mos_6502/references/*.hex -text
 
 design/intel_8259/scripts/*.sh text eol=lf
 design/intel_8086/scripts/*.sh text eol=lf
 design/intel_80286/scripts/*.sh text eol=lf
+design/intel_8086_8088/intel_8086/scripts/*.sh text eol=lf
 
 # Apple II physical-board and package regressions run in Linux containers.
-design/mos_6502_cycle/scripts/*.sh text eol=lf
+design/mos_6502_family/mos_6502/cycle/scripts/*.sh text eol=lf
 design/apple_ii_chips/scripts/*.sh text eol=lf
 system/apple_ii/scripts/*.sh text eol=lf
 
 system/apple_iie/scripts/*.sh text eol=lf
 # 8008/Micral review fixes: these run inside Linux containers from Windows
 # checkouts, and the Micral ROM images must stay byte-exact.
-design/intel_8008/scripts/*.sh text eol=lf
+design/intel_mcs8/intel_8008/scripts/*.sh text eol=lf
 system/micral_n/scripts/*.sh text eol=lf
 system/micral_n/scripts/*.py text eol=lf
 system/micral_n/src/rom/*.bin -text
 
+# SCELBI 8B: scripts run in Linux containers; the SCELBAL binary stays byte-exact.
+system/scelbi_8b/scripts/*.sh text eol=lf
+system/scelbi_8b/scripts/*.py text eol=lf
+system/scelbi_8b/src/rom/*.bin -text
+
 references/Apple_IIe_TRM_1987.pdf filter=lfs diff=lfs merge=lfs -text
+
+# All standalone and nested chip-member launch scripts run in Linux containers.
+design/**/scripts/*.sh text eol=lf
+
+# Project-level and system launch scripts run in Linux containers as well.
+scripts/*.sh text eol=lf
+system/**/scripts/*.sh text eol=lf
+
+# Source patches are consumed by Linux patch in reproducible tool tests.
+scripts/patches/*.patch text eol=lf

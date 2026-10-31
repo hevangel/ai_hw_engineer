@@ -41,3 +41,7 @@ Offline checks:
 ```sh
 python3 -m unittest discover -s scripts -p test_update_tool_docs.py -v
 ```
+
+The [headless Java JDK](java/README.md) supports independently sourced reference oracles, including Am2901. It is installed in the final image, with both compiler and runtime build checks.
+
+The [2026-10-25 EDA qualification](eda-tool-qualification.md) records positive/negative native-tool probes, the Icarus C/C++ helper fix, and the built-in browser Surfer waveform proof. Reproduce the CLI matrix with `python3 scripts/check_eda_tools.py` in the selected image.

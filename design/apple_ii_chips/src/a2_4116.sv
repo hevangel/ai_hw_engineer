@@ -24,6 +24,8 @@ module a2_4116 #(parameter integer T_PD = 0) (
     // ASSUMPTION: ideal power and uniform optional output delay; no analog effects.
 
     // ASSUMPTION: ideal retention; no decay, power sequencing, or analog timing.
+    // Refresh coverage is measured by system/apple_ii/tb/apple_ii_refresh_check.sv,
+    // which records the gap between successive RAS accesses to each row.
     logic memory [0:16383];
     logic [6:0] row, column;
     logic [6:0] address;

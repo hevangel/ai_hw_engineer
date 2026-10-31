@@ -4,7 +4,7 @@ SYSTEM=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 ROOT=$(dirname "$(dirname "$SYSTEM")")
 mkdir -p "$SYSTEM/work/synth"
 yosys -Q -T -p "read_verilog -sv -I$ROOT/design/intel_8087/src \
- $ROOT/design/intel_8086/src/*.sv $ROOT/design/intel_8087/src/*.sv \
+ $ROOT/design/intel_8086_8088/intel_8086/src/*.sv $ROOT/design/intel_8087/src/*.sv \
  $ROOT/design/intel_8259/src/*.sv $ROOT/design/intel_8253_8254/src/*.sv \
  $ROOT/design/intel_8255/src/*.sv $ROOT/design/intel_8237/src/*.sv \
  $ROOT/design/intel_8272/src/intel_8272.sv $ROOT/system/ibm_pc/src/ibm_pc_bus.sv \

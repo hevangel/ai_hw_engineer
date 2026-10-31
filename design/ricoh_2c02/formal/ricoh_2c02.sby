@@ -1,0 +1,26 @@
+[tasks]
+bmc
+prove
+cover
+
+[options]
+bmc: mode bmc
+bmc: depth 16
+prove: mode prove
+prove: depth 16
+cover: mode cover
+cover: depth 24
+
+[engines]
+bmc: abc bmc3
+prove: abc pdr
+cover: smtbmc --syn --nopresat z3
+
+[script]
+read -formal -D FORMAL -I . ricoh_2c02_sprites.sv ricoh_2c02.sv
+prep -top ricoh_2c02 -flatten
+
+[files]
+../src/ricoh_2c02_sprites.sv
+../src/ricoh_2c02.sv
+ricoh_2c02_props.sv

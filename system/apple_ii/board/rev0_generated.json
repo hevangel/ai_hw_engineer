@@ -433,5 +433,42 @@
     "H13: paddle timers",
     "K13: cassette amplifier"
   ],
+  "timing": {
+    "mode": "legacy",
+    "units": "ns",
+    "table": "board/timing.json",
+    "part_delays": {
+      "2513": 5,
+      "4116": 20,
+      "74LS00": 5,
+      "74LS02": 5,
+      "74LS04": 5,
+      "74LS08": 5,
+      "74LS11": 5,
+      "74LS138": 5,
+      "74LS139": 5,
+      "74LS151": 5,
+      "74LS153": 5,
+      "74LS161": 5,
+      "74LS166": 5,
+      "74LS174": 5,
+      "74LS175": 5,
+      "74LS194": 5,
+      "74LS195": 5,
+      "74LS20": 5,
+      "74LS251": 5,
+      "74LS257": 5,
+      "74LS259": 5,
+      "74LS283": 5,
+      "74LS32": 5,
+      "74LS51": 5,
+      "74LS74": 5,
+      "74LS86": 5,
+      "8T28-AppleII": 5,
+      "8T97": 5,
+      "8T97-AppleII": 5,
+      "ROM_Chip": 5
+    }
+  },
   "status": "Digital connectivity experiment; mixed-signal/full-board sign-off pending."
 }

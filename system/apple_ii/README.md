@@ -19,7 +19,7 @@ input, and accepts `300:A5 5A`, then `300.301`. The regression checks the
 deposited bytes, CPU-bus readback, printed text, and every visible serial
 video pixel in a complete frame. Nine further full frames cover text
 attributes/pages, lores, hires, mixed-mode boundaries, blanking, and sync.
-The project's authored [6502 core](../../design/mos_6502_cycle/) now runs the same
+The project's authored [6502 core](../../design/mos_6502_family/mos_6502/cycle) now runs the same
 Monitor, display and cassette-byte regressions on this motherboard. The
 transistor reference remains an independent comparison option.
 
@@ -41,7 +41,9 @@ netlist is CC BY-NC-SA 3.0. The historical ROM is not relicensed by this project
 system sign-off: exact analog reconstruction and original-dump font comparison
 remain outstanding. The authored CPU documented-instruction gate passes.
 Individual regressions have separate passing scripts. The motherboard uses
-Icarus; package tests use Xezim.
+Icarus; package tests use Xezim. `sh scripts/run_timing_sim.sh` repeats the
+socket and Monitor gates with datasheet package delays; see
+[package timing](board/README.md#package-timing) for what is and is not covered.
 The retained Xezim board regression currently exposes a resolved-bus failure.
 
 ## Documents
@@ -161,9 +163,9 @@ audio presentation remain outside the current interface.
 ## Integration status
 
 The functional motherboard, firmware regressions and front panel are included.
-The [physical-bus CPU](../../design/mos_6502_cycle/) preserves the original
+The [physical-bus CPU](../../design/mos_6502_family/mos_6502/cycle) preserves the original
 branch's dummy-cycle and pin-timing behavior. The separately completed
-[functional-bus CPU](../../design/mos_6502/) remains available with its own
+[functional-bus CPU](../../design/mos_6502_family/mos_6502) remains available with its own
 Klaus and formal verification. Both implementations and their tests are kept;
 no verification result is transferred between them.
 
