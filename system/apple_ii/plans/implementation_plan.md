@@ -27,7 +27,8 @@
 3. Replace ideal oscillator/output boundaries with validated mixed-signal
    models, and verify complete cassette commands, speaker, and composite-video waveforms.
 4. Validate timing, analog tolerances, power-up conditions, and unresolved reads.
-5. Reduce the Xezim resolved-bus failure and establish a passing board backend.
+5. Icarus is the declared board backend. Reduce the Xezim resolved-bus defect
+   with `scripts/run_xezim_board_probe.sh` as the reproducible failing case.
 6. Add optional expansion cards after the motherboard acceptance gate passes.
 
 ## Cassette byte validation work

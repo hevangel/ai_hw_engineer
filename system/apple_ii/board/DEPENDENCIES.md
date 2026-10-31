@@ -32,7 +32,7 @@ Run with Icarus Verilog, its VPI headers, a C compiler, and Python 3 installed:
 
 ```sh
 python3 scripts/fetch_board_references.py
-SIMULATOR=iverilog sh scripts/run_board_sim.sh
+sh scripts/run_board_sim.sh
 sh scripts/run_reference_boot.sh
 ```
 

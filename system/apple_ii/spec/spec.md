@@ -59,23 +59,6 @@ gate passes using `apple_ii_rev0_authored` with the same package nets. The full
 suite runs historical software and returns nonzero while those requirements
 remain outstanding.
 
-## Integrated bring-up regression
-
-`tb/echo.hex` is project-authored test software, loaded at `$D000` with the
-reset vector pointing there. It repeatedly executes:
-
-```asm
-poll: LDA $C000
-      BPL poll
-      STA $0400
-      LDA $C010
-      JMP poll
-```
-
-`tb/tb_echo.sv` checks each opcode-fetch PC, injects A and Z, verifies the
-high-bit text codes in page 1, and confirms that CPU reads acknowledge the
-keyboard strobe. It neither renders video nor exercises authentic firmware.
-
 ## Digital video acceptance contract
 
 A socket bus master initializes display bytes through the same DRAM write
