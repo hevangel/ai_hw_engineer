@@ -27,6 +27,7 @@ module mos_6502_cycle (
     logic [7:0] a, x, y, sp, p, lo, operand;
     logic interrupt_brk, irq_latched, nmi_latched;
     logic previous_nmi, previous_so, previous_irq, nmi_pending;
+    logic nmi_sequence;
     logic is_store, is_rmw, branch_taken;
     logic [7:0] index_value, read_value, alu_a, alu_p, rmw_value, rmw_p;
     logic [8:0] indexed_sum;
@@ -312,6 +313,7 @@ module mos_6502_cycle (
         endcase
         rmw_p[7]=rmw_value[7]; rmw_p[1]=(rmw_value==0);
     end
+
     always_ff @(posedge clk) begin
         if(!rst_n) begin
             // ASSUMPTION: canonical project power-up state; res_n below is
@@ -320,12 +322,15 @@ module mos_6502_cycle (
             target<=0; wrong<=0; vector_addr<=16'hfffc; lo<=0; operand<=0;
             op<=OP_NOP; mode<=M_IMP; interrupt_brk<=0;
             irq_latched<=0; nmi_latched<=0; previous_nmi<=1; previous_so<=1; previous_irq<=1;
-            nmi_pending<=0;
+            nmi_pending<=0; nmi_sequence<=0;
         end else begin
             previous_irq<=irq_n; previous_nmi<=nmi_n; previous_so<=so_n;
-            if(previous_nmi && !nmi_n) nmi_pending<=1;
+            // ASSUMPTION: an NMI edge during an NMI sequence is lost, while an
+            // NMI during IRQ/BRK still hijacks the vector. Verified against
+            // perfect6502 by the back-to-back NMI sweep in tb/pin_test.cpp.
+            if(previous_nmi && !nmi_n && !nmi_sequence) nmi_pending<=1;
             if(!res_n) begin
-                state<=RESET_0; irq_latched<=0; nmi_latched<=0; nmi_pending<=0;
+                state<=RESET_0; irq_latched<=0; nmi_latched<=0; nmi_pending<=0; nmi_sequence<=0;
                 p[2]<=1; vector_addr<=16'hfffc;
             end else if(!rdy && (state==BRANCH_FIX || state==INDEX_DUMMY)) begin
                 // The NMOS address-high latch corrects even while RDY holds
@@ -342,9 +347,10 @@ module mos_6502_cycle (
                         state<=VECTOR_LOW;
                     end
                     VECTOR_LOW: begin lo<=bus_data_i; state<=VECTOR_HIGH; end
-                    VECTOR_HIGH: begin pc<={bus_data_i,lo}; state<=FETCH; irq_latched<=0; nmi_latched<=0; end
+                    VECTOR_HIGH: begin pc<={bus_data_i,lo}; state<=FETCH; irq_latched<=0; nmi_latched<=0; nmi_sequence<=0; end
                     FETCH: begin
                         if(nmi_latched || irq_latched) begin
+                            nmi_sequence<=nmi_latched;
                             interrupt_brk<=0;
                             state<=INT_DUMMY;
                             vector_addr<=nmi_latched ? 16'hfffa : 16'hfffe;
@@ -503,6 +509,19 @@ module mos_6502_cycle (
             cover(fetch_o && pc==16'h8000);
             cover(bus_we && state==RMW_NEW);
             cover(state==INT_STATUS && !interrupt_brk);
+            // Sequencer-path covers: each control-flow family must stay
+            // reachable, so a stranded state fails the cover task.
+            cover(state==MEM_READ);
+            cover(state==MEM_WRITE);
+            cover(state==RMW_OLD);
+            cover(state==BRANCH_FIX);
+            cover(state==JMP_HIGH);
+            cover(state==JSR_FINISH);
+            cover(state==PULL_READ);
+            cover(state==RTS_FINISH);
+            cover(state==RTI_HIGH);
+            cover(state==INT_HIGH);
+            cover(state==VECTOR_HIGH);
         end
     end
 `endif

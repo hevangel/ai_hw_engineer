@@ -66,7 +66,10 @@ int main(int argc,char** argv) {
     Verilated::commandArgs(argc,argv);
     // Sweep every sampling edge through flag controls, stack, RMW, stores,
     // BRK and RTI. Pin expectations come only from the independent netlist.
-    const unsigned scenarios=8+2*4*80;
+    // 648 single-pulse scenarios plus 120 back-to-back NMI pairs: a second
+    // falling edge swept across the first interrupt's vector entry, which is
+    // where a pending flag can be cleared in the same clock it is set.
+    const unsigned scenarios=8+2*4*80+120;
     for(test=0;test<scenarios;test++) {
         load();
         const uint8_t code[]={0x58,0xea,0x78,0xea,0x58,0xea,0x48,0x68,0x38,0x08,0x28,0xea,
@@ -97,7 +100,7 @@ int main(int argc,char** argv) {
             if(test==5 && cycle>=25 && cycle<29) ready=0;
             if(test==6 && cycle>=3 && cycle<6) so=1;
             if(test==7 && cycle>=40 && cycle<50) res=0;
-            if(test>=8) {
+            if(test>=8 && test<8+640) {
                 unsigned kind=((test-8)%320)/80, arrival=(test-8)%80;
                 if(cycle>=arrival && cycle<arrival+3) {
                     if(kind==0) irq=0;
@@ -105,6 +108,11 @@ int main(int argc,char** argv) {
                     if(kind==2) irq=nmi=0;
                     if(kind==3) ready=0;
                 }
+            } else if(test>=8+640) {
+                unsigned index=test-(8+640);
+                unsigned arrival=6+(index%20), gap=2+(index/20);
+                if((cycle>=arrival && cycle<arrival+2) ||
+                   (cycle>=arrival+gap && cycle<arrival+gap+2)) nmi=0;
             }
             // Apply pin levels during phi2, before its falling sampling edge.
             cpu.irq_n=irq;cpu.nmi_n=nmi;cpu.rdy=ready;cpu.so_n=so;cpu.res_n=res;
