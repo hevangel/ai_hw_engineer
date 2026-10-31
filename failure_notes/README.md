@@ -29,11 +29,39 @@ author is the same agent in every session — the useful question is never
 - [2026-10-25 — Icarus VPI helper](2026-10-25-icarus-vpi-helper.md)
   A real C/C++ VPI compilation exposed malformed distro helper flags that version/header-only image checks missed.
 
+- [2026-10-21 — 4059 asynchronous latch release](2026-10-21-ttl4059-asynchronous-latch-release.md)
+  Stopped-clock source review exposed LE release incorrectly sampled only on CP edges.
+
+- [2026-10-20 — extended TTL reference assumptions](2026-10-20-ttl-extended-reference-assumptions.md)
+  Manufacturer review exposed shared counter-edge, ROM and collector-release assumptions above 74299.
+
+- [2026-10-20 — inherited TTL oracle assumptions](2026-10-20-ttl-inherited-oracles.md)
+  Manufacturer tables exposed shared strobe/edge assumptions and writable ROM models during library integration.
+
 - [2026-10-23 — Space Invaders VRAM bit order](2026-10-23-spaceinvaders-vram-bit-order.md)
   The repository owner reviewing the running panel exposed MSB-first glyph
   rendering (the hardware shifts bytes LSB-first) and an attract-loop
   watchdog window tighter than the ROM's TwoSecDelay; byte-level gates
   could not see either.
+- [2026-10-20 — MOS 6526 serial shifter preload](2026-10-20-mos6526-serial-shifter-preload.md)
+  Original SDR-load software and independent reference behavior exposed
+  lost pre-underflow bytes, a delayed CNT tail and latch-zero clocking.
+
+- [2026-10-20 — MOS 6526 serial completion timing](2026-10-20-mos6526-serial-completion-timing.md)
+  Original hardware-table software exposed a late transmit request and a
+  consumed completion retained into the following transfer.
+
+- [2026-10-20 — MOS 6526 loss detector phase coverage](2026-10-20-mos6526-loss-detector-phase-coverage.md)
+  The original Transactor detector required a witnessed read/underflow
+  overlap; zero error stars in the fixed-raster fixture were inconclusive.
+
+- [2026-10-20 — MOS 6526 current-cycle counter, ICR and CPU interrupt visibility](2026-10-20-mos6526-current-cycle-reads.md)
+  Original KERNAL-backed Lorenz timer/NMI programs exposed stale counter/ICR
+  reads and an extra cycle of CPU-observed interrupt latency.
+
+- [2026-10-19 — MOS 6526 timer-selected port read phase](2026-10-19-mos6526-timer-port-read-phase.md)
+  Unchanged Lorenz CIA software exposed a delayed GPIO sample incorrectly
+  used for the internal timer-selected PB6/PB7 read mux.
 
 - [2026-10-18 — Model 30 MCGA mode 6](2026-10-18-model30-mcga-mode6.md)
   Original BASICA exposed high-resolution-only graphics decoded as text.
@@ -103,3 +131,5 @@ author is the same agent in every session — the useful question is never
 
 - [2026-10-19 — Apple IIe coverage-sensitive simulation](2026-10-19-apple-iie-xezim-coverage.md)
   Board RAM readback changes under xezim coverage instrumentation; strict functional tests remain and Verilator supplies coverage.
+
+- [74HC4060 oscillator-output pin swap](2026-10-21-ttl4060-oscillator-output-pin-swap.md): complementary pin branches were reversed; caught before publication.

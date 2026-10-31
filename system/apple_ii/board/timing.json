@@ -1,0 +1,346 @@
+{
+  "schema": 2,
+  "conditions": "VCC=5V, CL=15pF, TA=25C unless the entry says otherwise",
+  "note": "Per-package propagation delay for the revision-0 board. Characterized entries cite the manufacturer document that publishes them, with the printed page; entries marked idealized describe models that have no access-time behaviour and keep the legacy placeholder in every mode.",
+  "parts": {
+    "2513": {
+      "idealized": true,
+      "note": "Character-ROM model is an idealized lookup with no access time; board keeps the legacy 5 ns output delay"
+    },
+    "4116": {
+      "idealized": true,
+      "note": "DRAM model has no row-access, column-access or refresh timing (review item P3); board keeps the legacy 20 ns output delay"
+    },
+    "74LS00": {
+      "typ_ns": 10,
+      "max_ns": 15,
+      "parameter": "tPLH/tPHL",
+      "note": "Table 6.9 (SNx4LS00), RL=2k. tPLH 9/15, tPHL 10/15. Worst-case row tPHL used.",
+      "source": {
+        "document": "SDLS025D",
+        "page": "7",
+        "url": "https://www.ti.com/lit/ds/symlink/sn74ls00.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C"
+      }
+    },
+    "74LS02": {
+      "typ_ns": 10,
+      "max_ns": 15,
+      "parameter": "tPLH/tPHL",
+      "note": "SN54/74LS02 switching characteristics, RL=2k. tPLH 10/15, tPHL 10/15.",
+      "source": {
+        "document": null,
+        "page": "4",
+        "url": "https://www.ti.com/lit/ds/symlink/sn74ls02.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C",
+        "document_note": "literature number not printed in the scan; cited by URL and printed page"
+      }
+    },
+    "74LS04": {
+      "typ_ns": 10,
+      "max_ns": 15,
+      "parameter": "tPLH/tPHL",
+      "note": "SN54/74LS04 table, RL=2k. tPLH 9/15, tPHL 10/15. Worst-case row tPHL used.",
+      "source": {
+        "document": "SDLS029C",
+        "page": "6",
+        "url": "https://www.ti.com/lit/ds/symlink/sn74ls04.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C"
+      }
+    },
+    "74LS08": {
+      "typ_ns": 10,
+      "max_ns": 20,
+      "parameter": "tPLH/tPHL",
+      "note": "SN54/74LS08 table, RL=2k. tPLH 8/15, tPHL 10/20. Worst-case row tPHL used.",
+      "source": {
+        "document": "SDLS033",
+        "page": "4",
+        "url": "https://www.ti.com/lit/ds/symlink/sn74ls08.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C"
+      }
+    },
+    "74LS11": {
+      "typ_ns": 10,
+      "max_ns": 20,
+      "parameter": "tPLH/tPHL",
+      "note": "SN54/74LS11 table, RL=2k. tPLH 8/15, tPHL 10/20. Worst-case row tPHL used.",
+      "source": {
+        "document": "SDLS131",
+        "page": "3",
+        "url": "https://www.ti.com/lit/ds/symlink/sn74ls11.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C"
+      }
+    },
+    "74LS138": {
+      "typ_ns": 18,
+      "max_ns": 41,
+      "parameter": "tPLH/tPHL",
+      "note": "RL=2k. Paths (typ/max): select 2-level 11/20, 18/41; select 3-level 21/27, 20/39; enable 2-level 12/18, 20/32; enable 3-level 14/26, 13/38. Worst pair 18/41.",
+      "source": {
+        "document": null,
+        "page": "4",
+        "url": "https://www.ti.com/lit/ds/symlink/sn74ls138.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C",
+        "document_note": "literature number not printed in the scan; cited by URL and printed page"
+      }
+    },
+    "74LS139": {
+      "typ_ns": 25,
+      "max_ns": 38,
+      "parameter": "tPLH/tPHL",
+      "note": "SN74LS139A, RL=2k. Select 2-level 13/20, 22/33; select 3-level 18/29, 25/38; enable 16/24, 21/32. Worst pair 25/38.",
+      "source": {
+        "document": null,
+        "page": "3",
+        "url": "https://www.ti.com/lit/ds/symlink/sn74ls139a.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C",
+        "document_note": "literature number not printed in the scan; cited by URL and printed page"
+      }
+    },
+    "74LS151": {
+      "typ_ns": 25,
+      "max_ns": 38,
+      "parameter": "tPLH/tPHL",
+      "note": "SN74LS151 ('151A column), RL=400 ohm. Select 4-level 25/38; 3-level 17/26, 19/30; strobe 21/33, 22/33 and 14/21, 15/23; data 13/20, 18/27 and 8/14. Worst 25/38.",
+      "source": {
+        "document": null,
+        "page": "4",
+        "url": "https://www.ti.com/lit/ds/symlink/sn74ls151.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C",
+        "document_note": "literature number not printed in the scan; cited by URL and printed page"
+      }
+    },
+    "74LS153": {
+      "typ_ns": 25,
+      "max_ns": 38,
+      "parameter": "tPLH/tPHL",
+      "note": "SN74LS153, RL=2k. Data 10/15, 17/26; select 19/29, 25/38; strobe 16/24, 21/32. Worst pair 25/38.",
+      "source": {
+        "document": "SDLS055A",
+        "page": "5",
+        "url": "https://www.ti.com/lit/ds/symlink/sn74ls153.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C"
+      }
+    },
+    "74LS161": {
+      "typ_ns": 30,
+      "max_ns": 30,
+      "parameter": "tPLH/tPHL",
+      "note": "Fairchild DM74LS161A switching characteristics publish no typical; worst CL = 15 pF maximum (tPHL clock to ripple carry) used for both modes. Fairchild AC table gives Min/Max only (no Typ column). At CL=15pF: clock-to-RC 25/30; clock-to-Q 22/27 and 24/27; enable-T 14/15; clear 28. Worst max 30 (tPHL clock to ripple carry). Typ not published.",
+      "source": {
+        "document": null,
+        "page": "6",
+        "url": "https://eater.net/datasheets/74ls161.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C",
+        "document_note": "literature number not printed in the scan; cited by URL and printed page"
+      }
+    },
+    "74LS166": {
+      "typ_ns": 19,
+      "max_ns": 30,
+      "parameter": "tPHL/tPLH",
+      "note": "RL=2k. fmax 25/35 MHz; clear-to-output tPHL 19/30; clock-to-output tPHL 14/25 and tPLH 11/20. Worst pair 19/30 (clear).",
+      "source": {
+        "document": null,
+        "page": "6",
+        "url": "https://www.ti.com/lit/ds/symlink/sn74ls166a.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C",
+        "document_note": "literature number not printed in the scan; cited by URL and printed page"
+      }
+    },
+    "74LS174": {
+      "typ_ns": 23,
+      "max_ns": 35,
+      "parameter": "tPLH/tPHL",
+      "note": "Combined LS174/LS175 table, RL=2k, 'LS174 columns. Clock 20/30 (tPLH), 21/30 (tPHL); clear 20/30, 23/35. Worst pair 23/35.",
+      "source": {
+        "document": "SDLS068A",
+        "page": "5",
+        "url": "https://www.ti.com/lit/ds/symlink/sn74ls174.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C"
+      }
+    },
+    "74LS175": {
+      "typ_ns": 20,
+      "max_ns": 30,
+      "parameter": "tPLH/tPHL",
+      "note": "Combined LS174/LS175 table, RL=2k, 'LS175 columns. Clock 13/25 (tPLH), 16/25 (tPHL); clear 20/30, 20/30. Worst pair 20/30.",
+      "source": {
+        "document": "SDLS068A",
+        "page": "5",
+        "url": "https://www.ti.com/lit/ds/symlink/sn74ls175.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C"
+      }
+    },
+    "74LS194": {
+      "typ_ns": 19,
+      "max_ns": 30,
+      "parameter": "tPHL/tPLH",
+      "note": "SN74LS194A, RL=2k. fmax 25/36 MHz; clock 14/22 (tPLH), 17/26 (tPHL); clear 19/30. Worst pair 19/30.",
+      "source": {
+        "document": null,
+        "page": "7",
+        "url": "https://www.ti.com/lit/ds/symlink/sn74ls194a.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C",
+        "document_note": "literature number not printed in the scan; cited by URL and printed page"
+      }
+    },
+    "74LS195": {
+      "typ_ns": 19,
+      "max_ns": 30,
+      "parameter": "tPLH/tPHL",
+      "note": "AC CHARACTERISTICS TA=25C, VCC=5.0V, CL=15pF. fMAX 30/39 MHz; clock 14/22 (tPLH), 17/26 (tPHL); MR 19/30. Worst pair 19/30.",
+      "source": {
+        "document": null,
+        "page": "4",
+        "url": "https://www.sycelectronica.com.ar/semiconductores/74LS195.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C",
+        "document_note": "literature number not printed in the scan; cited by URL and printed page"
+      }
+    },
+    "74LS20": {
+      "typ_ns": 10,
+      "max_ns": 15,
+      "parameter": "tPLH/tPHL",
+      "note": "SN54/74LS20 table, RL=2k. tPLH 9/15, tPHL 10/15. Worst-case row tPHL used.",
+      "source": {
+        "document": null,
+        "page": "4",
+        "url": "https://www.ti.com/lit/ds/symlink/sn74ls20.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C",
+        "document_note": "literature number not printed in the scan; cited by URL and printed page"
+      }
+    },
+    "74LS251": {
+      "typ_ns": 29,
+      "max_ns": 45,
+      "parameter": "tPLH/tPHL",
+      "note": "RL=2k. Select 4-level 29/45, 28/45; 3-level 20/33, 21/33; D->Y 17/28, 18/28; D->W 10/15, 9/15. Enable/disable paths use tPZH/tPZL/tPHZ/tPLZ (30/45 etc, disable at CL=5pF). Worst tpd 29/45.",
+      "source": {
+        "document": "SDLS085",
+        "page": "6",
+        "url": "https://www.ti.com/lit/ds/symlink/sn74ls251.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C"
+      }
+    },
+    "74LS257": {
+      "typ_ns": 21,
+      "max_ns": 21,
+      "parameter": "tPLH/tPHL",
+      "note": "Signetics 54LS/74LS257 AC table publishes maxima only; S to Zn maximum used for both modes. AC CHARACTERISTICS VCC=+5.0V, TA=25C, 54/74LS columns at CL=15pF; Min/Max only, no Typ. In->Zn max 18, S->Zn max 21, enable 30, disable 30/25. Worst tpd 21. RL for LS propagation rows not stated (enable/disable rows note RL=2k). TI SN74LS257B publishes only CL=45pF data.",
+      "source": {
+        "document": null,
+        "page": "3",
+        "url": "https://www.datasheets.pl/elementy_czynne/IC/7/74LS257.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C",
+        "document_note": "literature number not printed in the scan; cited by URL and printed page"
+      }
+    },
+    "74LS259": {
+      "typ_ns": 19,
+      "max_ns": 30,
+      "parameter": "tPLH/tPHL",
+      "note": "SN74LS259B, RL=2k. CLR 12/18; data 19/30, 13/20; address 17/27, 14/20; G 15/24, 15/24. Worst pair 19/30.",
+      "source": {
+        "document": "SDLS086",
+        "page": "4",
+        "url": "https://www.ti.com/lit/ds/symlink/sn74ls259b.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C"
+      }
+    },
+    "74LS283": {
+      "typ_ns": 16,
+      "max_ns": 24,
+      "parameter": "tPLH/tPHL",
+      "note": "SN74LS283, RL=2k. C0->sum 16/24, 15/24; Ai/Bi->sum 15/24; C0->C4 11/17, 11/22; Ai/Bi->C4 11/17, 12/17. Worst pair 16/24.",
+      "source": {
+        "document": "SDLS095A",
+        "page": "4",
+        "url": "https://www.ti.com/lit/ds/symlink/sn74ls283.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C"
+      }
+    },
+    "74LS32": {
+      "typ_ns": 14,
+      "max_ns": 22,
+      "parameter": "tPLH/tPHL",
+      "note": "SN54/74LS32 table, RL=2k. tPLH 14/22, tPHL 14/22.",
+      "source": {
+        "document": null,
+        "page": "4",
+        "url": "https://www.ti.com/lit/ds/symlink/sn74ls32.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C",
+        "document_note": "literature number not printed in the scan; cited by URL and printed page"
+      }
+    },
+    "74LS51": {
+      "typ_ns": 13,
+      "max_ns": 20,
+      "parameter": "tPLH/tPHL",
+      "note": "SN54/74LS51 table, RL=2k. tPLH 12/20, tPHL 12.5/20. Worst-case row tPHL used. Typical rounded up from 12.5 ns to 13 ns (integer T_PD).",
+      "source": {
+        "document": "SDLS113",
+        "page": "5",
+        "url": "https://www.ti.com/lit/ds/symlink/sn74ls51.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C"
+      }
+    },
+    "74LS74": {
+      "typ_ns": 25,
+      "max_ns": 40,
+      "parameter": "tPLH/tPHL",
+      "note": "SN74LS74A table, RL=2k, CL=15pF. tPLH 13/25, tPHL 25/40 (clock/clear/set to output). Worst-case row tPHL used.",
+      "source": {
+        "document": "SDLS119",
+        "page": "5",
+        "url": "https://www.ti.com/lit/ds/symlink/sn74ls74a.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C"
+      }
+    },
+    "74LS86": {
+      "typ_ns": 20,
+      "max_ns": 30,
+      "parameter": "tPLH/tPHL",
+      "note": "SN74LS86A table, RL=2k. Other input low: tPLH 12/23, tPHL 10/17. Other input high: tPLH 20/30, tPHL 13/22. Worst case 20/30.",
+      "source": {
+        "document": "SDLS124",
+        "page": "4",
+        "url": "https://www.ti.com/lit/ds/symlink/sn74ls86a.pdf",
+        "section": "switching characteristics, VCC = 5 V, TA = 25 C"
+      }
+    },
+    "8T28": {
+      "typ_ns": 17,
+      "max_ns": 17,
+      "source": {
+        "document": "AMD Am8T26A/Am8T28 Schottky three-state quad bus driver/receiver",
+        "section": "Switching characteristics (driver and receiver propagation delay)",
+        "page": "12-84",
+        "url": "https://datasheet.octopart.com/N8T26B-AMD-datasheet-182221349.pdf"
+      },
+      "note": "Second-source AMD sheet: 17 ns maximum for both directions, no typical. No Signetics 8T28 delay was readable; both modes use the AMD maximum."
+    },
+    "8T28-AppleII": {
+      "same_as": "8T28"
+    },
+    "8T97": {
+      "typ_ns": 8,
+      "max_ns": 13,
+      "source": {
+        "document": "Signetics 8T95/96/97/98 product specification, 4 Dec 1985 (853-0445 81495)",
+        "section": "AC electrical characteristics",
+        "page": "6-53",
+        "url": "https://www.parastream.com/downloads/datasheets/Signetics%208T95,%2096,%2097,%2098.pdf"
+      },
+      "note": "Datasheet load is CL = 50 pF, not 15 pF; using the 50 pF maximum at the board load is conservative. tPLH max 12 ns, tPHL max 13 ns."
+    },
+    "8T97-AppleII": {
+      "same_as": "8T97"
+    },
+    "ROM_Chip": {
+      "idealized": true,
+      "note": "ROM model is an idealized lookup with no access time; board keeps the legacy 5 ns output delay"
+    }
+  }
+}

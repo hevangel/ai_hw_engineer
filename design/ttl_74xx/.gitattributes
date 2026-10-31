@@ -1,0 +1,9 @@
+# Keep HDL, verification scripts, fixtures and docs portable in Windows/Linux checkouts.
+*.sv text eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.sby text eol=lf
+*.f text eol=lf
+*.json text eol=lf
+*.hex text eol=lf
+*.md text eol=lf

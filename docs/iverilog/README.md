@@ -46,3 +46,7 @@ for package clock/control models; mixed edge/level `always_ff` sensitivity
 caused a compiler assertion in the installed release.
 
 The fetcher derives netlist_sim_initialized.c from the unchanged, hash-checked original solver by zero-initializing its state allocation. See the [dependency ledger](../../system/apple_ii/board/DEPENDENCIES.md#explicit-solver-allocation-fix). Run sh scripts/run_reference_smoke.sh from system/apple_ii before longer VPI firmware tests.
+
+## Confirmed source-level diagnosis
+
+The [root-cause investigation](vpi-prefix-map-root-cause.md) traced the malformed flag to Debian’s `filter-out_iverilog-vpi_flags.patch`, inherited by Ubuntu. Its greedy expression consumes across argument boundaries into a later debug-map path. A hash-pinned source experiment proves that upstream helper generation works, Debian’s patch breaks both C/C++ builds, and a token-based make filter repairs both while preserving other flags. A corrected source patch and reproducible six-case experiment are included; the pinned binary-image cleanup remains the production workaround.

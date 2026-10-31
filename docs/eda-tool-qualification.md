@@ -5,6 +5,7 @@ This report qualifies the selected workflows in the current pinned hardware-tool
 ## Images and reproducibility
 
 - Base `ai-hw-engineer:latest`: `sha256:93051caf5a9f2678a1653cf85af576f7a9ee6cc66dded18e53c4ccc91a58cad5`; pinned root recipe and Java/oracle results are in [the image report](family-layout-migration.md).
+- Base `ai-hw-engineer:latest`: `sha256:93051caf5a9f2678a1653cf85af576f7a9ee6cc66dded18e53c4ccc91a58cad5`; pinned root recipe and Java/oracle results are in [the image report](https://github.com/hevangel/ai_hw_engineer/blob/codex/chip-family-roadmap/docs/family-layout-migration.md).
 - Fixed overlay `ai-hw-engineer-apple-ii:latest`: `sha256:a18124d8a7e0e1063ec6e44bed4ccf597f6d9d7684cc203f7f9bca3f008ded2a`. It adds the pinned `iverilog=12.0-3` package and its narrowly targeted helper fix. The base image is not claimed to contain Icarus.
 - The full base image build passed in the preceding Java work. This audit rebuilt the overlay, whose image-build smoke tests must all pass. No registry image was published.
 

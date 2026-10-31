@@ -1,0 +1,4 @@
+# Source list shared by the NES system scripts (sourced, not executed).
+NES_CHIP_SRC="$ROOT/design/mos_6502_family/mos_6502/src/mos_6502_native.sv $ROOT/design/ricoh_2a03/src/ricoh_2a03_length.sv $ROOT/design/ricoh_2a03/src/ricoh_2a03_envelope.sv $ROOT/design/ricoh_2a03/src/ricoh_2a03_pulse.sv $ROOT/design/ricoh_2a03/src/ricoh_2a03_triangle.sv $ROOT/design/ricoh_2a03/src/ricoh_2a03_noise.sv $ROOT/design/ricoh_2a03/src/ricoh_2a03_dmc.sv $ROOT/design/ricoh_2a03/src/ricoh_2a03_frame.sv $ROOT/design/ricoh_2a03/src/ricoh_2a03_apu.sv $ROOT/design/ricoh_2a03/src/ricoh_2a03_dma.sv $ROOT/design/ricoh_2a03/src/ricoh_2a03.sv $ROOT/design/ricoh_2c02/src/ricoh_2c02_sprites.sv $ROOT/design/ricoh_2c02/src/ricoh_2c02.sv"
+NES_BOARD_SRC="$SYSTEM/src/nes_cartridge.sv $SYSTEM/src/nes_controller.sv $SYSTEM/src/nes.sv"
+NES_SRC="$NES_CHIP_SRC $NES_BOARD_SRC $SYSTEM/src/nes_memory.sv"

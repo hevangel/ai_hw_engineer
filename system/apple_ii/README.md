@@ -41,7 +41,12 @@ netlist is CC BY-NC-SA 3.0. The historical ROM is not relicensed by this project
 system sign-off: exact analog reconstruction and original-dump font comparison
 remain outstanding. The authored CPU documented-instruction gate passes.
 Individual regressions have separate passing scripts. The motherboard uses
-Icarus; package tests use Xezim.
+Icarus only; package tests use Xezim. Xezim cannot run the resolved board bus
+(it loses driven CPU data), so it is not a board option;
+`scripts/run_xezim_board_probe.sh` keeps that tool defect reproducible and is
+expected to fail. `sh scripts/run_timing_sim.sh` repeats the socket and Monitor
+gates with datasheet package delays; see
+[package timing](board/README.md#package-timing) for what is and is not covered.
 The retained Xezim board regression currently exposes a resolved-bus failure.
 
 ## Documents

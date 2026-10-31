@@ -26,8 +26,25 @@ and the reference solver/netlist's different licenses.
 
 ## Additional assumption ledger
 
-- ASSUMPTION: digital package delays are 5 ns and DRAM output delay is 20 ns
-  for event ordering. These uniform values are not characterized timing data.
+- ASSUMPTION: the checked-in board keeps the original uniform 5 ns package
+  delay and 20 ns DRAM output delay for event ordering. `board/timing.json`
+  records per-part typical and maximum datasheet propagation delays, selected
+  with `generate_rev0.py --timing typ|max`; they stay opt-in until every
+  directed testbench is retimed.
+- ASSUMPTION: memory packages (4116, system ROM, 2513) are marked
+  `idealized` and keep that placeholder in every timing mode, because the 4116
+  model has no row-access, column-access or refresh timing.
+- ASSUMPTION: two characterized delays are bounds, not board-load numbers. The
+  8T97 value is its datasheet maximum at CL = 50 pF, and the 8T28 value is the
+  AMD second-source maximum because no Signetics delay was readable.
+- ASSUMPTION: testbenches give the delayed netlist a static settle window
+  before the oscillator starts. Delayed continuous assignments otherwise
+  propagate X from the all-unknown time-zero state, which silicon does not have.
+- ASSUMPTION: DRAM retention is ideal; the model has no decay. Refresh coverage
+  is measured, not assumed: `tb/apple_ii_refresh_check.sv` records the gap
+  between successive RAS accesses per row and the Monitor gate asserts all 128
+  rows are refreshed. The measured margin and the video-only shortfall are in
+  the [verification report](../report/final_report.md).
 - ASSUMPTION: digital supply pins use power-good tokens, including negative
   supplies; analog packages use real ideal voltage rails.
 - ASSUMPTION: selected startup values initialize unresettable timing counters,
@@ -46,23 +63,6 @@ acceptance requirements. The authored 6502 documented-instruction firmware
 gate passes using `apple_ii_rev0_authored` with the same package nets. The full
 suite runs historical software and returns nonzero while those requirements
 remain outstanding.
-
-## Integrated bring-up regression
-
-`tb/echo.hex` is project-authored test software, loaded at `$D000` with the
-reset vector pointing there. It repeatedly executes:
-
-```asm
-poll: LDA $C000
-      BPL poll
-      STA $0400
-      LDA $C010
-      JMP poll
-```
-
-`tb/tb_echo.sv` checks each opcode-fetch PC, injects A and Z, verifies the
-high-bit text codes in page 1, and confirms that CPU reads acknowledge the
-keyboard strobe. It neither renders video nor exercises authentic firmware.
 
 ## Digital video acceptance contract
 

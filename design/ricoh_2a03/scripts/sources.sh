@@ -1,0 +1,2 @@
+# Source list shared by the ricoh_2a03 scripts (sourced, not executed).
+RICOH_2A03_SRC="$HERE/../mos_6502_family/mos_6502/src/mos_6502_native.sv $HERE/src/ricoh_2a03_length.sv $HERE/src/ricoh_2a03_envelope.sv $HERE/src/ricoh_2a03_pulse.sv $HERE/src/ricoh_2a03_triangle.sv $HERE/src/ricoh_2a03_noise.sv $HERE/src/ricoh_2a03_dmc.sv $HERE/src/ricoh_2a03_frame.sv $HERE/src/ricoh_2a03_apu.sv $HERE/src/ricoh_2a03_dma.sv $HERE/src/ricoh_2a03.sv"

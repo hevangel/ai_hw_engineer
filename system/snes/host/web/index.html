@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Super Nintendo Entertainment System</title>
+<link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+<header>
+  <h1>Super Nintendo Entertainment System</h1>
+  <div id="machine_state">
+    <span class="state_chip" id="state_run">STOP</span>
+    <span class="state_chip" id="state_region">NTSC</span>
+    <span class="state_chip alert" id="state_overrun" hidden>S-DSP OVERRUN</span>
+  </div>
+</header>
+
+<main>
+  <section class="panel screen_panel">
+    <h2>Television (S-PPU2 BGR555 output)</h2>
+    <div class="screen_wrap">
+      <canvas id="screen" width="512" height="224" tabindex="0"></canvas>
+    </div>
+    <div class="buttons">
+      <select id="rom_select"></select>
+      <button id="btn_load">LOAD + POWER</button>
+      <button id="btn_run">RUN / STOP</button>
+      <button id="btn_reset">RESET</button>
+      <button id="btn_sound">Sound: off</button>
+    </div>
+    <p class="hint">Controller 1: <b>Arrows</b> D-pad, <b>X</b> A, <b>Z</b> B,
+    <b>S</b> X, <b>A</b> Y, <b>Q</b> L, <b>W</b> R, <b>Enter</b> Start,
+    <b>Shift</b> Select. Click the screen first so it receives keys.</p>
+  </section>
+
+  <section class="panel">
+    <h2>Board state</h2>
+    <table id="cpu_table"></table>
+  </section>
+
+  <section class="panel" id="waveform_panel">
+    <h2>Waveform</h2>
+    <div class="buttons">
+      <select id="waveform_signals">
+        <option value="cpu">5A22 bus</option>
+        <option value="ppu">PPU raster &amp; VRAM</option>
+        <option value="apu">S-SMP &amp; S-DSP</option>
+      </select>
+      <input id="capture_cycles" type="number" min="1" max="200000" value="20000">
+      <button id="waveform_capture">Capture</button>
+      <button id="waveform_refresh" hidden>Reload waveform</button>
+      <a id="waveform_download" hidden download="snes.fst">Download FST</a>
+      <span id="waveform_status"></span>
+    </div>
+    <iframe id="surfer_frame" title="Surfer waveform viewer"></iframe>
+  </section>
+</main>
+
+<footer>Nintendo 1990 (Super Famicom) / 1991 (SNES) &mdash; master-clock
+reconstruction on the repository's 5A22 (65C816) CPU, 5C77 and 5C78 PPUs,
+S-SMP (SPC700) and S-DSP RTL with LoROM and HiROM cartridge maps. Software
+comes from the hash-pinned Peter Lemon test-ROM set, or any LoROM/HiROM
+image placed in <code>work/roms/</code>.</footer>
+<script type="module" src="app.js?v=1"></script>
+</body>
+</html>

@@ -42,5 +42,13 @@ logical functions only where their data sheets agree.
 
 Analog package contracts are in [analog.md](analog.md). Optional output delay
 `T_PD` is an integer count of nanoseconds under the model's 1 ns timescale.
-The motherboard experiment sets 5 ns for TTL/ROM and 20 ns for DRAM outputs;
-these are event-ordering assumptions, not measured propagation specifications.
+
+The package tests leave `T_PD` at zero. The motherboard generator reads
+[board/timing.json](../../../system/apple_ii/board/timing.json), which records,
+for every part, the manufacturer document, printed page and URL that publish
+its delay (the literature number where the scan prints one), and can build the
+board with typical (`--timing typ`) or published maximum (`--timing max`)
+delays. Its checked-in default remains the earlier uniform 5 ns TTL/ROM and
+20 ns DRAM placeholder until the directed testbenches are retimed; memory
+delays stay idealized because the 4116 model has no row-access or refresh
+behaviour. These are model options, not a claim of characterized timing.

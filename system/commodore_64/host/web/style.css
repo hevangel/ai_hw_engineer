@@ -1,0 +1,46 @@
+/* Commodore 64 front panel: breadbin brown, VIC light-blue accents. */
+:root {
+    --panel: #1b1916;
+    --edge: #3a352e;
+    --text: #e4ded4;
+    --muted: #9a9184;
+    --accent: #8f8cff;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: #11100e; color: var(--text);
+       font-family: "Segoe UI", system-ui, sans-serif; }
+header { display: flex; align-items: baseline; gap: 16px; padding: 12px 24px;
+         background: var(--panel); border-bottom: 2px solid var(--edge); }
+h1 { font-size: 20px; margin: 0; letter-spacing: 3px; color: var(--accent);
+     text-transform: uppercase; }
+h2 { font-size: 12px; margin: 0 0 10px; color: var(--muted); letter-spacing: 1px;
+     text-transform: uppercase; }
+.state_chip { font-size: 12px; padding: 2px 10px; border: 1px solid var(--edge);
+              border-radius: 10px; color: var(--muted); }
+.state_chip.active { color: #11100e; background: var(--accent); border-color: var(--accent); }
+main { display: grid; grid-template-columns: minmax(360px, 840px) minmax(300px, 1fr);
+       gap: 14px; padding: 14px 24px; max-width: 1500px; }
+.panel { background: var(--panel); border: 1px solid var(--edge); border-radius: 8px;
+         padding: 12px 16px; }
+.screen_panel { grid-row: span 2; }
+.screen_wrap { display: flex; justify-content: center; }
+#screen { width: 100%; max-width: 800px; aspect-ratio: 400 / 284; image-rendering: pixelated;
+          background: #000; border: 8px solid #050505; border-radius: 8px; outline: none; }
+#screen:focus { border-color: #2a2850; }
+.buttons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+button, select, input { background: #2a2620; color: var(--text);
+          border: 1px solid var(--edge); border-radius: 6px; padding: 7px 12px;
+          font-size: 13px; }
+button { cursor: pointer; }
+#type_text { flex: 1; min-width: 180px; font-family: "Consolas", monospace; }
+button:hover { border-color: var(--accent); color: var(--accent); }
+.hint { color: var(--muted); font-size: 12px; margin: 10px 0 0; }
+#cpu_table { font-size: 12px; border-collapse: collapse; }
+#cpu_table th { color: var(--muted); text-align: left; padding: 1px 14px 1px 0; font-weight: 500; }
+#cpu_table td { font-family: "Consolas", monospace; }
+#surfer_frame { width: 100%; height: 360px; border: 1px solid var(--edge);
+                border-radius: 6px; background: #fff; }
+#waveform_status { font-size: 12px; color: var(--muted); }
+a { color: var(--accent); }
+footer { padding: 10px 24px 24px; color: var(--muted); font-size: 12px; max-width: 1500px; }
+@media (max-width: 800px) { main { grid-template-columns: 1fr; padding: 14px 16px; } }

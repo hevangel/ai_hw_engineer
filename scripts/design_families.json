@@ -30,11 +30,36 @@
     "mos_6502_family": [
       "mos_6502"
     ],
-    "ttl_74_series": [
-      "alu_74181"
-    ],
     "intel_8086_8088": [
       "intel_8086"
+    ]
+  },
+  "catalogs": {
+    "ttl_74xx": [
+      "ttl_74ls00",
+      "ttl_74ls02",
+      "ttl_74ls04",
+      "ttl_74ls08",
+      "ttl_74ls11",
+      "ttl_74ls138",
+      "ttl_74ls139",
+      "ttl_74ls151",
+      "ttl_74ls153",
+      "ttl_74ls161",
+      "ttl_74ls166",
+      "ttl_74ls174",
+      "ttl_74ls175",
+      "ttl_74ls194",
+      "ttl_74ls195",
+      "ttl_74ls20",
+      "ttl_74ls251",
+      "ttl_74ls257",
+      "ttl_74ls259",
+      "ttl_74ls283",
+      "ttl_74ls32",
+      "ttl_74ls51",
+      "ttl_74ls74",
+      "ttl_74ls86"
     ]
   },
   "moves": {
@@ -59,7 +84,7 @@
     "design/intel_3404": "design/intel_mcs8/intel_3404",
     "design/mos_6502": "design/mos_6502_family/mos_6502",
     "design/mos_6502_cycle": "design/mos_6502_family/mos_6502/cycle",
-    "design/alu_74181": "design/ttl_74_series/alu_74181",
+    "design/alu_74181": "design/ttl_74xx",
     "design/intel_8086": "design/intel_8086_8088/intel_8086"
   }
 }
