@@ -40,6 +40,11 @@ and the reference solver/netlist's different licenses.
 - ASSUMPTION: testbenches give the delayed netlist a static settle window
   before the oscillator starts. Delayed continuous assignments otherwise
   propagate X from the all-unknown time-zero state, which silicon does not have.
+- ASSUMPTION: DRAM retention is ideal; the model has no decay. Refresh coverage
+  is measured, not assumed: `tb/apple_ii_refresh_check.sv` records the gap
+  between successive RAS accesses per row and the Monitor gate asserts all 128
+  rows are refreshed. The measured margin and the video-only shortfall are in
+  the [verification report](../report/final_report.md).
 - ASSUMPTION: digital supply pins use power-good tokens, including negative
   supplies; analog packages use real ideal voltage rails.
 - ASSUMPTION: selected startup values initialize unresettable timing counters,

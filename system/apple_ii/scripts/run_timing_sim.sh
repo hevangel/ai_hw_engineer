@@ -32,7 +32,7 @@ for mode in typ max; do
         ../../design/apple_ii_chips/src/*.sv ../../design/apple_ii_chips/src/analog/*.sv \
         ../../design/mos_6502_family/mos_6502/cycle/src/mos_6502_cycle.sv ../../design/mos_6502_family/mos_6502/cycle/src/a2_mos6502.sv \
         "work/timing/board_$mode.sv" src/apple_ii_rev0_peripherals.sv src/apple_ii_*output.sv \
-        src/apple_ii_rev0_authored.sv tb/tb_rev0_boot.sv
+        src/apple_ii_rev0_authored.sv tb/apple_ii_refresh_check.sv tb/tb_rev0_boot.sv
     vvp "work/timing/boot_$mode.vvp" >"work/timing/boot_$mode.log" 2>&1 \
         || { cat "work/timing/boot_$mode.log"; exit 1; }
     grep -q 'PASS historical Monitor' "work/timing/boot_$mode.log"
