@@ -7,7 +7,12 @@
 #include "Vsony_s_dsp___024root.h"
 #include "verilated.h"
 #include "snes9x.h"
+// snes9x adds an "external" register copy that lags the chip (for example a
+// write to ENDX reads back until the next ENDX update); blargg's original
+// read the internal registers, so the comparison uses those.
+#define private public
 #include "SPC_DSP.h"
+#undef private
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -15,6 +20,7 @@
 #include <vector>
 
 S9xSettingsShim Settings;
+static long compared = 0, nonzero = 0;  // output samples checked, and how many were not silent
 
 struct Rtl {
     Vsony_s_dsp m;
@@ -95,14 +101,16 @@ static int run_seed(unsigned seed, int samples, int write_rate) {
         for (int c = 0; c < 20; ++c) rtl.clock();
         if (rtl.m.overrun_o) { printf("seed %u: micro-op overrun\n", seed); return 1; }
         for (int i = 0; i < 128; ++i) {
-            if (rtl.reg(i) != dsp.read(i)) {
+            if (rtl.reg(i) != dsp.m.regs[i]) {
                 printf("seed %u tick %ld (phase %ld, sample %ld): reg $%02x rtl=%02x ref=%02x (last write %d=%02x)\n",
-                       seed, t, t % 32, t / 32, i, rtl.reg(i), dsp.read(i), addr, data);
+                       seed, t, t % 32, t / 32, i, rtl.reg(i), dsp.m.regs[i], addr, data);
                 return 1;
             }
         }
         size_t n = rtl.samples.size() < out.samples.size() ? rtl.samples.size() : out.samples.size();
         for (size_t i = 0; i < n; ++i) {
+            ++compared;
+            if (out.samples[i]) ++nonzero;
             if (rtl.samples[i] != out.samples[i]) {
                 printf("seed %u tick %ld: sample %zu.%s rtl=%d ref=%d\n", seed, t, i / 2,
                        i & 1 ? "R" : "L", rtl.samples[i], out.samples[i]);
@@ -136,8 +144,12 @@ int main(int argc, char** argv) {
         fails += run_seed(s, samples, rate);
         if (fails >= 3) break;
     }
+    if (!fails && nonzero < compared / 4) {
+        printf("FAIL: output mostly silent (%ld of %ld samples non-zero)\n", nonzero, compared);
+        return 1;
+    }
     if (fails) { printf("FAIL: %d seed(s)\n", fails); return 1; }
-    printf("S-DSP ORACLE PASS: seeds=%d samples_per_seed=%d phases=%ld\n", seeds, samples,
-           (long)seeds * samples * 32);
+    printf("S-DSP ORACLE PASS: seeds=%d samples_per_seed=%d phases=%ld output_samples=%ld nonzero=%ld\n",
+           seeds, samples, (long)seeds * samples * 32, compared, nonzero);
     return 0;
 }

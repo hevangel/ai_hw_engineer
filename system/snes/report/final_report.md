@@ -33,6 +33,7 @@ Pillow, Node Playwright for the screenshot. The project Docker image run of
 |---|---|
 | Lint | `verilator --lint-only -Wall` passes for NTSC and PAL |
 | CPU cores | 65C816: `cases=5080400 opcode_modes=512 bus_cycles=26144846` PASS. SPC700: `cases=256000 opcodes=256 bus_cycles=1182940` PASS (SingleStepTests, every bus cycle compared) |
+| S-DSP | Lock-step with blargg's `SPC_DSP`: registers after every phase, every output sample and the final audio RAM match over a 102,400,000-phase soak (see the [S-DSP report](../../../design/sony_s_dsp/report/final_report.md)) |
 | Test ROMs | 88 ROMs: **81 PASS, 5 REF, 2 KNOWN**, 0 FAIL (below) |
 | Backend API | `scripts/test_backend.py` PASS: request validation, ROM list and LOAD, 512×480 screen and audio payloads, reset, FST waveform capture and download |
 | Synthesis | Yosys generic synthesis of the board with all seven chips (memories blackboxed by `synth/snes_memory_stub.v`) and `check -assert` pass: 1,763,033 cells (`-noshare`, as for the S-DSP; the PPU line buffers, OAM and CGRAM are flip-flops in the generic flow) |
@@ -79,10 +80,6 @@ and PlayTwoSong presses A to start; the inputs are listed in
     sub-screen half in pseudo-high resolution while the palette is
     rewritten every line; see the
     [5C78 report](../../../design/ricoh_5c78/report/final_report.md).
-- The S-DSP is not yet compared sample by sample with an independent
-  model. The lock-step gate against blargg's `SPC_DSP` is written but
-  waits for approval to compile third-party code, so sound accuracy beyond
-  "plays recognisably" is unverified.
 
 ## Limitations
 

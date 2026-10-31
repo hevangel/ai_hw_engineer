@@ -82,7 +82,7 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1990 | Ricoh 5C78 (S-PPU2) | SNES picture unit 2: NTSC/PAL timing, CGRAM, windows, priority, colour math, brightness, H/V latches; matched against test-ROM screenshots | [ricoh_5c78](ricoh_5c78/) |
 | 1990 | Sony SPC700 | SNES sound CPU core: 6502-like ISA with YA pair, MUL/DIV, bit operations and TCALL; every bus cycle matches SingleStepTests | [sony_spc700](sony_spc700/) |
 | 1990 | Sony S-SMP | SNES sound CPU chip: SPC700 core, IPL boot ROM interface, four CPU ports, three timers, DSP register window; Peter Lemon SPC700 test ROMs | [sony_s_smp](sony_s_smp/) |
-| 1990 | Sony S-DSP | SNES sound generator: eight BRR voices, gaussian interpolation, ADSR/GAIN, noise, pitch modulation, FIR echo on a 32-phase schedule; independent sample-level oracle pending | [sony_s_dsp](sony_s_dsp/) |
+| 1990 | Sony S-DSP | SNES sound generator: eight BRR voices, gaussian interpolation, ADSR/GAIN, noise, pitch modulation, FIR echo on a 32-phase schedule; registers, samples and echo RAM match blargg's SPC_DSP phase by phase | [sony_s_dsp](sony_s_dsp/) |
 
 ## Date provenance notes
 
