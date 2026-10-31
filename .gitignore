@@ -61,6 +61,10 @@ __pycache__/
 /scratchpad/
 /worktree/
 
+# Oversized local timing reference and downloaded executable
+/work/timing/pdf/ns_iface_1983.pdf
+/work/agents/xezim-new/xezim-new
+
 system/*/work/
 
 # mos_6502: GPL test source and raw image stay in the working tree only;
