@@ -1,0 +1,24 @@
+[tasks]
+bmc
+prove
+cover
+
+[options]
+bmc: mode bmc
+bmc: depth 24
+prove: mode prove
+prove: depth 12
+cover: mode cover
+cover: depth 24
+
+[engines]
+smtbmc yices
+
+[script]
+read -formal -sv -I. intel_80286_segment_check.sv intel_80286_segment_load.sv
+prep -top intel_80286_segment_load
+
+[files]
+../src/intel_80286_segment_check.sv
+../src/intel_80286_segment_load.sv
+intel_80286_segment_load_props.sv

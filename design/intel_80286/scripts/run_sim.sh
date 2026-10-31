@@ -1,0 +1,36 @@
+#!/bin/sh
+set -eu
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+DESIGN_DIR=$(dirname "$SCRIPT_DIR")
+WORK_DIR=${INTEL_80286_WORK_DIR:-$DESIGN_DIR/work}
+sh "$SCRIPT_DIR/build_runner.sh"
+"$WORK_DIR/sim/Vintel_80286"
+sh "$SCRIPT_DIR/run_at_refresh_detect.sh"
+sh "$SCRIPT_DIR/run_at_port61.sh"
+sh "$SCRIPT_DIR/run_at_page_map.sh"
+sh "$SCRIPT_DIR/run_at_bank_select.sh"
+sh "$SCRIPT_DIR/run_at_memory_ras.sh"
+sh "$SCRIPT_DIR/run_at_refresh_ras.sh"
+sh "$SCRIPT_DIR/run_at_refresh_row.sh"
+sh "$SCRIPT_DIR/run_at_refresh_request.sh"
+sh "$SCRIPT_DIR/run_at_refresh_arbiter.sh"
+sh "$SCRIPT_DIR/run_at_refresh_path.sh"
+sh "$SCRIPT_DIR/run_at_refresh_native.sh"
+sh "$SCRIPT_DIR/run_at_refresh_timer_native.sh"
+sh "$SCRIPT_DIR/run_event_control.sh"
+sh "$SCRIPT_DIR/run_segment_check.sh"
+sh "$SCRIPT_DIR/run_segment_load.sh"
+sh "$SCRIPT_DIR/run_code_check.sh"
+sh "$SCRIPT_DIR/run_code_load.sh"
+sh "$SCRIPT_DIR/run_access_check.sh"
+sh "$SCRIPT_DIR/run_cached_reference.sh"
+sh "$SCRIPT_DIR/run_native_core.sh"
+sh "$SCRIPT_DIR/run_bus_owner.sh"
+sh "$SCRIPT_DIR/run_pedc.sh"
+sh "$SCRIPT_DIR/run_pedc_owner.sh"
+sh "$SCRIPT_DIR/run_82288.sh"
+sh "$SCRIPT_DIR/run_82c284_reset.sh"
+sh "$SCRIPT_DIR/run_native_cpu.sh"
+sh "$SCRIPT_DIR/run_native_cpu_82c284_reset.sh"
+PROTECTED_MODE_RUN_NAME=${PROTECTED_MODE_RUN_NAME:-protected_mode_sim_$(date -u +%Y%m%dT%H%M%SZ)}
+bash "$SCRIPT_DIR/run_protected_mode_replay.sh" "$PROTECTED_MODE_RUN_NAME"

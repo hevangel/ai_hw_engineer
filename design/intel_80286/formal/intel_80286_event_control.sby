@@ -1,0 +1,21 @@
+[tasks]
+bmc
+prove
+cover
+
+[options]
+bmc: mode bmc
+prove: mode prove
+cover: mode cover
+depth 16
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal -sv intel_80286_event_control.sv intel_80286_event_control_props.sv
+prep -top intel_80286_event_control_props
+
+[files]
+../src/intel_80286_event_control.sv
+intel_80286_event_control_props.sv
