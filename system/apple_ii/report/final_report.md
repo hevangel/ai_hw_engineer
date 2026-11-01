@@ -9,26 +9,26 @@ remain incomplete. The datasheet timing gate is separate.
 
 | Gate | Script | Last run | Result |
 |---|---|---|---|
-| copper | `check_copper_ic_wiring.py` | 1 November 2026 | pass, 0 s |
-| packages | `../../design/apple_ii_chips/scripts/run_all.sh` | 1 November 2026 | pass, 5 s |
-| package synth | `../../design/apple_ii_chips/scripts/run_synth.sh` | 1 November 2026 | pass, 2 s |
-| lint | `run_lint.sh` | 1 November 2026 | pass, 1 s |
-| board | `run_board_sim.sh` | 1 November 2026 | pass, 1 s |
-| floating bus | `run_floating_bus_sim.sh` | 1 November 2026 | pass, 5 s |
-| peripheral | `run_peripheral_sim.sh` | 1 November 2026 | pass, 0 s |
-| output | `run_output_sim.sh` | 1 November 2026 | pass, 29 s |
-| video | `run_video_sim.sh` | 1 November 2026 | pass, 129 s |
-| reference smoke | `run_reference_smoke.sh` | 1 November 2026 | pass, 0 s |
-| reference boot | `run_reference_boot.sh` | 1 November 2026 | pass, 77 s |
-| cassette | `run_cassette_sim.sh` | 1 November 2026 | pass, 258 s |
-| host test | `run_host_test.sh` | 1 November 2026 | pass, 0 s |
-| basic | `run_basic_sim.sh` | 1 November 2026 | pass, 278 s |
-| authored boot | `run_authored_boot.sh` | 1 November 2026 | pass, 65 s |
-| authored cassette | `run_authored_cassette.sh` | 1 November 2026 | pass, 215 s |
-| cassette firmware | `run_cassette_command_firmware.sh` | 1 November 2026 | pass, 13 s |
-| timing | `run_timing_sim.sh` (datasheet delays) | 1 November 2026 | pass, 144 s |
-| full write board | `run_full_write_board.sh` | 1 November 2026 | see note |
-| full read board | `run_full_read_board.sh` | 1 November 2026 | see note |
+| Copper IC audit | `check_copper_ic_wiring.py` | 1 November 2026 | pass, <1 s |
+| Package library regression | `../../design/apple_ii_chips/scripts/run_all.sh` | 1 November 2026 | pass, 5 s |
+| Package synthesis | `../../design/apple_ii_chips/scripts/run_synth.sh` | 1 November 2026 | pass, 2 s |
+| Verilator lint | `run_lint.sh` | 1 November 2026 | pass, 1 s |
+| Socket wiring (Icarus) | `run_board_sim.sh` | 1 November 2026 | pass, 1 s |
+| Floating-bus retention | `run_floating_bus_sim.sh` | 1 November 2026 | pass, 5 s |
+| Paddle and peripheral | `run_peripheral_sim.sh` | 1 November 2026 | pass, <1 s |
+| Video and speaker networks | `run_output_sim.sh` | 1 November 2026 | pass, 29 s |
+| Nine diagnostic frames | `run_video_sim.sh` | 1 November 2026 | pass, 129 s |
+| Transistor CPU smoke | `run_reference_smoke.sh` | 1 November 2026 | pass, <1 s |
+| Transistor CPU Monitor boot | `run_reference_boot.sh` | 1 November 2026 | pass, 77 s |
+| Cassette byte routines | `run_cassette_sim.sh` | 1 November 2026 | pass, 258 s |
+| Front-panel transport | `run_host_test.sh` | 1 November 2026 | pass, <1 s |
+| Integer BASIC | `run_basic_sim.sh` | 1 November 2026 | pass, 278 s |
+| Authored CPU Monitor boot | `run_authored_boot.sh` | 1 November 2026 | pass, 65 s |
+| Authored CPU cassette | `run_authored_cassette.sh` | 1 November 2026 | pass, 215 s |
+| Cassette command harness | `run_cassette_command_firmware.sh` | 1 November 2026 | pass, 13 s |
+| Datasheet timing gate | `run_timing_sim.sh` (datasheet delays) | 1 November 2026 | pass, 144 s |
+| Full cassette WRITE | `run_full_write_board.sh` | 1 November 2026 | see note |
+| Full cassette READ | `run_full_read_board.sh` | 1 November 2026 | see note |
 
 `full write board` passed on 1 November 2026 with 16,499 transitions and
 16,498 exact intervals. `full read board` runs four polarity/checksum variants:
