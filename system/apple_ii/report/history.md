@@ -350,4 +350,75 @@ separate, explicitly scoped run: `sh scripts/run_timing_sim.sh` covers the
 socket test at typical delays and the Monitor boot at typical and maximum
 delays. Its own summary line states the two open comparisons rather than
 hiding them behind a weaker check.
+## DRAM refresh (30 October 2026, review item P2)
 
+The 4116 model retains data indefinitely, so the board's reliance on the video
+scan for refresh was an assumption rather than a checked property.
+`tb/apple_ii_refresh_check.sv` now watches the RAS/row-address bus — shared by
+all eight banks — and records the gap between successive accesses to each row.
+The boot gate asserts row coverage (a run that misses any of the 128 rows fails)
+and reports the margin.
+
+Measured with Icarus 12.0-3 in the Apple II tools image:
+
+| Configuration | Rows refreshed | RAS accesses | Worst same-row gap | Gaps over 2 ms |
+|---|---|---|---|---|
+| authored Monitor boot, CPU running (183 ms) | 128/128 | 373,928 | 1.9668 ms | 0 |
+| video scan only, CPU socket idle (40 ms) | 128/128 | 81,635 | 2.2215 ms | 48 |
+
+The 4116 requires every row to be refreshed within 2 ms. With the CPU executing
+the worst gap is 1.9668 ms, inside the limit. With the CPU idle the video scan
+alone takes 2.2215 ms, 11% longer than the device allows, and the checker flags
+48 violations in 40 ms; every row sits in the 1.85-2.22 ms band, so the overrun
+is the sweep itself rather than a few slow rows.
+
+The second row is a finding, not a pass: part of the board's refresh budget is
+carried by CPU accesses, and the video-only path is marginally short. The real
+machine works, so either the device tolerance is wider than the datasheet figure
+at room temperature or the model's row addressing differs from silicon; that
+question is left open rather than explained away. What changed is that the
+margin is now measured, and a change that lengthens the sweep shows up
+immediately.
+
+`scripts/run_refresh_check.sh` runs the video-only configuration as a negative
+control: it requires all 128 rows and at least one violation, so a checker stuck
+at zero cannot pass the boot gate for the wrong reason.
+
+## Unresolved reads (1 November 2026, review item S1)
+
+The CPU adapter counts every read whose data bits are unknown. The Monitor gate
+reported 4,516 of them over 183 ms, almost all of them reads of memory that had
+never been written since power-up.
+
+`a2_4116` now gives every cell a documented power-up value of 0 instead of X
+(explicit ASSUMPTION in the model; no test screen or firmware content is
+injected). On the same Monitor gate the count falls to **2**, with the keyboard
+deposit/examine, the rendered frame and all 107,520 visible pixels unchanged.
+Both residual reads are at `$C054` and `$C056`: undriven soft-switch reads
+through the floating-bus boundary, not cold memory. The BASIC, cassette (both
+polarities), floating-bus and authored-boot gates pass with the initialised
+array and report the same two residual reads.
+
+## Cycle-core readability (1 November 2026, review item C1)
+
+The instruction-boundary interrupt poll was copied into fourteen paths that
+return to `FETCH` plus the taken-branch path. It is now one macro pair,
+`MOS6502_GOTO_FETCH` and `MOS6502_POLL_INTERRUPTS`, so a change to the poll rule
+has one definition. A `task` would be the usual form, but Verilator treats a
+task that writes module state as a second process and rejects the 177k-vector
+build (`MULTIDRIVEN`), so the shared rule is textual instead. The full gate
+(177,280 independent vectors, 524,288 py65 cases, Klaus) passes unchanged, as
+do the 768 transistor-oracle pin scenarios and the formal tasks.
+
+The decimal ALU now states why it keeps signed `integer` temporaries: the
+values stay below 512, Yosys maps them to ordinary adders, and the 524,288-case
+py65 gate pins the behaviour (review item C4). Splitting the decode table into
+its own module remains open, because every build script lists sources
+explicitly and the change would touch all of them.
+
+Rerun on 1 November 2026 (`system/apple-ii-review-followup`): the full physical
+WRITE passed with 16,499 transitions and 16,498 exact intervals against the
+original firmware, after the DRAM power-up change. The full READ command gate
+(four polarity/checksum variants) was restarted the same day and had not
+completed when this record was written; under Icarus each variant is an
+hour-scale run, so the current result is "rerun in progress", not a pass.

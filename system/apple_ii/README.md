@@ -40,6 +40,9 @@ netlist is CC BY-NC-SA 3.0. The historical ROM is not relicensed by this project
 `run_all.sh` runs actual firmware, then deliberately reports incomplete
 system sign-off: exact analog reconstruction and original-dump font comparison
 remain outstanding. The authored CPU documented-instruction gate passes.
+The current pass/fail state of every gate, with its last run, is the table in
+[the verification report](report/final_report.md#gate-status); the dated
+narrative lives in [history.md](report/history.md).
 Individual regressions have separate passing scripts. The motherboard uses
 Icarus only; package tests use Xezim. Xezim cannot run the resolved board bus
 (it loses driven CPU data), so it is not a board option;
