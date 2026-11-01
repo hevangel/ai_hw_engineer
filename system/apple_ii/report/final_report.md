@@ -31,9 +31,10 @@ remain incomplete. The datasheet timing gate is separate.
 | full read board | `run_full_read_board.sh` | 1 November 2026 | see note |
 
 `full write board` passed on 1 November 2026 with 16,499 transitions and
-16,498 exact intervals. `full read board` was restarted the same day and was
-still running when this table was written, so no current pass is claimed for
-it. Both are hour-scale runs.
+16,498 exact intervals. `full read board` runs four polarity/checksum variants:
+the `polarity=+1` pair (good and bad checksum) passed with 6 payload bytes and
+6 readbacks each; the `polarity=-1` pair was still running when this table was
+written. Both gates are hour-scale runs.
 
 ## Limits that prevent sign-off
 

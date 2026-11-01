@@ -419,6 +419,7 @@ explicitly and the change would touch all of them.
 Rerun on 1 November 2026 (`system/apple-ii-review-followup`): the full physical
 WRITE passed with 16,499 transitions and 16,498 exact intervals against the
 original firmware, after the DRAM power-up change. The full READ command gate
-(four polarity/checksum variants) was restarted the same day and had not
-completed when this record was written; under Icarus each variant is an
-hour-scale run, so the current result is "rerun in progress", not a pass.
+(four polarity/checksum variants) was restarted the same day. The
+`polarity=+1` pair (good and bad checksum) passed with 6 payload bytes and 6
+readbacks each; the `polarity=-1` pair was still running when this record was
+written. Under Icarus each variant is an hour-scale run.
