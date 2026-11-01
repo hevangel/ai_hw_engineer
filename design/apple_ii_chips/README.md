@@ -31,3 +31,13 @@ check. Digital tests use Xezim; analog tests use Icarus. See
 The directed digital test generator is [generate_package_tests.py](scripts/generate_package_tests.py).
 It uses manufacturer truth tables as its oracle and board metadata for pin
 identities only; run it from any directory with Python 3.
+
+## Open model limit: 4116 write timing
+
+The 4116 model samples write data at the CAS-fall / WE-fall edge that starts the
+write (early-write or read-modify-write), but it does not check the device's
+data setup and hold windows around the later of CAS and WE. With per-part
+package delays now selectable, that margin is worth measuring: the next step is
+to add the datasheet tDS/tDH values from the Mostek MK4116 timing table to the
+model and fail a board gate when DIN moves inside them, the same way the refresh
+checker records row gaps (issue #60, review item P3).
