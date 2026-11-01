@@ -1,4 +1,9 @@
 // Authored documented-instruction NMOS core. Sources and assumptions: ../spec/spec.md.
+// One definition of the instruction-boundary interrupt poll. Verilator treats
+// a task writing module state as a second process, so the shared rule is a
+// macro: every site expands to the same text and cannot drift.
+`define MOS6502_POLL_INTERRUPTS irq_latched<=!previous_irq && !p[2]; nmi_latched<=nmi_pending;
+`define MOS6502_GOTO_FETCH begin state<=FETCH; `MOS6502_POLL_INTERRUPTS end
 module mos_6502_cycle (
     input logic clk, rst_n, res_n, irq_n, nmi_n, rdy, so_n,
     output logic [15:0] bus_addr,
@@ -243,6 +248,12 @@ module mos_6502_cycle (
 
     // NMOS decimal flags come from the pre-correction ALU paths, not the
     // final BCD accumulator. SingleStepTests/65x02 is the independent oracle.
+    // The decimal correction below uses signed integer temporaries and
+    // magnitude compares. That is unidiomatic RTL, but every value stays
+    // bounded (|value| < 512), Yosys maps it to ordinary adders (2,782 cells),
+    // and scripts/run_full_sim.sh checks all 524,288 ADC/SBC operand, carry
+    // and decimal cases against unmodified py65. Do not rewrite it in a
+    // "tidier" idiom unless that gate stays exact.
     logic [8:0] binary_sum;
     logic [7:0] compare_value, binary_result;
     integer decimal_low, decimal_high;
@@ -369,7 +380,7 @@ module mos_6502_cycle (
                             OP_PHA, OP_PHP: state<=PUSH_WRITE;
                             OP_PLA, OP_PLP, OP_RTS, OP_RTI: state<=PULL_DUMMY;
                             default: begin
-                                begin state<=FETCH; irq_latched<=!previous_irq && !p[2]; nmi_latched<=nmi_pending; end
+                                `MOS6502_GOTO_FETCH
                                 if(mode==M_ACC) begin a<=rmw_value; p<=rmw_p; end
                                 else case(op)
                                     OP_CLC: p[0]<=0; OP_SEC: p[0]<=1;
@@ -393,10 +404,10 @@ module mos_6502_cycle (
                     OPERAND: begin
                         pc<=pc+16'd1; lo<=bus_data_i;
                         case(mode)
-                            M_IMM: begin p<=alu_p; if(op==OP_LDX) x<=read_value; else if(op==OP_LDY) y<=read_value; else a<=alu_a; begin state<=FETCH; irq_latched<=!previous_irq && !p[2]; nmi_latched<=nmi_pending; end end
+                            M_IMM: begin p<=alu_p; if(op==OP_LDX) x<=read_value; else if(op==OP_LDY) y<=read_value; else a<=alu_a; `MOS6502_GOTO_FETCH end
                             M_REL: begin
-                                if(branch_taken) begin target<=branch_address; state<=BRANCH_DUMMY; irq_latched<=!previous_irq && !p[2]; nmi_latched<=nmi_pending; end
-                                else begin state<=FETCH; irq_latched<=!previous_irq && !p[2]; nmi_latched<=nmi_pending; end
+                                if(branch_taken) begin target<=branch_address; state<=BRANCH_DUMMY; `MOS6502_POLL_INTERRUPTS end
+                                else `MOS6502_GOTO_FETCH
                             end
                             M_ZP: begin target<={8'b0,bus_data_i}; state<=is_store ? MEM_WRITE : MEM_READ; end
                             M_ZX, M_ZY, M_IX: begin target<={8'b0,bus_data_i}; state<=ZP_INDEX; end
@@ -406,7 +417,7 @@ module mos_6502_cycle (
                     end
                     ABS_HIGH: begin
                         pc<=pc+16'd1;
-                        if(op==OP_JMP && mode==M_ABS) begin pc<={bus_data_i,lo}; begin state<=FETCH; irq_latched<=!previous_irq && !p[2]; nmi_latched<=nmi_pending; end end
+                        if(op==OP_JMP && mode==M_ABS) begin pc<={bus_data_i,lo}; `MOS6502_GOTO_FETCH end
                         else if(mode==M_IND) begin target<={bus_data_i,lo}; state<=JMP_LOW; end
                         else if(mode==M_AX || mode==M_AY) begin
                             target<=indexed_address; wrong<={bus_data_i,indexed_sum[7:0]};
@@ -428,23 +439,23 @@ module mos_6502_cycle (
                     INDEX_DUMMY: state<=is_store ? MEM_WRITE : MEM_READ;
                     MEM_READ: begin
                         if(is_rmw) begin operand<=bus_data_i; state<=RMW_OLD; end
-                        else begin p<=alu_p; if(op==OP_LDX) x<=read_value; else if(op==OP_LDY) y<=read_value; else a<=alu_a; begin state<=FETCH; irq_latched<=!previous_irq && !p[2]; nmi_latched<=nmi_pending; end end
+                        else begin p<=alu_p; if(op==OP_LDX) x<=read_value; else if(op==OP_LDY) y<=read_value; else a<=alu_a; `MOS6502_GOTO_FETCH end
                     end
-                    MEM_WRITE: begin state<=FETCH; irq_latched<=!previous_irq && !p[2]; nmi_latched<=nmi_pending; end
+                    MEM_WRITE: `MOS6502_GOTO_FETCH
                     RMW_OLD: state<=RMW_NEW;
-                    RMW_NEW: begin p<=rmw_p; begin state<=FETCH; irq_latched<=!previous_irq && !p[2]; nmi_latched<=nmi_pending; end end
+                    RMW_NEW: begin p<=rmw_p; `MOS6502_GOTO_FETCH end
                     BRANCH_DUMMY: begin
                         if(pc[15:8]==target[15:8]) begin pc<=target; state<=FETCH; end
                         else begin wrong<={pc[15:8],target[7:0]}; state<=BRANCH_FIX; end
                     end
                     BRANCH_FIX: begin pc<=target; state<=FETCH; irq_latched<=irq_latched || (!previous_irq && !p[2]); nmi_latched<=nmi_latched || nmi_pending; end
                     JMP_LOW: begin lo<=bus_data_i; state<=JMP_HIGH; end
-                    JMP_HIGH: begin pc<={bus_data_i,lo}; begin state<=FETCH; irq_latched<=!previous_irq && !p[2]; nmi_latched<=nmi_pending; end end
+                    JMP_HIGH: begin pc<={bus_data_i,lo}; `MOS6502_GOTO_FETCH end
                     JSR_DUMMY: state<=JSR_HIGH;
                     JSR_HIGH: begin sp<=sp-8'd1; state<=JSR_LOW; end
                     JSR_LOW: begin sp<=sp-8'd1; state<=JSR_FINISH; end
-                    JSR_FINISH: begin pc<={bus_data_i,lo}; begin state<=FETCH; irq_latched<=!previous_irq && !p[2]; nmi_latched<=nmi_pending; end end
-                    PUSH_WRITE: begin sp<=sp-8'd1; begin state<=FETCH; irq_latched<=!previous_irq && !p[2]; nmi_latched<=nmi_pending; end end
+                    JSR_FINISH: begin pc<={bus_data_i,lo}; `MOS6502_GOTO_FETCH end
+                    PUSH_WRITE: begin sp<=sp-8'd1; `MOS6502_GOTO_FETCH end
                     PULL_DUMMY: begin
                         sp<=sp+8'd1;
                         if(op==OP_RTS) state<=RTS_LOW;
@@ -452,15 +463,15 @@ module mos_6502_cycle (
                         else state<=PULL_READ;
                     end
                     PULL_READ: begin
-                        if(op==OP_PLP) begin p<=(bus_data_i&8'hef)|8'h20; begin state<=FETCH; irq_latched<=!previous_irq && !p[2]; nmi_latched<=nmi_pending; end end
-                        else begin p<=alu_p; if(op==OP_LDX) x<=read_value; else if(op==OP_LDY) y<=read_value; else a<=alu_a; begin state<=FETCH; irq_latched<=!previous_irq && !p[2]; nmi_latched<=nmi_pending; end end
+                        if(op==OP_PLP) begin p<=(bus_data_i&8'hef)|8'h20; `MOS6502_GOTO_FETCH end
+                        else begin p<=alu_p; if(op==OP_LDX) x<=read_value; else if(op==OP_LDY) y<=read_value; else a<=alu_a; `MOS6502_GOTO_FETCH end
                     end
                     RTS_LOW: begin lo<=bus_data_i; sp<=sp+8'd1; state<=RTS_HIGH; end
                     RTS_HIGH: begin pc<={bus_data_i,lo}; state<=RTS_FINISH; end
-                    RTS_FINISH: begin pc<=pc+16'd1; begin state<=FETCH; irq_latched<=!previous_irq && !p[2]; nmi_latched<=nmi_pending; end end
+                    RTS_FINISH: begin pc<=pc+16'd1; `MOS6502_GOTO_FETCH end
                     RTI_STATUS: begin p<=(bus_data_i&8'hef)|8'h20; sp<=sp+8'd1; state<=RTI_LOW; end
                     RTI_LOW: begin lo<=bus_data_i; sp<=sp+8'd1; state<=RTI_HIGH; end
-                    RTI_HIGH: begin pc<={bus_data_i,lo}; begin state<=FETCH; irq_latched<=!previous_irq && !p[2]; nmi_latched<=nmi_pending; end end
+                    RTI_HIGH: begin pc<={bus_data_i,lo}; `MOS6502_GOTO_FETCH end
                     INT_DUMMY: state<=INT_HIGH;
                     INT_HIGH: begin sp<=sp-8'd1; state<=INT_LOW; end
                     INT_LOW: begin sp<=sp-8'd1; state<=INT_STATUS; end
@@ -526,3 +537,5 @@ module mos_6502_cycle (
     end
 `endif
 endmodule
+`undef MOS6502_POLL_INTERRUPTS
+`undef MOS6502_GOTO_FETCH
