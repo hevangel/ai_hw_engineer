@@ -339,10 +339,13 @@ finding:
    fixed wait. That closes the directed-socket half of this item.
 2. `tb/tb_rev0_boot.sv` samples the pixel and scan counters 10 ns after the
    pixel flip-flop clock. That window is shorter than the 25 ns typical
-   clock-to-Q of a 74LS74, so at any non-zero package delay the captured frame
-   is one sample out of phase (the typical run reports scan state 25/256 where
-   the oracle has 24/256). The pixel-exact comparison therefore holds only for
-   the legacy model until the capture is retimed.
+   clock-to-Q of a 74LS74, so the capture starts one H state late: the typical
+   run reports scan state 25/256 where the oracle has 24/256. Re-aligning that
+   capture by one H state gives **zero pixel mismatches** on lines 0-3
+   (offset -14 samples on line 0, -13 on the rest), so the raster content is
+   correct at typical delays; what differs is the capture start, because the
+   oracle assumes a fixed one-character pipeline latency that is not
+   delay-aware. A delay-aware oracle, not a weaker pixel check, is the fix.
 
 Consequently `run_all.sh` keeps legacy timing, and the datasheet gate is a
 separate, explicitly scoped run: `sh scripts/run_timing_sim.sh` covers the
