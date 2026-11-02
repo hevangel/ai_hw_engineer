@@ -82,3 +82,31 @@ ASSUMPTION A26: the standalone processor-extension channel samples PEREQ low
 between requests before accepting another. The datasheet specifies withdrawal,
 but this particular sampling rule needs validation against a real 80287 or an
 independent pin trace. See [the channel contract](processor_extension_channel.md).
+
+ASSUMPTION A27: the 82C284 RES synchronizer in `intel_80286_82c284_reset`
+powers up holding "RES asserted", so RESET is high from power-up until RES has
+been sampled high for the configured one- or two-CLK delay. The 82284 data
+sheet (210453-004, printed page 4-141) and Intel 210760-002 (pages 3-41/3-42)
+require RES to be held low until VCC and CLK are stable and RESET to be high
+for at least 16 CLK, but give no RESET state before the first CLK edge.
+`RES_SYNC_DELAY_CLKS` other than 1 or 2 is rejected at elaboration.
+
+### Error-code EXT bit and NMI reset behavior
+
+Protected-mode error codes set bit 0 (EXT) when the fault is detected while an
+event external to the program is being delivered: INTR, NMI, single step,
+#NM (7), extension segment overrun (9) and #MF (16). That includes faults in
+the IDT gate, the handler CS/SS and, for a task gate, the incoming task.
+Software `INT n`, `INTO`, `INT3` and other exceptions leave EXT clear. Sources:
+Intel 210498-005 section 9.4 (printed page 9-5), Appendix B (pages B-8 and
+B-50) and Table 9-5. `intel_80286_segment_check` and `intel_80286_code_check`
+return EXT-free codes; the core ORs EXT in once, when it records the fault in
+its event packet. Delivery faults that the core still reports as a
+development stop instead of an exception are not covered by this rule yet.
+
+NMI is edge-triggered (210760-002 page 3-12) and not recognized during reset
+(page 3-67). The event controller samples the NMI level through reset, so a
+level already high at reset release is not an edge. An NMI pending before
+shutdown still exits shutdown (210498-005 sections 9.6.2 and 11.6). After a
+fault during that NMI's processing, shutdown is exited only by RESET, so the
+controller then discards any pending NMI.

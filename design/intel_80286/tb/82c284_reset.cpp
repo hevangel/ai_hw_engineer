@@ -21,6 +21,8 @@ int main(int argc, char** argv) {
         dut.clk_i = 1;
         dut.res_n_i = 1;
         dut.eval();
+        // ASSUMPTION A27: RESET is asserted at power-up, before any CLK fall.
+        check(dut.reset_o, "RESET was not asserted at power-up");
 
         auto full_clk = [&]() {
             dut.clk_i = 0;

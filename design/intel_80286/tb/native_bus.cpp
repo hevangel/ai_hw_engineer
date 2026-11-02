@@ -191,6 +191,11 @@ int main(int argc, char** argv) {
         b.cycle();
         check(!b.d.cycle_active_o, "malformed beat entered a bus cycle");
         b.d.req_i=0; b.d.eval(); b.cycle();
+        // The error is sticky so a scheduling bug cannot pass as a hang.
+        check(b.d.protocol_error_o, "protocol error did not latch after the beat");
+        b.d.reset_i=1; b.d.eval(); b.cycle(); b.d.reset_i=0; b.d.eval();
+        check(!b.d.protocol_error_o && !b.d.cycle_active_o,
+              "RESET did not clear the latched protocol error");
 
         // The physical form of an odd logical word is two byte beats: the
         // low byte at the odd address uses D15:D8, then the high byte at the

@@ -12,7 +12,18 @@ module intel_80286_82c284_reset #(
     // falling edge of CLK and takes one or two CLK periods to affect RESET.
     // Parameterize that documented digital delay; use 2 for the conservative
     // default. RESET polarity is opposite to RES.
-    logic [1:0] res_sync_q;
+    // ASSUMPTION: A27. The synchronizer powers up holding "RES asserted", so
+    // RESET is high from power-up until RES has been sampled high for the
+    // configured delay. This avoids an X RESET before the first CLK falls and
+    // matches a board that holds RES low through power-up.
+    // verilator lint_off PROCASSINIT
+    logic [1:0] res_sync_q = 2'b00;
+    // verilator lint_on PROCASSINIT
+
+    // Only the documented one- or two-CLK delays are representable.
+    if (RES_SYNC_DELAY_CLKS < 1 || RES_SYNC_DELAY_CLKS > 2) begin : g_bad_delay
+        $error("RES_SYNC_DELAY_CLKS must be 1 or 2");
+    end
 
     always_ff @(negedge clk_i) begin
         res_sync_q <= {res_sync_q[0], res_n_i};

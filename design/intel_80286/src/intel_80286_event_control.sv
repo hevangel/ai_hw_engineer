@@ -28,13 +28,21 @@ module intel_80286_event_control (
     assign event_valid_o = rst_n && state==DELIVER;
     always_ff @(posedge clk) begin
         if (!rst_n) begin
-            state<=IDLE; nmi_previous<=0; nmi_pending_o<=0;
+            // Intel 210760-002 p. 3-12: NMI is edge-triggered and must be
+            // low for four CLKs before the rising edge; p. 3-67: NMI is not
+            // recognized during reset. Track the level through reset so a
+            // line already high at release is not a new edge.
+            state<=IDLE; nmi_previous<=nmi_i; nmi_pending_o<=0;
             nmi_blocked_o<=0; event_vector_o<=0;
         end else begin
             nmi_previous<=nmi_i;
             if (nmi_edge) nmi_pending_o<=1;
             if (iret_i) nmi_blocked_o<=0;
             if (select_nmi) begin nmi_pending_o<=0; nmi_blocked_o<=1; end
+            // The caller drops shutdown_nmi_enable_i only after an NMI
+            // recovery attempt faulted. Intel 210498-005 9.6.2: shutdown can
+            // then be exited only via RESET, so no NMI remains pending.
+            // A pending NMI from before shutdown is still honoured above.
             if (shutdown_i && !shutdown_nmi_enable_i) nmi_pending_o<=0;
             case (state)
                 IDLE: if (shutdown_i) begin
@@ -59,8 +67,7 @@ module intel_80286_event_control (
         if (!past_valid) assume(!rst_n);
         if (past_valid) begin
             assert(state<=DELIVER);
-            if ($past(rst_n)) assert(nmi_previous==$past(nmi_i));
-            else assert(!nmi_previous);
+            assert(nmi_previous==$past(nmi_i));
         end
     end
 `endif

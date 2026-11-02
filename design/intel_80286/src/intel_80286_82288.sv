@@ -74,7 +74,8 @@ module intel_80286_82288 (
             command_active
         );
 
-        mrdc_n_o = !(command_active && held_read && !held_inta);
+        // MRDC# is a memory-read command only; I/O reads use IORC#.
+        mrdc_n_o = !(command_active && held_read && held_memory && !held_inta);
         mwtc_n_o = !(command_active && held_write && held_memory);
         iorc_n_o = !(command_active && held_read && !held_memory && !held_inta);
         iowc_n_o = !(command_active && held_write && !held_memory);

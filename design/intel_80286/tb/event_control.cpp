@@ -97,9 +97,17 @@ struct Test {
             d.nmi_i=1; d.rst_n=0; d.eval(); idle(); tick();
             require(!d.nmi_pending_o && !d.nmi_blocked_o,"reset retained NMI");
             d.boundary_i=0; d.rst_n=1; tick(); idle();
-            require(d.nmi_pending_o,"high NMI after reset not sampled");
-            d.boundary_i=1; tick(); delivery(2); consume(2);
+            // Intel 210760-002 pp. 3-12/3-67: a level held high through
+            // reset is not an edge. Only a later low-to-high transition is.
+            require(!d.nmi_pending_o,"NMI level held through reset became an edge");
+            d.intr_i=0; d.if_i=0; d.boundary_i=1; tick(); idle();
+            d.nmi_i=0; tick(); d.nmi_i=1; tick(); delivery(2); consume(2);
         }
+        // A pending NMI recorded before shutdown entry still wakes shutdown.
+        reset(); d.nmi_i=1; tick();
+        require(d.nmi_pending_o,"edge before shutdown was not recorded");
+        d.shutdown_i=1; d.shutdown_nmi_enable_i=1; tick(); delivery(2);
+        d.shutdown_i=0; d.shutdown_nmi_enable_i=0; consume(2);
         // Fresh edge and completed IRET together consume exactly one NMI.
         reset(); d.boundary_i=1; d.nmi_i=1; tick(); consume(2);
         d.nmi_i=0; tick(); d.nmi_i=1; d.iret_i=1; tick();

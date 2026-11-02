@@ -1,7 +1,12 @@
 // CPU-pin local-bus cycle controller. Inputs are already scheduled 1/2-byte
 // physical beats; the core-side beat scheduler must preserve the completion
 // boundary and supply both lanes for an even-address word.
-module intel_80286_native_bus (
+// A malformed beat is a core-side scheduling bug: the request is refused,
+// protocol_error_o latches until RESET, and simulation stops unless
+// FATAL_ON_PROTOCOL_ERROR is cleared by a bench that injects one on purpose.
+module intel_80286_native_bus #(
+    parameter bit FATAL_ON_PROTOCOL_ERROR = 1'b1
+) (
     input  logic        clk_i,          // one 80286 processor clock
     input  logic        reset_i,        // native RESET polarity: active high
     input  logic        req_i,
@@ -59,11 +64,14 @@ module intel_80286_native_bus (
     logic special_reported;
 
     logic beat_is_valid;
+    logic beat_error;
+    logic protocol_error_q;
 
     always_comb begin
         beat_is_valid = (beat_bytes_i == 2'd1) ||
                         (beat_bytes_i == 2'd2 && !address_i[0]);
-        protocol_error_o = req_i && !beat_is_valid;
+        beat_error = req_i && !beat_is_valid;
+        protocol_error_o = beat_error || protocol_error_q;
 
         core_ready_o = (state == TC) && !ready_n_i && !acknowledge_active;
         completed_bytes_o = core_ready_o ? held_bytes : 2'd0;
@@ -108,7 +116,10 @@ module intel_80286_native_bus (
             special_reported <= 1'b0;
             inta_ready_o <= 1'b0;
             inta_vector_o <= 8'd0;
+            protocol_error_q <= 1'b0;
         end else begin
+            if (beat_error)
+                protocol_error_q <= 1'b1;
             inta_ready_o <= 1'b0;
             if (!inta_req_i)
                 acknowledge_wait_drop <= 1'b0;
@@ -197,4 +208,12 @@ module intel_80286_native_bus (
             endcase
         end
     end
+
+`ifndef SYNTHESIS
+    always_ff @(posedge clk_i) begin
+        if (FATAL_ON_PROTOCOL_ERROR && !reset_i && beat_error)
+            $fatal(1, "intel_80286_native_bus: malformed beat (%0d bytes at %06h)",
+                   beat_bytes_i, address_i);
+    end
+`endif
 endmodule

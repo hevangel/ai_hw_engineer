@@ -1,0 +1,70 @@
+# 2026-11-01 - Code review fixes (issue #80 review of f8b528d)
+
+Branch `design/intel-80286-review-fixes`, from `main` at `f8b528d`. This
+report answers the eight items of the 2026-10-31 code review posted on
+[issue #80](https://github.com/hevangel/ai_hw_engineer/issues/80). The
+post-mortem is
+[failure_notes/2026-11-01-intel80286-review-bus-strobes-ext.md](../../../failure_notes/2026-11-01-intel80286-review-bus-strobes-ext.md).
+
+## Sources
+
+Quotes were taken from the text layer of these scans:
+
+- Intel 210498-005, 80286 and 80287 Programmer's Reference Manual (1987):
+  section 9.4 (printed page 9-5), 9.6.2 (9-10), 11.6 (11-7), Appendix B
+  (B-8, B-49, B-50), Table 9-5.
+- Intel 210760-002, 80286 Hardware Reference Manual (1987): pages 3-12,
+  3-13, 3-15, 3-18, 3-19, 3-23, 3-41, 3-42, 3-67, 3-68.
+- Intel 210253-009 80286 data sheet, 210453-004 82284 data sheet and
+  210471-005 82288 data sheet, in the 1986 Intel Microsystem Components
+  Handbook, Volume I (pages 4-3, 4-11, 4-14, 4-25, 4-26, 4-141, 4-150).
+- Intersil/Renesas 82C284 data sheet FN2966.
+
+## Items
+
+| # | Review item | Result |
+|---|---|---|
+| 1 | 82288 asserts MRDC# on I/O reads | Fixed. MRDC# requires `held_memory`, per the 82288 command table (page 4-150). The bench now checks that each read asserts exactly one command. |
+| 2 | Spurious NMI after reset | Fixed. The edge detector samples the NMI level through reset. NMI is edge-triggered (210760-002 p. 3-12) and not recognized during reset (p. 3-67). |
+| 3 | Pending NMI discarded in shutdown | Kept and cited. A pending NMI still exits shutdown. The pending NMI is dropped only after an NMI recovery attempt faulted, when 210498-005 9.6.2 says shutdown is exited only by RESET. No source states what happens to an NMI arriving after that point. |
+| 4 | 82C284 reset model | Fixed. Power-up value "RES asserted" (assumption A27); `RES_SYNC_DELAY_CLKS` outside 1-2 is rejected at elaboration. |
+| 5 | Native bus drops invalid beats silently | Fixed. `protocol_error_o` latches until RESET; simulation stops with `$fatal` unless `FATAL_ON_PROTOCOL_ERROR=0`. |
+| 6 | No pipelined addressing | Documented as an implementation limit in [native_bus_interface.md](../spec/native_bus_interface.md): at least three processor clocks per zero-wait transfer instead of two. Modeling the overlap needs the core to issue the next beat during `Tc` and is open work. |
+| 7 | Error codes never carry EXT | Fixed in the core, not the check units. `enter_event` sets EXT when the fault arises while INTR, NMI, single step or vector 7/9/16 is being delivered, including incoming-task faults of a task gate (App. B p. B-8, Table 9-5). The check units stay EXT-free by contract ([spec.md](../spec/spec.md)). Delivery faults that the core still reports as a development stop are not covered. |
+| 8 | Core structure | Not changed here. Converting the 7-bit state constants to an enum and splitting the sequencer rewrites the verified core; proposed as a separate issue. |
+
+Formal bookkeeping found while running the connected-core BMC: several lists
+in `formal/intel_80286_props.sv` predated the ESC register-save and
+task-switch states (state upper bound, `memory_return` continuations,
+`retire_o` and `event_o` sources, event-delivery path, segment-load
+publication during a task switch). The connected-core BMC had been failing on
+`main` for this reason. A static audit of every state list against the RTL
+drove one set of fixes; uncertain or strengthening-only findings were left
+for later.
+
+## Verification
+
+All runs used the `ai-hw-engineer:latest` image (Verilator 5.052, Yosys
+0.69).
+
+| Check | Result |
+|---|---|
+| `verilator --lint-only -Wall`, changed modules and full core | Clean |
+| `-GRES_SYNC_DELAY_CLKS=3` | Rejected at elaboration, as intended |
+| `run_82288.sh`, `run_82c284_reset.sh` (1 and 2 CLK), `run_native_bus.sh`, `run_native_cpu.sh`, `run_native_cpu_82c284_reset.sh`, `run_native_core.sh` | Pass |
+| `run_segment_check.sh` / `run_code_check.sh` | Pass, 16413 / 98612 cases |
+| `run_event_control.sh` | Pass, 8024 checks |
+| `run_event_mutations.py` | All 7 mutations detected |
+| `run_formal.sh intel_80286_event_control.sby` | Preflight, BMC, prove and 7 covers pass |
+| `run_sim.sh` (full) | Pass, 218 PASS lines, exit 0 |
+| `run_protected_mode_replay.sh` | Pass, 79 PASS lines |
+| `run_at_bios_native.sh` / `run_at_timer_bios.sh` | Pass |
+| `run_synth.sh` | 13 targets, `check -assert` 0 problems |
+| `preflight.py` (property inventory) | Pass |
+| `intel_80286.sby` BMC (`abc bmc3`), final tree | Pass, no assertion in 24 frames, 1:03:41 |
+| `test_audit_formal.py` | 17 tests OK |
+
+The connected-core BMC failed on unmodified `main` (stale state bound at
+step 10); it passes here only after the bookkeeping fixes above. The
+connected-core `prove`/`cover` tasks and the PDR run were not run, so this is
+bounded evidence, not a proof.

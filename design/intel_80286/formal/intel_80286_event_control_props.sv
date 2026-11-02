@@ -27,8 +27,9 @@ module intel_80286_event_control_props (
         past_valid<=1;
         if (!past_valid) assume(!rst_n);
         if (!rst_n) begin
+            // Intel 210760-002 pp. 3-12/3-67: no NMI edge through reset.
             selected<=0; was_nmi<=0; waiting_ack<=0; claimed_vector<=0;
-            nmi_history<=0; remembered<=0;
+            nmi_history<=nmi; remembered<=0;
             saw_blocked_edge<=0; saw_ack_stall<=0; saw_delivery_stall<=0;
         end else begin
             nmi_history<=nmi;
@@ -64,8 +65,7 @@ module intel_80286_event_control_props (
                 assert(blocked==was_nmi && pending==remembered);
                 if (valid) assert(vector==claimed_vector);
             end
-            if ($past(rst_n)) assert(nmi_history==$past(nmi));
-            else assert(!nmi_history);
+            assert(nmi_history==$past(nmi));
             if (!$past(rst_n)) assert(!pending && !blocked);
             if (rst_n && $past(rst_n && ack && !ack_ready)) assert(ack);
             if (rst_n && $past(rst_n && valid && !event_ready)) begin

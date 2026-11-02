@@ -26,6 +26,11 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-11-01 - 80286 review: 82288 MRDC#, missing EXT, reset-time NMI](2026-11-01-intel80286-review-bus-strobes-ext.md)
+  An external code review found MRDC# asserted on I/O reads, error codes
+  without EXT, a spurious NMI after reset, an X power-up RESET and a silent
+  bus protocol error; positive-only and RTL-derived checks had passed them.
+
 - [2026-10-29 — 80286 incoming-task fault context and hidden segment caches](2026-10-29-intel80286-task-fault-context.md)
   Intel's task-switch note exposed a handler stack using the outgoing SS cache
   and an invalid incoming DS using the outgoing DS cache after a task fault.

@@ -112,6 +112,23 @@ READY asserted, the bus can transition directly from one operation to the
 next `Ts`, or pass through `Ti`. The CPU's pipelined fetch and data operations
 may therefore produce back-to-back cycles.
 
+**Implementation limit (pipelined addressing).** The 80286 data sheet
+(210253-009, printed page 4-25) says a new bus operation can start every two
+processor clocks, because the next cycle's address is emitted in phase 2 of
+the current `Tc` (page 4-26; Intel 210760-002 page 3-19). The
+`intel_80286_native_bus` controller does not overlap cycles: after a completed
+`Tc` it always returns to `Ti` and starts the next `Ts` from there, so a
+zero-wait transfer takes at least three processor clocks instead of two.
+Functional order, lanes, status and strobes are unaffected; throughput and any
+check that counts native bus clocks are not cycle-accurate. Modeling the
+overlap requires the core to present the next beat before the current `Tc`
+completes and is tracked as open work.
+
+A malformed beat (two bytes at an odd address, or a size other than one or
+two bytes) is a core-side scheduling error. The controller refuses it,
+`protocol_error_o` stays high until RESET, and simulation stops with `$fatal`
+unless a bench sets `FATAL_ON_PROTOCOL_ERROR=0` to test the refusal itself.
+
 An 82288 decodes CPU status and produces ALE and the command/data-buffer
 strobes. For read cycles, sample input data when the active `Tc` terminates.
 For writes, hold output data through the completion edge and through any
