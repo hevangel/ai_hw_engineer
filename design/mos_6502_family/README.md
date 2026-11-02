@@ -19,9 +19,13 @@ the Klaus functional test and SingleStepTests vectors — but **no verification
 result is transferred between them**, so a decode or ALU defect can exist in
 one and not the other.
 
-Decision: both stay, because the functional core serves systems that need a
-one-transfer-per-clock bus and the cycle core is required for pin-level board
-models. Any change to the decoder, addressing modes or ALU must be mirrored or
-independently re-verified in both; the Apple II board only proves the cycle
-core. Re-basing `mos_6502` as a wrapper over the cycle core remains open work
-(issue #60, review item C3).
+Decision: both stay. The functional core is instantiated by
+[`system/apple_iie`](../../system/apple_iie/src/apple_iie.sv) and the KIM-1
+boot bench in [`design/mos_6530`](../mos_6530/tb/tb_kim_boot.sv), so retiring it
+is a migration of those consumers, not a deletion. The cycle core is required
+for pin-level board models and is the only one the Apple II board proves.
+
+Any change to the decoder, addressing modes or ALU must be mirrored or
+independently re-verified in both; a defect can exist in one and not the other.
+Re-basing `mos_6502` as a wrapper over the cycle core, or replacing its
+consumers with the cycle core, remains open work (issue #60, review item C3).
