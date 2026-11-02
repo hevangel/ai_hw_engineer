@@ -9,3 +9,23 @@ Canonical issue: [#33](https://github.com/hevangel/ai_engineer/issues/33). One f
 | MOS 6510 | [#269](https://github.com/hevangel/ai_engineer/issues/269) | Planned; no tracked implementation found |
 
 Historical dates, source qualifications and verification limits remain in member READMEs and the [design index](../README.md). Different RTL models of one chip share its member issue. Shared Apple II package models are linked from their member profiles; no RTL is duplicated. A family grouping does not imply pin compatibility or common motherboard use. Generic/unknown parts remain explicit inventory gaps.
+
+## Model split
+
+`mos_6502` (functional bus, one transfer per clock) and `mos_6502/cycle`
+(physical bus, NMOS cycle behaviour) are independent implementations of the
+same chip. They share the member issue and the same external oracles — py65,
+the Klaus functional test and SingleStepTests vectors — but **no verification
+result is transferred between them**, so a decode or ALU defect can exist in
+one and not the other.
+
+Decision: both stay. The functional core is instantiated by
+[`system/apple_iie`](../../system/apple_iie/src/apple_iie.sv) and the KIM-1
+boot bench in [`design/mos_6530`](../mos_6530/tb/tb_kim_boot.sv), so retiring it
+is a migration of those consumers, not a deletion. The cycle core is required
+for pin-level board models and is the only one the Apple II board proves.
+
+Any change to the decoder, addressing modes or ALU must be mirrored or
+independently re-verified in both; a defect can exist in one and not the other.
+Re-basing `mos_6502` as a wrapper over the cycle core, or replacing its
+consumers with the cycle core, remains open work (issue #60, review item C3).

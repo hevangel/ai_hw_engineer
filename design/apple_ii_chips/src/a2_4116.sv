@@ -27,6 +27,15 @@ module a2_4116 #(parameter integer T_PD = 0) (
     // Refresh coverage is measured by system/apple_ii/tb/apple_ii_refresh_check.sv,
     // which records the gap between successive RAS accesses to each row.
     logic memory [0:16383];
+    // ASSUMPTION: every cell powers up as 0. Silicon powers up undefined; a
+    // defined pattern turns "uninitialized" into a known value so the board
+    // regressions can separate real undriven reads from cold memory. No test
+    // screen pattern or firmware content is injected through this path.
+    integer init_cell;
+    initial begin
+        for (init_cell = 0; init_cell < 16384; init_cell = init_cell + 1)
+            memory[init_cell] = 1'b0;
+    end
     logic [6:0] row, column;
     logic [6:0] address;
     logic cas_active, read_cycle, data_out;

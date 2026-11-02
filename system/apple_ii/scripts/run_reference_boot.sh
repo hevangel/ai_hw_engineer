@@ -9,7 +9,7 @@ iverilog -g2012 -s tb_rev0_boot -o work/boot.vvp \
     ../../design/apple_ii_chips/src/*.sv ../../design/apple_ii_chips/src/analog/*.sv \
     src/apple_ii_rev0_digital.sv src/apple_ii_rev0_peripherals.sv src/apple_ii_*output.sv src/apple_ii_rev0_reference.sv \
     board/reference_cpu_socket.sv board/a2_mos6502_reference.sv \
-    tb/apple_ii_refresh_check.sv tb/tb_rev0_boot.sv
+    tb/apple_ii_refresh_check.sv tb/tb_rev0_boot.sv tb/dram_write_check.sv
 vvp -Mwork -mcpu_reference work/boot.vvp >work/boot.log 2>&1 || { cat work/boot.log; exit 1; }
 cat work/boot.log
 grep -q 'PASS historical Monitor' work/boot.log

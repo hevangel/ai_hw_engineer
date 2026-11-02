@@ -31,3 +31,13 @@ check. Digital tests use Xezim; analog tests use Icarus. See
 The directed digital test generator is [generate_package_tests.py](scripts/generate_package_tests.py).
 It uses manufacturer truth tables as its oracle and board metadata for pin
 identities only; run it from any directory with Python 3.
+
+## Open model limit: 4116 write timing
+
+The 4116 model samples write data at the CAS-fall / WE-fall edge that starts the
+write (early-write or read-modify-write). `system/apple_ii/tb/dram_write_check.sv`
+now observes that edge at one device per bank and reports the measured data
+setup and hold margin. The Monitor boot measures 194.5 ns setup and 284.4 ns
+hold on C3; banks 1 and 2 see no Monitor writes. Passing the Mostek MK4116
+tDS/tDH values as `T_DS`/`T_DH` turns the monitor into the datasheet check
+(issue #60, review item P3).
