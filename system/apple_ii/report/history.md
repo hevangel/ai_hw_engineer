@@ -322,22 +322,21 @@ CPU and unmodified Monitor ROM in every row:
 
 | Timing set | Directed socket test | Monitor keyboard/CPU | Monitor frame comparison |
 |---|---|---|---|
-| legacy (5 ns, checked in) | pass | pass, 64,393 instructions, 4,516 unresolved reads | pass, pixel-exact |
-| datasheet typical | pass | pass, 64,394 instructions, 4,516 unresolved reads | rejected: line 0 sample 0, scan state 25/256 where the oracle has 24/256 |
-| datasheet maximum | fail: RAM row 0 read xx at 25.213729 ms | pass, 64,394 instructions, 4,516 unresolved reads | not compared by `run_timing_sim.sh`; the capture offset below applies to any non-zero delay |
+| legacy (5 ns, checked in) | pass | pass, 64,393 instructions, 2 unresolved reads | pass, pixel-exact |
+| datasheet typical | pass | pass, 64,394 instructions, 2 unresolved reads | rejected: capture is one sample out of phase (scan state 25/256 where the oracle has 24/256) |
+| datasheet maximum | pass, all three banks read at +472 ns after phi2 rise | pass, 64,394 instructions, 2 unresolved reads | not compared by the gate; same capture limit as typical |
 
 The Monitor deposit/examine result carries the weight: the unmodified firmware
 completes its keyboard, write and readback path while every characterized
 package carries its published worst-case delay, and the instruction count moves
-by one against the legacy run. The two remaining failures are harness limits,
-not board findings:
+by one against the legacy run. The remaining gap is a capture limit, not a board
+finding:
 
-1. `tb/tb_rev0_wiring.sv` changes address and data exactly at the phi0 rising
-   edge and samples after fixed 300 ns and 470 ns waits: a zero-setup,
-   zero-delay stimulus. It passes at typical delays and fails at maximum with
-   `RAM row 0 read xx`. Presenting address and data during the previous phase,
-   as a 6502 does, is required before that maximum-delay result says anything
-   about the board; it has not been reduced to a specific model error.
+1. `tb/tb_rev0_wiring.sv` now presents address and data during the previous
+   phase and samples read data at the phi2 falling edge, as a 6502 does. It
+   passes at legacy, typical and maximum delays; the maximum run reports the
+   measured arrival offset (+472 ns after phi2 rise) for each bank instead of a
+   fixed wait. That closes the directed-socket half of this item.
 2. `tb/tb_rev0_boot.sv` samples the pixel and scan counters 10 ns after the
    pixel flip-flop clock. That window is shorter than the 25 ns typical
    clock-to-Q of a 74LS74, so at any non-zero package delay the captured frame
@@ -347,9 +346,9 @@ not board findings:
 
 Consequently `run_all.sh` keeps legacy timing, and the datasheet gate is a
 separate, explicitly scoped run: `sh scripts/run_timing_sim.sh` covers the
-socket test at typical delays and the Monitor boot at typical and maximum
-delays. Its own summary line states the two open comparisons rather than
-hiding them behind a weaker check.
+directed socket test and the Monitor boot at typical and maximum delays. The
+frame comparison stays on the legacy board; the gate summary says so rather
+than hiding it behind a weaker check.
 ## DRAM refresh (30 October 2026, review item P2)
 
 The 4116 model retains data indefinitely, so the board's reliance on the video
