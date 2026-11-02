@@ -432,6 +432,10 @@ module intel_80286 #(
         halt_latch<=0; ss_shadow<=0; sti_shadow<=0;
         instruction_ss_shadow<=0; instruction_sti_shadow<=0;
         event_stack_active<=0;
+        // An exception or interrupt aborts any protected CALL-gate stack
+        // switch or IRET in progress; its flags must not steer delivery.
+        protected_call_stack_active<=0; protected_iret_active<=0;
+        iret_outer_active<=0;
         pending_sp<=gpr[4]-(msw[0] && error_present ? 16'd8 : 16'd6);
     endtask
     task automatic task_return_fault(input [7:0] vector,
@@ -3245,6 +3249,15 @@ module intel_80286 #(
                     task_switch_from_event<=0; task_return_active<=0;
                     task_switch_instruction<=0; task_switch_jump<=0; task_switch_nested<=0;
                     event_delivery_active<=0; event_stack_active<=0;
+                    // Intel 210498-005 9.6.2: NMI leaves shutdown once its
+                    // handler is entered without error; a task-gate NMI handler
+                    // commits here, not at EVENT_PROTECTED_COMMIT.
+                    if (shutdown_recovery_active && task_switch_from_event) begin
+                        shutdown_recovery_active<=1'b0;
+                        shutdown_nmi_failed<=1'b0;
+                        shutdown_pending<=1'b0;
+                        halt_latch<=1'b0;
+                    end
                     state<=BOUNDARY;
                     if (task_return_active || task_switch_instruction) begin
                         event_o<=0; retire_o<=1;

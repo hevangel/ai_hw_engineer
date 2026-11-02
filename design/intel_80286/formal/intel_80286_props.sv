@@ -117,7 +117,11 @@
                 assert(es_base=={4'h0,es,4'h0} && ss_base=={4'h0,ss,4'h0} && ds_base=={4'h0,ds,4'h0});
                 assert(cs_base=={4'h0,cs,4'h0} || (cs==16'hf000 && cs_base==24'hff0000));
             end
-            if (rst_n && $past(rst_n) && !retire_o && !event_o) begin
+            // Intel 210498-005 9.6.4: once the incoming TSS is accepted, a
+            // fault is handled in the new task, so the task-entry fault path
+            // publishes the validated incoming caches before delivery.
+            if (rst_n && $past(rst_n) && !retire_o && !event_o &&
+                !(state==EVENT_START && $past(task_switch_active))) begin
                 assert($stable(seg_bases_o) && $stable(seg_limits_o));
                 assert($stable(seg_access_o) && $stable(seg_valid_o));
             end
@@ -126,10 +130,20 @@
                 assert(halted_o && !fault_o && !retire_o && !bus_req_o);
                 assert(!core_bus_req && !descriptor_bus_req && !event_bus_req);
             end
-            if (rst_n && $past(rst_n && shutdown_o)) assert(shutdown_o);
+            // Shutdown is sticky except for the NMI exit (Intel 210498-005
+            // 9.6.2, 11.6): recovery may begin only on a selected NMI while
+            // NMI wakeups are still enabled.
+            if (rst_n && $past(rst_n && shutdown_o) && !shutdown_recovery_active)
+                assert(shutdown_o);
+            if (rst_n && $past(rst_n && shutdown_o) && shutdown_recovery_active)
+                assert($past(async_valid && async_vector==8'd2 && !shutdown_nmi_failed));
             if (halted_o || fault_o)
                 assert(!core_bus_req && !(descriptor_claim && descriptor_bus_req) && !event_bus_req);
             assert(!(cpu_bus_ready && event_bus_ready));
+            // The core ties the PEDC claim/request inputs of the bus owner to
+            // zero, so the PEDC never owns the bus. Stating this keeps
+            // induction from starting in an unreachable PEDC-owned state.
+            assert(bus_owner!=3 && !owner_pedc_grant);
             assert(core_bus_ready==(cpu_bus_ready || owner_descriptor_ready || event_bus_ready));
             assert(owner_cpu_grant==(bus_owner==0));
             assert(owner_descriptor_grant==(bus_owner==1));
@@ -141,6 +155,13 @@
             // EVENT ownership can remain during an in-flight beat or a quiet
             // release cycle after its request path deasserts. The bus-owner
             // component proves held-beat stability and release ordering.
+            // The core starts a descriptor engine from a *_START state and
+            // waits in CODE_LOAD_WAIT/SEGMENT_LOAD_WAIT until it is done, so a
+            // busy engine implies the core is in its wait state.
+            if (rst_n && code_load_busy)
+                assert(state==CODE_LOAD_WAIT && !segment_load_busy);
+            if (rst_n && segment_load_busy)
+                assert(state==SEGMENT_LOAD_WAIT && !code_load_busy);
             if (rst_n && bus_owner==1)
                 assert(descriptor_bus_path_active || state==STOPPED || descriptor_bus_req ||
                        code_load_busy || segment_load_busy || descriptor_release);
@@ -197,7 +218,13 @@
             // Later states include WAIT_BUSY, direct task-switch paths and
             // the ESC register save; ESC_REG_DONE is the highest encoding.
             assert(state <= ESC_REG_DONE);
-            assert(cs_trusted); // Real-mode prelude; protected CS commit must clear it.
+            // CS is untrusted only after a task-entry fault rejected the incoming
+            // CS cache (Intel 210498-005 9.6.4); the fault's own delivery then
+            // reloads CS. Real mode never clears it.
+            if (rst_n && !msw[0]) assert(cs_trusted);
+            if (rst_n && !cs_trusted)
+                assert(state==EVENT_START || state==STOPPED || state==SHUTDOWN ||
+                       event_delivery_active || task_switch_active || shutdown_pending);
             if (state==MEMORY_CHECK || state==BUS) begin
                 assert(memory_size>=1 && memory_size<=6);
                 assert(memory_remaining+memory_index==memory_size);
@@ -376,6 +403,22 @@
             if (rst_n && event_stack_active)
                 assert((state==STOPPED || event_delivery_path_state) &&
                        event_packet.valid && event_packet.protected_mode);
+            // Task-switch states after the target TSS is accepted are entered
+            // only once task_switch_active is set (event, direct CALL/JMP and
+            // task-return paths alike).
+            if (rst_n && (state==TASK_SWITCH_BACKLINK || state==TASK_SWITCH_SAVE ||
+                          state==TASK_SWITCH_SAVE_NEXT || state==TASK_SWITCH_LOAD ||
+                          state==TASK_SWITCH_LOAD_NEXT || state==TASK_SWITCH_COMMIT ||
+                          state==TASK_LDT_VALIDATE || state==TASK_CODE_START ||
+                          state==TASK_SEGMENT_START || state==TASK_ERROR_PUSH ||
+                          state==TASK_ENTRY_COMMIT ||
+                          (state==CODE_LOAD_WAIT && code_load_target==5) ||
+                          ((state==BUS || state==MEMORY_CHECK) &&
+                           (memory_return==TASK_SWITCH_BACKLINK || memory_return==TASK_SWITCH_SAVE ||
+                            memory_return==TASK_SWITCH_SAVE_NEXT || memory_return==TASK_SWITCH_LOAD ||
+                            memory_return==TASK_SWITCH_LOAD_NEXT || memory_return==TASK_LDT_VALIDATE ||
+                            memory_return==TASK_ENTRY_COMMIT))))
+                assert(task_switch_active);
             // The TSS stack-pair read is launched only after a privilege
             // change has marked this delivery as using the new stack.
             if (rst_n && (state==EVENT_TSS_PAIR || state==EVENT_STACK_SELECT ||
@@ -404,6 +447,15 @@
                        event_packet.saved_ss==$past(event_packet.saved_ss));
             if (rst_n && state==EVENT_FRAME_CHECK)
                 assert(!event_stack_active);
+            // The TSS stack belongs to one protected event delivery: it is set
+            // only after the handler CS loads and cleared with the delivery.
+            if (rst_n && event_stack_active && state!=STOPPED)
+                assert(event_delivery_active && !task_switch_active);
+            // An event delivery cannot overlap a protected CALL-gate stack
+            // switch or an IRET; entering the event abandons those transfers.
+            if (rst_n && event_delivery_active)
+                assert(!protected_call_stack_active && !protected_iret_active &&
+                       !iret_outer_active);
             if (rst_n && state==BUS &&
                 (memory_return==EVENT_FRAME_READY || memory_return==EVENT_FRAME_FLAGS ||
                  memory_return==EVENT_FRAME_CS || memory_return==EVENT_FRAME_IP ||
@@ -468,7 +520,10 @@
                         assert($stable(memory_kind) && $stable(memory_write) && $stable(memory_data));
                     end
                 end else begin
-                    if ($past(event_delivery_active || protected_iret_active)) begin
+                    if ($past(event_delivery_active || task_switch_active ||
+                              (protected_iret_active && !(msw[0] && data_reference_fault)))) begin
+                        // Table 7-4: a protected IRET source-stack fault is a
+                        // restartable #SS(0), not a stop.
                         assert(state==STOPPED && fault_code_o==3 && !core_bus_req);
                     end else begin
                         assert(state==EVENT_START && !event_packet.instruction_retired && !core_bus_req);
@@ -479,7 +534,8 @@
                 end
             end
             if (rst_n && $past(rst_n && state==MEMORY_CHECK && data_reference_fault)) begin
-                if ($past(event_delivery_active || protected_iret_active)) begin
+                if ($past(event_delivery_active || task_switch_active ||
+                          (protected_iret_active && !(msw[0] && data_reference_fault)))) begin
                     assert(state==STOPPED && fault_code_o==3);
                 end else begin
                     assert(event_packet.valid);
@@ -715,7 +771,11 @@
                 assert(string_op);
                 if (state!=STRING_START && repeat_valid) assert(gpr[1]!=0);
             end
-            if (rst_n && $past(rst_n) && !retire_o && !event_o && !element_o) begin
+            // The task-entry fault path loads the incoming task's registers,
+            // segments, flags, TR/LDTR and MSW.TS before delivering its fault
+            // (Intel 210498-005 9.6.4: handled in the new task).
+            if (rst_n && $past(rst_n) && !retire_o && !event_o && !element_o &&
+                !(state==EVENT_START && $past(task_switch_active))) begin
                 if (!$past(state==MEMORY_CHECK && msw[0] && !data_reference_allow &&
                            !event_delivery_active && !protected_iret_active &&
                            (ins_precheck_active ||
@@ -828,6 +888,14 @@
             if (rst_n && shutdown_recovery_active) begin
                 assert(shutdown_pending && !shutdown_o && !halted_o && !fault_o);
             end
+            // NMI recovery lasts only while that NMI is being delivered.
+            if (rst_n && shutdown_recovery_active)
+                // A task-gate NMI keeps event_delivery_active through the switch.
+                assert(state==EVENT_START || state==STOPPED || event_delivery_active);
+            // During recovery only the NMI itself can switch tasks (through an
+            // IDT task gate); no instruction executes until it commits.
+            if (rst_n && shutdown_recovery_active && task_switch_active)
+                assert(task_switch_from_event && !task_return_active);
             cover(shutdown_recovery_active && event_packet.valid &&
                   event_packet.protected_mode && event_packet.vector==2);
             cover(shutdown_nmi_failed && shutdown_pending && !shutdown_recovery_active);
@@ -860,14 +928,22 @@
             // limit first escalates to #DF; the dedicated invariant above
             // checks that transition. The stop assertion below covers the
             // #DF-gate failure and other non-escalating delivery failures.
+            // Shutdown handling precedes EVENT_START: a pending shutdown, or a
+            // failed NMI recovery that faulted into another vector, returns
+            // the core to SHUTDOWN instead of fetching the gate.
             if (rst_n && $past(rst_n && state==EVENT_START &&
                                event_packet.protected_mode &&
+                               !(shutdown_pending && (!shutdown_recovery_active ||
+                                                      event_packet.vector!=8'd2)) &&
                                !nested_df_idt_limit_escalation)) begin
                 if ($past(({6'h0,event_vector_o,3'b000}+17'd7)<={1'b0,idt_limit})) begin
                     assert(state==BUS && event_delivery_active && memory_return==EVENT_GATE_TAIL);
                     assert(memory_address==$past(idt_base)+{13'h0,$past(event_vector_o),3'b000});
                     assert(!memory_write && !memory_io && !memory_segmented);
                     assert(memory_kind==0 && memory_size==6 && memory_remaining==6 && memory_index==0);
+                end else if ($past(event_packet.restartable && event_packet.vector==8)) begin
+                    // 9.6.2: a violation while invoking #DF enters shutdown.
+                    assert(shutdown_pending && !retire_o && !event_o);
                 end else begin
                     assert(state==STOPPED && fault_code_o==3);
                     assert(ip==event_packet.saved_ip && !retire_o && !event_o);
