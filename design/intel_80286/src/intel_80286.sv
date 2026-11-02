@@ -108,6 +108,9 @@ module intel_80286 #(
         logic protected_mode;
         logic error_present;
         logic software_interrupt;
+        // Event external to the program (INTR, NMI, single step, #NM, #9,
+        // #MF): faults found while delivering it carry error-code EXT=1.
+        logic external;
         logic restartable;
         logic instruction_retired;
         logic [7:0] vector;
@@ -393,10 +396,22 @@ module intel_80286 #(
         event_packet.protected_mode<=msw[0];
         event_packet.error_present<=msw[0] && error_present;
         event_packet.software_interrupt<=1'b0;
+        // Intel 210498-005 App. B p. B-8: EXT is 1 if the exception was
+        // detected during an interrupt caused by an event external to the
+        // program; 0 for the regular instruction stream, INT n and other
+        // exceptions (p. B-50). Asynchronous events enter with neither
+        // retirement nor fault; #NM/#9/#MF are listed external in 9.4.
+        event_packet.external<=!instruction_retired &&
+            (!is_fault || vector==8'd7 || vector==8'd9 || vector==8'd16);
         event_packet.restartable<=is_fault;
         event_packet.instruction_retired<=instruction_retired;
         event_packet.vector<=vector;
-        event_packet.error_code<=error_code;
+        // A fault raised while an external event is still being delivered
+        // (gate, handler CS/SS, or incoming task through a task gate) sets
+        // EXT. The check units return EXT=0 codes; this is the one OR site.
+        event_packet.error_code<=error_code |
+            {15'd0, (event_delivery_active || task_switch_from_event) &&
+                    event_packet.valid && event_packet.external};
         event_packet.saved_cs<=cs;
         event_packet.saved_ip<=saved_ip;
         event_packet.saved_flags<=flags;

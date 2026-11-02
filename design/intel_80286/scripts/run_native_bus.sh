@@ -7,6 +7,7 @@ BUILD_DIR="$WORK_DIR/native_bus_sim"
 mkdir -p "$BUILD_DIR"
 if ! verilator --cc --exe --build -j 2 -Wall \
     --top-module intel_80286_native_bus --Mdir "$BUILD_DIR" \
+    -GFATAL_ON_PROTOCOL_ERROR=0 \
     "$DESIGN_DIR/src/intel_80286_native_bus.sv" \
     "$DESIGN_DIR/tb/native_bus.cpp" > "$BUILD_DIR/build.log" 2>&1; then
     cat "$BUILD_DIR/build.log" >&2

@@ -82,6 +82,8 @@ int main(int argc, char** argv) {
         b.period();
         check(!b.dut.ale_o && !b.dut.mrdc_n_o && b.dut.den_o && !b.dut.dt_r_o,
               "memory read did not assert MRDC/DEN with read direction in Tc");
+        check(b.dut.iorc_n_o && b.dut.mwtc_n_o && b.dut.iowc_n_o && b.dut.inta_n_o,
+              "memory read asserted a non-MRDC command");
         b.period();
         check(!b.dut.mrdc_n_o && b.dut.den_o,
               "memory-read command did not remain active through Tc");
@@ -96,6 +98,9 @@ int main(int argc, char** argv) {
         b.period();
         check(!b.dut.iorc_n_o && b.dut.den_o && !b.dut.dt_r_o,
               "I/O read decode failed");
+        // Review item 1: an I/O read must not also drive the memory command.
+        check(b.dut.mrdc_n_o && b.dut.mwtc_n_o && b.dut.iowc_n_o && b.dut.inta_n_o,
+              "I/O read asserted a non-IORC command");
         b.dut.cen_i = 0;
         b.dut.eval();
         check(b.dut.iorc_n_o && !b.dut.den_o,

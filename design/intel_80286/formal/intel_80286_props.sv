@@ -23,11 +23,26 @@
             state==CALL_STACK_WRITE_OLD_SP || state==CALL_STACK_WRITE_OLD_CS ||
             state==CALL_STACK_WRITE_RETURN || state==CALL_PARAM_READ ||
             state==CALL_PARAM_WRITE || state==CALL_PARAM_NEXT ||
-            state==CALL_GATE_COMMIT;
+            state==CALL_GATE_COMMIT || state==CALL_DESC_FINAL;
+        // Event delivery through a task gate stays active until
+        // TASK_ENTRY_COMMIT, so the task-switch path is part of it.
         event_delivery_path_state = protected_event_path_state ||
             state==EVENT_PROTECTED_COMMIT ||
-            (state==CODE_LOAD_WAIT && code_load_target==1) ||
-            (state==SEGMENT_LOAD_WAIT && segment_load_target==3) ||
+            state==TASK_GATE_TSS_TAIL || state==TASK_GATE_TSS_CHECK ||
+            state==TASK_SWITCH_BACKLINK || state==TASK_SWITCH_SAVE ||
+            state==TASK_SWITCH_SAVE_NEXT || state==TASK_SWITCH_LOAD ||
+            state==TASK_SWITCH_LOAD_NEXT || state==TASK_SWITCH_COMMIT ||
+            state==TASK_LDT_VALIDATE || state==TASK_CODE_START ||
+            state==TASK_SEGMENT_START || state==TASK_ERROR_PUSH ||
+            state==TASK_ENTRY_COMMIT ||
+            (state==CODE_LOAD_WAIT && (code_load_target==1 || code_load_target==5)) ||
+            (state==SEGMENT_LOAD_WAIT && (segment_load_target==3 || task_switch_active)) ||
+            ((state==BUS || state==MEMORY_CHECK) &&
+             (memory_return==TASK_GATE_TSS_TAIL || memory_return==TASK_GATE_TSS_CHECK ||
+              memory_return==TASK_SWITCH_BACKLINK || memory_return==TASK_SWITCH_SAVE ||
+              memory_return==TASK_SWITCH_SAVE_NEXT || memory_return==TASK_SWITCH_LOAD ||
+              memory_return==TASK_SWITCH_LOAD_NEXT || memory_return==TASK_LDT_VALIDATE ||
+              memory_return==TASK_ENTRY_COMMIT)) ||
             ((state==BUS || state==MEMORY_CHECK) &&
              (memory_return==EVENT_GATE_TAIL || memory_return==EVENT_GATE_VALIDATE ||
               memory_return==EVENT_TSS_PAIR || memory_return==EVENT_FRAME_READY ||
@@ -167,7 +182,10 @@
                 state == STRING_START || state == STRING_COMMIT || state==SYSTEM_DONE ||
                 state==SYSTEM_DESC_VALIDATE || state==SYSTEM_DESC_COMMIT ||
                 state==SYSTEM_QUERY_VALIDATE ||
-                state==CODE_LOAD_WAIT || state==SEGMENT_LOAD_WAIT || state==WAIT_BUSY)));
+                state==CODE_LOAD_WAIT || state==SEGMENT_LOAD_WAIT || state==WAIT_BUSY ||
+                // ESC register save and task entry retire after this list
+                // was first written.
+                state==ESC_REG_DONE || state==TASK_ENTRY_COMMIT)));
             if (state == SHIFT) assert(shift_remaining != 0);
             if (state == SHIFT) assert(shift_op);
             if (rst_n && $past(rst_n &&
@@ -176,9 +194,9 @@
                 assert(event_packet.saved_ip==$past(instruction_ip) && !retire_o);
                 assert($stable(regs_o) && $stable(flags_o));
             end
-            // Later states include WAIT_BUSY and direct task-switch paths;
-            // CALL_DESC_FINAL is the highest allocated state encoding.
-            assert(state <= CALL_DESC_FINAL);
+            // Later states include WAIT_BUSY, direct task-switch paths and
+            // the ESC register save; ESC_REG_DONE is the highest encoding.
+            assert(state <= ESC_REG_DONE);
             assert(cs_trusted); // Real-mode prelude; protected CS commit must clear it.
             if (state==MEMORY_CHECK || state==BUS) begin
                 assert(memory_size>=1 && memory_size<=6);
@@ -241,7 +259,15 @@
                 assert(cs==$past(cs) && cs_base==$past(cs_base));
                 assert(gpr[4]==$past(gpr[4]) && flags==$past(flags));
             end
-            if (rst_n && $past(rst_n && state==SEGMENT_LOAD_WAIT && segment_load_done && !segment_load_fault)) begin
+            // A task switch stages incoming segments in task_segment_* and
+            // publishes them only at TASK_ENTRY_COMMIT.
+            if (rst_n && $past(rst_n && state==SEGMENT_LOAD_WAIT && segment_load_done &&
+                               !segment_load_fault && task_switch_active))
+                assert(es==$past(es) && ss==$past(ss) && ds==$past(ds) &&
+                       es_base==$past(es_base) && ss_base==$past(ss_base) &&
+                       ds_base==$past(ds_base));
+            if (rst_n && $past(rst_n && state==SEGMENT_LOAD_WAIT && segment_load_done &&
+                               !segment_load_fault && !task_switch_active)) begin
                 case ($past(segment_load_target))
                     0: assert(es==$past(segment_load_selector) && es_base==$past(segment_load_base) &&
                               cache_valid[0]==$past(segment_load_cache_valid));
@@ -354,7 +380,7 @@
             // change has marked this delivery as using the new stack.
             if (rst_n && (state==EVENT_TSS_PAIR || state==EVENT_STACK_SELECT ||
                           (state==SEGMENT_LOAD_WAIT && event_delivery_active &&
-                           segment_load_target==3) ||
+                           !task_switch_active && segment_load_target==3) ||
                           ((state==BUS || state==MEMORY_CHECK) &&
                            memory_return==EVENT_TSS_PAIR)))
                 assert(event_stack_active);
@@ -580,7 +606,21 @@
                     memory_return == CALL_PARAM_READ || memory_return == CALL_PARAM_WRITE ||
                     memory_return == CALL_PARAM_NEXT ||
                    memory_return == SYSTEM_DONE ||
-                   memory_return == STRING_FIRST || memory_return == STRING_COMMIT);
+                   memory_return == STRING_FIRST || memory_return == STRING_COMMIT ||
+                   // Task-switch, ESC register-save and final call-gate
+                   // continuations added after this list was written.
+                   memory_return == CALL_DESC_FINAL ||
+                   memory_return == ESC_REG_IP || memory_return == ESC_REG_CS ||
+                   memory_return == ESC_REG_DONE ||
+                   memory_return == TASK_GATE_TSS_TAIL || memory_return == TASK_GATE_TSS_CHECK ||
+                   memory_return == TASK_LDT_VALIDATE || memory_return == TASK_ENTRY_COMMIT ||
+                   memory_return == TASK_RETURN_LINK_CHECK ||
+                   memory_return == TASK_RETURN_TSS_TAIL || memory_return == TASK_RETURN_TSS_CHECK ||
+                   memory_return == TASK_RETURN_CURRENT_ACCESS ||
+                   memory_return == TASK_SWITCH_BACKLINK ||
+                   memory_return == TASK_SWITCH_DIRECT_CURRENT_ACCESS ||
+                   memory_return == TASK_SWITCH_SAVE || memory_return == TASK_SWITCH_SAVE_NEXT ||
+                   memory_return == TASK_SWITCH_LOAD || memory_return == TASK_SWITCH_LOAD_NEXT);
             // Only a protected inter-level CALL gate reads a TSS stack pair.
             // Keep this continuation tied to its architectural owner so an
             // arbitrary BUS return code cannot fabricate a protected transfer.
@@ -591,7 +631,8 @@
                  memory_return==CALL_FRAME_READY || memory_return==CALL_STACK_WRITE_OLD_SP ||
                  memory_return==CALL_STACK_WRITE_OLD_CS || memory_return==CALL_STACK_WRITE_RETURN ||
                  memory_return==CALL_GATE_COMMIT || memory_return==CALL_PARAM_READ ||
-                 memory_return==CALL_PARAM_WRITE || memory_return==CALL_PARAM_NEXT))
+                 memory_return==CALL_PARAM_WRITE || memory_return==CALL_PARAM_NEXT ||
+                 memory_return==CALL_DESC_FINAL))
                 assert(msw[0]);
             // Outer stack returns are likewise owned by a live protected
             // IRET/RET, not by an arbitrary real-mode BUS return code.
@@ -689,7 +730,8 @@
                 assert($stable(idt_base) && $stable(idt_limit));
             end
             if (event_o) begin
-                assert($past(rst_n && (state==EVENT_COMMIT || state==EVENT_PROTECTED_COMMIT)));
+                assert($past(rst_n && (state==EVENT_COMMIT || state==EVENT_PROTECTED_COMMIT ||
+                                       state==TASK_ENTRY_COMMIT)));
                 if ($past(state==EVENT_PROTECTED_COMMIT && event_delivery_active &&
                     event_packet.protected_mode)) begin
                     assert(event_packet.valid && event_packet.protected_mode);
@@ -707,7 +749,9 @@
                         assert(ss==$past(event_new_ss_selector) &&
                                ss_base==$past(event_new_ss_base) && cache_valid[2]);
                     end else assert(ss==$past(ss) && ss_base==$past(ss_base));
-                end else assert((flags_o & 16'h0300)==0);
+                end else if (!$past(state==TASK_ENTRY_COMMIT))
+                    // A task-gate entry loads the incoming task's FLAGS.
+                    assert((flags_o & 16'h0300)==0);
             end
             if (retire_o && $past(rst_n && state==IRET_COMMIT)) begin
                 assert(cs==$past(code_load_selector) && cs_base==$past(iret_target_base));

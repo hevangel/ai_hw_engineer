@@ -40,7 +40,7 @@
     "cover": 3
   },
   "formal/intel_80286_event_control_props.sv": {
-    "assert": 13,
+    "assert": 12,
     "assume": 1,
     "cover": 7
   },
@@ -55,7 +55,7 @@
     "cover": 4
   },
   "formal/intel_80286_props.sv": {
-    "assert": 309,
+    "assert": 310,
     "assume": 1,
     "cover": 52
   },

@@ -6481,15 +6481,18 @@ static void protected_event_task_gate_fault_recovery() {
         uint16_t invalid_selector;
         uint16_t repaired_selector;
     };
+    // These incoming-task faults arise while an external INTR is being
+    // delivered through a task gate, so error-code bit 0 (EXT) is set:
+    // Intel 210498-005 App. B p. B-8 and Table 9-5 ("selector + EXT").
     const Fault faults[]={
-        {"null CS #TS",10,0x0000,0x0024,0x0000,0x0030},
-        {"wrong-type CS #TS",10,0x00c0,0x0024,0x00c0,0x0030},
-        {"not-present CS #NP",11,0x00a0,0x0024,0x00a0,0x0030},
-        {"null SS #SS",12,0x0000,0x0026,0x0000,0x0028},
-        {"not-present SS #SS",12,0x00a8,0x0026,0x00a8,0x0028},
-        {"not-present DS #NP",11,0x00b0,0x0028,0x00b0,0x0000},
-        {"not-present ES #NP",11,0x00b0,0x0022,0x00b0,0x0000},
-        {"wrong-type LDTR #TS",10,0x00b8,0x002a,0x00b8,0x0000}
+        {"null CS #TS",10,0x0001,0x0024,0x0000,0x0030},
+        {"wrong-type CS #TS",10,0x00c1,0x0024,0x00c0,0x0030},
+        {"not-present CS #NP",11,0x00a1,0x0024,0x00a0,0x0030},
+        {"null SS #SS",12,0x0001,0x0026,0x0000,0x0028},
+        {"not-present SS #SS",12,0x00a9,0x0026,0x00a8,0x0028},
+        {"not-present DS #NP",11,0x00b1,0x0028,0x00b0,0x0000},
+        {"not-present ES #NP",11,0x00b1,0x0022,0x00b0,0x0000},
+        {"wrong-type LDTR #TS",10,0x00b9,0x002a,0x00b8,0x0000}
     };
     constexpr uint16_t current_tss_selector=0x0068;
     constexpr uint16_t fault_tss_selector=0x0078;
