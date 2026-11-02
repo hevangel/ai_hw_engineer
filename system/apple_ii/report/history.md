@@ -394,8 +394,12 @@ never been written since power-up.
 (explicit ASSUMPTION in the model; no test screen or firmware content is
 injected). On the same Monitor gate the count falls to **2**, with the keyboard
 deposit/examine, the rendered frame and all 107,520 visible pixels unchanged.
-Both residual reads are at `$C054` and `$C056`: undriven soft-switch reads
-through the floating-bus boundary, not cold memory. The BASIC, cassette (both
+Both residual reads are at `$C054` and `$C056`: soft-switch reads of the video
+byte in the first 61 µs, before that byte has ever been valid. The 74LS174 video
+latches clock on RAS fall, where the 4116 is still driving the previous cycle's
+data or nothing at all; at power-up there is no previous byte, so the latch
+holds Z and the mux output is X. That is a power-up state, not cold memory and
+not a modelling escape hatch: the firmware ignores those two values. The BASIC, cassette (both
 polarities), floating-bus and authored-boot gates pass with the initialised
 array and report the same two residual reads.
 
