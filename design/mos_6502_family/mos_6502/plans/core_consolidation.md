@@ -31,12 +31,13 @@ other, and only the cycle core is proved by the Apple II board.
 
 ## Recommended order
 
-1. **Differential harness.** One Verilator binary instantiating both cores, one
-   shared vector source, comparison at each `fetch_o`. Start with the packed
-   SingleStepTests vectors the cycle core already consumes; extend to the Klaus
-   binary once the per-vector path is stable. Acceptance: identical
-   architectural state for every vector, and a deliberate injected decoder
-   fault is detected.
+1. **Differential harness — done.** `mos_6502/compare/` instantiates both cores
+   in one Verilator binary and compares PC/A/X/Y/SP/P plus memory contents at
+   every `fetch_o`. The directed phase covers 15 instructions and the Klaus
+   phase 30,646,183, both zero-divergence; `run.sh` runs in about 90 s and is
+   part of the functional core's `run_all.sh`. `negative_control.sh` corrupts
+   one read in core B and requires the comparison to fail, so the gate is
+   demonstrably non-vacuous.
 2. **Migrate the KIM-1 bench** (`design/mos_6530/tb/tb_kim_boot.sv`) to the
    cycle core. It is a single testbench, so this is the cheapest consumer to
    move and it exercises the real fixture path.
