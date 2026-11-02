@@ -35,9 +35,9 @@ identities only; run it from any directory with Python 3.
 ## Open model limit: 4116 write timing
 
 The 4116 model samples write data at the CAS-fall / WE-fall edge that starts the
-write (early-write or read-modify-write), but it does not check the device's
-data setup and hold windows around the later of CAS and WE. With per-part
-package delays now selectable, that margin is worth measuring: the next step is
-to add the datasheet tDS/tDH values from the Mostek MK4116 timing table to the
-model and fail a board gate when DIN moves inside them, the same way the refresh
-checker records row gaps (issue #60, review item P3).
+write (early-write or read-modify-write). `system/apple_ii/tb/dram_write_check.sv`
+now observes that edge at one device per bank and reports the measured data
+setup and hold margin. The Monitor boot measures 194.5 ns setup and 284.4 ns
+hold on C3; banks 1 and 2 see no Monitor writes. Passing the Mostek MK4116
+tDS/tDH values as `T_DS`/`T_DH` turns the monitor into the datasheet check
+(issue #60, review item P3).

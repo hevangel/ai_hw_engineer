@@ -36,6 +36,15 @@ module tb_rev0_boot;
                  dut.board.D12.p11,dut.board.D12.p12,dut.board.D12.p13,dut.board.D12.p14,dut.board.D13.p11};
     tri [7:0] latched={dut.board.B8.p7,dut.board.B8.p5,dut.board.B8.p12,dut.board.B8.p10,
                        dut.board.B5.p7,dut.board.B5.p5,dut.board.B5.p12,dut.board.B5.p10};
+    // Write-data margin monitors, one 4116 per bank. T_DS/T_DH stay 0 here so
+    // the run reports the measured margin; pass the datasheet values once
+    // they are sourced (review item P3).
+    dram_write_check margin_c3(.ras_n(dut.board.C3.p4), .cas_n(dut.board.C3.p15),
+        .we_n(dut.board.C3.p3), .din(dut.board.C3.p2));
+    dram_write_check margin_d3(.ras_n(dut.board.D3.p4), .cas_n(dut.board.D3.p15),
+        .we_n(dut.board.D3.p3), .din(dut.board.D3.p2));
+    dram_write_check margin_e3(.ras_n(dut.board.E3.p4), .cas_n(dut.board.E3.p15),
+        .we_n(dut.board.E3.p3), .din(dut.board.E3.p2));
     // All eight banks share RAS and the row address, so one checker covers the
     // board's refresh interlock. Row coverage is asserted; the margin against
     // the 2 ms device limit is reported because the measured worst gap exceeds
@@ -114,6 +123,16 @@ module tb_rev0_boot;
                  refresh_check.rows_seen, refresh_check.accesses,
                  refresh_check.worst, refresh_check.violations);
         if(refresh_check.rows_seen != 128) $fatal(1,"DRAM refresh did not cover all 128 rows");
+        $display("WRITE MARGIN C3 edges=%0d setup_min=%0.3f ns hold_min=%0.3f ns",
+                 margin_c3.edges, margin_c3.min_setup, margin_c3.min_hold);
+        $display("WRITE MARGIN D3 edges=%0d setup_min=%0.3f ns hold_min=%0.3f ns",
+                 margin_d3.edges, margin_d3.min_setup, margin_d3.min_hold);
+        $display("WRITE MARGIN E3 edges=%0d setup_min=%0.3f ns hold_min=%0.3f ns",
+                 margin_e3.edges, margin_e3.min_setup, margin_e3.min_hold);
+        if (margin_c3.setup_violations || margin_c3.hold_violations ||
+            margin_d3.setup_violations || margin_d3.hold_violations ||
+            margin_e3.setup_violations || margin_e3.hold_violations)
+            $fatal(1, "DRAM write data moved inside the configured setup/hold window");
         $display("PASS historical Monitor keyboard deposit/examine through chip wiring; instructions=%0d unknown read samples=%0d",instructions,unknown_reads);
         $finish;
     end

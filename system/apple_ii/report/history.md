@@ -422,3 +422,17 @@ original firmware, after the DRAM power-up change. The full READ command gate
 passed all four polarity/checksum variants, each with six payload bytes and six
 readbacks. Under Icarus each variant is an hour-scale run; the whole gate takes
 several hours.
+
+## 4116 write-data margin (1 November 2026, review item P3)
+
+`tb/dram_write_check.sv` observes RAS/CAS/WE/DIN at one 4116 per bank and
+records the edge the device actually uses for the write: CAS fall with WE
+already low, or WE fall with CAS already low. The Monitor boot reports 10,015
+write edges on C3 with a worst-case data setup of **194.5 ns** and hold of
+**284.4 ns**. D3 and E3 record no edges because the Monitor region lives in the
+first bank.
+
+These are measured margins under the model's own delays (legacy 5 ns), not
+datasheet limits: `T_DS`/`T_DH` default to 0 and the monitor fails the run only
+when data moves inside the configured window. Supplying the Mostek MK4116
+timing table turns it into the datasheet check.
