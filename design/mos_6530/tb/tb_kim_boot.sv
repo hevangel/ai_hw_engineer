@@ -61,11 +61,15 @@ module tb_kim_boot;
         .pc_o(pc), .status_o(status), .a_o(a), .x_o(x), .y_o(y), .s_o(sp)
     );
 `else
+    // Default: the physical-bus cycle core (review item C3). It boots the same
+    // original monitor with the same exact fetch sequence; the functional core
+    // remains available through the other CPU_* variants and apple_iie.
     assign jammed = 0;
-    mos_6502 cpu (
-        .clk, .rst_n, .bus_addr, .bus_data_i, .bus_data_o, .bus_we,
-        .irq_n(1'b1), .nmi_n(1'b1), .fetch_o(fetch), .fault_o(fault),
-        .pc_o(pc), .status_o(status), .a_o(a), .x_o(x), .y_o(y), .s_o(sp)
+    mos_6502_cycle cpu (
+        .clk, .rst_n, .res_n(1'b1), .irq_n(1'b1), .nmi_n(1'b1), .rdy(1'b1), .so_n(1'b0),
+        .bus_addr, .bus_data_i, .bus_data_o, .bus_we,
+        .fetch_o(fetch), .fault_o(fault),
+        .pc_o(pc), .status_o(status), .a_o(a), .x_o(x), .y_o(y), .sp_o(sp)
     );
 `endif
     mos_6530_kim chip_2 (
