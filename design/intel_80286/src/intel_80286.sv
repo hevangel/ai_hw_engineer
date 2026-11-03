@@ -451,6 +451,36 @@ module intel_80286 #(
             enter_event(vector,instruction_ip,1'b0,1'b1,1'b1,error_code);
         end
     endtask
+    // A protection fault found while invoking the handler for the event in
+    // event_packet (IDT entry, gate, handler CS, TSS stack or frame), before
+    // any architectural state changes. Intel 210498-005 9.6.2 (page 9-10):
+    // a second fault while delivering #DE/#TS/#NP/#SS/#GP becomes #DF, a
+    // violation while delivering #DF shuts down, and other events (1-7, 9,
+    // 16, INTR, INT n) take the new fault directly. EXT comes from the event
+    // being delivered (App. B pages B-8/B-50). A software interrupt's fault
+    // points at the INT instruction; other events keep their saved address.
+    task automatic delivery_fault(input [7:0] vector, input [15:0] error_code);
+        begin
+            event_delivery_active<=0;
+            if (event_packet.protected_mode && event_packet.restartable &&
+                event_packet.vector==8) begin
+                request_shutdown();
+            end else if (event_packet.protected_mode && event_packet.restartable &&
+                (event_packet.vector==0 || event_packet.vector==10 ||
+                 event_packet.vector==11 || event_packet.vector==12 ||
+                 event_packet.vector==13)) begin
+                event_packet.vector<=8;
+                event_packet.error_present<=1'b1;
+                event_packet.error_code<=16'd0;
+                event_packet.restartable<=1'b1;
+                event_packet.instruction_retired<=1'b0;
+            end else begin
+                enter_event(vector,
+                    event_packet.instruction_retired ? instruction_ip : event_packet.saved_ip,
+                    1'b0,1'b1,1'b1,error_code | {15'd0,event_packet.external});
+            end
+        end
+    endtask
     task automatic task_entry_fault_context(input [7:0] vector,
                                              input [15:0] error_code);
         reg [15:0] incoming_flags;
@@ -1169,6 +1199,10 @@ module intel_80286 #(
         .event_valid_o(async_valid),.event_vector_o(async_vector),.event_ready_i(async_poll),
         .nmi_pending_o(nmi_pending_o),.nmi_blocked_o(nmi_blocked_o));
 
+    // Call-site wrapper: the state, retire, stack and IP updates stay in
+    // the sequencer process (Verilator MULTIDRIVEN otherwise flags them).
+    `define I286_DELIVERY_FAULT(V,E) begin delivery_fault(V,E); state<=EVENT_START; \
+        retire_o<=0; event_stack_active<=0; ip<=event_packet.saved_ip; end
     always_ff @(posedge clk) begin
         if (!rst_n) begin
             state <= BOUNDARY;
@@ -1496,6 +1530,12 @@ module intel_80286 #(
                             state<=EVENT_START; retire_o<=0;
                             protected_iret_active<=0; iret_outer_active<=0;
                             iret_outer_preflight_done<=0; iret_outer_ss_ready<=0;
+                        end else if (event_delivery_active && !task_switch_active &&
+                                     !protected_iret_active && data_reference_fault &&
+                                     msw[0]) begin
+                            // A frame write outside the handler stack limit
+                            // during protected delivery: #SS(0)+EXT (B-49).
+                            `I286_DELIVERY_FAULT(data_reference_vector,data_reference_error)
                         end else if (event_delivery_active || protected_iret_active || task_switch_active) begin
                             // Delivery/return failure escalation is outside the
                             // bounded ring-0 slice. Keep it visible and never
@@ -2000,9 +2040,17 @@ module intel_80286 #(
                             enter_event(13,instruction_ip,1'b0,1'b1,1'b1,ret_saved_cs & 16'hfffc);
                             protected_ret_active<=0; ret_outer_active<=0;
                             state<=EVENT_START; retire_o<=0;
+                        end else if (code_load_target==1 &&
+                                     (code_load_fault || code_load_special)) begin
+                            // App. B page B-49 handler CS checks: null is
+                            // #GP(EXT), table/type/privilege #GP(sel+EXT),
+                            // not present #NP(sel+EXT), IP limit #GP(0).
+                            `I286_DELIVERY_FAULT(code_load_fault ? code_load_fault_vector : 8'd13,
+                                           code_load_fault ? code_load_fault_error :
+                                               (event_pointer[31:16]&16'hfffc))
                         end else begin
-                            // Nested delivery and invalid protected return
-                            // escalation remain explicit unsupported stops.
+                            // Internal request mismatches and invalid protected
+                            // return escalation remain explicit stops.
                             event_delivery_active<=0; protected_iret_active<=0;
                             task_switch_active<=0; task_switch_from_event<=0;
                             task_return_active<=0;
@@ -2019,11 +2067,10 @@ module intel_80286 #(
                             if (!tr_valid || code_load_selector[1:0]>2 ||
                                 ({1'b0,(16'd2+{12'd0,code_load_selector[1:0],2'b00})}+17'd3)>
                                     {1'b0,tr_limit}) begin
-                                // Faults while entering the handler require
-                                // nested-fault escalation, not recursive IVT entry.
-                                event_stack_active<=0; event_delivery_active<=0;
-                                state<=STOPPED; fault_code_o<=3;
-                                ip<=event_packet.saved_ip; retire_o<=0;
+                                // ASSUMPTION: A28. A current TSS too short to
+                                // hold the inner SS:SP pair is #TS(TR selector);
+                                // the 286 text gives no rule for this case.
+                                `I286_DELIVERY_FAULT(8'd10,tr_selector&16'hfffc)
                             end else begin
                                 memory_start(1'b0,2'd0,16'd0,
                                     tr_base+{8'd0,16'd2+{12'd0,code_load_selector[1:0],2'b00}},
@@ -2161,11 +2208,11 @@ module intel_80286 #(
                         end
                     end else if (segment_load_fault) begin
                         if (segment_load_target==3 && event_stack_active) begin
-                            // A fault while validating the TSS-selected event
-                            // stack needs nested-fault escalation.
-                            event_stack_active<=0; event_delivery_active<=0;
-                            state<=STOPPED; fault_code_o<=3;
-                            ip<=event_packet.saved_ip; retire_o<=0;
+                            // App. B page B-49 inner-stack checks: invalid
+                            // SS is #TS(SS selector+EXT), not present is
+                            // #SS(SS selector+EXT).
+                            `I286_DELIVERY_FAULT(segment_load_fault_vector==8'd12 ? 8'd12 : 8'd10,
+                                           segment_load_fault_error)
                         end else begin
                             if (segment_load_target==2 && iret_outer_active)
                                 // Table 7-4 classifies every rejected outer
@@ -2189,11 +2236,12 @@ module intel_80286 #(
                             (segment_load_access[2] ?
                                 (event_tss_stack_sp-(event_packet.error_present ? 16'd12 : 16'd10)) <= segment_load_limit :
                                 (event_tss_stack_sp-16'd1) > segment_load_limit)) begin
-                            // The stack cannot hold the complete event frame.
-                            // Escalation is not yet implemented; expose a stop.
-                            event_stack_active<=0; event_delivery_active<=0;
-                            state<=STOPPED; fault_code_o<=3;
-                            ip<=event_packet.saved_ip; retire_o<=0;
+                            // App. B page B-49: the new stack must have room
+                            // for the frame, else #SS(0).
+                            if (!segment_load_cache_valid)
+                                `I286_DELIVERY_FAULT(8'd10,segment_load_selector&16'hfffc)
+                            else
+                                `I286_DELIVERY_FAULT(8'd12,16'd0)
                         end else begin
                             event_new_ss_selector<=segment_load_selector;
                             event_new_ss_base<=segment_load_base;
@@ -2801,27 +2849,8 @@ module intel_80286 #(
                     task_switch_instruction<=0; task_switch_jump<=0;
                     if (event_packet.protected_mode) begin
                         if (({6'h0,event_vector_o,3'b000}+17'd7)>{1'b0,idt_limit}) begin
-                            // Intel 210498-005 §9.6.2: an IDT-limit #GP while
-                            // invoking #DE/#TS/#NP/#SS/#GP becomes #DF; a
-                            // second protection violation during #DF shuts down.
-                            if (event_packet.restartable && event_packet.vector==8) begin
-                                request_shutdown();
-                            end else if (event_packet.restartable &&
-                                (event_packet.vector==0 || event_packet.vector==10 ||
-                                 event_packet.vector==11 || event_packet.vector==12 ||
-                                 event_packet.vector==13)) begin
-                                event_packet.vector<=8;
-                                event_packet.error_present<=1'b1;
-                                event_packet.error_code<=16'd0;
-                                event_packet.restartable<=1'b1;
-                                event_packet.instruction_retired<=1'b0;
-                                event_delivery_active<=0; event_stack_active<=0;
-                                state<=EVENT_START; retire_o<=0;
-                                ip<=event_packet.saved_ip;
-                            end else begin
-                                event_delivery_active<=0; state<=STOPPED; fault_code_o<=3;
-                                retire_o<=0; ip<=event_packet.saved_ip;
-                            end
+                            // App. B page B-49: #GP(vector*8+2+EXT).
+                            `I286_DELIVERY_FAULT(8'd13,{5'd0,event_packet.vector,3'b010})
                         end else begin
                             event_delivery_active<=1; event_stack_active<=0; event_gate<=0;
                             memory_start(1'b0,2'd0,16'd0,
@@ -2864,54 +2893,34 @@ module intel_80286 #(
                     state<=EVENT_GATE_CHECK;
                 end
                 EVENT_GATE_CHECK: begin
+                    // App. B pages B-49/B-50 check order: gate type, INT
+                    // gate DPL, gate presence, then the gate's target.
+                    // The reserved-field checks keep the existing policy
+                    // (see ASSUMPTION A26 for the analogous direct path).
                     if (event_gate[39:32]!=0 || event_gate[44] ||
                         (event_gate[43:40]!=4'h5 && event_gate[43:40]!=4'h6 &&
                          event_gate[43:40]!=4'h7) ||
-                        !event_gate[47] || event_gate[63:48]!=0 ||
+                        event_gate[63:48]!=0 ||
                         (event_packet.protected_mode && event_packet.restartable &&
                          event_packet.vector==8 && event_gate[43:40]!=4'h5)) begin
-                        if (event_packet.protected_mode && event_packet.restartable &&
-                            event_packet.vector==8) request_shutdown();
-                        else if (event_packet.protected_mode && event_packet.restartable &&
-                                 (event_packet.vector==0 || event_packet.vector==10 ||
-                                  event_packet.vector==11 || event_packet.vector==12 ||
-                                  event_packet.vector==13)) begin
-                            // A protection fault while validating the first
-                            // handler gate is the second fault in §9.6.2.
-                            event_packet.vector<=8;
-                            event_packet.error_present<=1'b1;
-                            event_packet.error_code<=16'd0;
-                            event_packet.restartable<=1'b1;
-                            event_packet.instruction_retired<=1'b0;
-                            event_delivery_active<=0; event_stack_active<=0;
-                            state<=EVENT_START; retire_o<=0;
-                            ip<=event_packet.saved_ip;
-                        end
-                        else begin
-                            event_delivery_active<=0; state<=STOPPED; fault_code_o<=3;
-                            retire_o<=0; ip<=event_packet.saved_ip;
-                        end
+                        `I286_DELIVERY_FAULT(8'd13,{5'd0,event_packet.vector,3'b010})
                     end else if (event_packet.software_interrupt &&
                                  cs[1:0]>event_gate[46:45]) begin
                         // INT n/INT3/INTO check the IDT gate DPL. Exceptions
                         // and external events ignore it (Intel 210498-005 §9.4).
-                        event_delivery_active<=0;
-                        enter_event(13,instruction_ip,1'b0,1'b1,1'b1,
-                                    {5'd0,event_packet.vector,3'b010});
-                        state<=EVENT_START; retire_o<=0;
+                        `I286_DELIVERY_FAULT(8'd13,{5'd0,event_packet.vector,3'b010})
+                    end else if (!event_gate[47]) begin
+                        `I286_DELIVERY_FAULT(8'd11,{5'd0,event_packet.vector,3'b010})
                     end else if (event_gate[43:40]==4'h5) begin
                         // Resolve the task gate's GDT TSS descriptor before
-                        // making any task-state or busy-bit write.
+                        // making any task-state or busy-bit write. App. B
+                        // page B-49: a local or out-of-limit TSS selector is
+                        // #GP(TSS selector).
                         if (event_gate[15:0]!=0 || event_gate[31:18]==0 ||
                             event_gate[18] ||
                             ({1'b0,{event_gate[31:19],3'b000}}+17'd7)>
                                 {1'b0,gdt_limit}) begin
-                            if (event_packet.protected_mode && event_packet.restartable &&
-                                event_packet.vector==8) request_shutdown();
-                            else begin
-                                event_delivery_active<=0; state<=STOPPED; fault_code_o<=3;
-                                retire_o<=0; ip<=event_packet.saved_ip;
-                            end
+                            `I286_DELIVERY_FAULT(8'd13,event_gate[31:16]&16'hfffc)
                         end else begin
                             event_task_descriptor_address<=gdt_base+
                                 {8'd0,event_gate[31:19],3'b000};
@@ -2948,37 +2957,20 @@ module intel_80286 #(
                             task_switch_active<=0; task_switch_instruction<=0;
                             task_switch_jump<=0; task_switch_nested<=0;
                             state<=EVENT_START; retire_o<=0;
-                        end else if (event_packet.protected_mode && event_packet.restartable &&
-                            event_packet.vector==8) request_shutdown();
-                        else if (event_packet.protected_mode && event_packet.restartable &&
-                            (event_packet.vector==0 || event_packet.vector==10 ||
-                             event_packet.vector==11 || event_packet.vector==12 ||
-                             event_packet.vector==13)) begin
-                            // A target-TSS protection fault while dispatching a
-                            // contributory exception is the second §9.6.2
-                            // fault. Select #DF before entering STOPPED.
-                            event_packet.vector<=8;
-                            event_packet.error_present<=1'b1;
-                            event_packet.error_code<=16'd0;
-                            event_packet.restartable<=1'b1;
-                            event_packet.instruction_retired<=1'b0;
-                            event_delivery_active<=0; event_stack_active<=0;
-                            state<=EVENT_START; retire_o<=0;
-                            ip<=event_packet.saved_ip;
-                        end
-                        else begin
-                            event_delivery_active<=0; state<=STOPPED; fault_code_o<=3;
-                            retire_o<=0; ip<=event_packet.saved_ip;
+                        end else begin
+                            // Table 8-1 order: not present is #NP(TSS), busy
+                            // is #GP(TSS), limit below 43 is #TS(TSS). App. B
+                            // page B-50 makes any non-available-TSS type #GP.
+                            `I286_DELIVERY_FAULT(!event_task_access[7] ? 8'd11 :
+                                           event_task_access[4:0]!=5'b00001 ? 8'd13 : 8'd10,
+                                           event_task_selector&16'hfffc)
                         end
                     end else if (task_switch_instruction) begin
                         state<=TASK_SWITCH_DIRECT_CURRENT_START; retire_o<=0;
                     end else if (!tr_valid || tr_limit<16'h002b) begin
-                        if (event_packet.protected_mode && event_packet.restartable &&
-                            event_packet.vector==8) request_shutdown();
-                        else begin
-                            event_delivery_active<=0; state<=STOPPED; fault_code_o<=3;
-                            retire_o<=0; ip<=event_packet.saved_ip;
-                        end
+                        // The outgoing task image cannot be saved; report
+                        // the current TSS as the direct task switch does.
+                        `I286_DELIVERY_FAULT(8'd10,tr_selector&16'hfffc)
                     end else begin
                         // 286 SWITCH_TASKS marks the available target busy
                         // before saving the current task's dynamic image.
@@ -3211,14 +3203,14 @@ module intel_80286 #(
                         (task_segment_access[2][2] ?
                             (task_state_image[6]-16'd2)<=task_segment_limit[2] :
                             (task_state_image[6]-16'd1)>task_segment_limit[2])) begin
-                        if (event_packet.protected_mode && event_packet.restartable &&
-                            event_packet.vector==8) request_shutdown();
-                        else begin
-                            event_delivery_active<=0; task_switch_active<=0;
-                            task_switch_from_event<=0; task_return_active<=0;
-                            state<=STOPPED; fault_code_o<=3;
-                            ip<=event_packet.saved_ip; retire_o<=0;
-                        end
+                        // App. B page B-50: after SWITCH_TASK the error-code
+                        // push needs two bytes of the incoming stack, else
+                        // #SS(0) in the incoming task (9.6.4: after the TSS is
+                        // verified, errors are handled in the new task).
+                        task_entry_fault_context(8'd12,16'd0);
+                        event_delivery_active<=0; task_switch_active<=0;
+                        task_switch_from_event<=0; task_return_active<=0;
+                        state<=EVENT_START; retire_o<=0;
                     end else begin
                         pending_sp<=task_state_image[6]-16'd2;
                         memory_start(1'b0,2'd0,16'd0,
@@ -3284,8 +3276,8 @@ module intel_80286 #(
                 end
                 EVENT_FRAME_CHECK: if (owner_event_grant) begin
                     if (event_packet.saved_sp<(event_packet.error_present ? 16'd8 : 16'd6)) begin
-                        event_delivery_active<=0; state<=STOPPED; fault_code_o<=3;
-                        retire_o<=0; ip<=event_packet.saved_ip;
+                        // App. B page B-49 same-level frame room: #SS(0).
+                        `I286_DELIVERY_FAULT(8'd12,16'd0)
                     end else begin
                         memory_start(1'b1,2,
                             event_packet.saved_sp-(event_packet.error_present ? 16'd8 : 16'd6),24'd0,
@@ -3464,4 +3456,5 @@ module intel_80286 #(
 `ifdef FORMAL
     `include "intel_80286_props.sv"
 `endif
+`undef I286_DELIVERY_FAULT
 endmodule

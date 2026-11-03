@@ -94,6 +94,10 @@ exclusivity, PE stickiness, shutdown precedence, `cs_trusted`), and several
 stale properties were corrected (NMI exit from shutdown, #DF IDT-limit
 shutdown, task-entry fault context, IRET #SS(0)). Property count: 340.
 
+## Event-delivery development stops replaced (2026-11-02)
+
+Fourteen protected-mode handler-invocation checks that stopped the core (`STOPPED`, `fault_code_o=3`) now raise the Intel-specified exception: a fault while delivering #DE/#TS/#NP/#SS/#GP becomes #DF, a fault while delivering #DF shuts down, and other events take #GP/#NP/#TS/#SS with App. B error codes plus EXT (210498-005 9.6.2, App. B B-49/B-50, Table 8-1). ASSUMPTION A28 covers a current TSS too short for the inner SS:SP pair. New directed tests: `protected_event_delivery_faults` (10 runs), the empty-IDT #UD to #GP to #DF to shutdown decode case, and `protected_shutdown_nmi_task_gate_recovery` (fails with the task-gate NMI fix reverted). Both shutdown-NMI tests now run in the default list. `run_sim.sh` 221 PASS, exit 0; AT BIOS native and timer runs pass against Unicorn.
+
 Status: induction is not yet closed; run 42 still fails on an unstated fact
 (the `0F` continuation list). The `cover` task (depth 64) has reached 45 of 89
 covers after 22 hours at step 33. This remains bounded evidence, not a proof.

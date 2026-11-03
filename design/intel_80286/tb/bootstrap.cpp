@@ -2330,15 +2330,28 @@ static void protected_selector_opcode_decode() {
             b.accepted.clear();
             b.data_transfers.clear();
             const unsigned retired_before=b.retired;
-            for (unsigned cycle=0;cycle<10000 && !b.d.fault_o;++cycle) b.tick(wait);
-            check(b.d.fault_o && b.d.fault_code_o==3 && b.d.ip_o==0x0200 && !b.d.retire_o,
-                  "selector opcode did not stop visibly at its first byte");
-            check(b.retired==retired_before && b.data_transfers.size()==8,
-                  "selector opcode retired or did not read exactly its invalid protected #UD gate");
-            for (unsigned i=0;i<8;++i)
+            // The IDT is empty. Intel 210498-005 App. B page B-49: the null
+            // #UD gate is #GP(6*8+2); #UD is not contributory, so #GP is
+            // delivered (9.6.2). Its null gate is a second fault while
+            // delivering #GP, so #DF follows; the null #DF gate shuts down.
+            for (unsigned cycle=0;cycle<10000 && !b.d.shutdown_o && !b.d.fault_o;++cycle)
+                b.tick(wait);
+            check(b.d.shutdown_o && !b.d.fault_o && !b.d.retire_o,
+                  "selector opcode with an empty IDT did not shut down via #GP and #DF");
+            check(b.retired==retired_before,
+                  "selector opcode retired before its #UD delivery");
+            if (b.data_transfers.size()!=24) {
+                std::cerr<<"transfers="<<b.data_transfers.size()<<":";
+                for (const auto& t:b.data_transfers) std::cerr<<' '<<std::hex<<t.address<<std::dec;
+                std::cerr<<'\n';
+            }
+            check(b.data_transfers.size()==24,
+                  "empty-IDT #UD did not read exactly the #UD, #GP and #DF gates");
+            const uint32_t gate_order[3]={6,13,8};
+            for (unsigned i=0;i<24 && i<b.data_transfers.size();++i)
                 check(!b.data_transfers[i].write &&
-                      b.data_transfers[i].address==kIdtBase+6*8+i,
-                      "invalid protected #UD delivery accessed an operand or another descriptor");
+                      b.data_transfers[i].address==kIdtBase+gate_order[i/8]*8+(i%8),
+                      "empty-IDT #UD delivery accessed an operand or another descriptor");
             check(b.accepted.size()==test.bytes.size(),
                   "selector opcode did not fetch its complete ModR/M/displacement encoding");
             for (std::size_t i=0;i<test.bytes.size();++i)
@@ -2346,8 +2359,9 @@ static void protected_selector_opcode_decode() {
                       "selector opcode fetched an unexpected byte/address");
             if (test.invalid_group) {
                 check(b.d.event_packet_valid_o && b.d.event_packet_protected_o &&
-                      b.d.event_vector_o==6,
-                      "invalid SLDT group did not enter the protected #UD diagnostic path");
+                      b.d.event_vector_o==8 && b.d.event_packet_error_code_o==0 &&
+                      b.d.event_packet_saved_ip_o==0x0200,
+                      "invalid SLDT group did not escalate #UD -> #GP -> #DF at its first byte");
             } else {
                 check(!b.d.event_packet_valid_o,
                       "valid unimplemented selector instruction was misclassified as #UD");
@@ -2357,7 +2371,7 @@ static void protected_selector_opcode_decode() {
             throw std::runtime_error(std::string("80286 protected selector decode ")+test.label+": "+error.what());
         }
     }
-    std::cout<<"PASS: "<<runs<<" invalid protected selector-group encodings raise #UD\n";
+    std::cout<<"PASS: "<<runs<<" invalid protected selector-group encodings raise #UD and, with an empty IDT, escalate through #GP and #DF to shutdown\n";
 }
 
 static void protected_mode_boot(Bench& b, bool wait) {
@@ -6240,6 +6254,135 @@ static void protected_event_ring12_async_delivery(bool nmi_mode) {
              <<" cases ignore DPL-0 gate restrictions, switch through TSS, write exact no-error outer frames and IRET to the exact successor in both READY modes\n";
 }
 
+// Faults found while invoking a protected handler. Expected vectors, error
+// codes and saved addresses come from Intel 210498-005 App. B pages B-49/B-50
+// (INT pseudo-code, EXT note) and 9.6.2 (page 9-10), not from the RTL.
+static void protected_event_delivery_faults() {
+    using namespace protected_mode_fixture;
+    struct Case {
+        const char* name;
+        bool software;          // INT 4 at 0208 instead of INTR after NOP
+        uint8_t intr_vector;
+        std::vector<uint8_t> gate;  // descriptor for the first vector
+        uint16_t sp;
+        bool shutdown;
+        uint8_t handler_vector;
+        uint16_t error;
+        uint16_t saved_ip;
+        std::vector<uint32_t> gate_reads;  // IDT vectors read, 8 bytes each
+    };
+    const std::vector<Case> cases={
+        // External INTR, not-present gate: #NP(vector*8+2+EXT).
+        {"INTR not-present gate",false,4,{0x00,0x03,0x30,0x00,0x00,0x06,0x00,0x00},
+         0x0080,false,11,0x0023,0x0208,{4,11}},
+        // INT n, gate type 0: #GP(vector*8+2), EXT=0, saved IP at the INT.
+        {"INT n invalid gate type",true,4,{0x00,0x03,0x30,0x00,0x00,0x80,0x00,0x00},
+         0x0080,false,13,0x0022,0x0208,{4,13}},
+        // External INTR beyond the IDT limit (6Fh): #GP(vector*8+2+EXT).
+        {"INTR beyond IDT limit",false,0x40,{},0x0080,false,13,0x0203,0x0208,{13}},
+        // Gate CS 0068 is outside the GDT limit (67h): #GP(selector+EXT).
+        {"INTR handler CS beyond GDT",false,4,{0x00,0x03,0x68,0x00,0x00,0x86,0x00,0x00},
+         0x0080,false,13,0x0069,0x0208,{4,13}},
+        // Same-level frame cannot fit (SP=4): #SS(0) while delivering INTR;
+        // the #SS frame cannot fit either, which is a second fault while
+        // delivering #SS, so #DF; the empty #DF gate shuts down.
+        {"INTR same-level stack too small",false,4,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00},
+         0x0004,true,8,0x0000,0x0208,{4,12,8}},
+    };
+    unsigned executions=0;
+    for (bool wait:{false,true}) for (const auto& test:cases) {
+        Bench b;
+        const uint8_t program[]={
+            0xb8,0x28,0x00, 0x8e,0xd0,                     // 0200 MOV SS,0028
+            0xbc,uint8_t(test.sp),uint8_t(test.sp>>8),     // 0205 MOV SP,sp
+            uint8_t(test.software ? 0xcd : 0x90),
+            uint8_t(test.software ? 0x04 : 0x90),          // 0208 INT 4 / NOP NOP
+            0xf4
+        };
+        place_selector_fixture(b,program,sizeof(program));
+        // Vector 12 gets a valid same-level gate so the stack case reaches it.
+        b.put(kIdtBase+12*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+        if (!test.gate.empty()) {
+            for (unsigned i=0;i<8;++i)
+                b.memory[kIdtBase+test.intr_vector*8+i]=test.gate[i];
+        }
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        const uint16_t flags_before=b.d.flags_o;
+        const unsigned retired_before=b.retired;
+        b.data_transfers.clear();
+        if (!test.software) {
+            b.d.intr_i=1; b.acknowledge=true; b.interrupt_vector=test.intr_vector;
+        }
+        for (unsigned cycle=0;cycle<50000 && !b.d.fault_o && !b.d.shutdown_o &&
+             !(b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp);++cycle)
+            b.tick(wait);
+        b.d.intr_i=0; b.acknowledge=false;
+        const std::string name=std::string(test.name)+(wait ? " (wait)" : "");
+        if (b.d.fault_o)
+            throw std::runtime_error(name+": core reached a development stop, code "+
+                                     std::to_string(unsigned(b.d.fault_code_o)));
+        if (b.d.event_vector_o!=test.handler_vector ||
+            b.d.event_packet_error_code_o!=test.error ||
+            b.d.event_packet_saved_ip_o!=test.saved_ip || test.shutdown!=bool(b.d.shutdown_o))
+            std::cerr<<name<<": vector="<<unsigned(b.d.event_vector_o)<<std::hex
+                     <<" error="<<b.d.event_packet_error_code_o
+                     <<" saved="<<b.d.event_packet_saved_cs_o<<":"<<b.d.event_packet_saved_ip_o
+                     <<" CS:IP="<<b.cs()<<":"<<b.d.ip_o<<std::dec
+                     <<" shutdown="<<unsigned(b.d.shutdown_o)
+                     <<" retired="<<(b.retired-retired_before)<<'\n';
+        check(test.shutdown==bool(b.d.shutdown_o),
+              (name+": shutdown outcome differs from 9.6.2").c_str());
+        check(b.d.event_packet_valid_o && b.d.event_packet_protected_o &&
+              b.d.event_vector_o==test.handler_vector &&
+              b.d.event_packet_error_valid_o &&
+              b.d.event_packet_error_code_o==test.error &&
+              b.d.event_packet_saved_cs_o==kCodeSelector &&
+              b.d.event_packet_saved_ip_o==test.saved_ip,
+              (name+": wrong exception vector, error code or saved CS:IP").c_str());
+        // INTR is sampled at the boundary after MOV SP, before the NOP.
+        check(b.retired==retired_before,
+              (name+": wrong number of instructions retired before delivery").c_str());
+        // Gate reads: each named vector is read as one 8-byte descriptor, in
+        // order, before any frame write.
+        std::vector<uint32_t> reads;
+        for (const auto& t:b.data_transfers)
+            if (!t.write && t.address>=kIdtBase && t.address<kIdtBase+0x70) reads.push_back(t.address);
+        check(reads.size()==test.gate_reads.size()*8,
+              (name+": unexpected IDT descriptor reads").c_str());
+        for (unsigned i=0;i<reads.size() && i/8<test.gate_reads.size();++i)
+            check(reads[i]==kIdtBase+test.gate_reads[i/8]*8+(i%8),
+                  (name+": IDT descriptors read in the wrong order").c_str());
+        if (test.shutdown) {
+            // Only descriptor accessed-bit updates may be written; no frame
+            // word may reach the stack.
+            for (const auto& t:b.data_transfers)
+                if (t.write && !(t.address>=kGdtBase && t.address<kGdtBase+0x68))
+                    std::cerr<<name<<": write 0x"<<std::hex<<t.address<<std::dec<<'\n';
+            check(std::none_of(b.data_transfers.begin(),b.data_transfers.end(),
+                               [](const auto& t){
+                                   return t.write && !(t.address>=kGdtBase && t.address<kGdtBase+0x68);
+                               }),
+                  (name+": shutdown path wrote a stack frame").c_str());
+        } else {
+            // Same-level interrupt-gate frame: error, IP, CS, FLAGS.
+            check(b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp && b.reg(4)==test.sp-8,
+                  (name+": handler not entered with an error-code frame").c_str());
+            const uint32_t frame=kStackBase+test.sp-8;
+            auto word=[&](uint32_t a){ return uint16_t(b.memory[a]|(b.memory[a+1]<<8)); };
+            check(word(frame)==test.error && word(frame+2)==test.saved_ip &&
+                  word(frame+4)==kCodeSelector && word(frame+6)==flags_before,
+                  (name+": stacked error/IP/CS/FLAGS differ").c_str());
+        }
+        ++executions;
+    }
+    check(executions==10,"delivery-fault matrix did not run every case in both READY modes");
+    std::cout<<"PASS: 10 protected handler-invocation faults raise App. B #GP/#NP/#SS codes with EXT, "
+               "point INT faults at the INT, and escalate #SS to #DF and shutdown per 9.6.2\n";
+}
+
 static void protected_event_task_gate_delivery() {
     using namespace protected_mode_fixture;
     const uint8_t ring0_program[]={
@@ -7326,6 +7469,81 @@ static void protected_shutdown_nmi_recovery() {
       }
     check(failed==6,"failed NMI recovery missed a fault phase or READY mode");
     std::cout<<"PASS: protected shutdown ignores INTR, exits through a valid NMI gate, and re-enters shutdown on NMI delivery faults in both READY modes\n";
+}
+
+// Intel 210498-005 9.6.2: NMI leaves shutdown if no error occurs while it is
+// processed. Through a task gate the handler is entered at the task-switch
+// commit; after that, ordinary faults must be delivered, not re-enter shutdown.
+static void protected_shutdown_nmi_task_gate_recovery() {
+    using namespace protected_mode_fixture;
+    const uint8_t program[]={
+        0xb8,0x28,0x00, 0x8e,0xd0,   // 0200 MOV SS,0028
+        0xbc,0x80,0x00,               // 0205 MOV SP,0080
+        0xb8,0x68,0x00, 0x0f,0x00,0xd8, // 0208 LTR 0068
+        0x31,0xc0,                    // 020E XOR AX,AX
+        0xf7,0xf0                     // 0210 DIV AX: #DE, #DF, shutdown
+    };
+    const uint8_t nmi_task[]={0xb8,0x0c,0x00, 0x8e,0xd8, 0xf4}; // MOV DS,000C => #GP
+    constexpr uint16_t current_tss_selector=0x0068;
+    constexpr uint16_t nmi_tss_selector=0x0078;
+    constexpr uint32_t current_tss_base=0x00000700;
+    constexpr uint32_t nmi_tss_base=0x000a0000;
+    const uint16_t task_words[]={
+        0x0500,0x0002,0,0,0,0,0x0080,0,0,0,0x0010,0x0030,0x0028,0x0010,0x0000
+    };
+    unsigned executions=0;
+    for (bool wait:{false,true}) {
+        Bench b;
+        place_selector_fixture(b,program,sizeof(program));
+        b.memory[0x40]=0x7f;
+        b.put(kGdtBase+current_tss_selector,{0x2b,0x00,uint8_t(current_tss_base),
+              uint8_t(current_tss_base>>8),uint8_t(current_tss_base>>16),0x81,0,0});
+        b.put(kGdtBase+nmi_tss_selector,{0x2b,0x00,uint8_t(nmi_tss_base),
+              uint8_t(nmi_tss_base>>8),uint8_t(nmi_tss_base>>16),0x81,0,0});
+        b.put(kIdtBase+2*8,{0x00,0x00,uint8_t(nmi_tss_selector),
+              uint8_t(nmi_tss_selector>>8),0x00,0x85,0x00,0x00});
+        for (unsigned i=0;i<15;++i) {
+            b.memory[nmi_tss_base + 0x0e + 2*i]=uint8_t(task_words[i]);
+            b.memory[nmi_tss_base + 0x0f + 2*i]=uint8_t(task_words[i]>>8);
+        }
+        for (std::size_t i=0;i<sizeof(nmi_task);++i)
+            b.memory[kHandlerBase+0x0500+uint32_t(i)]=nmi_task[i];
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+        b.step(kCodeBase+0x020b,0x0f,kCodeSelector,0x020e,wait);
+        b.step(kCodeBase+0x020e,0x31,kCodeSelector,0x0210,wait);
+        for (unsigned cycle=0;cycle<50000 && !b.d.shutdown_o && !b.d.fault_o;++cycle)
+            b.tick(wait);
+        const std::string name=wait ? "wait" : "no-wait";
+        check(b.d.shutdown_o && !b.d.fault_o && b.d.event_vector_o==8,
+              ("task-gate NMI fixture did not reach #DF shutdown ("+name+")").c_str());
+        b.d.nmi_i=1;
+        bool entered=false;
+        for (unsigned cycle=0;cycle<80000 && !b.d.fault_o;++cycle) {
+            b.tick(wait);
+            if (b.d.event_o && b.cs()==0x0030 && b.d.ip_o==0x0500) { entered=true; break; }
+        }
+        b.d.nmi_i=0;
+        check(entered && !b.d.shutdown_o && !b.d.halted_o && !b.d.fault_o &&
+              b.d.event_vector_o==2 && uint16_t(b.d.segs_o>>32)==0x0028 && b.reg(4)==0x0080,
+              ("NMI through a task gate did not leave shutdown into the NMI task ("+name+")").c_str());
+        b.step(kHandlerBase+0x0500,0xb8,0x0030,0x0503,wait);
+        bool gp_entered=false;
+        for (unsigned cycle=0;cycle<50000 && !b.d.fault_o && !b.d.shutdown_o;++cycle) {
+            b.tick(wait);
+            if (b.d.event_o && b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp) { gp_entered=true; break; }
+        }
+        check(gp_entered && !b.d.shutdown_o && !b.d.fault_o &&
+              b.d.event_vector_o==13 && b.d.event_packet_error_code_o==0x000c &&
+              b.d.event_packet_saved_cs_o==0x0030 && b.d.event_packet_saved_ip_o==0x0503,
+              ("a fault after task-gate NMI recovery re-entered shutdown instead of #GP ("+name+")").c_str());
+        ++executions;
+    }
+    check(executions==2,"task-gate shutdown NMI recovery missed a READY mode");
+    std::cout<<"PASS: NMI through a task gate leaves shutdown in both READY modes, and a later fault in the NMI task is delivered as #GP rather than re-entering shutdown\n";
 }
 
 static void protected_iopl_controls() {
@@ -13092,6 +13310,8 @@ int main(int argc, char** argv) {
             protected_event_ring12_exception_delivery();
         else if (argc==2 && std::string(argv[1])=="--protected-event-ring12-external")
             protected_event_ring12_async_delivery(false);
+        else if (argc==2 && std::string(argv[1])=="--protected-event-delivery-faults")
+            protected_event_delivery_faults();
         else if (argc==2 && std::string(argv[1])=="--protected-event-task-gate")
             { protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); }
         else if (argc==2 && std::string(argv[1])=="--protected-event-ring12-nmi")
@@ -13115,7 +13335,9 @@ int main(int argc, char** argv) {
         else if (argc==2 && std::string(argv[1])=="--call-gate-retf-faults") protected_call_gate_outer_return_faults();
         else if (argc==2 && std::string(argv[1])=="--call-gate-ldt") protected_call_gate_ldt();
         else if (argc==2 && std::string(argv[1])=="--iopl-controls") protected_iopl_controls();
-        else if (argc==2 && std::string(argv[1])=="--shutdown-nmi") protected_shutdown_nmi_recovery();
+        else if (argc==2 && std::string(argv[1])=="--shutdown-nmi") {
+            protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery();
+        }
         else if (argc==2 && std::string(argv[1])=="--protected-segments") {
             protected_mode_segment_integration(); protected_arpl_contracts();
             protected_arpl_reachable_privilege_matrix();
@@ -13133,7 +13355,7 @@ int main(int argc, char** argv) {
         else if (argc==3 && std::string(argv[1])=="--bios-decimal") vectors(argv[2],false,true);
         else if (argc==2 && std::string(argv[1])=="--processor-extension") processor_extension_contract();
         else {
-            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix();
+            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_delivery_faults(); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix();
             std::cout << "PASS: 80286 bootstrap reset, register aliases, flags, exact branches, stalls and diagnostic boundaries\n";
         }
     } catch (const std::exception& error) {

@@ -101,8 +101,28 @@ Software `INT n`, `INTO`, `INT3` and other exceptions leave EXT clear. Sources:
 Intel 210498-005 section 9.4 (printed page 9-5), Appendix B (pages B-8 and
 B-50) and Table 9-5. `intel_80286_segment_check` and `intel_80286_code_check`
 return EXT-free codes; the core ORs EXT in once, when it records the fault in
-its event packet. Delivery faults that the core still reports as a
-development stop instead of an exception are not covered by this rule yet.
+its event packet, and the handler-invocation faults below add it from the
+event being delivered.
+
+### Faults while invoking a protected-mode handler
+
+A protection check that fails while the core invokes the handler for an event
+(IDT entry, gate, handler CS, inner stack from the TSS, frame room, or the
+task-gate TSS) raises an exception instead of stopping. Intel 210498-005
+section 9.6.2 (page 9-10): if the event being delivered is #DE, #TS, #NP, #SS
+or #GP the second fault becomes #DF with a null error code; a fault while
+delivering #DF enters shutdown; for every other event (vectors 1-7, 9, 16,
+INTR, NMI, `INT n`) the new fault is delivered with the error code from
+Appendix B pages B-49/B-50, plus EXT when the event was external. A fault on
+a software interrupt points at the `INT` instruction; other events keep their
+saved return address. Task-gate TSS checks follow Table 8-1 order (not
+present #NP, busy #GP, limit below 43 #TS), with any other non-available-TSS
+type #GP per page B-50.
+
+ASSUMPTION A28: when an inner-privilege event needs the SS:SP pair for the new
+CPL from the current TSS and the TSS limit does not cover it, the core raises
+#TS(TR selector). The 286 text gives no rule for this case; validate against
+independent 286 evidence before sign-off.
 
 NMI is edge-triggered (210760-002 page 3-12) and not recognized during reset
 (page 3-67). The event controller samples the NMI level through reset, so a

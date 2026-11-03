@@ -26,6 +26,11 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-11-02 - 80286 NMI shutdown recovery through a task gate](2026-11-02-intel80286-task-gate-nmi-shutdown-recovery.md)
+  K-induction exposed that a task-gate NMI handler never cleared shutdown
+  recovery, so the next ordinary fault re-entered shutdown; tests only used
+  an interrupt gate and were not in the default regression list.
+
 - [2026-11-01 - 80286 review: 82288 MRDC#, missing EXT, reset-time NMI](2026-11-01-intel80286-review-bus-strobes-ext.md)
   An external code review found MRDC# asserted on I/O reads, error codes
   without EXT, a spurious NMI after reset, an X power-up RESET and a silent

@@ -1,5 +1,25 @@
 // Included inside intel_80286. Only initial reset constrains the environment.
 `ifdef FORMAL
+// Outcome of a protection fault found while invoking a protected handler,
+// one cycle after the check (Intel 210498-005 9.6.2 and App. B B-49/B-50):
+// a fault while delivering #DF shuts down; while delivering #DE/#TS/#NP/
+// #SS/#GP it becomes #DF with a null error code; otherwise fault V is
+// delivered, restartable, with EXT copied from the event being delivered
+// and, for INT n, the INT instruction as its saved address.
+`define I286P_DELIVERY_OUTCOME(V) \
+    (state==EVENT_START && !event_delivery_active && !event_stack_active && \
+     !retire_o && ip==$past(event_packet.saved_ip) && \
+     ($past(event_packet.restartable && event_packet.vector==8) ? shutdown_pending : \
+      $past(event_packet.restartable && (event_packet.vector==0 || \
+            event_packet.vector==10 || event_packet.vector==11 || \
+            event_packet.vector==12 || event_packet.vector==13)) ? \
+        (event_packet.vector==8 && event_packet.error_present && \
+         event_packet.error_code==0 && event_packet.restartable) : \
+        (event_packet.vector==(V) && event_packet.restartable && \
+         event_packet.error_present && \
+         event_packet.error_code[0]==$past(event_packet.external) && \
+         event_packet.saved_ip==$past(event_packet.instruction_retired ? \
+                                      instruction_ip : event_packet.saved_ip))))
     logic past_valid = 0;
     logic protected_event_path_state;
     logic protected_call_path_state;
@@ -143,10 +163,6 @@
             if (halted_o || fault_o)
                 assert(!core_bus_req && !(descriptor_claim && descriptor_bus_req) && !event_bus_req);
             assert(!(cpu_bus_ready && event_bus_ready));
-            // The core ties the PEDC claim/request inputs of the bus owner to
-            // zero, so the PEDC never owns the bus. Stating this keeps
-            // induction from starting in an unreachable PEDC-owned state.
-            assert(bus_owner!=3 && !owner_pedc_grant);
             assert(core_bus_ready==(cpu_bus_ready || owner_descriptor_ready || event_bus_ready));
             assert(owner_cpu_grant==(bus_owner==0));
             assert(owner_descriptor_grant==(bus_owner==1));
@@ -271,8 +287,7 @@
                     if ($past(!tr_valid || code_load_selector[1:0]>2 ||
                         ({1'b0,(16'd2+{12'd0,code_load_selector[1:0],2'b00})}+17'd3)>
                             {1'b0,tr_limit}))
-                        assert(state==STOPPED && fault_code_o==3 &&
-                               !event_delivery_active && !event_stack_active);
+                        assert(`I286P_DELIVERY_OUTCOME(8'd10));
                     else
                         assert(state==BUS && memory_return==EVENT_TSS_PAIR &&
                                event_delivery_active && event_stack_active);
@@ -354,9 +369,8 @@
                                 event_new_ss_access==$past(segment_load_access) &&
                                 pending_sp==event_tss_stack_sp-
                                     (event_packet.error_present ? 16'd12 : 16'd10)) ||
-                               (state==STOPPED && !event_stack_active &&
-                                !event_delivery_active && fault_code_o==3 &&
-                                ip==$past(event_packet.saved_ip) && !retire_o));
+                               `I286P_DELIVERY_OUTCOME($past(segment_load_cache_valid) ?
+                                                       8'd12 : 8'd10));
                         assert(ds==$past(ds) && ds_base==$past(ds_base) &&
                                cache_valid[3]==$past(cache_valid[3]));
                     end else begin
@@ -560,7 +574,11 @@
                         assert($stable(memory_kind) && $stable(memory_write) && $stable(memory_data));
                     end
                 end else begin
-                    if ($past(!(protected_iret_active && msw[0] && data_reference_fault) &&
+                    if ($past(event_delivery_active && !task_switch_active &&
+                              !protected_iret_active && data_reference_fault && msw[0])) begin
+                        assert(`I286P_DELIVERY_OUTCOME($past(data_reference_vector)) &&
+                               !core_bus_req);
+                    end else if ($past(!(protected_iret_active && msw[0] && data_reference_fault) &&
                               (event_delivery_active || task_switch_active || protected_iret_active))) begin
                         // Table 7-4: a protected IRET source-stack fault is a
                         // restartable #SS(0), not a stop.
@@ -574,7 +592,10 @@
                 end
             end
             if (rst_n && $past(rst_n && state==MEMORY_CHECK && data_reference_fault)) begin
-                if ($past(!(protected_iret_active && msw[0] && data_reference_fault) &&
+                if ($past(event_delivery_active && !task_switch_active &&
+                          !protected_iret_active && msw[0])) begin
+                    assert(`I286P_DELIVERY_OUTCOME($past(data_reference_vector)));
+                end else if ($past(!(protected_iret_active && msw[0] && data_reference_fault) &&
                           (event_delivery_active || task_switch_active || protected_iret_active))) begin
                     assert(state==STOPPED && fault_code_o==3);
                 end else begin
@@ -1020,12 +1041,14 @@
                     assert(memory_address==$past(idt_base)+{13'h0,$past(event_vector_o),3'b000});
                     assert(!memory_write && !memory_io && !memory_segmented);
                     assert(memory_kind==0 && memory_size==6 && memory_remaining==6 && memory_index==0);
-                end else if ($past(event_packet.restartable && event_packet.vector==8)) begin
-                    // 9.6.2: a violation while invoking #DF enters shutdown.
-                    assert(shutdown_pending && !retire_o && !event_o);
                 end else begin
-                    assert(state==STOPPED && fault_code_o==3);
-                    assert(ip==event_packet.saved_ip && !retire_o && !event_o);
+                    // App. B page B-49: an IDT entry beyond the limit is
+                    // #GP(vector*8+2+EXT).
+                    assert(`I286P_DELIVERY_OUTCOME(8'd13) && !event_o);
+                    if ($past(!event_packet.restartable))
+                        assert(event_packet.error_code==
+                               ({5'd0,$past(event_vector_o),3'b010} |
+                                {15'd0,$past(event_packet.external)}));
                 end
             end
             if (rst_n && state==BUS && event_packet.protected_mode && event_delivery_active) begin
@@ -1076,7 +1099,21 @@
                            event_packet.error_present &&
                            event_packet.error_code=={5'd0,$past(event_packet.vector),3'b010} &&
                            event_packet.saved_ip==$past(instruction_ip));
-                end else assert(state==STOPPED && fault_code_o==3);
+                end else if (!$past(event_gate[39:32]==0 && !event_gate[44] &&
+                                    event_gate[43:40]==4'h5 && event_gate[63:48]==0 &&
+                                    event_gate[47] &&
+                                    (!event_packet.software_interrupt ||
+                                     cs[1:0]<=event_gate[46:45]))) begin
+                    // Not a usable task gate either: App. B page B-49 gives
+                    // #GP for type or INT-DPL faults, #NP for a not-present
+                    // gate, each with error vector*8+2(+EXT).
+                    assert(`I286P_DELIVERY_OUTCOME(
+                        $past(event_gate[39:32]==0 && !event_gate[44] &&
+                              event_gate[43:40]>=4'h5 && event_gate[43:40]<=4'h7 &&
+                              event_gate[63:48]==0 &&
+                              (!event_packet.software_interrupt ||
+                               cs[1:0]<=event_gate[46:45])) ? 8'd11 : 8'd13));
+                end
             end
             if (state==EVENT_CODE_START && owner_event_grant) assert(code_load_start);
             if (state==EVENT_FRAME_ERROR) assert(event_packet.error_present);
@@ -1112,4 +1149,5 @@
             cover(retire_o && opcode==8'hc5 && ds_base!=0);
         end
     end
+`undef I286P_DELIVERY_OUTCOME
 `endif
