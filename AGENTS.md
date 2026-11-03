@@ -17,6 +17,7 @@ ai_hw_engineer/
 │   ├── yosys-symbiyosys/
 │   └── surfer/
 ├── libs/uvm/               — UVM reference library (git submodule)
+├── libs/cdc_primitives/    — Verified CDC primitive library (git submodule)
 ├── design/                 — Chip designs
 │   ├── _template/          — Design template (copy for new chips)
 │   └── <chip_or_family>/   — Canonical issue folder; member folders inside a family
