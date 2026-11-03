@@ -242,6 +242,7 @@ module intel_80286 #(
     logic [15:0] segment_load_fault_error, segment_load_selector, segment_load_limit;
     logic [23:0] segment_load_bus_addr, segment_load_base;
     logic [1:0] segment_load_target;
+    logic pop_segment_protected, load_far_pointer_protected;
     logic data_reference_allow, fetch_reference_allow;
     logic [23:0] data_reference_address, fetch_reference_address;
     // Diagnostic stop 2 is temporary; precise architectural delivery is pending.
@@ -757,7 +758,11 @@ module intel_80286 #(
         (state==IRET_CODE_START && owner_cpu_grant) ||
         (state==CALL_CODE_START && owner_cpu_grant) ||
         (state==RET_CODE_START && owner_cpu_grant);
+    assign pop_segment_protected=msw[0] && (opcode==8'h07 || opcode==8'h17 || opcode==8'h1f);
+    assign load_far_pointer_protected=msw[0] && (opcode==8'hc4 || opcode==8'hc5);
     assign segment_load_start=(state==EXECUTE && msw[0] && opcode==8'h8e) ||
+                              (state==EXECUTE && load_far_pointer_protected) ||
+                              (state==POP_DONE && pop_segment_protected) ||
                               (state==IRET_OUTER_NEXT && iret_outer_ss_ready) ||
                               (state==RET_OUTER_NEXT && ret_outer_ss_ready) ||
                               // Start only when the state itself advances to
@@ -847,7 +852,9 @@ module intel_80286 #(
                     event_stack_active ? event_tss_stack_ss :
                     (state==IRET_OUTER_NEXT && iret_outer_ss_ready) ? iret_outer_ss :
                     (state==RET_OUTER_NEXT && ret_outer_ss_ready) ? ret_outer_ss :
-                    protected_call_stack_active ? protected_call_tss_stack_ss : rm_value),
+                    protected_call_stack_active ? protected_call_tss_stack_ss :
+                    load_far_pointer_protected ? memory_result[31:16] :
+                    pop_segment_protected ? memory_result[15:0] : rm_value),
         .gdt_limit_i(gdt_limit),
         .ldt_limit_i(task_switch_active ? task_ldtr_limit : ldtr_limit),
         .gdt_base_i(gdt_base),
@@ -860,7 +867,11 @@ module intel_80286 #(
         .stack_i((task_switch_active && task_segment_index==0) ||
                  (state==IRET_OUTER_NEXT && iret_outer_ss_ready) ||
                  (state==RET_OUTER_NEXT && ret_outer_ss_ready) ||
-                 protected_call_stack_active || event_stack_active || modrm[4:3]==2),
+                 protected_call_stack_active || event_stack_active ||
+                 // Only the instruction's own start may select SS checks; a
+                 // task-switch DS/ES load must not inherit a stale ModRM.
+                 (state==EXECUTE && opcode==8'h8e && modrm[4:3]==2) ||
+                 (state==POP_DONE && opcode==8'h17)),
         .ldt_valid_i(task_switch_active ? task_ldtr_valid : ldtr_valid),
         .busy_o(segment_load_busy),.done_o(segment_load_done),
         .bus_req_o(segment_load_req),.bus_write_o(segment_load_write),
@@ -1778,14 +1789,14 @@ module intel_80286 #(
                                 {8'h0,protected_call_operand_selector[15:3],3'b000},
                                 1'b0,1'b0,3'd6,32'd0,CALL_DESC_TAIL);
                         end
-                    end else if (msw[0] && (opcode==8'h07 || opcode==8'h17 || opcode==8'h1f ||
-                                        opcode==8'hc4 || opcode==8'hc5)) begin
-                        // These protected transfers/load forms await their own transaction engines.
-                        state<=STOPPED; fault_code_o<=3; ip<=instruction_ip; retire_o<=0;
                     end else if (code_load_start) begin
                         code_load_target<=0; state<=CODE_LOAD_WAIT; retire_o<=0;
                     end else if (segment_load_start) begin
-                        segment_load_target<=modrm[4:3]; state<=SEGMENT_LOAD_WAIT; retire_o<=0;
+                        // MOV Sreg names the register in modrm[4:3]; protected
+                        // LES/LDS load ES/DS through the same descriptor checks
+                        // (Intel 210498-005 App. B LDS/LES and MOV).
+                        segment_load_target<=opcode==8'hc4 ? 2'd0 : opcode==8'hc5 ? 2'd3 : modrm[4:3];
+                        state<=SEGMENT_LOAD_WAIT; retire_o<=0;
                     end
                     else if (far_call) begin
                         far_ip<=opcode==8'h9a ? immediate[15:0] : memory_result[15:0];
@@ -2311,6 +2322,7 @@ module intel_80286 #(
                                     ss<=segment_load_selector; ss_base<=segment_load_base;
                                     cache_limits[47:32]<=segment_load_limit; cache_access[23:16]<=segment_load_access;
                                     cache_valid[2]<=1'b1; ss_shadow<=1'b1;
+                                    if (pop_segment_protected) gpr[4]<=gpr[4]+16'd2;
                                     state<=BOUNDARY; retire_o<=1; retire_pc_o<=instruction_pc; retire_opcode_o<=opcode;
                                 end
                             end
@@ -2322,6 +2334,10 @@ module intel_80286 #(
                             default: begin end
                         endcase
                         if (segment_load_target!=2) begin
+                            // LES/LDS write the offset with the segment; POP
+                            // ES/DS commits SP with the segment.
+                            if (load_far_pointer_protected) gpr[modrm[5:3]]<=memory_result[15:0];
+                            if (pop_segment_protected) gpr[4]<=gpr[4]+16'd2;
                             state<=BOUNDARY; retire_o<=1; retire_pc_o<=instruction_pc; retire_opcode_o<=opcode;
                         end
                     end else begin
@@ -2425,6 +2441,12 @@ module intel_80286 #(
                         pending_sp <= gpr[4] + 16'd2;
                         pending_flags <= flags; pending_register_write <= 0;
                         memory_start(1'b1, rm_role, rm_offset, 24'd0, 1'b1, 1'b0, 2, {16'h0,memory_result[15:0]}, COMMIT_MEMORY);
+                    end else if (pop_segment_protected) begin
+                        // Protected POP ES/SS/DS validates the popped selector
+                        // as MOV Sreg does; SP advances only when the load
+                        // succeeds, so a fault restarts the POP (App. B POP).
+                        segment_load_target<=opcode==8'h07 ? 2'd0 : opcode==8'h17 ? 2'd2 : 2'd3;
+                        state<=SEGMENT_LOAD_WAIT; retire_o<=0;
                     end else begin
                         gpr[4] <= gpr[4]+16'd2;
                         if (near_return) begin

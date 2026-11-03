@@ -26,6 +26,11 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-11-03 - 80286 task-switch DS/ES load inherited a stale ModRM stack check](2026-11-03-intel80286-task-switch-stale-modrm-stack-check.md)
+  RTL review found that the segment-load stack rules followed ModRM bits, so a
+  task gate after `MOV SS` rejected a legal read-only incoming DS/ES; tests
+  only used writable incoming data segments.
+
 - [2026-11-02 - 80286 NMI shutdown recovery through a task gate](2026-11-02-intel80286-task-gate-nmi-shutdown-recovery.md)
   K-induction exposed that a task-gate NMI handler never cleared shutdown
   recovery, so the next ordinary fault re-entered shutdown; tests only used

@@ -188,6 +188,12 @@
                 assert(descriptor_bus_path_active || state==STOPPED || descriptor_bus_req ||
                        code_load_busy || segment_load_busy || descriptor_release);
             if (event_bus_ready) assert(bus_owner==2);
+            // CPU beats start only in the fetch/BUS states, which leave only on
+            // the ready handshake, so a held CPU beat implies one of them.
+            if (rst_n && owner_cpu_grant && owner_bus_req)
+                assert(state==FETCH || state==EXT_FETCH || state==IMMEDIATE ||
+                       state==MODRM_FETCH || state==DISPLACEMENT || state==BUS ||
+                       state==STOPPED);
             // The core waits in BUS until an event beat completes, so an event
             // beat still in flight means the core is in BUS (or has stopped).
             // That BUS wait belongs to the event path: memory_return does not
@@ -513,7 +519,14 @@
             // including the handler CS load) never runs inside a task switch;
             // enter_event ends any switch and a task gate starts its own later.
             if (rst_n && (protected_event_path_state ||
-                          (state==CODE_LOAD_WAIT && code_load_target==1)))
+                          (state==CODE_LOAD_WAIT && code_load_target==1) ||
+                          ((state==MEMORY_CHECK || state==BUS) &&
+                           (memory_return==EVENT_GATE_TAIL || memory_return==EVENT_GATE_VALIDATE ||
+                            memory_return==EVENT_TSS_PAIR ||
+                            memory_return==EVENT_FRAME_READY || memory_return==EVENT_FRAME_FLAGS ||
+                            memory_return==EVENT_FRAME_CS || memory_return==EVENT_FRAME_IP ||
+                            memory_return==EVENT_FRAME_ERROR || memory_return==EVENT_FRAME_OLD_SP ||
+                            memory_return==EVENT_FRAME_OLD_SS))))
                 assert(!task_switch_active);
             // An event delivery cannot overlap a protected CALL-gate stack
             // switch or an IRET; entering the event abandons those transfers.
@@ -853,6 +866,30 @@
             // CS loads for far transfers carry their instruction's opcode:
             // target 2 is IRET, 3 a far CALL/JMP gate target, 4 a far RET.
             // Target 0 is the direct far JMP/CALL CS load from EXECUTE.
+            // RETF/IRET only start a segment load for the outer-level SS, from
+            // RET_OUTER_NEXT/IRET_OUTER_NEXT after the SS word is ready.
+            if (rst_n && state==SEGMENT_LOAD_WAIT && (protected_ret_active || ret_outer_active))
+                assert(protected_ret_active && ret_outer_active && ret_outer_ss_ready &&
+                       segment_load_target==2);
+            if (rst_n && state==SEGMENT_LOAD_WAIT && (protected_iret_active || iret_outer_active))
+                assert(protected_iret_active && iret_outer_active && iret_outer_ss_ready &&
+                       segment_load_target==2);
+            // Protected POP Sreg commits SP only with a validated segment; a
+            // selector fault leaves SP for the restart (App. B POP).
+            if (rst_n && $past(rst_n && state==SEGMENT_LOAD_WAIT && segment_load_done &&
+                               pop_segment_protected && !task_switch_active &&
+                               !event_stack_active && !protected_call_stack_active &&
+                               !protected_ret_active && !iret_outer_active)) begin
+                if ($past(!segment_load_fault && (segment_load_target!=2 || segment_load_cache_valid)))
+                    assert(gpr[4]==$past(gpr[4])+16'd2 && state==BOUNDARY && retire_o);
+                if ($past(segment_load_fault))
+                    assert(gpr[4]==$past(gpr[4]) && !retire_o);
+            end
+            // LES/LDS write the offset register only with the loaded segment.
+            if (rst_n && $past(rst_n && state==SEGMENT_LOAD_WAIT && segment_load_done &&
+                               load_far_pointer_protected && !task_switch_active &&
+                               !event_stack_active && !segment_load_fault))
+                assert(gpr[$past(modrm[5:3])]==$past(memory_result[15:0]) && retire_o);
             // Reset clears code_load_target and the core only assigns 0..5.
             if (rst_n) assert(code_load_target<=5);
             if (rst_n && state==CODE_LOAD_WAIT && code_load_target==0)
@@ -879,6 +916,17 @@
                 assert(opcode==8'hcf);
             if (rst_n && (protected_ret_active || ret_outer_active) && state!=STOPPED)
                 assert(opcode==8'hca || opcode==8'hcb);
+            // The outer-level flag is set only together with its transfer flag,
+            // and a far RETF/IRET never runs inside a task switch (an NT IRET
+            // uses task_return_active instead).
+            if (rst_n && iret_outer_active && state!=STOPPED) assert(protected_iret_active);
+            if (rst_n && ret_outer_active && state!=STOPPED) assert(protected_ret_active);
+            if (rst_n && (protected_iret_active || protected_ret_active) && state!=STOPPED)
+                assert(!task_switch_active);
+            if (rst_n && state==CODE_LOAD_WAIT && code_load_target==2)
+                assert(protected_iret_active);
+            if (rst_n && state==CODE_LOAD_WAIT && code_load_target==4)
+                assert(protected_ret_active);
             if (rst_n && (state==IRET_CODE_START || state==IRET_OUTER_NEXT ||
                           state==IRET_OUTER_SS || state==IRET_COMMIT))
                 assert(opcode==8'hcf);
@@ -1039,6 +1087,12 @@
             if (rst_n && shutdown_recovery_active) begin
                 assert(shutdown_pending && !shutdown_o && !halted_o && !fault_o);
             end
+            // Shutdown is requested only by protected #DF delivery, and LMSW
+            // cannot clear PE, so a pending shutdown and its NMI recovery are
+            // always protected-mode.
+            if (rst_n && shutdown_pending) assert(msw[0]);
+            if (rst_n && shutdown_recovery_active && state!=EVENT_START)
+                assert(event_packet.protected_mode);
             // NMI recovery lasts only while that NMI is being delivered.
             if (rst_n && shutdown_recovery_active)
                 // A task-gate NMI keeps event_delivery_active through the switch.
@@ -1179,6 +1233,8 @@
             cover(retire_o && retire_opcode_o==8'h8e && msw[0] && segment_load_target==3 && ds_base!=0);
             cover(retire_o && retire_opcode_o==8'h8e && msw[0] && segment_load_target==0 && es_base!=0);
             cover(retire_o && retire_opcode_o==8'h8e && msw[0] && segment_load_target==2 && ss_base!=0);
+            cover(retire_o && retire_opcode_o==8'h1f && msw[0] && ds_base!=0);
+            cover(retire_o && retire_opcode_o==8'hc5 && msw[0] && ds_base!=0);
             cover(bus_owner==2 && event_bus_req && bus_ready_i);
             cover(event_o && event_vector_o==8 && !retire_o && witnessed_vector_limit);
             cover(rst_n && state==EVENT_START && event_packet.valid &&
