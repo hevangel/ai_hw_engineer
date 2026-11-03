@@ -76,9 +76,10 @@ successful process completion and the explicit PASS marker.
 
 The [specification](../spec/spec.md) retains unresolved native timing,
 reserved DDR readback, pin-mask capture and electrical/reset details.
-The firmware harness uses the existing 6502 functional-bus core and an
-explicit phase adapter. Its 5,444 clocks are **not** authentic NMOS CPU
-instruction-cycle timing. This is a chip regression harness, not a released
-system, and does not replace the required Atari/C64/NES/SNES integrations.
+The firmware harness defaults to the physical-bus cycle core (review item C3);
+both Verilator and Xezim boot the original monitor with the same exact fetch
+sequence. Earlier revisions used the functional-bus core through a phase
+adapter. This is a chip regression harness, not a released system, and does not
+replace the required Atari/C64/NES/SNES integrations.
 The complete reconstruction goal remains open in the
 [series ledger](../../../plans/mos_historical_series.md).

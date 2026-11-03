@@ -38,12 +38,14 @@ other, and only the cycle core is proved by the Apple II board.
    part of the functional core's `run_all.sh`. `negative_control.sh` corrupts
    one read in core B and requires the comparison to fail, so the gate is
    demonstrably non-vacuous.
-2. **Migrate the KIM-1 bench** (`design/mos_6530/tb/tb_kim_boot.sv`) to the
-   cycle core. It is a single testbench, so this is the cheapest consumer to
-   move and it exercises the real fixture path.
-3. **Decide on `system/apple_iie`.** Only after 1 and 2: either migrate it to
-   the cycle core or keep the functional core with the differential test as its
-   standing cross-check. Record the decision in the family README.
+2. **Migrate the KIM-1 bench — done.** `design/mos_6530/tb/tb_kim_boot.sv`
+   now defaults to the cycle core; Verilator and Xezim both boot the original
+   monitor (scans=2, 12 segments, 8,533 cycles).
+3. **Decide on `system/apple_iie` — done: keep the functional core.** Its bus
+   contract is one transfer per clock, so migrating would change the IIe timing
+   model and require re-verifying that system. The differential now guards the
+   functional core, which removes the liability that motivated migration.
+   Revisit if the IIe needs cycle-level fidelity. Recorded in the family README.
 
 ## Acceptance criteria
 
