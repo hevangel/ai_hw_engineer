@@ -108,6 +108,9 @@
             // A denied memory check abandons any in-flight outer RETF. Check
             // the cleanup transition directly instead of constraining the
             // opcode in arbitrary induction states carrying stale owners.
+            // RETF's outer-stack helpers exist only inside a live protected RETF.
+            if (rst_n && (ret_outer_preflight_done || ret_outer_ss_ready))
+                assert(protected_ret_active && ret_outer_active);
             if (rst_n && $past(rst_n && state==MEMORY_CHECK && !data_reference_allow))
                 assert(!protected_ret_active && !ret_outer_active &&
                        !ret_outer_preflight_done && !ret_outer_ss_ready);
@@ -166,6 +169,10 @@
                 assert(descriptor_bus_path_active || state==STOPPED || descriptor_bus_req ||
                        code_load_busy || segment_load_busy || descriptor_release);
             if (event_bus_ready) assert(bus_owner==2);
+            // The core waits in BUS until an event beat completes, so an event
+            // beat still in flight means the core is in BUS (or has stopped).
+            if (rst_n && bus_owner==2 && owner_bus_req)
+                assert(state==BUS || state==STOPPED);
             // A stopped event may finish a previously stalled physical beat;
             // validate the event request when each new physical beat starts.
             if (bus_owner==2 && bus_req_o &&
@@ -234,6 +241,13 @@
                 assert(code_load_cache_valid);
             end
             if (rst_n && (state==SEGMENT_LOAD_WAIT || state==CODE_LOAD_WAIT)) assert(msw[0]);
+            // PE is sticky (LMSW cannot clear it) and the protected delivery
+            // states are reached only from a protected event packet.
+            if (rst_n && (protected_event_path_state || state==EVENT_PROTECTED_COMMIT))
+                assert(msw[0] && event_packet.protected_mode);
+            if (rst_n && event_packet.valid && event_packet.protected_mode) assert(msw[0]);
+            // Task switches exist only in protected mode.
+            if (rst_n && (task_switch_active || task_return_active)) assert(msw[0]);
             if (rst_n && $past(rst_n && code_load_start && !code_load_busy)) begin
                 // The request outputs publish only when the transaction completes;
                 // the engine properties check that its private request capture is exact.
@@ -290,9 +304,12 @@
             // publishes them only at TASK_ENTRY_COMMIT.
             if (rst_n && $past(rst_n && state==SEGMENT_LOAD_WAIT && segment_load_done &&
                                !segment_load_fault && task_switch_active))
-                assert(es==$past(es) && ss==$past(ss) && ds==$past(ds) &&
-                       es_base==$past(es_base) && ss_base==$past(ss_base) &&
-                       ds_base==$past(ds_base));
+                // ...unless an invalid incoming SS/DS/ES enters the task-entry
+                // fault path, which loads the incoming context (9.6.4).
+                assert(state==EVENT_START ||
+                       (es==$past(es) && ss==$past(ss) && ds==$past(ds) &&
+                        es_base==$past(es_base) && ss_base==$past(ss_base) &&
+                        ds_base==$past(ds_base)));
             if (rst_n && $past(rst_n && state==SEGMENT_LOAD_WAIT && segment_load_done &&
                                !segment_load_fault && !task_switch_active)) begin
                 case ($past(segment_load_target))
@@ -432,7 +449,9 @@
                        event_packet.protected_mode);
             // An IDT-limit fault while invoking a 286 contributory handler
             // selects null-error-code #DF without changing saved context.
-            if (rst_n && $past(rst_n && nested_df_idt_limit_escalation))
+            if (rst_n && $past(rst_n && nested_df_idt_limit_escalation &&
+                               !(shutdown_pending && (!shutdown_recovery_active ||
+                                                      event_packet.vector!=8'd2))))
                 assert(state==EVENT_START && event_packet.valid &&
                        event_packet.protected_mode && event_packet.vector==8 &&
                        event_packet.restartable && event_packet.error_present &&
@@ -451,11 +470,32 @@
             // only after the handler CS loads and cleared with the delivery.
             if (rst_n && event_stack_active && state!=STOPPED)
                 assert(event_delivery_active && !task_switch_active);
+            // Interrupt/trap-gate delivery (gate fetch through frame writes,
+            // including the handler CS load) never runs inside a task switch;
+            // enter_event ends any switch and a task gate starts its own later.
+            if (rst_n && (protected_event_path_state ||
+                          (state==CODE_LOAD_WAIT && code_load_target==1)))
+                assert(!task_switch_active);
             // An event delivery cannot overlap a protected CALL-gate stack
             // switch or an IRET; entering the event abandons those transfers.
             if (rst_n && event_delivery_active)
                 assert(!protected_call_stack_active && !protected_iret_active &&
-                       !iret_outer_active);
+                       !iret_outer_active && !protected_ret_active && !ret_outer_active);
+            // The handler CS load (target 1) belongs to a protected event delivery.
+            if (rst_n && state==CODE_LOAD_WAIT && code_load_target==1)
+                assert(event_delivery_active && event_packet.valid && event_packet.protected_mode);
+            // A task switch during event delivery is the event's own task gate;
+            // CALL/JMP and IRET task switches run outside event delivery.
+            if (rst_n && event_delivery_active && task_switch_active)
+                assert(task_switch_from_event && !task_return_active);
+            // A CALL/JMP task switch is marked with task_switch_instruction only
+            // while that switch is live; it never overlaps event delivery.
+            // task_switch_from_event marks only a live task-gate switch; a stale
+            // value would set EXT on an unrelated instruction fault.
+            if (rst_n && task_switch_from_event)
+                assert(task_switch_active && event_delivery_active);
+            if (rst_n && task_switch_instruction && state!=STOPPED && state!=EVENT_START)
+                assert(task_switch_active && !event_delivery_active && !task_switch_from_event);
             if (rst_n && state==BUS &&
                 (memory_return==EVENT_FRAME_READY || memory_return==EVENT_FRAME_FLAGS ||
                  memory_return==EVENT_FRAME_CS || memory_return==EVENT_FRAME_IP ||
@@ -520,8 +560,8 @@
                         assert($stable(memory_kind) && $stable(memory_write) && $stable(memory_data));
                     end
                 end else begin
-                    if ($past(event_delivery_active || task_switch_active ||
-                              (protected_iret_active && !(msw[0] && data_reference_fault)))) begin
+                    if ($past(!(protected_iret_active && msw[0] && data_reference_fault) &&
+                              (event_delivery_active || task_switch_active || protected_iret_active))) begin
                         // Table 7-4: a protected IRET source-stack fault is a
                         // restartable #SS(0), not a stop.
                         assert(state==STOPPED && fault_code_o==3 && !core_bus_req);
@@ -534,8 +574,8 @@
                 end
             end
             if (rst_n && $past(rst_n && state==MEMORY_CHECK && data_reference_fault)) begin
-                if ($past(event_delivery_active || task_switch_active ||
-                          (protected_iret_active && !(msw[0] && data_reference_fault)))) begin
+                if ($past(!(protected_iret_active && msw[0] && data_reference_fault) &&
+                          (event_delivery_active || task_switch_active || protected_iret_active))) begin
                     assert(state==STOPPED && fault_code_o==3);
                 end else begin
                     assert(event_packet.valid);
@@ -731,8 +771,45 @@
                            memory_return==EVENT_FRAME_READY || memory_return==EVENT_FRAME_FLAGS ||
                            memory_return==EVENT_FRAME_CS || memory_return==EVENT_FRAME_IP ||
                            memory_return==EVENT_FRAME_ERROR || memory_return==EVENT_FRAME_OLD_SP ||
-                           memory_return==EVENT_FRAME_OLD_SS || memory_return==EVENT_TSS_PAIR);
+                           memory_return==EVENT_FRAME_OLD_SS || memory_return==EVENT_TSS_PAIR ||
+                           // An event after an 0F instruction may switch tasks
+                           // through an IDT task gate with the opcode still 0F.
+                           memory_return==TASK_GATE_TSS_TAIL || memory_return==TASK_GATE_TSS_CHECK ||
+                           memory_return==TASK_SWITCH_BACKLINK || memory_return==TASK_SWITCH_SAVE ||
+                           memory_return==TASK_SWITCH_SAVE_NEXT || memory_return==TASK_SWITCH_LOAD ||
+                           memory_return==TASK_SWITCH_LOAD_NEXT || memory_return==TASK_LDT_VALIDATE ||
+                           memory_return==TASK_ENTRY_COMMIT);
+                // Far CALL continuations belong to CALL far (9A) or CALL m32 (FF /3).
+                if (memory_return==CALL_DESC_TAIL || memory_return==CALL_DESC_CHECK ||
+                    memory_return==CALL_DESC_FINAL || memory_return==CALL_FRAME_READY ||
+                    memory_return==CALL_TSS_PAIR || memory_return==CALL_STACK_WRITE_OLD_SP ||
+                    memory_return==CALL_STACK_WRITE_OLD_CS || memory_return==CALL_STACK_WRITE_RETURN ||
+                    memory_return==CALL_GATE_COMMIT || memory_return==CALL_PARAM_READ ||
+                    memory_return==CALL_PARAM_WRITE || memory_return==CALL_PARAM_NEXT)
+                    assert(opcode==8'h9a || opcode==8'hea || opcode==8'hff);
+                // Outer-level RETF and IRET stack reads belong to their opcodes.
+                if (memory_return==RET_OUTER_SS || memory_return==RET_OUTER_NEXT)
+                    assert(opcode==8'hca || opcode==8'hcb);
+                if (memory_return==IRET_OUTER_SS || memory_return==IRET_OUTER_NEXT)
+                    assert(opcode==8'hcf);
             end
+            // The same opcode ownership holds in the transfer states themselves,
+            // so induction cannot start a far transfer under a foreign opcode.
+            if (rst_n && protected_call_path_state)
+                assert(opcode==8'h9a || opcode==8'hea || opcode==8'hff);
+            // CS loads for far transfers carry their instruction's opcode:
+            // target 2 is IRET, 3 a far CALL/JMP gate target, 4 a far RET.
+            if (rst_n && state==CODE_LOAD_WAIT && code_load_target==2) assert(opcode==8'hcf);
+            if (rst_n && state==CODE_LOAD_WAIT && code_load_target==3)
+                assert(opcode==8'h9a || opcode==8'hea || opcode==8'hff);
+            if (rst_n && state==CODE_LOAD_WAIT && code_load_target==4)
+                assert(opcode==8'hca || opcode==8'hcb);
+            if (rst_n && (state==RET_CODE_START || state==RET_OUTER_NEXT ||
+                          state==RET_OUTER_SS || state==RET_COMMIT))
+                assert(opcode==8'hca || opcode==8'hcb);
+            if (rst_n && (state==IRET_CODE_START || state==IRET_OUTER_NEXT ||
+                          state==IRET_OUTER_SS || state==IRET_COMMIT))
+                assert(opcode==8'hcf);
             if (rst_n && (state==MEMORY_CHECK || state==BUS) &&
                 memory_return==EVENT_FRAME_ERROR) begin
                 assert(event_delivery_active && event_packet.protected_mode &&
@@ -761,10 +838,12 @@
                  memory_return==EVENT_FRAME_ERROR || memory_return==EVENT_FRAME_OLD_SP ||
                  memory_return==EVENT_FRAME_OLD_SS || memory_return==EVENT_TSS_PAIR ||
                  memory_return==EVENT_PROTECTED_COMMIT))) begin
-                if (rst_n && event_delivery_active && event_packet.valid &&
-                    event_packet.software_interrupt && event_packet.instruction_retired)
-                    assert(opcode==8'hcc || opcode==8'hcd || opcode==8'hce);
             end
+            // Stated for every delivery state (code/segment loads and task
+            // switches included): the INT opcode is held until delivery ends.
+            if (rst_n && event_delivery_active && event_packet.valid &&
+                event_packet.software_interrupt && event_packet.instruction_retired)
+                assert(opcode==8'hcc || opcode==8'hcd || opcode==8'hce);
             if (state==MULDIV_WAIT && aam_op) assert(md_flags==flags);
             if (state==STRING_START || state==STRING_FIRST || state==STRING_COMMIT ||
                 (state==BUS && (memory_return==STRING_FIRST || memory_return==STRING_COMMIT))) begin

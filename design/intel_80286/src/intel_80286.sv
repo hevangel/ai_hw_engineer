@@ -435,7 +435,12 @@ module intel_80286 #(
         // An exception or interrupt aborts any protected CALL-gate stack
         // switch or IRET in progress; its flags must not steer delivery.
         protected_call_stack_active<=0; protected_iret_active<=0;
-        iret_outer_active<=0;
+        iret_outer_active<=0; protected_ret_active<=0; ret_outer_active<=0;
+        ret_outer_preflight_done<=0; ret_outer_ss_ready<=0;
+        iret_outer_preflight_done<=0; iret_outer_ss_ready<=0;
+        // A new event also ends any task switch in progress; a task-gate
+        // delivery starts its own switch later, from TASK_GATE_TSS_CHECK.
+        task_switch_active<=0; task_switch_from_event<=0; task_return_active<=0;
         pending_sp<=gpr[4]-(msw[0] && error_present ? 16'd8 : 16'd6);
     endtask
     task automatic task_return_fault(input [7:0] vector,
@@ -725,7 +730,10 @@ module intel_80286 #(
     assign segment_load_start=(state==EXECUTE && msw[0] && opcode==8'h8e) ||
                               (state==IRET_OUTER_NEXT && iret_outer_ss_ready) ||
                               (state==RET_OUTER_NEXT && ret_outer_ss_ready) ||
-                              state==CALL_STACK_SELECT || state==EVENT_STACK_SELECT ||
+                              // Start only when the state itself advances to
+                              // SEGMENT_LOAD_WAIT, i.e. once the CPU owns the bus.
+                              ((state==CALL_STACK_SELECT || state==EVENT_STACK_SELECT) &&
+                               owner_cpu_grant) ||
                               (state==TASK_SEGMENT_START &&
                                (task_switch_from_event ? owner_event_grant : owner_cpu_grant));
     assign descriptor_bus_path_active=state==SEGMENT_LOAD_WAIT || state==CODE_LOAD_WAIT;
@@ -1261,8 +1269,10 @@ module intel_80286 #(
             retire_o <= 0;
             event_o <= 0;
             element_o <= 0;
+            // After a failed NMI recovery only RESET exits shutdown (9.6.2),
+            // even if the event controller still holds a selected NMI.
             if (shutdown_pending && !shutdown_recovery_active && async_valid &&
-                async_vector==8'd2) begin
+                async_vector==8'd2 && !shutdown_nmi_failed) begin
                 // Intel 210498-005 §§9.6.2 and 11.6: NMI may leave shutdown.
                 // Keep shutdown latched until the protected NMI gate and frame
                 // commit; a delivery failure returns to shutdown and requires
@@ -1282,6 +1292,7 @@ module intel_80286 #(
                 event_stack_active<=1'b0;
                 task_switch_active<=1'b0;
                 task_switch_from_event<=1'b0;
+                task_switch_instruction<=1'b0; task_switch_jump<=1'b0;
                 task_return_active<=1'b0;
             end else if (shutdown_pending && shutdown_recovery_active &&
                          (state==STOPPED ||
@@ -1297,6 +1308,7 @@ module intel_80286 #(
                 event_stack_active<=1'b0;
                 task_switch_active<=1'b0;
                 task_switch_from_event<=1'b0;
+                task_switch_instruction<=1'b0; task_switch_jump<=1'b0;
                 task_return_active<=1'b0;
             end else if (fetch_reference_fault && (state==FETCH || state==EXT_FETCH ||
                 state==IMMEDIATE || state==MODRM_FETCH || state==DISPLACEMENT)) begin
@@ -2784,6 +2796,9 @@ module intel_80286 #(
                 EVENT_START: begin
                     lock_prefix_active<=0;
                     lock_window<=0;
+                    // A new event ends any CALL/JMP task switch; a task-gate
+                    // delivery sets its own switch kind at TASK_GATE_TSS_CHECK.
+                    task_switch_instruction<=0; task_switch_jump<=0;
                     if (event_packet.protected_mode) begin
                         if (({6'h0,event_vector_o,3'b000}+17'd7)>{1'b0,idt_limit}) begin
                             // Intel 210498-005 §9.6.2: an IDT-limit #GP while

@@ -65,6 +65,35 @@ All runs used the `ai-hw-engineer:latest` image (Verilator 5.052, Yosys
 | `test_audit_formal.py` | 17 tests OK |
 
 The connected-core BMC failed on unmodified `main` (stale state bound at
-step 10); it passes here only after the bookkeeping fixes above. The
-connected-core `prove`/`cover` tasks and the PDR run were not run, so this is
-bounded evidence, not a proof.
+step 10); it passes here only after the bookkeeping fixes above.
+
+## Connected-core k-induction (follow-up, 2026-11-02)
+
+The `prove` task (`smtbmc yices`, depth 12) was run 42 times. The base case
+passed every time, so no assertion fails within 12 cycles of reset. Each
+induction failure was decoded from its trace and fixed either by stating a
+missing invariant or by hardening the RTL; none was left by weakening an
+assertion without an RTL or Intel reason.
+
+RTL changes found this way (all re-simulated: `run_sim.sh` 218 PASS, exit 0):
+
+- A task-gate NMI handler now clears shutdown recovery at `TASK_ENTRY_COMMIT`
+  (Intel 210498-005 9.6.2). Before, any later fault in the NMI task put the
+  CPU back into shutdown.
+- `enter_event` clears abandoned CALL-gate, RETF and IRET transfer flags and
+  their helpers, and task-switch flags; `EVENT_START` and shutdown entry clear
+  the CALL/JMP task-switch kind. Stale flags could steer a later delivery's
+  stack load or misroute a task-gate event as a direct switch.
+- The inner-stack segment load in `CALL_STACK_SELECT`/`EVENT_STACK_SELECT`
+  starts only with the CPU bus grant, matching the state's own advance.
+- NMI cannot exit shutdown after a failed NMI recovery (9.6.2: RESET only).
+
+About 35 invariants were added (opcode ownership of far-transfer states,
+descriptor engines tied to their wait states, task-switch and delivery
+exclusivity, PE stickiness, shutdown precedence, `cs_trusted`), and several
+stale properties were corrected (NMI exit from shutdown, #DF IDT-limit
+shutdown, task-entry fault context, IRET #SS(0)). Property count: 340.
+
+Status: induction is not yet closed; run 42 still fails on an unstated fact
+(the `0F` continuation list). The `cover` task (depth 64) has reached 45 of 89
+covers after 22 hours at step 33. This remains bounded evidence, not a proof.
