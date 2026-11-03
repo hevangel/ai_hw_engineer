@@ -163,6 +163,9 @@
             if (halted_o || fault_o)
                 assert(!core_bus_req && !(descriptor_claim && descriptor_bus_req) && !event_bus_req);
             assert(!(cpu_bus_ready && event_bus_ready));
+            // The core ties the PEDC claim/request inputs of the bus owner to
+            // zero, so the PEDC never owns the bus.
+            assert(bus_owner!=3 && !owner_pedc_grant);
             assert(core_bus_ready==(cpu_bus_ready || owner_descriptor_ready || event_bus_ready));
             assert(owner_cpu_grant==(bus_owner==0));
             assert(owner_descriptor_grant==(bus_owner==1));
@@ -450,6 +453,14 @@
                             memory_return==TASK_SWITCH_LOAD_NEXT || memory_return==TASK_LDT_VALIDATE ||
                             memory_return==TASK_ENTRY_COMMIT))))
                 assert(task_switch_active);
+            // The current-TSS checks of a direct CALL/JMP task switch run only
+            // inside that switch.
+            if (rst_n && (state==TASK_SWITCH_DIRECT_CURRENT_START ||
+                          state==TASK_SWITCH_DIRECT_CURRENT_ACCESS ||
+                          state==TASK_SWITCH_DIRECT_CURRENT_CHECK ||
+                          ((state==BUS || state==MEMORY_CHECK) &&
+                           memory_return==TASK_SWITCH_DIRECT_CURRENT_ACCESS)))
+                assert(task_switch_active && task_switch_instruction && !event_delivery_active);
             // The TSS stack-pair read is launched only after a privilege
             // change has marked this delivery as using the new stack.
             if (rst_n && (state==EVENT_TSS_PAIR || state==EVENT_STACK_SELECT ||
@@ -508,6 +519,13 @@
             // value would set EXT on an unrelated instruction fault.
             if (rst_n && task_switch_from_event)
                 assert(task_switch_active && event_delivery_active);
+            // The task-gate TSS descriptor read and check belong either to an
+            // event delivery or to a CALL/JMP task switch, never to neither.
+            if (rst_n && (state==TASK_GATE_TSS_TAIL || state==TASK_GATE_TSS_CHECK ||
+                          ((state==BUS || state==MEMORY_CHECK) &&
+                           (memory_return==TASK_GATE_TSS_TAIL ||
+                            memory_return==TASK_GATE_TSS_CHECK))))
+                assert(event_delivery_active != task_switch_instruction);
             if (rst_n && task_switch_instruction && state!=STOPPED && state!=EVENT_START)
                 assert(task_switch_active && !event_delivery_active && !task_switch_from_event);
             if (rst_n && state==BUS &&
