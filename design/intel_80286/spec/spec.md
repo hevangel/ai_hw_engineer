@@ -154,6 +154,10 @@ NMI exit condition "IDT limit at least 000FH and SP greater than 0005H" is
 treated as a consequence of these rules, so an NMI with even SP below 6 is
 delivered. Validate both against independent 286 evidence before sign-off.
 
+ASSUMPTION A30: ESC D9h-DFh use the D8h command protocol captured on a physical
+286 (command word, IP, CS, then operand offset and segment at FCh), with their
+own opcode byte. See [the ESC report](../report/2026-11-03-esc-command-phase.md).
+
 NMI is edge-triggered (210760-002 page 3-12) and not recognized during reset
 (page 3-67). The event controller samples the NMI level through reset, so a
 level already high at reset release is not an edge. An NMI pending before

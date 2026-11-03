@@ -101,7 +101,8 @@ module intel_80286 #(
                      TASK_SWITCH_DIRECT_CURRENT_ACCESS=108,
                      TASK_SWITCH_DIRECT_CURRENT_CHECK=109,
                      CALL_DESC_FINAL=110, ESC_REG_IP=111,
-                     ESC_REG_CS=112, ESC_REG_DONE=113;
+                     ESC_REG_CS=112, ESC_REG_DONE=113,
+                     ESC_MEM_OFFSET=114, ESC_MEM_SEGMENT=115;
     logic [6:0] state, memory_return;
     typedef struct packed {
         logic valid;
@@ -330,10 +331,13 @@ module intel_80286 #(
             shutdown_pending<=1'b1;
         end
     endtask
-    task automatic start_d8_register_escape;
+    task automatic start_escape_command;
         // Physical Harris 286 D8 captures: command word is the two original
-        // instruction bytes; instruction offset and CS follow at port FCh.
-        // This bounded register-only form does not request operand transfers.
+        // instruction bytes; instruction offset and CS follow at port FCh;
+        // memory forms then write the operand offset and segment to FCh.
+        // ASSUMPTION A30: D9h-DFh use the same CPU-side protocol (the CPU does
+        // not decode the extension opcode). Operand transfers belong to the
+        // PEDC on PEREQ, which is not connected.
         memory_start(1'b0,2'd0,16'd0,24'h0000f8,1'b1,1'b1,3'd2,
                      {16'h0,modrm,opcode},ESC_REG_IP);
     endtask
@@ -1515,7 +1519,7 @@ module intel_80286 #(
                         state<=EVENT_START;
                     end else if (arpl_op && arpl_source[15:2]==0) begin
                         enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0); state<=EVENT_START;
-                    end else if (rm_memory && opcode != 8'h8d && ((wide && ea_offset == 16'hffff) ||
+                    end else if (rm_memory && opcode != 8'h8d && (((wide || escape_op) && ea_offset == 16'hffff) ||
                         (system_table && ea_offset>16'hfffa) ||
                         ((opcode == 8'hc4 || opcode == 8'hc5 || opcode == 8'h62 || far_memory_pointer) && ea_offset > 16'hfffc))) begin
                         // App. B: an operand past FFFF is #GP(0), or #SS(0) when
@@ -1676,10 +1680,11 @@ module intel_80286 #(
                             state<=EVENT_START; retire_o<=0;
                         end
                     end else if (escape_op) begin
-                        if (opcode==8'hd8 && modrm[7:6]==2'b11)
-                            start_d8_register_escape();
+                        if (modrm[7:6]==2'b11 || !msw[0])
+                            start_escape_command();
                         else begin
-                            // Memory and other opcode forms await the PEDC.
+                            // Protected memory forms need the PEDC's operand
+                            // segment checks, which are not connected.
                             retire_o<=0; state<=STOPPED; fault_code_o<=3; ip<=instruction_ip;
                         end
                     end else if (arpl_op) begin
@@ -2411,7 +2416,12 @@ module intel_80286 #(
                 ESC_REG_IP: memory_start(1'b0,2'd0,16'd0,24'h0000fc,1'b1,1'b1,
                                          3'd2,{16'h0,instruction_ip},ESC_REG_CS);
                 ESC_REG_CS: memory_start(1'b0,2'd0,16'd0,24'h0000fc,1'b1,1'b1,
-                                         3'd2,{16'h0,cs},ESC_REG_DONE);
+                                         3'd2,{16'h0,cs},rm_memory ? ESC_MEM_OFFSET : ESC_REG_DONE);
+                ESC_MEM_OFFSET: memory_start(1'b0,2'd0,16'd0,24'h0000fc,1'b1,1'b1,
+                                         3'd2,{16'h0,rm_offset},ESC_MEM_SEGMENT);
+                ESC_MEM_SEGMENT: memory_start(1'b0,2'd0,16'd0,24'h0000fc,1'b1,1'b1,3'd2,
+                                         {16'h0,rm_role==2'd0 ? es : rm_role==2'd1 ? cs :
+                                                rm_role==2'd2 ? ss : ds},ESC_REG_DONE);
                 ESC_REG_DONE: begin
                     retire_o<=1; retire_pc_o<=instruction_pc;
                     retire_opcode_o<=opcode; state<=BOUNDARY;
@@ -2529,8 +2539,8 @@ module intel_80286 #(
                         // PREPARE entered WAIT_BUSY without EXECUTE's normal
                         // prefix cleanup, so clear it before the next fetch.
                         prefix_active<=0;
-                        if (opcode==8'hd8 && modrm[7:6]==2'b11)
-                            start_d8_register_escape();
+                        if (modrm[7:6]==2'b11 || !msw[0])
+                            start_escape_command();
                         else begin
                             state<=STOPPED; fault_code_o<=3; ip<=instruction_ip;
                         end

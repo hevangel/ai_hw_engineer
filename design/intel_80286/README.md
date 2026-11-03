@@ -399,10 +399,12 @@ remain open. See the [82288 controller report](report/2026-10-28-82288-local-con
 [native-clock phase report](report/2026-10-28-native-clock-phase.md), and
 [82C284 reset-source report](report/2026-10-28-reset-source-audit.md).
 
-D8 register-form ESC now sends its command and instruction pointer to the
-80287's reserved I/O ports; its order is backed by physical-286 captures and a
-native-bus test. The memory data channel and other ESC opcodes remain open.
-See the [D8 physical-command report](report/2026-10-30-d8-physical-command.md).
+ESC D8h-DFh sends its command, instruction pointer and, for real-mode memory
+forms, the operand offset and segment to the 80287's reserved I/O ports. The
+order is backed by physical-286 D8 captures; D9h-DFh rely on assumption A30.
+The memory data channel and protected-mode memory forms remain open. See the
+[D8 physical-command report](report/2026-10-30-d8-physical-command.md) and the
+[ESC command-phase report](report/2026-11-03-esc-command-phase.md).
 The unconnected [processor-extension transfer engine](report/2026-10-30-pedc-component.md)
 has separate component tests; it is not yet an operational CPU data channel.
 

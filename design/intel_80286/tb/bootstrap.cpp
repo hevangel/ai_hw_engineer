@@ -13670,17 +13670,70 @@ static void processor_extension_contract() {
         esc.step(0xf0103,0xf4,0xf000,0x0104,wait);
     }
 
-    // A non-trapping memory ESC is recognized but cannot read its operand
-    // until PEREQ/PEACK command transfers are implemented.
-    Bench unsupported_escape;
-    unsupported_escape.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
-    unsupported_escape.put(0xf0100,{0xd8,0x06,0x00,0x02});
-    unsupported_escape.reset();
-    unsupported_escape.step(0xfffff0,0xea,0xf000,0x0100,false);
-    unsupported_escape.data_transfers.clear();
-    unsupported_escape.stop(3,0x0100);
-    check(unsupported_escape.data_transfers.empty(),
-          "unsupported ESC touched its memory operand before the extension transfer path");
+    // Real-mode ESC D8h-DFh command phase (report 2026-11-03, from 4,967
+    // physical Harris D8 captures; A30 for D9h-DFh): command word, IP and
+    // CS, then for memory forms the operand offset and selected segment at
+    // FCh, with no operand traffic; an operand at offset FFFF raises 13.
+    struct MemForm { std::vector<uint8_t> bytes; uint16_t offset; unsigned segment; };
+    // BX=1234 SI=0010 BP=2000 DS=3000 ES=4000 SS=5000 before the ESC.
+    const MemForm forms[]={
+        {{0x40,0x05},0x1249,3},                 // [BX+SI+05]
+        {{0x86,0x34,0x12},0x3234,2},            // [BP+1234] -> SS
+        {{0x06,0x78,0x56},0x5678,3},            // [5678]
+        {{0x26,0x07},0x1234,0},                 // ES: [BX] (prefix first)
+        {{0x00},0x1244,3},                      // [BX+SI]
+    };
+    unsigned esc_cases=0;
+    for (bool wait : {false,true}) for (unsigned op=0xd8;op<=0xdf;++op)
+      for (unsigned modrm_reg=0;modrm_reg<8;modrm_reg+=3) for (const auto& form : forms) {
+        std::vector<uint8_t> program={0xbb,0x34,0x12, 0xbe,0x10,0x00, 0xbd,0x00,0x20,
+            0xb8,0x00,0x30, 0x8e,0xd8, 0xb8,0x00,0x40, 0x8e,0xc0, 0xb8,0x00,0x50, 0x8e,0xd0};
+        const uint16_t esc_ip=uint16_t(0x0100+program.size());
+        const bool prefixed=form.bytes[0]==0x26;
+        if (prefixed) program.push_back(0x26);
+        program.push_back(uint8_t(op));
+        const uint8_t modrm=uint8_t((prefixed ? form.bytes[1] : form.bytes[0]) | (modrm_reg<<3));
+        program.push_back(modrm);
+        for (std::size_t i=prefixed ? 2 : 1;i<form.bytes.size();++i) program.push_back(form.bytes[i]);
+        const uint16_t next_ip=uint16_t(0x0100+program.size());
+        program.push_back(0xf4);
+        Bench esc;
+        esc.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+        for (std::size_t i=0;i<program.size();++i) esc.memory[0xf0100+uint32_t(i)]=program[i];
+        esc.reset();
+        esc.step(0xfffff0,0xea,0xf000,0x0100,wait);
+        uint16_t setup_ip=0x0100;
+        for (unsigned length : {3u,3u,3u,3u,2u,3u,2u,3u,2u}) {
+            esc.step(0xf0000+setup_ip,program[setup_ip-0x0100],0xf000,uint16_t(setup_ip+length),wait);
+            setup_ip=uint16_t(setup_ip+length);
+        }
+        check(esc.d.ip_o==esc_ip,"ESC fixture setup did not reach the ESC");
+        esc.data_transfers.clear();
+        esc.step(0xf0000+esc_ip,uint8_t(op),0xf000,next_ip,wait);
+        const uint16_t segment_values[]={0x4000,0xf000,0x5000,0x3000};
+        const uint16_t words[]={uint16_t((modrm<<8)|op),esc_ip,0xf000,form.offset,
+                                segment_values[form.segment]};
+        const uint32_t ports[]={0xf8,0xfc,0xfc,0xfc,0xfc};
+        check(esc.data_transfers.size()==10,"memory ESC command transfer count");
+        for (unsigned i=0;i<10;++i) {
+            const auto& t=esc.data_transfers[i];
+            check(t.io && t.write && t.address==ports[i/2]+(i&1) &&
+                  t.value==uint8_t(words[i/2]>>(8*(i&1))),
+                  "memory ESC command/pointer/operand-address transfer mismatch");
+        }
+        esc.step(0xf0000+next_ip,0xf4,0xf000,uint16_t(next_ip+1),wait);
+        ++esc_cases;
+    }
+    for (unsigned op=0xd8;op<=0xdf;++op) {
+        Bench esc;
+        esc.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+        esc.put(0xf0100,{uint8_t(op),0x06,0xff,0xff});
+        esc.reset();
+        esc.step(0xfffff0,0xea,0xf000,0x0100,false);
+        esc.processor_fault(13,0x0100,false);
+        ++esc_cases;
+    }
+    std::cout<<"PASS: "<<esc_cases<<" real-mode D8h-DFh memory ESC command phases and offset-FFFF segment overruns\n";
 
     std::cout << "PASS: 80286 WAIT interruption/BUSY/ERROR#, ESC fault gates and D8 register commands\n";
 }

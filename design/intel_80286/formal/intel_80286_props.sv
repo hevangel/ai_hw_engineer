@@ -250,8 +250,8 @@
                 assert($stable(regs_o) && $stable(flags_o));
             end
             // Later states include WAIT_BUSY, direct task-switch paths and
-            // the ESC register save; ESC_REG_DONE is the highest encoding.
-            assert(state <= ESC_REG_DONE);
+            // the ESC command phase; ESC_MEM_SEGMENT is the highest encoding.
+            assert(state <= ESC_MEM_SEGMENT);
             // CS is untrusted only after a task-entry fault rejected the incoming
             // CS cache (Intel 210498-005 9.6.4); the fault's own delivery then
             // reloads CS. Real mode never clears it.
@@ -527,7 +527,10 @@
                             memory_return==EVENT_FRAME_CS || memory_return==EVENT_FRAME_IP ||
                             memory_return==EVENT_FRAME_ERROR || memory_return==EVENT_FRAME_OLD_SP ||
                             memory_return==EVENT_FRAME_OLD_SS))))
-                assert(!task_switch_active);
+                // ...and only within its protected delivery, which EVENT_START
+                // opens and every delivery fault or commit closes.
+                assert(!task_switch_active && event_delivery_active &&
+                       event_packet.valid && event_packet.protected_mode);
             // An event delivery cannot overlap a protected CALL-gate stack
             // switch or an IRET; entering the event abandons those transfers.
             if (rst_n && event_delivery_active)
@@ -774,6 +777,7 @@
                    memory_return == CALL_DESC_FINAL ||
                    memory_return == ESC_REG_IP || memory_return == ESC_REG_CS ||
                    memory_return == ESC_REG_DONE ||
+                   memory_return == ESC_MEM_OFFSET || memory_return == ESC_MEM_SEGMENT ||
                    memory_return == TASK_GATE_TSS_TAIL || memory_return == TASK_GATE_TSS_CHECK ||
                    memory_return == TASK_LDT_VALIDATE || memory_return == TASK_ENTRY_COMMIT ||
                    memory_return == TASK_RETURN_LINK_CHECK ||

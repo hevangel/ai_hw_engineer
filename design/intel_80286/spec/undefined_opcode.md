@@ -15,9 +15,10 @@ encodings already detected by the core, and real-mode-invalid ARPL, SLDT/STR,
 LLDT/LTR, VERR/VERW, LAR/LSL. Do not infer invalidity merely from an unimplemented
 instruction: WAIT and ESC are valid encodings, not #UD. The current 80287
 slice implements WAIT's active-high BUSY, active-low ERROR# and TS behavior,
-plus ESC's EM/TS and prior ERROR# exception gates. A normal ESC still stops
-with a development diagnostic because the successful 80287 command and
-operand-transfer protocol is not implemented. Native LOCK arbitration and
+plus ESC's EM/TS and prior ERROR# exception gates. A normal ESC runs the
+CPU-side command phase ([report](../report/2026-11-03-esc-command-phase.md));
+operand transfers through the extension data channel and protected-mode
+memory forms remain unimplemented. Native LOCK arbitration and
 protected execution remain separate development boundaries. ARPL has a protected-mode execution slice; it
 remains #UD only in real mode. Undocumented shift `/6`, other unspecified
 aliases, unsupported REP combinations and overlength/segment-boundary
