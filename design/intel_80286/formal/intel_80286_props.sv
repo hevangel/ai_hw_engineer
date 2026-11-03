@@ -461,12 +461,29 @@
                             memory_return==TASK_SWITCH_LOAD_NEXT || memory_return==TASK_LDT_VALIDATE ||
                             memory_return==TASK_ENTRY_COMMIT))))
                 assert(task_switch_active);
+            // Clearing the outgoing busy bit serves an NT IRET or a task JMP.
+            if (rst_n && (state==TASK_RETURN_CLEAR_BUSY ||
+                          ((state==BUS || state==MEMORY_CHECK) && memory_return==TASK_RETURN_CLEAR_BUSY)))
+                assert(task_switch_active && !event_delivery_active &&
+                       (task_return_active ? opcode==8'hcf : task_switch_jump));
+            // A task-gate event switch is always nested, never a JMP or CALL.
+            if (rst_n && task_switch_from_event && state!=STOPPED && state!=EVENT_START &&
+                !(shutdown_pending && !shutdown_recovery_active))
+                assert(!task_switch_jump && !task_switch_instruction && task_switch_nested &&
+                       !task_return_active);
+            // The far-transfer kind recorded for a CALL/JMP matches its opcode.
+            if (rst_n && (protected_call_path_state ||
+                          ((state==BUS || state==MEMORY_CHECK) &&
+                           (memory_return==CALL_DESC_TAIL || memory_return==CALL_DESC_FINAL))))
+                assert(protected_call_direct_jump==far_jump);
+            // A task JMP is a far JMP (EA or FF /5).
+            if (rst_n && task_switch_active && task_switch_jump && state!=STOPPED)
+                assert(opcode==8'hea || (opcode==8'hff && modrm[5:3]==3'd5));
             // The task-return (IRET with NT) checks run only inside a live task
             // return, started by IRET.
             if (rst_n && (state==TASK_RETURN_LINK || state==TASK_RETURN_LINK_CHECK ||
                           state==TASK_RETURN_TSS_TAIL || state==TASK_RETURN_TSS_CHECK ||
                           state==TASK_RETURN_CURRENT_ACCESS || state==TASK_RETURN_CURRENT_CHECK ||
-                          state==TASK_RETURN_CLEAR_BUSY ||
                           ((state==BUS || state==MEMORY_CHECK) &&
                            (memory_return==TASK_RETURN_LINK_CHECK || memory_return==TASK_RETURN_TSS_TAIL ||
                             memory_return==TASK_RETURN_TSS_CHECK ||
@@ -571,7 +588,10 @@
                           ((state==BUS || state==MEMORY_CHECK) &&
                            (memory_return==TASK_GATE_TSS_TAIL ||
                             memory_return==TASK_GATE_TSS_CHECK))))
-                assert(event_delivery_active != task_switch_instruction);
+                // The event's own switch starts only when the check passes.
+                assert(event_delivery_active != task_switch_instruction &&
+                       task_switch_active == task_switch_instruction &&
+                       !task_switch_from_event);
             if (rst_n && task_switch_instruction && state!=STOPPED && state!=EVENT_START)
                 assert(task_switch_active && !event_delivery_active && !task_switch_from_event);
             if (rst_n && state==BUS &&
@@ -881,8 +901,11 @@
             end
             // The same opcode ownership holds in the transfer states themselves,
             // so induction cannot start a far transfer under a foreign opcode.
-            if (rst_n && protected_call_path_state)
-                assert(opcode==8'h9a || opcode==8'hea || opcode==8'hff);
+            if (rst_n && (protected_call_path_state ||
+                          ((state==BUS || state==MEMORY_CHECK) &&
+                           (memory_return==CALL_DESC_TAIL || memory_return==CALL_DESC_FINAL))))
+                assert(opcode==8'h9a || opcode==8'hea ||
+                       (opcode==8'hff && (modrm[5:3]==3'd3 || modrm[5:3]==3'd5)));
             // CS loads for far transfers carry their instruction's opcode:
             // target 2 is IRET, 3 a far CALL/JMP gate target, 4 a far RET.
             // Target 0 is the direct far JMP/CALL CS load from EXECUTE.
@@ -917,6 +940,12 @@
                        !protected_iret_active && !iret_outer_active &&
                        !protected_call_stack_active && !task_switch_active &&
                        !event_delivery_active && (modrm[7:6]==2'b11 || !msw[0]));
+            // Decode rejects MOV Sreg to CS and reg fields 4-7 before any later stage.
+            if (rst_n && opcode==8'h8e &&
+                (state==DISPLACEMENT || state==AFTER_DISP || state==IMMEDIATE ||
+                 state==PREPARE || state==EXECUTE ||
+                 ((state==BUS || state==MEMORY_CHECK) && memory_return==EXECUTE)))
+                assert(modrm[5:3]==3'd0 || modrm[5:3]==3'd2 || modrm[5:3]==3'd3);
             // CS is never a segment-load target (MOV CS is rejected at decode),
             // and the CALL-gate stack switch belongs to its CALL instruction.
             if (rst_n && state==SEGMENT_LOAD_WAIT) assert(segment_load_target!=2'd1);
@@ -958,8 +987,10 @@
                 assert(gpr[$past(modrm[5:3])]==$past(memory_result[15:0]) && retire_o);
             // Reset clears code_load_target and the core only assigns 0..5.
             if (rst_n) assert(code_load_target<=5);
+            // (Only a far JMP starts it; protected far CALL validates its target
+            // descriptor through CALL_DESC_* instead.)
             if (rst_n && state==CODE_LOAD_WAIT && code_load_target==0)
-                assert(opcode==8'h9a || opcode==8'hea || opcode==8'hff);
+                assert(opcode==8'hea || (opcode==8'hff && modrm[5:3]==3'd5));
             // Far RETF/IRET and CALL-gate transfers run from an instruction the
             // CPU fetched, so the event engine never owns the bus there.
             if (rst_n && (state==RET_CODE_START || state==RET_OUTER_NEXT ||
@@ -1356,6 +1387,12 @@
             if (state==EVENT_FRAME_ERROR) assert(event_packet.error_present);
             if (state==IRET_CODE_START && owner_cpu_grant) assert(code_load_start);
             if (event_packet.valid) assert(event_packet.vector==event_vector_o);
+            // INT n/INT3/INTO are traps after their instruction: retired, not
+            // restartable, internal, and vectored by their own opcode.
+            if (rst_n && event_packet.valid && event_packet.software_interrupt && event_delivery_active)
+                assert(event_packet.instruction_retired && !event_packet.restartable &&
+                       !event_packet.external &&
+                       event_packet.vector==(opcode==8'hcc ? 8'd3 : opcode==8'hce ? 8'd4 : immediate[7:0]));
             cover(event_o && event_vector_o==13 && !retire_o);
             cover(bus_owner==2 && bus_req_o && event_packet.protected_mode &&
                   memory_return==EVENT_GATE_TAIL && bus_addr_o==idt_base+{13'h0,event_vector_o,3'b000});
