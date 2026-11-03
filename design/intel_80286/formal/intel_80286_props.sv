@@ -515,6 +515,20 @@
             // only after the handler CS loads and cleared with the delivery.
             if (rst_n && event_stack_active && state!=STOPPED)
                 assert(event_delivery_active && !task_switch_active);
+            // ...and lives only on the inner-stack frame path.
+            if (rst_n && event_stack_active && state!=STOPPED)
+                assert(state==EVENT_TSS_PAIR || state==EVENT_STACK_SELECT ||
+                       (state==SEGMENT_LOAD_WAIT && segment_load_target==3) ||
+                       state==EVENT_FRAME_READY || state==EVENT_FRAME_FLAGS ||
+                       state==EVENT_FRAME_CS || state==EVENT_FRAME_IP ||
+                       state==EVENT_FRAME_ERROR || state==EVENT_FRAME_OLD_SP ||
+                       state==EVENT_FRAME_OLD_SS || state==EVENT_PROTECTED_COMMIT ||
+                       ((state==BUS || state==MEMORY_CHECK) &&
+                        (memory_return==EVENT_TSS_PAIR || memory_return==EVENT_FRAME_READY ||
+                         memory_return==EVENT_FRAME_FLAGS || memory_return==EVENT_FRAME_CS ||
+                         memory_return==EVENT_FRAME_IP || memory_return==EVENT_FRAME_ERROR ||
+                         memory_return==EVENT_FRAME_OLD_SP || memory_return==EVENT_FRAME_OLD_SS ||
+                         memory_return==EVENT_PROTECTED_COMMIT)));
             // Interrupt/trap-gate delivery (gate fetch through frame writes,
             // including the handler CS load) never runs inside a task switch;
             // enter_event ends any switch and a task gate starts its own later.
@@ -526,7 +540,9 @@
                             memory_return==EVENT_FRAME_READY || memory_return==EVENT_FRAME_FLAGS ||
                             memory_return==EVENT_FRAME_CS || memory_return==EVENT_FRAME_IP ||
                             memory_return==EVENT_FRAME_ERROR || memory_return==EVENT_FRAME_OLD_SP ||
-                            memory_return==EVENT_FRAME_OLD_SS))))
+                            memory_return==EVENT_FRAME_OLD_SS ||
+                            memory_return==EVENT_PROTECTED_COMMIT)) ||
+                          state==EVENT_PROTECTED_COMMIT))
                 // ...and only within its protected delivery, which EVENT_START
                 // opens and every delivery fault or commit closes.
                 assert(!task_switch_active && event_delivery_active &&
@@ -966,6 +982,43 @@
                 assert(opcode==8'hcf);
             if (rst_n && (protected_ret_active || ret_outer_active) && state!=STOPPED)
                 assert(opcode==8'hca || opcode==8'hcb);
+            // A protected IRET/RETF flag lives only along its own return path,
+            // from the frame read to commit (or a fault through enter_event).
+            if (rst_n && protected_iret_active && state!=STOPPED)
+                assert(state==FAR_RETURN_DONE || state==IRET_OUTER_NEXT || state==IRET_OUTER_SS ||
+                       state==IRET_CODE_START || state==IRET_COMMIT ||
+                       (state==CODE_LOAD_WAIT && code_load_target==2) ||
+                       (state==SEGMENT_LOAD_WAIT && segment_load_target==2) ||
+                       ((state==BUS || state==MEMORY_CHECK) &&
+                        (memory_return==FAR_RETURN_DONE || memory_return==IRET_OUTER_NEXT ||
+                         memory_return==IRET_OUTER_SS)));
+            if (rst_n && protected_ret_active && state!=STOPPED)
+                assert(state==RET_OUTER_NEXT || state==RET_OUTER_SS ||
+                       state==RET_CODE_START || state==RET_COMMIT ||
+                       (state==CODE_LOAD_WAIT && code_load_target==4) ||
+                       (state==SEGMENT_LOAD_WAIT && segment_load_target==2) ||
+                       ((state==BUS || state==MEMORY_CHECK) &&
+                        (memory_return==RET_OUTER_NEXT || memory_return==RET_OUTER_SS)));
+            // A task switch ends at TASK_ENTRY_COMMIT or a fault; no
+            // instruction-stream state runs while one is active.
+            if (rst_n && (task_switch_active || task_return_active || task_switch_from_event))
+                assert((state>=TASK_GATE_TSS_TAIL && state<=TASK_LDT_VALIDATE) ||
+                       (state>=TASK_SWITCH_DIRECT_CURRENT_START &&
+                        state<=TASK_SWITCH_DIRECT_CURRENT_CHECK) ||
+                       (state==CODE_LOAD_WAIT && code_load_target==5) ||
+                       state==SEGMENT_LOAD_WAIT ||
+                       state==STOPPED || state==SHUTDOWN || state==EVENT_START ||
+                       ((state==BUS || state==MEMORY_CHECK) &&
+                        ((memory_return>=TASK_GATE_TSS_TAIL && memory_return<=TASK_LDT_VALIDATE) ||
+                         (memory_return>=TASK_SWITCH_DIRECT_CURRENT_START &&
+                          memory_return<=TASK_SWITCH_DIRECT_CURRENT_CHECK))));
+            // Any other task switch is a CALL/JMP through a task gate or TSS.
+            if (rst_n && task_switch_active && !task_switch_from_event && !task_return_active &&
+                state!=STOPPED)
+                assert(opcode==8'h9a || opcode==8'hea || opcode==8'hff);
+            // A task return is the NT IRET's own switch from start to commit.
+            if (rst_n && task_return_active && state!=STOPPED)
+                assert(opcode==8'hcf && task_switch_active && !task_switch_from_event);
             // The outer-level flag is set only together with its transfer flag,
             // and a far RETF/IRET never runs inside a task switch (an NT IRET
             // uses task_return_active instead).
@@ -977,6 +1030,9 @@
                 assert(protected_iret_active);
             if (rst_n && state==CODE_LOAD_WAIT && code_load_target==4)
                 assert(protected_ret_active);
+            // The outer SS word is read only after the frame preflight.
+            if (rst_n && iret_outer_ss_ready && state!=STOPPED) assert(iret_outer_preflight_done && iret_outer_active);
+            if (rst_n && ret_outer_ss_ready && state!=STOPPED) assert(ret_outer_preflight_done && ret_outer_active);
             // The return CS is validated after the outer frame preflight and
             // before the outer SS word is read.
             if (rst_n && (state==IRET_CODE_START || (state==CODE_LOAD_WAIT && code_load_target==2)))
@@ -1265,6 +1321,8 @@
                 if ($past(event_gate[39:32]==0 && !event_gate[44] &&
                           (event_gate[43:40]==4'h6 || event_gate[43:40]==4'h7) &&
                           event_gate[47] && event_gate[63:48]==0 &&
+                          // 9.6.2: the #DF handler must be a task gate.
+                          !(event_packet.restartable && event_packet.vector==8) &&
                           (!event_packet.software_interrupt ||
                            cs[1:0]<=event_gate[46:45]))) begin
                     assert(state==EVENT_CODE_START);
