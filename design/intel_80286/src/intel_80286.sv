@@ -1214,6 +1214,23 @@ module intel_80286 #(
     // the sequencer process (Verilator MULTIDRIVEN otherwise flags them).
     `define I286_DELIVERY_FAULT(V,E) begin delivery_fault(V,E); state<=EVENT_START; \
         retire_o<=0; event_stack_active<=0; ip<=event_packet.saved_ip; end
+    // A stack word that would straddle offset FFFF does not fit in SS. Real
+    // mode raises segment overrun exception 13; protected mode exceeds every
+    // SS limit and raises #SS(0) (1985 PRM Table 5-2 and App. B POP/PUSH).
+    `define I286_STACK_OVERRUN begin \
+        enter_event(msw[0] ? 8'd12 : 8'd13,instruction_ip,1'b0,1'b1,1'b1,16'd0); \
+        state<=EVENT_START; retire_o<=0; end
+    // Real-mode shutdown (1985 PRM App. A "Shutdown"): a CALL, INT or PUSH
+    // that wraps the stack with odd SP, or exception 8/13 outside the IDT
+    // limit. A failure while an NMI is leaving shutdown needs RESET (11.6).
+    `define I286_REAL_SHUTDOWN(IPV) begin request_shutdown(); \
+        if (shutdown_recovery_active) begin \
+            shutdown_recovery_active<=1'b0; shutdown_nmi_failed<=1'b1; end \
+        state<=SHUTDOWN; halt_latch<=1'b1; retire_o<=0; ip<=IPV; \
+        event_delivery_active<=1'b0; end
+    // Stack pushes with odd SP that wrap: real-mode shutdown, else #SS(0).
+    `define I286_PUSH_WRAP begin if (msw[0]) `I286_STACK_OVERRUN \
+        else `I286_REAL_SHUTDOWN(instruction_ip) end
     always_ff @(posedge clk) begin
         if (!rst_n) begin
             state <= BOUNDARY;
@@ -1363,8 +1380,13 @@ module intel_80286 #(
                                 1'b0,1'b1,1'b1,fetch_reference_error);
                     state<=EVENT_START;
                 end else begin
-                    state<=STOPPED; fault_code_o<=2;
-                    ip<=state==FETCH && !prefix_active ? ip : instruction_ip;
+                    // Real mode: a code reference that does not fit in the
+                    // segment is the segment overrun exception 13 (1985 PRM
+                    // Table 5-2), with no error code.
+                    enter_event(8'd13,
+                                state==FETCH && !prefix_active ? ip : instruction_ip,
+                                1'b0,1'b1,1'b1,16'd0);
+                    state<=EVENT_START;
                 end
             end else case (state)
                 BOUNDARY: begin
@@ -1389,8 +1411,9 @@ module intel_80286 #(
                     if (prefix_active && (instruction_bytes >= 10 ||
                         ({1'b0,instruction_ip}+{13'b0,instruction_bytes}) > 17'h0ffff)) begin
                         // ASSUMPTION A16: native 286 overlength erratum uses #13.
-                        if (instruction_bytes>=10) begin enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0); state<=EVENT_START; end
-                        else begin state<=STOPPED; ip<=instruction_ip; fault_code_o<=2; end
+                        // Overlength (A16) and an instruction running past offset
+                        // FFFF both raise exception 13 (segment overrun / CS limit).
+                        enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0); state<=EVENT_START;
                     end else if (core_bus_ready) begin
                         if (!prefix_active) begin
                             event_packet.valid<=0;
@@ -1414,8 +1437,9 @@ module intel_80286 #(
                 end
                 EXT_FETCH: begin
                     if (!extension_allowed) begin
-                        if (instruction_bytes>=10) begin enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0); state<=EVENT_START; end
-                        else begin state<=STOPPED; ip<=instruction_ip; fault_code_o<=2; end
+                        // Overlength (A16) and an instruction running past offset
+                        // FFFF both raise exception 13 (segment overrun / CS limit).
+                        enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0); state<=EVENT_START;
                     end else if (core_bus_ready) begin
                         system_opcode<=owner_bus_rdata; ip<=ip+16'd1;
                         instruction_bytes<=instruction_bytes+4'd1; state<=DECODE;
@@ -1429,8 +1453,9 @@ module intel_80286 #(
                     end else if (({1'b0,instruction_bytes} + remaining_bytes) > 10) begin
                         enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0); state<=EVENT_START;
                     end else if (instruction_crosses_limit) begin
-                        // Development stop; architectural exception delivery is deferred.
-                        fault_code_o <= 2; ip <= instruction_ip; state <= STOPPED;
+                        // An instruction that runs past offset FFFF does not fit
+                        // in CS: real-mode segment overrun (13) or #GP(0).
+                        enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0); state<=EVENT_START;
                     end else if (state == DECODE && opcode_modrm) state <= MODRM_FETCH;
                     else if (state == MODRM_DECODE && displacement_bytes != 0) begin
                         displacement <= 0; displacement_high <= 0;
@@ -1493,7 +1518,11 @@ module intel_80286 #(
                     end else if (rm_memory && opcode != 8'h8d && ((wide && ea_offset == 16'hffff) ||
                         (system_table && ea_offset>16'hfffa) ||
                         ((opcode == 8'hc4 || opcode == 8'hc5 || opcode == 8'h62 || far_memory_pointer) && ea_offset > 16'hfffc))) begin
-                        enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0); state<=EVENT_START;
+                        // App. B: an operand past FFFF is #GP(0), or #SS(0) when
+                        // it is in SS (protected); real mode raises 13.
+                        enter_event((msw[0] && (override_valid ? override_segment : (ea_stack ? 2'd2 : 2'd3))==2'd2) ?
+                                    8'd12 : 8'd13,instruction_ip,1'b0,1'b1,1'b1,16'd0);
+                        state<=EVENT_START;
                     end else if (rm_read) begin
                         if ((lock_prefix_active && explicit_lock_memory) ||
                             (exchange_rm && rm_memory)) lock_window<=1;
@@ -1802,7 +1831,7 @@ module intel_80286 #(
                         far_ip<=opcode==8'h9a ? immediate[15:0] : memory_result[15:0];
                         far_cs<=opcode==8'h9a ? immediate[31:16] : memory_result[31:16];
                         pending_ip<=ip; pending_sp<=gpr[4]-16'd4;
-                        if (gpr[4][0] && gpr[4]<4) begin state<=STOPPED; fault_code_o<=2; ip<=instruction_ip; retire_o<=0; end
+                        if (gpr[4][0] && gpr[4]<4) `I286_PUSH_WRAP
                         else memory_start(1'b1, 2, (gpr[4]-16'd2), 24'd0, 1'b1, 1'b0, 2, {16'h0,cs}, FAR_CS_DONE);
                     end else if (far_return) begin
                         if (msw[0] && opcode==8'hcf && flags[14]) begin
@@ -1815,7 +1844,12 @@ module intel_80286 #(
                             task_switch_nested<=0;
                             task_load_index<=0; task_current_access<=0;
                             state<=TASK_RETURN_LINK; retire_o<=0;
-                        end else if (gpr[4]>(opcode==8'hcf ? 16'hfffa : 16'hfffc)) begin state<=STOPPED; fault_code_o<=2; ip<=instruction_ip; retire_o<=0; end
+                        end else if (gpr[4]>(opcode==8'hcf ? 16'hfffa : 16'hfffc) && (msw[0] || gpr[4][0])) `I286_STACK_OVERRUN
+                        else if (gpr[4]>(opcode==8'hcf ? 16'hfffa : 16'hfffc)) begin
+                            // Real-mode aligned frame wrap past FFFF is legal but the
+                            // single multi-word frame read cannot wrap yet.
+                            state<=STOPPED; fault_code_o<=2; ip<=instruction_ip; retire_o<=0;
+                        end
                         else begin
                             if (msw[0] && opcode==8'hcf) protected_iret_active<=1;
                             memory_start(1'b1, 2, gpr[4], 24'd0, 1'b0, 1'b0,
@@ -1830,15 +1864,21 @@ module intel_80286 #(
                         retire_o<=0; stack_origin<=gpr[4]; all_index<=0;
                         for (integer r=0;r<8;r=r+1) all_values[r]<=gpr[r];
                         if ((opcode==8'h60 && gpr[4][0] && gpr[4]<16) ||
-                            (opcode==8'h61 && gpr[4][0] && gpr[4]>=16'hfff1)) begin state<=STOPPED; fault_code_o<=2; ip<=instruction_ip; end
+                            (opcode==8'h61 && gpr[4][0] && gpr[4]>=16'hfff1)) begin
+                            // B-84: real-mode PUSHA shuts down for SP=1/3/5 and raises
+                            // 13 for SP=7..15; misaligned wraps are #SS(0) protected.
+                            if (opcode==8'h60 && !msw[0] && gpr[4]<6) `I286_REAL_SHUTDOWN(instruction_ip)
+                            else `I286_STACK_OVERRUN
+                        end
                         else memory_start(1'b1, 2, (opcode==8'h60 ? gpr[4]-16'd2 : gpr[4]), 24'd0, opcode==8'h60, 1'b0, 2, {16'h0,gpr[0]}, ALL_NEXT);
                     end else if (opcode==8'hc8) begin
                         frame_pointer<=gpr[4]-16'd2; frame_sp<=gpr[4]-16'd2; frame_source<=gpr[5]-16'd2;
                         frame_level<=immediate[20:16]; frame_index<=1;
-                        if (gpr[4]-16'd2==16'hffff) begin state<=STOPPED; fault_code_o<=2; ip<=instruction_ip; retire_o<=0; end
+                        // ASSUMPTION A29: ENTER's BP push wraps like PUSH (real-mode shutdown).
+                        if (gpr[4]-16'd2==16'hffff) `I286_PUSH_WRAP
                         else memory_start(1'b1, 2, (gpr[4]-16'd2), 24'd0, 1'b1, 1'b0, 2, {16'h0,gpr[5]}, ENTER_FIRST);
                     end else if (opcode==8'hc9) begin
-                        if (gpr[5]==16'hffff) begin state<=STOPPED; fault_code_o<=2; ip<=instruction_ip; retire_o<=0; end
+                        if (gpr[5]==16'hffff) `I286_STACK_OVERRUN
                         else memory_start(1'b1, 2, gpr[5], 24'd0, 1'b0, 1'b0, 2, 0, LEAVE_DONE);
                     end else if (memory_destination && ((alu_write && alu_enable) || mov_rm || exchange_rm ||
                         (unary_op && modrm[5:3] == 2) || opcode == 8'h8c || opcode == 8'hc6 || opcode == 8'hc7)) begin
@@ -1877,7 +1917,7 @@ module intel_80286 #(
                             memory_store(rm_value,flags,1'b0,0,0);
                     end else if (push_op) begin
                         if (gpr[4]-16'd2 == 16'hffff) begin
-                            retire_o <= 0; state <= STOPPED; fault_code_o <= 2; ip <= instruction_ip;
+                            `I286_PUSH_WRAP
                         end else begin
                             pending_sp <= gpr[4]-16'd2; pending_call <= near_call;
                             pending_ip <= opcode == 8'he8 ? ip + immediate[15:0] : rm_value;
@@ -1887,7 +1927,7 @@ module intel_80286 #(
                                  opcode == 8'h16 ? ss : opcode == 8'h1e ? ds : gpr[opcode[2:0]]}, PUSH_DONE);
                         end
                     end else if (pop_op) begin
-                        if (gpr[4] == 16'hffff) begin retire_o <= 0; state <= STOPPED; fault_code_o <= 2; ip <= instruction_ip; end
+                        if (gpr[4] == 16'hffff) `I286_STACK_OVERRUN
                         else memory_start(1'b1, 2, gpr[4], 24'd0, 1'b0, 1'b0, 2, 0, POP_DONE);
                     end else if (io_op) begin
                         if (iopl_denied) begin
@@ -2577,8 +2617,10 @@ module intel_80286 #(
                             iret_outer_ss_ready<=0;
                             if (memory_result[17:16]>cs[1:0]) begin
                                 if (gpr[4]>16'hfff6) begin
+                                    // The outer SP:SS words at SP+6..SP+9 run past
+                                    // FFFF, beyond every SS limit: #SS(0) (B-50).
                                     protected_iret_active<=0; iret_outer_active<=0;
-                                    state<=STOPPED; fault_code_o<=2; ip<=instruction_ip;
+                                    `I286_STACK_OVERRUN
                                 end else begin
                                     memory_start(1'b1,2,gpr[4]+16'd6,24'd0,1'b0,1'b0,1,0,IRET_OUTER_NEXT);
                                     memory_precheck_only<=1; memory_span_delta<=16'd3;
@@ -2880,9 +2922,10 @@ module intel_80286 #(
                         end
                     end else if (({7'h0,event_vector_o,2'b00}+17'd3)>{1'b0,idt_limit}) begin
                         // Intel 5.2.3: real-mode vector-limit exception, not PM #DF.
-                        if (event_vector_o==8) begin
-                            state<=STOPPED; fault_code_o<=2; retire_o<=0;
-                            ip<=event_packet.instruction_retired ? instruction_ip : event_packet.saved_ip;
+                        // Exception 8 or 13 outside the limit shuts down (1985
+                        // PRM App. A "Shutdown"); other vectors raise 8.
+                        if (event_vector_o==8 || (event_vector_o==13 && event_packet.restartable)) begin
+                            `I286_REAL_SHUTDOWN(event_packet.instruction_retired ? instruction_ip : event_packet.saved_ip)
                             event_packet.instruction_retired<=0;
                         end else begin
                             event_packet.saved_ip<=event_packet.instruction_retired ? instruction_ip : event_packet.saved_ip;
@@ -2896,7 +2939,8 @@ module intel_80286 #(
                     end else memory_start(1'b0, 2'd0, 16'd0, idt_base+{14'h0,event_vector_o,2'b00}, 1'b0, 1'b0, 4, 0, EVENT_VECTOR);
                 end
                 EVENT_VECTOR: begin
-                    if (event_packet.saved_sp[0] && event_packet.saved_sp<6) begin state<=STOPPED; fault_code_o<=2; ip<=event_packet.saved_ip; end
+                    if (event_packet.saved_sp[0] && event_packet.saved_sp<6)
+                        `I286_REAL_SHUTDOWN(event_packet.saved_ip)
                     else begin
                         event_pointer<=memory_result[31:0];
                         memory_start(1'b1, 2, (event_packet.saved_sp-16'd2), 24'd0, 1'b1, 1'b0, 2, {16'h0,event_packet.saved_flags}, EVENT_FLAGS);
@@ -3366,6 +3410,14 @@ module intel_80286 #(
                     cache_limits[31:16]<=16'hffff; cache_access[15:8]<=8'h93; cache_valid[1]<=1; cs_trusted<=1;
                     flags<=event_packet.saved_flags&16'hfcff; gpr[4]<=pending_sp; state<=BOUNDARY; event_o<=1;
                     retire_o<=event_packet.instruction_retired; retire_pc_o<=instruction_pc; retire_opcode_o<=opcode;
+                    // A real-mode NMI leaves shutdown once its frame is pushed
+                    // and its handler entered (1985 PRM App. A "Shutdown").
+                    if (shutdown_recovery_active) begin
+                        shutdown_recovery_active<=1'b0;
+                        shutdown_nmi_failed<=1'b0;
+                        shutdown_pending<=1'b0;
+                        halt_latch<=1'b0;
+                    end
                 end
                 ALL_NEXT: begin
                     if (opcode==8'h61) all_values[3'd7-all_index]<=memory_result[15:0];
@@ -3391,11 +3443,11 @@ module intel_80286 #(
                     else if (frame_level==1) begin
                         frame_sp<=frame_sp-16'd2;
                         memory_start(1'b1, 2, (frame_sp-16'd2), 24'd0, 1'b1, 1'b0, 2, {16'h0,frame_pointer}, ENTER_COMMIT);
-                    end else if (frame_source==16'hffff) begin state<=STOPPED; fault_code_o<=2; ip<=instruction_ip; end
+                    end else if (frame_source==16'hffff) `I286_STACK_OVERRUN
                     else memory_start(1'b1, 2, frame_source, 24'd0, 1'b0, 1'b0, 2, 0, ENTER_READ);
                 end
                 ENTER_READ: begin
-                    if (frame_sp-16'd2==16'hffff) begin state<=STOPPED; fault_code_o<=2; ip<=instruction_ip; end
+                    if (frame_sp-16'd2==16'hffff) `I286_PUSH_WRAP
                     else begin
                         frame_sp<=frame_sp-16'd2; frame_source<=frame_source-16'd2;
                         memory_start(1'b1, 2, (frame_sp-16'd2), 24'd0, 1'b1, 1'b0, 2, {16'h0,memory_result[15:0]}, ENTER_COPY);
@@ -3405,7 +3457,7 @@ module intel_80286 #(
                     if (frame_index==frame_level-5'd1) begin
                         frame_sp<=frame_sp-16'd2;
                         memory_start(1'b1, 2, (frame_sp-16'd2), 24'd0, 1'b1, 1'b0, 2, {16'h0,frame_pointer}, ENTER_COMMIT);
-                    end else if (frame_source==16'hffff) begin state<=STOPPED; fault_code_o<=2; ip<=instruction_ip; end
+                    end else if (frame_source==16'hffff) `I286_STACK_OVERRUN
                     else begin frame_index<=frame_index+5'd1; memory_start(1'b1, 2, frame_source, 24'd0, 1'b0, 1'b0, 2, 0, ENTER_READ); end
                 end
                 ENTER_COMMIT: begin

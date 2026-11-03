@@ -927,6 +927,19 @@
                 assert(protected_iret_active);
             if (rst_n && state==CODE_LOAD_WAIT && code_load_target==4)
                 assert(protected_ret_active);
+            // The return CS is validated after the outer frame preflight and
+            // before the outer SS word is read.
+            if (rst_n && (state==IRET_CODE_START || (state==CODE_LOAD_WAIT && code_load_target==2)))
+                assert(!iret_outer_ss_ready && (!iret_outer_active || iret_outer_preflight_done));
+            if (rst_n && (state==RET_CODE_START || (state==CODE_LOAD_WAIT && code_load_target==4)))
+                assert(!ret_outer_ss_ready && (!ret_outer_active || ret_outer_preflight_done));
+            // The completed request is the one the return started.
+            if (rst_n && state==CODE_LOAD_WAIT && code_load_target==2 && code_load_done)
+                assert(code_load_request_selector==iret_saved_cs &&
+                       code_load_request_offset==(iret_outer_active ? 16'd0 : iret_saved_ip));
+            if (rst_n && state==CODE_LOAD_WAIT && code_load_target==4 && code_load_done)
+                assert(code_load_request_selector==ret_saved_cs &&
+                       code_load_request_offset==(ret_outer_active ? 16'd0 : ret_saved_ip));
             if (rst_n && (state==IRET_CODE_START || state==IRET_OUTER_NEXT ||
                           state==IRET_OUTER_SS || state==IRET_COMMIT))
                 assert(opcode==8'hcf);
@@ -1087,16 +1100,25 @@
             if (rst_n && shutdown_recovery_active) begin
                 assert(shutdown_pending && !shutdown_o && !halted_o && !fault_o);
             end
-            // Shutdown is requested only by protected #DF delivery, and LMSW
-            // cannot clear PE, so a pending shutdown and its NMI recovery are
-            // always protected-mode.
-            if (rst_n && shutdown_pending) assert(msw[0]);
+            // The recovering NMI is delivered in the current mode; no LMSW can
+            // run before it commits.
             if (rst_n && shutdown_recovery_active && state!=EVENT_START)
-                assert(event_packet.protected_mode);
+                assert(event_packet.protected_mode==msw[0]);
             // NMI recovery lasts only while that NMI is being delivered.
             if (rst_n && shutdown_recovery_active)
-                // A task-gate NMI keeps event_delivery_active through the switch.
-                assert(state==EVENT_START || state==STOPPED || event_delivery_active);
+                // A task-gate NMI keeps event_delivery_active through the switch;
+                // a real-mode NMI runs the IVT/frame path.
+                assert(state==EVENT_START || state==STOPPED || event_delivery_active ||
+                       (!event_packet.protected_mode && event_bus_path_active));
+            // Real-mode delivery with odd SP below 6 cannot push its frame and
+            // shuts down (1985 PRM App. A "Shutdown"; B-47 INT).
+            if (rst_n && $past(rst_n && state==EVENT_VECTOR &&
+                               event_packet.saved_sp[0] && event_packet.saved_sp<6))
+                assert(shutdown_pending && !shutdown_recovery_active && state==SHUTDOWN);
+            // Real-mode PUSH with SP=1 wraps the stack with odd SP: shutdown.
+            if (rst_n && $past(rst_n && state==EXECUTE && !msw[0] &&
+                               opcode>=8'h50 && opcode<=8'h57 && gpr[4]==16'd1))
+                assert(shutdown_pending && state==SHUTDOWN && gpr[4]==16'd1);
             // During recovery only the NMI itself can switch tasks (through an
             // IDT task gate); no instruction executes until it commits.
             if (rst_n && shutdown_recovery_active && task_switch_active)
@@ -1119,8 +1141,17 @@
             cover(retire_o && retire_opcode_o == 8'h62);
             cover(event_o && event_vector_o==5);
             cover(event_o && event_vector_o==6 && !retire_o && opcode==8'h64);
+            // Real mode: exception 8, or exception 13 (a fault), outside the
+            // IDT limit shuts down (1985 PRM App. A "Shutdown").
             if (rst_n && $past(rst_n && state==EVENT_START && !event_packet.protected_mode &&
-                event_vector_o!=8 &&
+                !(shutdown_pending && (!shutdown_recovery_active || event_packet.vector!=8'd2)) &&
+                (event_vector_o==8 || (event_vector_o==13 && event_packet.restartable)) &&
+                ({7'h0,event_vector_o,2'b00}+17'd3)>{1'b0,idt_limit}))
+                assert(state==SHUTDOWN && shutdown_pending && !shutdown_recovery_active &&
+                       !retire_o && $stable(regs_o) && $stable(flags_o));
+            if (rst_n && $past(rst_n && state==EVENT_START && !event_packet.protected_mode &&
+                !(shutdown_pending && (!shutdown_recovery_active || event_packet.vector!=8'd2)) &&
+                event_vector_o!=8 && !(event_vector_o==13 && event_packet.restartable) &&
                 ({7'h0,event_vector_o,2'b00}+17'd3)>{1'b0,idt_limit})) begin
                 assert(state==EVENT_START && event_vector_o==8 && !event_packet.instruction_retired);
                 assert(!retire_o && !event_bus_req);

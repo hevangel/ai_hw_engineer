@@ -355,7 +355,8 @@ static void boundaries() {
     Bench limit;
     limit.put(0xfffff0,{0xea,0xfe,0xff,0x00,0xf0});
     limit.put(0xffffe,{0xb8}); limit.reset();
-    limit.step(0xfffff0,0xea,0xf000,0xfffe); limit.stop(2,0xfffe);
+    // An instruction running past FFFF is real-mode segment overrun 13.
+    limit.step(0xfffff0,0xea,0xf000,0xfffe); limit.processor_fault(13,0xfffe);
     check(limit.accepted.size()==6, "cross-limit operands must not be fetched");
 
     Bench stalled;
@@ -427,7 +428,7 @@ static void rejection_and_reset() {
     Bench limit;
     limit.put(0xfffff0,{0xea,0xfd,0xff,0x00,0xf0});
     limit.put(0xffffd,{0x81,0xc0}); limit.reset();
-    limit.step(0xfffff0,0xea,0xf000,0xfffd); limit.stop(2,0xfffd);
+    limit.step(0xfffff0,0xea,0xf000,0xfffd); limit.processor_fault(13,0xfffd);
     check(limit.accepted.size()==7,"ModR/M immediate crossed segment boundary");
     std::cout<<"PASS: "<<rejected<<" rejected ModR/M encodings, 100 reset cut points and immediate limit\n";
 }
@@ -972,6 +973,194 @@ static void debug_trap_contracts() {
         b.step(0xf0116,0x43,0xf000,0x117); b.step(0xf0117,0xf4,0xf000,0x118);
     }
     std::cout<<"PASS: instruction-start TF, POPF/IRET timing, HLT wake, SS inhibition, INT suppression, NMI priority and REP debug restart\n";
+}
+
+// Stack-wrap and real-mode shutdown contracts from the 1985 iAPX 286 PRM:
+// App. A "Shutdown" (real mode shuts down when a CALL, INT or PUSH wraps the
+// stack with odd SP, or exception 8/13 lies outside the IDT limit; NMI exits
+// when the IDT covers vector 2 and SP>5), Table 5-2 (segment overrun 13 for
+// a word at offset FFFF), B-84 PUSHA (SP=1/3/5 shut down, SP=7..15 raise 13)
+// and B-81 POP. Protected stack words past FFFF exceed every SS limit: #SS(0).
+static void protected_mode_boot(Bench& b, bool wait);
+static void place_selector_fixture(Bench& b, const uint8_t* program, std::size_t program_size);
+static void stack_wrap_contracts() {
+    auto real_bench=[](Bench& b,std::initializer_list<uint8_t> program) {
+        b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+        b.put(0xf0100,program);
+        b.reset();
+        b.step(0xfffff0,0xea,0xf000,0x0100);
+    };
+    auto expect_shutdown=[](Bench& b,const char* what) {
+        const unsigned before=b.retired;
+        b.data_transfers.clear();
+        for (unsigned n=0;n<4000 && !b.d.shutdown_o && !b.d.fault_o;++n) b.tick();
+        check(b.d.shutdown_o && b.d.halted_o && !b.d.fault_o && b.retired==before,what);
+        check(std::none_of(b.data_transfers.begin(),b.data_transfers.end(),
+                           [](const auto& t){ return t.write; }),
+              "real-mode stack-wrap shutdown wrote memory");
+        for (unsigned n=0;n<32;++n) b.tick();
+        check(b.d.shutdown_o && !b.d.bus_req_o && b.retired==before,"shutdown did not persist");
+    };
+    unsigned cases=0;
+    {   // PUSH with SP=1 shuts down; NMI cannot leave because SP<=5.
+        Bench b; real_bench(b,{0xbc,0x01,0x00, 0x50});
+        b.step(0xf0100,0xbc,0xf000,0x0103);
+        expect_shutdown(b,"real-mode PUSH with SP=1 did not shut down");
+        check(b.reg(4)==1,"shutdown PUSH changed SP");
+        b.d.nmi_i=1;
+        for (unsigned n=0;n<4000;++n) b.tick();
+        b.d.nmi_i=0;
+        for (unsigned n=0;n<64;++n) b.tick();
+        check(b.d.shutdown_o && b.d.halted_o && !b.d.fault_o && b.reg(4)==1,
+              "NMI left real-mode shutdown with SP=1");
+        ++cases;
+    }
+    for (uint8_t sp : {uint8_t(1),uint8_t(3),uint8_t(5)}) {   // INT n
+        Bench b; real_bench(b,{0xbc,sp,0x00, 0xcd,0x21});
+        b.step(0xf0100,0xbc,0xf000,0x0103);
+        expect_shutdown(b,"real-mode INT with SP=1/3/5 did not shut down");
+        ++cases;
+    }
+    {   // Near CALL with SP=1 wraps its return-address push.
+        Bench b; real_bench(b,{0xbc,0x01,0x00, 0xe8,0x00,0x00});
+        b.step(0xf0100,0xbc,0xf000,0x0103);
+        expect_shutdown(b,"real-mode CALL with SP=1 did not shut down");
+        ++cases;
+    }
+    for (uint8_t sp : {uint8_t(1),uint8_t(3),uint8_t(5)}) {   // PUSHA SP=1/3/5
+        Bench b; real_bench(b,{0xbc,sp,0x00, 0x60});
+        b.step(0xf0100,0xbc,0xf000,0x0103);
+        expect_shutdown(b,"real-mode PUSHA with SP=1/3/5 did not shut down");
+        ++cases;
+    }
+    for (uint8_t sp : {uint8_t(7),uint8_t(9),uint8_t(15)}) {  // PUSHA SP=7..15
+        Bench b; real_bench(b,{0xbc,sp,0x00, 0x60});
+        b.step(0xf0100,0xbc,0xf000,0x0103);
+        b.processor_fault(13,0x0103);
+        check(b.reg(4)==uint16_t(sp-6),"PUSHA segment overrun used the wrong frame SP");
+        ++cases;
+    }
+    {   // POP with SP=FFFF reads a word at FFFF: segment overrun 13.
+        Bench b; real_bench(b,{0xbc,0xff,0xff, 0x58});
+        b.step(0xf0100,0xbc,0xf000,0x0103);
+        b.processor_fault(13,0x0103);
+        check(b.reg(4)==0xfff9,"POP segment overrun frame SP");
+        ++cases;
+    }
+    {   // Exception 13 outside the IDT limit shuts down; NMI then recovers.
+        Bench b;
+        b.put(0x0040,{0x33,0x00,0x00,0x00,0x00,0x00});   // IDT limit covers vectors 0..12
+        b.put(0x0008,{0x00,0x01,0x00,0x20});             // NMI handler 2000:0100
+        b.put(0x20100,{0xf4});
+        real_bench(b,{0x0f,0x01,0x1e,0x40,0x00, 0xbc,0xff,0xff, 0x58});
+        b.step(0xf0100,0x0f,0xf000,0x0105);
+        b.step(0xf0105,0xbc,0xf000,0x0108);
+        expect_shutdown(b,"exception 13 outside the real-mode IDT limit did not shut down");
+        b.data_transfers.clear();
+        b.d.nmi_i=1;
+        for (unsigned n=0;n<4000 && !b.d.event_o;++n) b.tick();
+        b.d.nmi_i=0;
+        check(b.d.event_o && !b.d.shutdown_o && !b.d.halted_o && b.d.event_vector_o==2 &&
+              b.cs()==0x2000 && b.d.ip_o==0x0100 && b.reg(4)==0xfff9 &&
+              b.d.event_packet_saved_ip_o==0x0108,
+              "NMI did not leave real-mode shutdown through its IVT handler");
+        check(b.data_transfers.size()==10,"real-mode NMI recovery IVT/frame traffic");
+        b.step(0x20100,0xf4,0x2000,0x0101);
+        check(b.d.halted_o && !b.d.shutdown_o,"recovered NMI handler did not reach its HLT");
+        ++cases;
+    }
+    {   // INT 0Dh outside the limit is not exception 13: it raises 8.
+        Bench b;
+        b.put(0x0040,{0x33,0x00,0x00,0x00,0x00,0x00});
+        real_bench(b,{0x0f,0x01,0x1e,0x40,0x00, 0xcd,0x0d});
+        b.step(0xf0100,0x0f,0xf000,0x0105);
+        b.processor_fault(8,0x0105);
+        ++cases;
+    }
+    // Protected mode: a 64K expand-up SS (GDT 0048) and POP at SP=FFFF.
+    for (bool wait:{false,true}) {
+        using namespace protected_mode_fixture;
+        const uint8_t program[]={
+            0xb8,0x48,0x00, 0x8e,0xd0,   // 0200 MOV SS,0048
+            0xbc,0xff,0xff,              // 0205 MOV SP,FFFF
+            0x58,                        // 0208 POP AX -> #SS(0)
+            0xf4
+        };
+        Bench b;
+        place_selector_fixture(b,program,sizeof(program));
+        b.put(kGdtBase+0x48,{0xff,0xff,0x00,0x00,0x06,0x92,0x00,0x00});
+        b.put(kIdtBase+12*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        for (unsigned n=0;n<30000 && !b.d.event_o && !b.d.fault_o;++n) b.tick(wait);
+        check(b.d.event_o && !b.d.fault_o && b.d.event_vector_o==12 &&
+              b.d.event_packet_error_valid_o && b.d.event_packet_error_code_o==0 &&
+              b.d.event_packet_saved_ip_o==0x0208 && b.d.event_packet_saved_sp_o==0xffff &&
+              b.cs()==kHandlerSelector && b.reg(4)==0xfff7,
+              "protected POP at SP=FFFF did not raise #SS(0) with the original SP");
+        ++cases;
+    }
+    // A BP-based word at FFFF is an SS operand: #SS(0), not #GP(0) (App. B).
+    for (bool wait:{false,true}) {
+        using namespace protected_mode_fixture;
+        const uint8_t program[]={
+            0xb8,0x48,0x00, 0x8e,0xd0,   // 0200 MOV SS,0048
+            0xbc,0x00,0x01,              // 0205 MOV SP,0100
+            0xbd,0xff,0xff,              // 0208 MOV BP,FFFF
+            0x8b,0x46,0x00,              // 020B MOV AX,[BP+0] -> #SS(0)
+            0xf4
+        };
+        Bench b;
+        place_selector_fixture(b,program,sizeof(program));
+        b.put(kGdtBase+0x48,{0xff,0xff,0x00,0x00,0x06,0x92,0x00,0x00});
+        b.put(kIdtBase+12*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xbd,kCodeSelector,0x020b,wait);
+        for (unsigned n=0;n<30000 && !b.d.event_o && !b.d.fault_o;++n) b.tick(wait);
+        if (!(b.d.event_o && !b.d.fault_o && b.d.event_vector_o==12 &&
+              b.d.event_packet_error_code_o==0 && b.d.event_packet_saved_ip_o==0x020b &&
+              b.reg(4)==0x00f8))
+            throw std::runtime_error("protected SS word operand at FFFF did not raise #SS(0); event="+
+                std::to_string(b.d.event_o)+" fault="+std::to_string(b.d.fault_o)+
+                " code="+std::to_string(b.d.fault_code_o)+" vector="+std::to_string(b.d.event_vector_o)+
+                " error="+std::to_string(b.d.event_packet_error_code_o)+" ip="+
+                std::to_string(b.d.event_packet_saved_ip_o)+" sp="+std::to_string(b.reg(4)));
+        ++cases;
+    }
+    // Protected PUSH at SP=1: #SS(0), whose same-stack frame cannot be
+    // pushed either, so #DF and then shutdown (210498-005 9.6.2).
+    for (bool wait:{false,true}) {
+        using namespace protected_mode_fixture;
+        const uint8_t program[]={
+            0xb8,0x48,0x00, 0x8e,0xd0,   // 0200 MOV SS,0048
+            0xbc,0x01,0x00,              // 0205 MOV SP,0001
+            0x50,                        // 0208 PUSH AX -> #SS(0) -> #DF -> shutdown
+            0xf4
+        };
+        Bench b;
+        place_selector_fixture(b,program,sizeof(program));
+        b.put(kGdtBase+0x48,{0xff,0xff,0x00,0x00,0x06,0x92,0x00,0x00});
+        b.put(kIdtBase+12*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+        b.put(kIdtBase+8*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+        b.memory[0x46]=0x6f;
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.data_transfers.clear();
+        for (unsigned n=0;n<30000 && !b.d.shutdown_o && !b.d.fault_o;++n) b.tick(wait);
+        check(b.d.shutdown_o && !b.d.fault_o && b.reg(4)==1 &&
+              std::none_of(b.data_transfers.begin(),b.data_transfers.end(),
+                           [](const auto& t){ return t.write && t.segmented; }),
+              "protected PUSH at SP=1 did not escalate #SS(0) through #DF to shutdown");
+        ++cases;
+    }
+    std::cout<<"PASS: "<<cases<<" stack-wrap cases: real-mode odd-SP PUSH/CALL/INT/PUSHA shutdown, PUSHA/POP segment overrun 13, exception-13 IDT-limit shutdown with NMI recovery, INT 0Dh limit to vector 8, and protected #SS(0) and #DF shutdown\n";
 }
 
 static void procedure_reset_contracts() {
@@ -1582,7 +1771,7 @@ static void system_register_contracts() {
         b.put(0xf0000,{0x90,0xf4}); b.reset(); b.step(0xfffff0,0xea,0xf000,offset); b.accepted.clear();
         if (offset==0xfffe) { b.step(0xffffe,0x0f,0xf000,0); check(b.accepted.size()==2,"legal extension wrap fetch count");
             b.step(0xf0000,0x90,0xf000,1); b.step(0xf0001,0xf4,0xf000,2); }
-        else { b.stop(2,0xffff); check(b.accepted.size()==1,"extension fetched beyond code limit"); } ++cases;
+        else { b.processor_fault(13,0xffff); check(b.accepted.size()==1,"extension fetched beyond code limit"); } ++cases;
     }
     for (bool invalid_limit: {false,true}) {
         Bench b; b.put(0xfffff0,{0xea,0,1,0,0xf0});
@@ -13512,6 +13701,7 @@ int main(int argc, char** argv) {
             protected_selector_query_execution(); protected_selector_query_ring3_execution();
             protected_selector_query_ring12_matrix();
         }
+        else if (argc==2 && std::string(argv[1])=="--stack-wrap") stack_wrap_contracts();
         else if (argc==2 && std::string(argv[1])=="--segment-pops")
             { protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); }
         else if (argc==2 && std::string(argv[1])=="--protected-event-outer")
@@ -13567,7 +13757,7 @@ int main(int argc, char** argv) {
         else if (argc==3 && std::string(argv[1])=="--bios-decimal") vectors(argv[2],false,true);
         else if (argc==2 && std::string(argv[1])=="--processor-extension") processor_extension_contract();
         else {
-            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_delivery_faults(); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix();
+            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); stack_wrap_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_delivery_faults(); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix();
             std::cout << "PASS: 80286 bootstrap reset, register aliases, flags, exact branches, stalls and diagnostic boundaries\n";
         }
     } catch (const std::exception& error) {

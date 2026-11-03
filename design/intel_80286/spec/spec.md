@@ -124,6 +124,36 @@ CPL from the current TSS and the TSS limit does not cover it, the core raises
 #TS(TR selector). The 286 text gives no rule for this case; validate against
 independent 286 evidence before sign-off.
 
+### Stack wraparound and real-mode shutdown
+
+The 1985 iAPX 286 Programmer's Reference Manual (Appendix A "Shutdown",
+Table 5-2, Appendix B POP/PUSH/PUSHA/INT/IRET/RET) defines these cases,
+which the core implements instead of development stops:
+
+- Real mode, a word at offset FFFF (POP/POPA/POPF/LEAVE/IRET/RETF reads,
+  ENTER level reads, PUSHA with SP=7..15, an instruction running past FFFF):
+  segment overrun exception 13, no error code, restartable.
+- Real mode, a CALL, INT or PUSH that wraps the stack with odd SP (PUSH/CALL
+  with SP=1, far CALL with SP=1/3, PUSHA or any event frame with SP=1/3/5):
+  shutdown.
+- Real mode, exception 8, or exception 13 (a fault, not `INT 0Dh`), whose
+  vector lies outside the IDT limit: shutdown. Other vectors raise 8.
+- Protected mode, any stack word or frame past offset FFFF exceeds every SS
+  limit: #SS(0).
+- A real-mode NMI leaves shutdown when its IVT frame commits. A real-mode
+  delivery that fails during recovery (odd SP below 6, vector 2 or 8 outside
+  the limit) needs RESET.
+
+Even-SP stack wraps are legal (SP=0 pushes to FFFE). A real-mode IRET with
+SP=FFFC/FFFE or RETF with SP=FFFE still stops with diagnostic code 2,
+because the single multi-word frame read cannot wrap yet.
+
+ASSUMPTION A29: ENTER's BP and frame-pointer pushes wrap like PUSH (real-mode
+shutdown at odd SP). Intel lists no real-mode ENTER exception. The manual's
+NMI exit condition "IDT limit at least 000FH and SP greater than 0005H" is
+treated as a consequence of these rules, so an NMI with even SP below 6 is
+delivered. Validate both against independent 286 evidence before sign-off.
+
 NMI is edge-triggered (210760-002 page 3-12) and not recognized during reset
 (page 3-67). The event controller samples the NMI level through reset, so a
 level already high at reset release is not an edge. An NMI pending before
