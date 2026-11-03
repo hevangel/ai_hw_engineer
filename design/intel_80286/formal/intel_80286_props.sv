@@ -190,8 +190,10 @@
             if (event_bus_ready) assert(bus_owner==2);
             // The core waits in BUS until an event beat completes, so an event
             // beat still in flight means the core is in BUS (or has stopped).
+            // That BUS wait belongs to the event path: memory_return does not
+            // change while the beat is held, so a non-event return cannot own it.
             if (rst_n && bus_owner==2 && owner_bus_req)
-                assert(state==BUS || state==STOPPED);
+                assert((state==BUS && event_bus_path_active) || state==STOPPED);
             // A stopped event may finish a previously stalled physical beat;
             // validate the event request when each new physical beat starts.
             if (bus_owner==2 && bus_req_o &&
@@ -453,7 +455,19 @@
                             memory_return==TASK_SWITCH_LOAD_NEXT || memory_return==TASK_LDT_VALIDATE ||
                             memory_return==TASK_ENTRY_COMMIT))))
                 assert(task_switch_active);
-            // The current-TSS checks of a direct CALL/JMP task switch run only
+            // The task-return (IRET with NT) checks run only inside a live task
+            // return, started by IRET.
+            if (rst_n && (state==TASK_RETURN_LINK || state==TASK_RETURN_LINK_CHECK ||
+                          state==TASK_RETURN_TSS_TAIL || state==TASK_RETURN_TSS_CHECK ||
+                          state==TASK_RETURN_CURRENT_ACCESS || state==TASK_RETURN_CURRENT_CHECK ||
+                          state==TASK_RETURN_CLEAR_BUSY ||
+                          ((state==BUS || state==MEMORY_CHECK) &&
+                           (memory_return==TASK_RETURN_LINK_CHECK || memory_return==TASK_RETURN_TSS_TAIL ||
+                            memory_return==TASK_RETURN_TSS_CHECK ||
+                            memory_return==TASK_RETURN_CURRENT_ACCESS))))
+                assert(task_switch_active && task_return_active && opcode==8'hcf &&
+                       !event_delivery_active);
+            // The current-TSS checks of a direct CALL/JMP task switch run only            // The current-TSS checks of a direct CALL/JMP task switch run only
             // inside that switch.
             if (rst_n && (state==TASK_SWITCH_DIRECT_CURRENT_START ||
                           state==TASK_SWITCH_DIRECT_CURRENT_ACCESS ||
@@ -838,6 +852,19 @@
                 assert(opcode==8'h9a || opcode==8'hea || opcode==8'hff);
             // CS loads for far transfers carry their instruction's opcode:
             // target 2 is IRET, 3 a far CALL/JMP gate target, 4 a far RET.
+            // Target 0 is the direct far JMP/CALL CS load from EXECUTE.
+            // Reset clears code_load_target and the core only assigns 0..5.
+            if (rst_n) assert(code_load_target<=5);
+            if (rst_n && state==CODE_LOAD_WAIT && code_load_target==0)
+                assert(opcode==8'h9a || opcode==8'hea || opcode==8'hff);
+            // Far RETF/IRET and CALL-gate transfers run from an instruction the
+            // CPU fetched, so the event engine never owns the bus there.
+            if (rst_n && (state==RET_CODE_START || state==RET_OUTER_NEXT ||
+                          state==RET_OUTER_SS || state==RET_COMMIT ||
+                          state==IRET_CODE_START || state==IRET_OUTER_NEXT ||
+                          state==IRET_OUTER_SS || state==IRET_COMMIT ||
+                          protected_call_path_state))
+                assert(bus_owner!=2);
             if (rst_n && state==CODE_LOAD_WAIT && code_load_target==2) assert(opcode==8'hcf);
             if (rst_n && state==CODE_LOAD_WAIT && code_load_target==3)
                 assert(opcode==8'h9a || opcode==8'hea || opcode==8'hff);
@@ -845,6 +872,12 @@
                 assert(opcode==8'hca || opcode==8'hcb);
             if (rst_n && (state==RET_CODE_START || state==RET_OUTER_NEXT ||
                           state==RET_OUTER_SS || state==RET_COMMIT))
+                assert(opcode==8'hca || opcode==8'hcb);
+            // The transfer flags themselves carry opcode ownership: they are set
+            // by their instruction and cleared by commit or by enter_event.
+            if (rst_n && (protected_iret_active || iret_outer_active) && state!=STOPPED)
+                assert(opcode==8'hcf);
+            if (rst_n && (protected_ret_active || ret_outer_active) && state!=STOPPED)
                 assert(opcode==8'hca || opcode==8'hcb);
             if (rst_n && (state==IRET_CODE_START || state==IRET_OUTER_NEXT ||
                           state==IRET_OUTER_SS || state==IRET_COMMIT))
