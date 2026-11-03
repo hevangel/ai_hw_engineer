@@ -315,7 +315,7 @@
                       code_load_cache_valid && !code_load_fault && !code_load_special &&
                       code_load_special_descriptor==48'd0 && code_load_target==2 &&
                       code_load_request_selector==iret_saved_cs &&
-                      code_load_request_offset==iret_saved_ip)) begin
+                      code_load_request_offset==(iret_outer_active ? 16'd0 : iret_saved_ip))) begin
                 // An outer-level IRET must fetch the restored SS:SP frame
                 // before it can commit the restored code selector.
                 assert($past(iret_outer_active) ? state==MEMORY_CHECK :
@@ -889,6 +889,52 @@
                 if ($past(segment_load_fault))
                     assert(gpr[4]==$past(gpr[4]) && !retire_o);
             end
+            // The ESC command phase runs only for an ESC opcode, outside every
+            // far-transfer, task and event path.
+            if (rst_n && (state==ESC_REG_IP || state==ESC_REG_CS || state==ESC_REG_DONE ||
+                          state==ESC_MEM_OFFSET || state==ESC_MEM_SEGMENT ||
+                          ((state==BUS || state==MEMORY_CHECK) &&
+                           (memory_return==ESC_REG_IP || memory_return==ESC_REG_CS ||
+                            memory_return==ESC_REG_DONE || memory_return==ESC_MEM_OFFSET ||
+                            memory_return==ESC_MEM_SEGMENT))))
+                assert(escape_op && !protected_ret_active && !ret_outer_active &&
+                       !protected_iret_active && !iret_outer_active &&
+                       !protected_call_stack_active && !task_switch_active &&
+                       !event_delivery_active && (modrm[7:6]==2'b11 || !msw[0]));
+            // CS is never a segment-load target (MOV CS is rejected at decode),
+            // and the CALL-gate stack switch belongs to its CALL instruction.
+            if (rst_n && state==SEGMENT_LOAD_WAIT) assert(segment_load_target!=2'd1);
+            if (rst_n && protected_call_stack_active && state!=STOPPED)
+                assert(opcode==8'h9a || opcode==8'hff);
+            // The stack-switch flag lives from the TSS SS:SP read to the gate
+            // commit (or a fault through enter_event).
+            if (rst_n && protected_call_stack_active)
+                assert(!task_switch_active && !event_delivery_active && !event_stack_active);
+            if (rst_n && protected_call_stack_active)
+                assert(state==STOPPED || state==CALL_STACK_SELECT ||
+                       (state==SEGMENT_LOAD_WAIT && segment_load_target==2) ||
+                       state==CALL_STACK_WRITE_OLD_SP || state==CALL_STACK_WRITE_OLD_CS ||
+                       state==CALL_STACK_WRITE_RETURN || state==CALL_PARAM_READ ||
+                       state==CALL_PARAM_WRITE || state==CALL_PARAM_NEXT ||
+                       state==CALL_GATE_COMMIT ||
+                       ((state==BUS || state==MEMORY_CHECK) &&
+                        (memory_return==CALL_STACK_WRITE_OLD_SP ||
+                         memory_return==CALL_STACK_WRITE_OLD_CS ||
+                         memory_return==CALL_STACK_WRITE_RETURN ||
+                         memory_return==CALL_PARAM_READ || memory_return==CALL_PARAM_WRITE ||
+                         memory_return==CALL_PARAM_NEXT || memory_return==CALL_GATE_COMMIT)));
+            // Outside the stack-switch and task paths, the segment-load target
+            // is the one the instruction named.
+            if (rst_n && state==SEGMENT_LOAD_WAIT && !task_switch_active &&
+                !event_stack_active && !protected_call_stack_active &&
+                !protected_ret_active && !iret_outer_active) begin
+                if (load_far_pointer_protected)
+                    assert(segment_load_target==(opcode==8'hc4 ? 2'd0 : 2'd3));
+                if (pop_segment_protected)
+                    assert(segment_load_target==(opcode==8'h07 ? 2'd0 :
+                                                 opcode==8'h17 ? 2'd2 : 2'd3));
+                if (opcode==8'h8e) assert(segment_load_target==modrm[4:3]);
+            end
             // LES/LDS write the offset register only with the loaded segment.
             if (rst_n && $past(rst_n && state==SEGMENT_LOAD_WAIT && segment_load_done &&
                                load_far_pointer_protected && !task_switch_active &&
@@ -937,13 +983,6 @@
                 assert(!iret_outer_ss_ready && (!iret_outer_active || iret_outer_preflight_done));
             if (rst_n && (state==RET_CODE_START || (state==CODE_LOAD_WAIT && code_load_target==4)))
                 assert(!ret_outer_ss_ready && (!ret_outer_active || ret_outer_preflight_done));
-            // The completed request is the one the return started.
-            if (rst_n && state==CODE_LOAD_WAIT && code_load_target==2 && code_load_done)
-                assert(code_load_request_selector==iret_saved_cs &&
-                       code_load_request_offset==(iret_outer_active ? 16'd0 : iret_saved_ip));
-            if (rst_n && state==CODE_LOAD_WAIT && code_load_target==4 && code_load_done)
-                assert(code_load_request_selector==ret_saved_cs &&
-                       code_load_request_offset==(ret_outer_active ? 16'd0 : ret_saved_ip));
             if (rst_n && (state==IRET_CODE_START || state==IRET_OUTER_NEXT ||
                           state==IRET_OUTER_SS || state==IRET_COMMIT))
                 assert(opcode==8'hcf);
