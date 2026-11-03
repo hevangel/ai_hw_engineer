@@ -27,5 +27,12 @@ for pin-level board models and is the only one the Apple II board proves.
 
 Any change to the decoder, addressing modes or ALU must be mirrored or
 independently re-verified in both; a defect can exist in one and not the other.
-Re-basing `mos_6502` as a wrapper over the cycle core, or replacing its
-consumers with the cycle core, remains open work (issue #60, review item C3).
+
+A cross-core differential now guards that gap: `mos_6502/compare/` runs the same
+program on both cores and compares PC/A/X/Y/SP/P and memory contents at every
+opcode fetch. Klaus Dormann's functional test agrees for **30,646,183
+instructions** (both cores trap at `$3469`). A negative control corrupts one
+read in one core and requires the comparison to fail, so the check is not
+vacuous. Both run as part of `mos_6502/scripts/run_all.sh`. Re-basing `mos_6502` as a wrapper over the cycle
+core, or replacing its consumers with the cycle core, remains open work
+(issue #60, review item C3).
