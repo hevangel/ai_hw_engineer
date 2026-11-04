@@ -108,7 +108,8 @@ module intel_80286 #(
                      CALL_DESC_FINAL=110, ESC_REG_IP=111,
                      ESC_REG_CS=112, ESC_REG_DONE=113,
                      ESC_MEM_OFFSET=114, ESC_MEM_SEGMENT=115,
-                     PEDC_START=116, PEDC_MEM_DONE=117, PEDC_IO_DONE=118, PEDC_DONE=119;
+                     PEDC_START=116, PEDC_MEM_DONE=117, PEDC_IO_DONE=118, PEDC_DONE=119,
+                     RM_FRAME_1=120, RM_FRAME_2=121, RM_FRAME_3=122;
     logic [6:0] state, memory_return;
     typedef struct packed {
         logic valid;
@@ -350,6 +351,9 @@ module intel_80286 #(
     logic [23:0] pedc_base;
     logic [6:0] pedc_resume;
     logic pedc_service, pedc_transfer, esc_store, esc_operand_ok;
+    // Real-mode far-return frame words gathered one word at a time when the
+    // aligned frame wraps past offset FFFF (SP=0 follows FFFE).
+    logic [31:0] rm_frame;
     function automatic logic pe_word_fits(input [16:0] off, input [15:0] lim,
                                           input expand_down);
         pe_word_fits=expand_down ? (off>{1'b0,lim} && off<17'h0ffff) :
@@ -1370,7 +1374,7 @@ module intel_80286 #(
             shutdown_recovery_active<=0; shutdown_nmi_failed<=0;
             pedc_armed<=0; pedc_store<=0; pedc_busy_seen<=0; pedc_low_seen<=0;
             pedc_expand_down<=0; pedc_offset<=0; pedc_limit<=0; pedc_base<=0;
-            pedc_resume<=BOUNDARY;
+            pedc_resume<=BOUNDARY; rm_frame<=0;
             instruction_ss_shadow<=0; instruction_sti_shadow<=0;
             instruction_tf<=0;
             all_index<=0; stack_origin<=0; frame_pointer<=0; frame_sp<=0; frame_source<=0;
@@ -1906,9 +1910,10 @@ module intel_80286 #(
                             state<=TASK_RETURN_LINK; retire_o<=0;
                         end else if (gpr[4]>(opcode==8'hcf ? 16'hfffa : 16'hfffc) && (msw[0] || gpr[4][0])) `I286_STACK_OVERRUN
                         else if (gpr[4]>(opcode==8'hcf ? 16'hfffa : 16'hfffc)) begin
-                            // Real-mode aligned frame wrap past FFFF is legal but the
-                            // single multi-word frame read cannot wrap yet.
-                            state<=STOPPED; fault_code_o<=2; ip<=instruction_ip; retire_o<=0;
+                            // Real mode, even SP: the aligned frame wraps to offset 0
+                            // like the 8086 stack (os2museum; 1985 PRM App. A only
+                            // faults odd-SP wraps). Read it word by word.
+                            memory_start(1'b1,2,gpr[4],24'd0,1'b0,1'b0,2,0,RM_FRAME_1);
                         end
                         else begin
                             if (msw[0] && opcode==8'hcf) protected_iret_active<=1;
@@ -2512,6 +2517,23 @@ module intel_80286 #(
                                             {16'h0,memory_result[15:0]},PEDC_DONE);
                 PEDC_IO_DONE: memory_start(1'b0,2'd0,16'd0,pedc_base+{8'd0,pedc_offset[15:0]},
                                            1'b1,1'b0,3'd2,{16'h0,memory_result[15:0]},PEDC_DONE);
+                RM_FRAME_1: begin
+                    rm_frame[15:0]<=memory_result[15:0];
+                    memory_start(1'b1,2,gpr[4]+16'd2,24'd0,1'b0,1'b0,2,0,RM_FRAME_2);
+                end
+                RM_FRAME_2: begin
+                    if (opcode==8'hcf) begin
+                        rm_frame[31:16]<=memory_result[15:0];
+                        memory_start(1'b1,2,gpr[4]+16'd4,24'd0,1'b0,1'b0,2,0,RM_FRAME_3);
+                    end else begin
+                        memory_result<={16'h0,memory_result[15:0],rm_frame[15:0]};
+                        state<=FAR_RETURN_DONE;
+                    end
+                end
+                RM_FRAME_3: begin
+                    memory_result<={memory_result[15:0],rm_frame};
+                    state<=FAR_RETURN_DONE;
+                end
                 PEDC_DONE: begin
                     pedc_offset<=pedc_offset+17'd2;
                     state<=pedc_resume;

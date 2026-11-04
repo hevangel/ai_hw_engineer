@@ -260,9 +260,19 @@
                 assert($stable(regs_o) && $stable(flags_o));
             end
             // Later states include WAIT_BUSY, direct task-switch paths and
-            // the ESC command phase and the extension data channel; PEDC_DONE is
-            // the highest encoding.
-            assert(state <= PEDC_DONE);
+            // the ESC command phase, the extension data channel and the real-mode
+            // wrapped far-return frame; RM_FRAME_3 is the highest encoding.
+            assert(state <= RM_FRAME_3);
+            // The wrapped frame path serves only real-mode IRET/RETF.
+            if (rst_n && (state==RM_FRAME_1 || state==RM_FRAME_2 || state==RM_FRAME_3 ||
+                          ((state==BUS || state==MEMORY_CHECK) &&
+                           (memory_return==RM_FRAME_1 || memory_return==RM_FRAME_2 ||
+                            memory_return==RM_FRAME_3))))
+                assert(!msw[0] && (opcode==8'hcf || opcode==8'hca || opcode==8'hcb) &&
+                       !event_delivery_active && !task_switch_active);
+            if (rst_n && (state==RM_FRAME_3 || ((state==BUS || state==MEMORY_CHECK) &&
+                                               memory_return==RM_FRAME_3)))
+                assert(opcode==8'hcf);
             // CS is untrusted only after a task-entry fault rejected the incoming
             // CS cache (Intel 210498-005 9.6.4); the fault's own delivery then
             // reloads CS. Real mode never clears it.
@@ -840,6 +850,8 @@
                    memory_return == ESC_MEM_OFFSET || memory_return == ESC_MEM_SEGMENT ||
                    memory_return == PEDC_MEM_DONE || memory_return == PEDC_IO_DONE ||
                    memory_return == PEDC_DONE ||
+                   memory_return == RM_FRAME_1 || memory_return == RM_FRAME_2 ||
+                   memory_return == RM_FRAME_3 ||
                    memory_return == TASK_GATE_TSS_TAIL || memory_return == TASK_GATE_TSS_CHECK ||
                    memory_return == TASK_LDT_VALIDATE || memory_return == TASK_ENTRY_COMMIT ||
                    memory_return == TASK_RETURN_LINK_CHECK ||

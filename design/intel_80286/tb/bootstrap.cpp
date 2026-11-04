@@ -1160,7 +1160,33 @@ static void stack_wrap_contracts() {
               "protected PUSH at SP=1 did not escalate #SS(0) through #DF to shutdown");
         ++cases;
     }
-    std::cout<<"PASS: "<<cases<<" stack-wrap cases: real-mode odd-SP PUSH/CALL/INT/PUSHA shutdown, PUSHA/POP segment overrun 13, exception-13 IDT-limit shutdown with NMI recovery, INT 0Dh limit to vector 8, and protected #SS(0) and #DF shutdown\n";
+    // Real mode, even SP: an aligned IRET/RETF frame wraps from FFFE to 0000.
+    for (bool wait:{false,true}) {
+        struct Wrap { uint8_t op; uint16_t sp; uint16_t sp_after; };
+        for (const Wrap w : {Wrap{0xcf,0xfffc,0x0002},Wrap{0xcf,0xfffe,0x0004},
+                             Wrap{0xcb,0xfffe,0x0002},Wrap{0xca,0xfffe,0x0012}}) {
+            Bench b;
+            std::vector<uint8_t> program={0xbc,uint8_t(w.sp),uint8_t(w.sp>>8),w.op};
+            if (w.op==0xca) program.insert(program.end(),{0x10,0x00});
+            b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+            for (std::size_t i=0;i<program.size();++i) b.memory[0xf0100+uint32_t(i)]=program[i];
+            const uint16_t words[]={0x0200,0x2000,0x08d7};
+            for (unsigned i=0;i<3;++i) {
+                const uint16_t off=uint16_t(w.sp+2*i);
+                b.memory[off]=uint8_t(words[i]); b.memory[uint16_t(off+1)]=uint8_t(words[i]>>8);
+            }
+            b.put(0x20200,{0xf4});
+            b.reset();
+            b.step(0xfffff0,0xea,0xf000,0x0100,wait);
+            b.step(0xf0100,0xbc,0xf000,0x0103,wait);
+            b.step(0xf0103,w.op,0x2000,0x0200,wait);
+            check(b.reg(4)==w.sp_after && (w.op!=0xcf || b.d.flags_o==0x08d7),
+                  "real-mode far return did not wrap its aligned frame past FFFF");
+            b.step(0x20200,0xf4,0x2000,0x0201,wait);
+            ++cases;
+        }
+    }
+    std::cout<<"PASS: "<<cases<<" stack-wrap cases: real-mode odd-SP PUSH/CALL/INT/PUSHA shutdown, PUSHA/POP segment overrun 13, exception-13 IDT-limit shutdown with NMI recovery, INT 0Dh limit to vector 8, aligned IRET/RETF frames wrapping past FFFF, and protected #SS(0) and #DF shutdown\n";
 }
 
 static void procedure_reset_contracts() {

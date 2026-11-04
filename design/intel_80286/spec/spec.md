@@ -145,8 +145,8 @@ which the core implements instead of development stops:
   the limit) needs RESET.
 
 Even-SP stack wraps are legal (SP=0 pushes to FFFE). A real-mode IRET with
-SP=FFFC/FFFE or RETF with SP=FFFE still stops with diagnostic code 2,
-because the single multi-word frame read cannot wrap yet.
+SP=FFFC/FFFE or RETF with SP=FFFE reads its aligned frame word by word,
+wrapping from offset FFFE to 0000.
 
 ASSUMPTION A29: ENTER's BP and frame-pointer pushes wrap like PUSH (real-mode
 shutdown at odd SP). Intel lists no real-mode ENTER exception. The manual's
