@@ -101,3 +101,46 @@ Fourteen protected-mode handler-invocation checks that stopped the core (`STOPPE
 Status: induction is not yet closed; run 42 still fails on an unstated fact
 (the `0F` continuation list). The `cover` task (depth 64) has reached 45 of 89
 covers after 22 hours at step 33. This remains bounded evidence, not a proof.
+
+
+## Development stops replaced and k-induction closed (2026-11-03)
+
+RTL changes, each with directed tests that fail on the old RTL or that check
+the Intel-specified result:
+
+- `b4a5d41`: protected POP ES/SS/DS and LES/LDS load through the
+  segment-load engine with MOV Sreg checks. They commit SP or the offset
+  register with the segment, and a fault restarts the instruction (App. B).
+  The segment-load stack rules were driven by a stale ModRM byte, so a task
+  gate after `MOV SS` rejected a legal read-only incoming DS or ES. See
+  `failure_notes/2026-11-03-intel80286-task-switch-stale-modrm-stack-check.md`.
+- `f1b8e4a`: stack wraparound and real-mode shutdown now follow the 1985
+  iAPX 286 PRM (App. A "Shutdown", Table 5-2, App. B). Assumption A29 covers
+  ENTER. Test `stack_wrap_contracts` has 20 cases.
+- `ec74f75`: ESC D8h-DFh runs the CPU-side 80287 command phase. Its contract
+  matches 4,967 physical Harris D8 captures, and assumption A30 covers
+  D9h-DFh (see `2026-11-03-esc-command-phase.md`).
+
+Development stops in the core went from 27 to 13. The remaining stops are:
+- ESC memory forms in protected mode, which need the processor extension
+  data channel.
+- Real-mode aligned IRET/RETF frames that wrap past FFFF.
+- NT IRET when the current-TSS descriptor is invalid.
+- Decode fallbacks.
+
+Connected-core k-induction is closed. Prove run 94 (`smtbmc yices`, depth 12)
+passes the base case and induction for all 390 core assertions:
+"successful proof by k-induction". Runs 50-93 added invariants. They tie the
+far-transfer, task-switch, event-stack and ESC states to their opcodes, ModRM
+forms and owning flags, and require decode-valid ModRM in every post-decode
+stage.
+
+Several stale properties were also corrected:
+- An outer-level IRET requests CS offset 0.
+- A task JMP also clears the busy bit in `TASK_RETURN_CLEAR_BUSY`.
+- The #DF handler must be a task gate (9.6.2).
+- Real-mode exception 8 or 13 outside the IDT limit shuts down.
+- A real-mode NMI may recover from shutdown.
+
+The cover run on the earlier RTL was stopped at 45 of 89 covers after 42
+hours. It has been restarted on the final tree.

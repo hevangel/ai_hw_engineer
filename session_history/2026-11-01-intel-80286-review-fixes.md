@@ -58,3 +58,59 @@ problems; connected-core BMC depth 24 PASS (1:03:41); preflight and
 About 6 hours of wall-clock time (20:04 to about 02:25 UTC), dominated by
 connected-core BMC runs of 63 to 116 minutes. Active model time is not
 exposed.
+
+
+## Continuation: 2026-11-02 to 2026-11-04 (same conversation chain)
+
+**Capture timestamp:** 2026-11-04T02:40:00Z
+
+Driven by repeated auto-nudges ("keep working on the 80286 until the chip
+runs bug free").
+
+### Completed work
+
+- **Delivery faults:** replaced 14 event-delivery development stops with
+  Intel exceptions (`1d72320`).
+- **Task-gate NMI:** fixed task-gate NMI shutdown recovery, with a
+  post-mortem.
+- **Stale flags:** hardened stale transfer and task flags (`3038c9f`,
+  `5e74f4d`, `bda574a`).
+- **Protected POP Sreg and LES/LDS** (`b4a5d41`):
+  - These instructions now load the segment through the Intel checks instead
+    of stopping the core.
+  - Fixed a latent bug: a stale ModRM byte drove the stack-segment checks for
+    task-switch DS/ES loads. Post-mortem
+    `failure_notes/2026-11-03-intel80286-task-switch-stale-modrm-stack-check.md`.
+- **Stack wraparound and real-mode shutdown** (`f1b8e4a`):
+  - Behavior follows the 1985 iAPX 286 PRM (App. A, Table 5-2, App. B).
+  - Added assumption A29.
+- **ESC command phase:** ESC D8h-DFh now runs it (`ec74f75`). The contract
+  comes from a survey of the physical D8 captures. Added assumption A30.
+- **Development stops:** 27 reduced to 13.
+- **k-induction closed:**
+  - Connected-core prove runs 50-94 decoded each counterexample trace and
+    added invariants or corrected stale properties.
+  - Run 94 passes the base case and induction for 390 assertions (`676293a`).
+  - Invariant commits: `f473579`, `8172563`, `3f62765`, `d7b5e01`, `676293a`.
+- **Progress comments:** posted on PR #105 and issue #80 (2026-11-03).
+
+### Validation
+
+- `run_sim.sh`: 225 PASS, exit 0 (simrev66, final RTL).
+- Connected-core prove: PASS (k-induction, depth 12, run 94).
+- Connected-core BMC depth 24: PASS on `ec74f75` and on the final tree.
+- Cover: restarted on the final tree. The old-RTL run was stopped at 45 of 89
+  covers after 42 hours.
+
+### Model-call evidence
+
+- Main thread: Claude Opus. Kiro does not expose the exact model id or the
+  call count.
+- One `kirocrew-lite` Sonnet 5.5 sub-agent: 0.19 credits. It had no tools and
+  did no work.
+- Exact token counts are not exposed.
+
+### Duration
+
+About 36 hours of wall-clock time across auto-nudge cycles. The prove runs,
+about 20 minutes each, dominated it.
