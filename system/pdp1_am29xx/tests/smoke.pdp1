@@ -1,0 +1,18 @@
+; Directed smoke program: load/store, arithmetic, logic, shifts.
+        law 1234
+        dac 10
+        lac 10
+        add 11
+        sub 11
+        and 12
+        ior 13
+        xor 13
+        ral 1
+        rar 1
+        hlt
+
+.org 0o10
+        .word 0
+        .word 1
+        .word 7777
+        .word 740000

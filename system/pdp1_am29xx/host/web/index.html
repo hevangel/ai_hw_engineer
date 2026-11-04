@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DEC PDP-1 — Am29xx reconstruction</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>DEC PDP-1 <span>Am2901 × 5 · Am2910 · 1961 instruction set</span></h1>
+  <div class="status">
+    <span id="run-lamp" class="lamp"></span>
+    <span id="status-text">stopped</span>
+    <span id="cycle-text">0 µs</span>
+  </div>
+</header>
+
+<main>
+  <section class="panel console">
+    <h2>Console</h2>
+    <div class="switches">
+      <div class="row"><label>Test word</label><div id="tw-bits" class="bits"></div><output id="tw-value">000000</output></div>
+      <div class="row"><label>Sense</label><div id="ss-bits" class="bits small"></div><output id="ss-value">00</output></div>
+    </div>
+    <div class="buttons">
+      <button id="run">RUN</button>
+      <button id="step">STEP</button>
+      <button id="reset">RESET</button>
+      <button id="resume">RESUME</button>
+      <button id="demo">LOAD DEMO</button>
+    </div>
+    <table class="registers">
+      <tr><th>PC</th><td id="pc">0000</td><th>MA</th><td id="ma">0000</td></tr>
+      <tr><th>AC</th><td id="ac">000000</td><th>IO</th><td id="io">000000</td></tr>
+      <tr><th>IR</th><td id="ir">000000</td><th>MB</th><td id="mb">000000</td></tr>
+      <tr><th>OV</th><td id="ov">0</td><th>FLAGS</th><td id="flags">00</td></tr>
+    </table>
+    <p class="hint">Octal everywhere, as on the original console.</p>
+  </section>
+
+  <section class="panel scope">
+    <h2>Type 30 display</h2>
+    <canvas id="crt" width="1024" height="1024"></canvas>
+    <div class="scope-foot">
+      <span id="point-count">0 points</span>
+      <button id="clear-crt">CLEAR</button>
+    </div>
+  </section>
+
+  <section class="panel tty">
+    <h2>Typewriter</h2>
+    <pre id="terminal"></pre>
+    <div class="keys">
+      <input id="key-input" maxlength="1" placeholder="key code (octal)">
+      <button id="send-key">TYPE</button>
+    </div>
+    <h2>Waveform</h2>
+    <button id="capture">CAPTURE 4000 CYCLES</button>
+    <div id="wave-wrap" class="hidden">
+      <iframe id="wave" title="Surfer waveform"></iframe>
+    </div>
+    <p class="hint" id="wave-note">The waveform view loads the bundled Surfer viewer after a capture.</p>
+  </section>
+</main>
+<script src="app.js"></script>
+</body>
+</html>

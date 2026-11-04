@@ -1,0 +1,40 @@
+; All twelve shift/rotate subcodes, single and multi-step counts.
+        law 123456
+        ral 1
+        rar 1
+        law 123456
+        rar 1
+        ral 1
+        law 125252
+        rar 1
+        sar 1
+        sal 1
+        law 1
+        ral 3
+        rar 2
+        lac 100
+        lio 101
+        rcl 1
+        rcr 1
+        lac 100
+        lio 101
+        rcr 2
+        lac 100
+        lio 101
+        scl 1
+        lac 100
+        lio 101
+        scr 1
+        lac 100
+        lio 101
+        ril 1
+        rir 1
+        lac 100
+        lio 101
+        sil 1
+        sir 1
+        hlt
+
+.org 0o100
+        .word 123456
+        .word 654321

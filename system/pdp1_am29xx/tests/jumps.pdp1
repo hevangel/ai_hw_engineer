@@ -1,0 +1,24 @@
+; Jumps, subroutine linkage, execute, and the CAL/JDA pair.
+        law 5
+        jda 20          ; M[20] <- 5, AC <- PC, PC <- 21
+.org 0o21
+        cal             ; M[100] <- AC, AC <- PC, PC <- 101
+.org 0o101
+        law 0
+        xct 30          ; execute M[30] (law 42)
+        law 3
+        jsp sub         ; AC <- return address
+        hlt
+.org 0o30
+        .word 700042    ; law 42
+
+.org 0o110
+sub:    dac 40
+        lac 41
+        add 42
+        dac 41
+        jmp i 40
+.org 0o40
+        .word 0
+        .word 7
+        .word 1

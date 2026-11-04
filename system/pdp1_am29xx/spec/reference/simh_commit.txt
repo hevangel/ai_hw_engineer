@@ -1,0 +1,2 @@
+698dc8a1b2135ab03f1da0be9ee44b5f1beeadc6  simh/simh (PDP1/pdp1_cpu.c, pdp1_dpy.c)
+fetched 2026-11-04; used as the independent instruction-level oracle

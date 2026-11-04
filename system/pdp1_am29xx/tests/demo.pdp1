@@ -1,0 +1,30 @@
+; Front-panel demonstration: plot a 64-point horizontal sweep on the Type 30
+; display, then type "PDP-1" on the console typewriter and halt.
+        law 0
+        dac x
+loop:   lac x
+        lio y
+        iot dpy
+        lac x
+        add step
+        dac x
+        sad limit
+        jmp loop
+; typewriter message, concise codes from the F-16 table
+        law 47          ; P
+        iot tyo
+        law 64          ; D
+        iot tyo
+        law 47          ; P
+        iot tyo
+        law 1           ; 1
+        iot tyo
+        law 77          ; carriage return
+        iot tyo
+        hlt
+
+.org 0o100
+x:      .word 0
+y:      .word 40000
+step:   .word 400
+limit:  .word 40000
