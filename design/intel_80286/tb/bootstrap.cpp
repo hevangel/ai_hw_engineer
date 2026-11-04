@@ -2,7 +2,9 @@
 #include "protected_mode_fixture.h"
 #include "verilated.h"
 #include <cstdint>
+#include <cstdlib>
 #include <fstream>
+#include <map>
 #include <iostream>
 #include <iterator>
 #include <limits>
@@ -1303,6 +1305,14 @@ static void bounds_translation_contracts() {
         b.put(0xf0100,{0x62,0x06,uint8_t(offset),uint8_t(offset>>8),0xf4});
         b.put(offset,{0,0,0xff,0x7f}); b.reset(); b.step(0xfffff0,0xea,0xf000,0x100);
         if(offset==0xfffc) {b.step(0xf0100,0x62,0xf000,0x104); check(b.data_transfers.size()==4,"BOUND endpoint bytes");}
+        else if(offset==0xfffe) {
+            // A40 (physical 62/C4/C5 captures): the upper bound word wraps to
+            // offset 0000 of DS instead of raising 13.
+            b.put(0,{0xff,0x7f}); b.step(0xf0100,0x62,0xf000,0x104);
+            check(b.data_transfers.size()==4 && b.data_transfers[0].address==0xfffe &&
+                  b.data_transfers[1].address==0xffff && b.data_transfers[2].address==0 &&
+                  b.data_transfers[3].address==1,"BOUND upper word wraps to offset 0000");
+        }
         else b.processor_fault(13,0x100);
     }
     Bench x; x.put(0xfffff0,{0xbb,0xff,0xff,0xb0,0x02,0x2e,0xd7,0xf4});

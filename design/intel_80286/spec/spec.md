@@ -148,11 +148,39 @@ Even-SP stack wraps are legal (SP=0 pushes to FFFE). A real-mode IRET with
 SP=FFFC/FFFE or RETF with SP=FFFE reads its aligned frame word by word,
 wrapping from offset FFFE to 0000.
 
-ASSUMPTION A29: ENTER's BP and frame-pointer pushes wrap like PUSH (real-mode
-shutdown at odd SP). Intel lists no real-mode ENTER exception. The manual's
+ASSUMPTION A29: Intel lists no real-mode ENTER exception, but physical
+Harris-286 C8 captures with odd SP=000Fh raise exception 13 when a push would
+wrap, with SP unchanged and the frame at the original SP. ENTER therefore
+raises 13 on a wrapping push and shuts down only when that frame itself would
+wrap (SP<6, by analogy with PUSHA on B-84; no capture covers it). The manual's
 NMI exit condition "IDT limit at least 000FH and SP greater than 0005H" is
 treated as a consequence of these rules, so an NMI with even SP below 6 is
 delivered. Validate both against independent 286 evidence before sign-off.
+
+ASSUMPTION A40: in real mode a 4-byte memory operand (LES, LDS, BOUND, far
+CALL/JMP through memory) is checked one word at a time. Offset FFFDh (second
+word at FFFFh) raises 13, and offset FFFEh reads its second word from offset
+0000h of the same segment. Physical Harris-286 62, C4, C5, FF.3 and FF.5
+captures show both. Protected mode keeps Intel's whole-operand limit check.
+
+ASSUMPTION A39: IDIV divides the operand magnitudes one quotient bit per step
+with an operand-width partial remainder, dropping the bit shifted out, and
+has no high-half overflow pre-check; only the final signed quotient range
+check raises exception 0. This model reproduces all 5,000 F6.7 and 4,967 F7.7
+physical Harris-286 records (`scripts/analyze_idiv_captures.py`),
+including four byte divisions whose true quotient is below -128 yet return
+80h without a fault. Intel documents only the range check.
+
+ASSUMPTION A37: a real-mode POP r/m whose memory destination raises
+exception 13 keeps its SP increment; the frame is pushed below the new SP and
+the saved IP still names the POP. Physical Harris-286 8F captures (SI=FFFFh
+destinations) show this. Protected-mode POP r/m faults are not captured and
+stay restartable with SP unchanged.
+
+ASSUMPTION A38: AAM with a zero immediate raises exception 0 after clearing
+OF, SF, AF and CF and setting ZF and PF from AL shifted right by one, as all
+eleven zero-divisor records in the physical Harris-286 D4 captures show.
+Intel leaves these flags undefined.
 
 ASSUMPTION A36: string behavior that Intel does not state is taken from the
 pinned physical Harris-286 string captures (A4-A7, AA-AF; 50,000 records,

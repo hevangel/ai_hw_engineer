@@ -323,6 +323,9 @@ module intel_80286 #(
     logic repeat_valid, repeat_ne;
     logic [15:0] string_value, string_delta;
     logic decimal_op, aam_op;
+    logic [15:0] aam_zero_flags;
+    assign aam_zero_flags = (flags & 16'hf72a) |
+                            {9'd0, gpr[0][7:1]==7'd0, 3'd0, ~^gpr[0][7:1], 2'd0};
     logic [2:0] decimal_operation;
     logic [15:0] decimal_ax, decimal_flags;
     logic async_valid, async_boundary, async_poll;
@@ -1291,6 +1294,11 @@ module intel_80286 #(
     // Stack pushes with odd SP that wrap: real-mode shutdown, else #SS(0).
     `define I286_PUSH_WRAP begin if (msw[0]) `I286_STACK_OVERRUN \
         else `I286_REAL_SHUTDOWN(instruction_ip) end
+    // ASSUMPTION A29: a real-mode ENTER whose push wraps raises 13 with SP
+    // unchanged, as physical Harris-286 C8 captures show for SP=000Fh; it
+    // shuts down only when that frame cannot be pushed (SP<6, as PUSHA B-84).
+    `define I286_ENTER_WRAP begin if (msw[0] || gpr[4]>=16'd6) `I286_STACK_OVERRUN \
+        else `I286_REAL_SHUTDOWN(instruction_ip) end
     always_ff @(posedge clk) begin
         if (!rst_n) begin
             state <= BOUNDARY;
@@ -1596,9 +1604,15 @@ module intel_80286 #(
                         state<=EVENT_START;
                     end else if (arpl_op && arpl_source[15:2]==0) begin
                         enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0); state<=EVENT_START;
-                    end else if (rm_memory && opcode != 8'h8d && (((wide || escape_op) && ea_offset == 16'hffff) ||
+                    end else if (rm_memory && opcode != 8'h8d && !(opcode==8'h8f && !msw[0]) &&
+                        // A37: real-mode POP m pops before its destination check.
+                        (((wide || escape_op) && ea_offset == 16'hffff) ||
                         (system_table && ea_offset>16'hfffa) ||
-                        ((opcode == 8'hc4 || opcode == 8'hc5 || opcode == 8'h62 || far_memory_pointer) && ea_offset > 16'hfffc))) begin
+                        ((opcode == 8'hc4 || opcode == 8'hc5 || opcode == 8'h62 || far_memory_pointer) &&
+                         // ASSUMPTION A40: real mode checks each word of a
+                         // 4-byte operand, so only a word at FFFF faults and
+                         // offset FFFE wraps to 0000 (physical C4/C5/62/FF captures).
+                         (msw[0] ? ea_offset > 16'hfffc : ea_offset == 16'hfffd)))) begin
                         // App. B: an operand past FFFF is #GP(0), or #SS(0) when
                         // it is in SS (protected); real mode raises 13.
                         enter_event((msw[0] && (override_valid ? override_segment : (ea_stack ? 2'd2 : 2'd3))==2'd2) ?
@@ -1609,6 +1623,11 @@ module intel_80286 #(
                             (exchange_rm && rm_memory)) lock_window<=1;
                         memory_start(1'b1, override_valid ? override_segment : (ea_stack ? 2'd2 : 2'd3), ea_offset, 24'd0, 1'b0, 1'b0, system_table ? 3'd6 :
                             ((opcode == 8'hc4 || opcode == 8'hc5 || opcode == 8'h62 || far_memory_pointer) ? 3'd4 : (wide ? 3'd2 : 3'd1)), 0, EXECUTE);
+                        // A40: the real-mode limit check covers the first word;
+                        // the second word wraps inside the segment.
+                        if (!msw[0] && !system_table &&
+                            (opcode == 8'hc4 || opcode == 8'hc5 || opcode == 8'h62 || far_memory_pointer))
+                            memory_span_delta<=16'd1;
                         if (memory_destination && ((alu_enable && alu_write) || exchange_rm || arpl_op ||
                             (unary_op && modrm[5:3]==2) || shift_op)) memory_kind<=3;
                     end else if (opcode>=8'ha0 && opcode<=8'ha3) begin
@@ -1704,6 +1723,11 @@ module intel_80286 #(
                                 // for memory-source protection failure.
                                 gpr[6]<=gpr[6]+string_delta;
                                 if (repeat_valid) gpr[1]<=gpr[1]-16'd2;
+                            end else if (!msw[0] && opcode==8'h8f && memory_return==COMMIT_MEMORY) begin
+                                // ASSUMPTION A37: physical Harris-286 8F captures keep
+                                // the POP's SP increment when its memory destination
+                                // raises 13; the frame is pushed below the new SP.
+                                gpr[4]<=pending_sp;
                             end
                             // A failed outer-RETF stack-span precheck faults
                             // before descriptor validation or RET_COMMIT. The
@@ -1713,6 +1737,10 @@ module intel_80286 #(
                             ret_outer_preflight_done<=0; ret_outer_ss_ready<=0;
                             if (data_reference_fault && msw[0]) enter_event(data_reference_vector,instruction_ip,1'b0,1'b1,1'b1,data_reference_error);
                             else enter_event(13,instruction_ip,1'b0,1'b1,1'b0,16'd0);
+                            // A37: the frame goes below the incremented SP.
+                            if (!msw[0] && opcode==8'h8f && memory_return==COMMIT_MEMORY) begin
+                                event_packet.saved_sp<=pending_sp; pending_sp<=pending_sp-16'd6;
+                            end
                             state<=EVENT_START;
                         end
                     end
@@ -1734,8 +1762,13 @@ module intel_80286 #(
                     end
                     memory_index <= memory_index + {1'b0,bus_beat_bytes_o};
                     memory_remaining <= memory_remaining - {1'b0,bus_beat_bytes_o};
+                    // A40: a real-mode segmented access that steps past offset
+                    // FFFF continues at offset 0000 of the same segment.
                     memory_address <= memory_io ?
                         {8'h0,memory_address[15:0]+{14'd0,bus_beat_bytes_o}} :
+                        (memory_segmented && !msw[0] &&
+                         ({1'b0,memory_offset}+{14'd0,memory_index}+{15'd0,bus_beat_bytes_o})==17'h10000) ?
+                        memory_address + {{22{1'b0}},bus_beat_bytes_o} - 24'h010000 :
                         memory_address + {{22{1'b0}},bus_beat_bytes_o};
                     if (memory_remaining == {1'b0,bus_beat_bytes_o}) begin
                         state <= memory_return;
@@ -1957,8 +1990,7 @@ module intel_80286 #(
                     end else if (opcode==8'hc8) begin
                         frame_pointer<=gpr[4]-16'd2; frame_sp<=gpr[4]-16'd2; frame_source<=gpr[5]-16'd2;
                         frame_level<=immediate[20:16]; frame_index<=1;
-                        // ASSUMPTION A29: ENTER's BP push wraps like PUSH (real-mode shutdown).
-                        if (gpr[4]-16'd2==16'hffff) `I286_PUSH_WRAP
+                        if (gpr[4]-16'd2==16'hffff) `I286_ENTER_WRAP
                         else memory_start(1'b1, 2, (gpr[4]-16'd2), 24'd0, 1'b1, 1'b0, 2, {16'h0,gpr[5]}, ENTER_FIRST);
                     end else if (opcode==8'hc9) begin
                         if (gpr[5]==16'hffff) `I286_STACK_OVERRUN
@@ -2686,7 +2718,15 @@ module intel_80286 #(
                     end
                 end
                 MULDIV_WAIT: if (md_done && !md_busy) begin
-                    if (md_fault) begin enter_event(0,instruction_ip,1'b0,1'b1,1'b0,16'd0); state<=EVENT_START; retire_o<=0; end
+                    if (md_fault) begin
+                        enter_event(0,instruction_ip,1'b0,1'b1,1'b0,16'd0); state<=EVENT_START; retire_o<=0;
+                        if (aam_op) begin
+                            // ASSUMPTION A38: physical Harris-286 D4 captures with a
+                            // zero divisor clear OF/SF/AF/CF and set ZF/PF from AL>>1
+                            // before exception 0; the saved FLAGS carry the result.
+                            flags<=aam_zero_flags; event_packet.saved_flags<=aam_zero_flags;
+                        end
+                    end
                     else begin
                         if (immediate_imul) gpr[modrm[5:3]]<=md_ax;
                         else begin gpr[0]<=md_ax; if (wide) gpr[2]<=md_dx; end
@@ -3596,7 +3636,7 @@ module intel_80286 #(
                     else memory_start(1'b1, 2, frame_source, 24'd0, 1'b0, 1'b0, 2, 0, ENTER_READ);
                 end
                 ENTER_READ: begin
-                    if (frame_sp-16'd2==16'hffff) `I286_PUSH_WRAP
+                    if (frame_sp-16'd2==16'hffff) `I286_ENTER_WRAP
                     else begin
                         frame_sp<=frame_sp-16'd2; frame_source<=frame_source-16'd2;
                         memory_start(1'b1, 2, (frame_sp-16'd2), 24'd0, 1'b1, 1'b0, 2, {16'h0,memory_result[15:0]}, ENTER_COPY);

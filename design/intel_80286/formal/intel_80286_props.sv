@@ -21,6 +21,10 @@
          event_packet.saved_ip==$past(event_packet.instruction_retired ? \
                                       instruction_ip : event_packet.saved_ip))))
     logic past_valid = 0;
+    // A37: real-mode POP m whose destination check fails keeps SP+2.
+    wire i286p_pop_memory_fault = state==MEMORY_CHECK && !msw[0] && !data_reference_allow &&
+        opcode==8'h8f && memory_return==COMMIT_MEMORY &&
+        !event_delivery_active && !protected_iret_active && !task_switch_active;
     logic protected_event_path_state;
     logic protected_call_path_state;
     logic protected_call_path_return;
@@ -642,7 +646,9 @@
             if (rst_n && $past(rst_n && state==MEMORY_CHECK)) begin
                 assert($stable(segs_o) && $stable(flags_o));
                 for (integer r=0;r<8;r=r+1)
-                    if (r!=1 && r!=6 && r!=7) assert(gpr[r]==$past(gpr[r]));
+                    if (r!=1 && r!=6 && r!=7 && !(r==4 && $past(i286p_pop_memory_fault)))
+                        assert(gpr[r]==$past(gpr[r]));
+                if ($past(i286p_pop_memory_fault)) assert(gpr[4]==$past(pending_sp));
                 if ($past(msw[0] && !data_reference_allow &&
                           !event_delivery_active && !protected_iret_active)) begin
                     if ($past(ins_precheck_active)) begin
@@ -672,7 +678,7 @@
                         assert(gpr[7]==$past(gpr[7]));
                         assert(gpr[1]==($past(repeat_valid) ? $past(gpr[1])-16'd2 : $past(gpr[1])));
                     end else assert($stable(regs_o));
-                end else assert($stable(regs_o));
+                end else if (!$past(i286p_pop_memory_fault)) assert($stable(regs_o));
                 if ($past(data_reference_allow)) begin
                     if ($past(memory_precheck_only)) begin
                         assert(state==$past(memory_return) && !memory_precheck_only);
@@ -723,7 +729,7 @@
                     assert(event_packet.saved_cs==$past(cs));
                     assert(event_packet.saved_ip==$past(instruction_ip));
                     assert(event_packet.saved_flags==$past(flags));
-                    assert(event_packet.saved_sp==$past(gpr[4]));
+                    assert(event_packet.saved_sp==$past(i286p_pop_memory_fault ? pending_sp : gpr[4]));
                     assert(event_packet.deferred_valid==!$past(ins_precheck_active &&
                         (opcode==8'h6c || opcode==8'h6d) && memory_return==STRING_FIRST));
                     assert(event_packet.deferred_flags==$past(pending_flags));
@@ -764,7 +770,11 @@
                         assert(core_bus_kind==memory_kind && core_bus_size==memory_size);
                         assert(core_bus_segment==$past(core_bus_segment));
                         assert(core_bus_offset==$past(core_bus_offset)+16'd1);
-                        assert(core_bus_addr==$past(core_bus_addr)+24'd1);
+                        // A40: a real-mode access that steps past offset FFFF
+                        // continues at offset 0000 of the same segment.
+                        if (!msw[0] && core_bus_offset==16'd0)
+                            assert(core_bus_addr==$past(core_bus_addr)+24'd1-24'h010000);
+                        else assert(core_bus_addr==$past(core_bus_addr)+24'd1);
                     end
                 end
             end
@@ -1212,15 +1222,25 @@
                              (memory_return==STRING_FIRST || memory_return==STRING_COMMIT)) ||
                             ((opcode==8'haa || opcode==8'hab) && memory_return==STRING_COMMIT) ||
                             ((opcode==8'h6e || opcode==8'h6f) && memory_return==STRING_FIRST))) &&
-                    !(state==EVENT_START && $past(state==STRING_START)))
+                    !(state==EVENT_START && $past(state==STRING_START)) &&
+                    !(state==EVENT_START && $past(state==MEMORY_CHECK && !msw[0] &&
+                                                  opcode==8'h8f && memory_return==COMMIT_MEMORY)))
                     assert($stable(regs_o));
                 // A36: a word-FFFF string #13 changes only CX, SI and DI.
                 if (state==EVENT_START && $past(state==STRING_START))
                     assert(gpr[0]==$past(gpr[0]) && gpr[2]==$past(gpr[2]) &&
                            gpr[3]==$past(gpr[3]) && gpr[4]==$past(gpr[4]) &&
                            gpr[5]==$past(gpr[5]));
+                // A37: a real-mode POP m destination #13 keeps only the SP increment.
+                if (state==EVENT_START && $past(state==MEMORY_CHECK && !msw[0] &&
+                                                opcode==8'h8f && memory_return==COMMIT_MEMORY))
+                    assert(gpr[4]==$past(pending_sp) && gpr[0]==$past(gpr[0]) &&
+                           gpr[6]==$past(gpr[6]) && gpr[7]==$past(gpr[7]));
                 assert($stable(segs_o));
-                assert($stable(flags_o));
+                // A38: AAM with a zero divisor rewrites the arithmetic flags.
+                if (!(state==EVENT_START && $past(state==MULDIV_WAIT && aam_op)))
+                    assert($stable(flags_o));
+                else assert(flags_o==$past(aam_zero_flags));
                 assert($stable(msw) && $stable(gdt_base) && $stable(gdt_limit));
                 assert($stable(idt_base) && $stable(idt_limit));
             end

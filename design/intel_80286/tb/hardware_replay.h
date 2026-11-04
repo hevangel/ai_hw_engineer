@@ -5,13 +5,19 @@ static void hardware_vectors(const char* path) {
     check(bool(input),"physical-286 vector file missing");
     std::string token,label;
     unsigned cases=0,runs=0;
+    const bool survey=std::getenv("I286_HW_SURVEY")!=nullptr;
+    std::map<std::string,unsigned> survey_failures;
     try {
         while (input>>token) {
             // HWSTRING/HWSTRFAULT: MOVS/CMPS/STOS/LODS/SCAS records with their
             // captured REP/REPNE prefixes; operand traffic is expected, and a
             // fault record may follow completed elements.
-            const bool fault_case=token=="HWFAULT" || token=="HWSTRFAULT";
-            const bool string_case=token=="HWSTRING" || token=="HWSTRFAULT";
+            // HWGEN/HWGENFAULT: any selected opcode, with operand traffic and
+            // control transfer allowed; the importer supplies the defined-
+            // FLAGS mask and, for faults, the vector.
+            const bool general_case=token=="HWGEN" || token=="HWGENFAULT";
+            const bool fault_case=token=="HWFAULT" || token=="HWSTRFAULT" || token=="HWGENFAULT";
+            const bool string_case=token=="HWSTRING" || token=="HWSTRFAULT" || general_case;
             check(token=="HWCASE" || fault_case || string_case,"malformed physical case marker");
             std::string code;
             unsigned opcode,mask;
@@ -52,16 +58,21 @@ static void hardware_vectors(const char* path) {
                 opcode==0x2c || opcode==0x2d || opcode==0x3c || opcode==0x3d;
             const bool test_alias=opcode==0xf6 || opcode==0xf7;
             const bool string_opcode=(opcode>=0xa4 && opcode<=0xa7) || (opcode>=0xaa && opcode<=0xaf);
-            check((string_case ? string_opcode && mask==0x7fd7u :
+            check(general_case ? (mask & ~0x7fd7u)==0 :
+                  (string_case ? string_opcode && mask==0x7fd7u :
                    (arithmetic_immediate || (opcode>=0x40 && opcode<=0x4f) || test_alias) &&
                    mask==(test_alias && !fault_case ? 0x7fc7u : 0x7fd7u)),
                   "physical file needs an explicit instruction/flag contract");
-            check(!fault_case || (exception==13 && (opcode==0xf7 || string_case)),"unsupported physical exception contract");
+            check(!fault_case || (general_case ? exception<32 :
+                  exception==13 && (opcode==0xf7 || string_case)),"unsupported physical exception contract");
             check(!(initial[13]&0x7300),"physical initial FLAGS need unsupported state/debug setup");
-            check(code.substr(code.size()-2)=="f4","physical successor is not HLT");
-            const unsigned instruction_bytes=unsigned(code.size()/2)-1;
-            check(fault_case || (final[9]==initial[9] && final[12]==uint16_t(initial[12]+instruction_bytes+1)),
+            const bool hlt_suffix=code.substr(code.size()-2)=="f4";
+            check(hlt_suffix || general_case,"physical successor is not HLT");
+            const unsigned instruction_bytes=unsigned(code.size()/2)-(hlt_suffix ? 1 : 0);
+            check(fault_case || general_case ||
+                  (final[9]==initial[9] && final[12]==uint16_t(initial[12]+instruction_bytes+1)),
                   "physical non-flow final PC accounting mismatch");
+            try {
             for (bool wait:{false,true}) {
                 Bench b;
                 // Near JMP preserves the special reset CS base, providing an
@@ -130,14 +141,31 @@ static void hardware_vectors(const char* path) {
                     const std::size_t frame=b.data_transfers.size()-10;
                     for(unsigned i=0;i<10;++i) {
                         const auto& transfer=b.data_transfers[frame+i];
+                        // A general record's frame sits below the SP the
+                        // fault left (final SP + 6), which an instruction
+                        // such as POP m may already have moved.
+                        const uint16_t frame_sp=general_case ? uint16_t(final[4]+6) : initial[4];
                         const uint32_t expected=i<4 ? 4*exception+i : uint32_t(initial[10])*16+
-                            uint16_t(initial[4]-2*(1+(i-4)/2))+(i&1);
-                        check(transfer.address==expected && transfer.write==(i>=4) && !transfer.io,
-                              "physical exact exception IVT/frame addresses");
+                            uint16_t(frame_sp-2*(1+(i-4)/2))+(i&1);
+                        if (!(transfer.address==expected && transfer.write==(i>=4) && !transfer.io)) {
+                            std::ostringstream message;
+                            message<<"physical exact exception IVT/frame addresses: transfer "<<i
+                                   <<" actual="<<std::hex<<transfer.address<<(transfer.write?" W":" R")
+                                   <<" expected="<<expected<<" all:";
+                            for (const auto& t:b.data_transfers)
+                                message<<" "<<t.address<<(t.write?"W":"R");
+                            message<<" sp="<<b.reg(4);
+                            throw std::runtime_error(message.str());
+                        }
                     }
                 } else b.step(start,uint8_t(opcode),final[9],uint16_t(final[12]-1),wait);
                 compare(final);
+                // A control transfer's captured byte list can include bytes
+                // past the instruction, so only bound its fetch count.
+                const bool transfer=general_case &&
+                    !(final[9]==initial[9] && final[12]==uint16_t(initial[12]+instruction_bytes+1));
                 check(fault_case ? !b.accepted.empty() && b.accepted.size()<=10 :
+                      transfer ? !b.accepted.empty() && b.accepted.size()<=instruction_bytes :
                       b.accepted.size()==instruction_bytes,"physical tested-instruction fetch length");
                 for (unsigned i=0;i<b.accepted.size();++i) check(b.accepted[i]==start+i,
                                                                "physical tested-instruction exact fetch address");
@@ -156,11 +184,27 @@ static void hardware_vectors(const char* path) {
                                                        "physical final RAM mismatch");
                 ++runs;
             }
+            } catch (const std::exception& error) {
+                // I286_HW_SURVEY: report every failing file instead of
+                // stopping at the first record (evidence survey only).
+                if (!survey) throw;
+                const std::string file=label.substr(0,label.find(':'));
+                if (survey_failures[file]++==0)
+                    std::cout<<"SURVEY-FAIL "<<label<<" "<<code<<": "<<error.what()<<"\n";
+            }
             ++cases;
         }
         check(cases!=0 && input.eof(),"physical vector file empty or malformed");
     } catch (const std::exception& error) {
         throw std::runtime_error("Physical 286 "+label+": "+error.what());
+    }
+    if (survey) {
+        unsigned failed=0;
+        for (const auto& entry:survey_failures) {
+            std::cout<<"SURVEY "<<entry.first<<" failures="<<entry.second<<"\n";
+            failed+=entry.second;
+        }
+        check(failed==0,"physical survey found mismatching records");
     }
     std::cout<<"PASS: "<<cases<<" physical Harris-286 captures, "<<runs
              <<" stalled/unstalled executions with exact registers/flags/RAM/PC and HLT successors\n";

@@ -35,7 +35,14 @@ module intel_80286_muldiv (
         end else product = wide_i ? (32'(ax_i)*32'(operand_i)) : (32'(ax_i[7:0])*32'(operand_i[7:0]));
         if (operation_i[0]) product_overflow = wide_i ? product[31:16]!={16{product[15]}} : product[15:8]!={8{product[7]}};
         else product_overflow = wide_i ? product[31:16]!=0 : product[15:8]!=0;
-        trial = {remainder[15:0],numerator[31]};
+        // ASSUMPTION A39: IDIV divides the magnitudes with an operand-width
+        // partial remainder whose shifted-out bit is lost and no high-half
+        // pre-check; only the final quotient range check faults. This
+        // reproduces all 5,000 F6.7 and 4,967 F7.7 physical Harris-286
+        // records, including four byte overflows that return quotient 80h.
+        if (signed_divide)
+            trial = wide ? {1'b0,remainder[14:0],numerator[31]} : {9'b0,remainder[6:0],numerator[31]};
+        else trial = {remainder[15:0],numerator[31]};
         next_remainder = 16'(trial >= {1'b0,denominator} ? trial-{1'b0,denominator} : trial);
         next_quotient = {quotient,trial >= {1'b0,denominator}};
         corrected_quotient = negative_quotient ? (16'h0-next_quotient[15:0]) : next_quotient[15:0];
@@ -65,9 +72,17 @@ module intel_80286_muldiv (
                     busy<=1; wide<=wide_i; signed_divide<=operation_i[0];
                     negative_quotient<=dividend_negative^divisor_negative;
                     negative_remainder<=dividend_negative;
-                    numerator<=wide_i ? magnitude : {magnitude[15:0],16'h0};
-                    denominator<=divisor_magnitude; quotient<=0; remainder<=0;
-                    bits_left<=wide_i ? 32 : 16;
+                    denominator<=divisor_magnitude; quotient<=0;
+                    if (operation_i[0]) begin
+                        // A39: start from the dividend's high half.
+                        remainder<=wide_i ? magnitude[31:16] : {8'h0,magnitude[15:8]};
+                        numerator<=wide_i ? {magnitude[15:0],16'h0} : {magnitude[7:0],24'h0};
+                        bits_left<=wide_i ? 16 : 8;
+                    end else begin
+                        remainder<=0;
+                        numerator<=wide_i ? magnitude : {magnitude[15:0],16'h0};
+                        bits_left<=wide_i ? 32 : 16;
+                    end
                 end
             end else if (busy) begin
                 numerator<={numerator[30:0],1'b0}; quotient<=next_quotient[30:0];
