@@ -55,7 +55,8 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | By 1978* (exact year unknown) | AMD Am2914 | Eight-level vectored interrupt controller; pulse capture, masks, thresholds and cascade | [amd_am2914](amd_am29xx/amd_am2914//) |
 | By 1978* (exact year unknown) | AMD Am2918 | Quad D register with continuous Q and three-state Y outputs | [amd_am2918](amd_am29xx/amd_am2918//) |
 | By 1978* (public announcement; exact shipment unknown) | AMD Am9517 | Four-channel multimode DMA, memory copy/fill and cascade expansion | [amd_am9517](amd_am9517/) |
-| 1978 | Intel 8086 | 16-bit microprocessor; complete documented ISA and native digital BIU with independent physical-chip tests | [intel_8086](intel_8086_8088/intel_8086//) |
+| 1978 | Intel 8086 | 16-bit microprocessor; complete documented ISA and native digital BIU with independent physical-chip tests | [intel_8086](intel_8086_8088/intel_8086/) |
+| 1979 | Intel 8088 | 8-bit-bus 16-bit microprocessor; shared 8086 execution unit behind a four-byte byte-fetch BIU with independent physical-8088 tests | [intel_8088](intel_8086_8088/intel_8088/) |
 | 1978 | Motorola MC6809 | 8-bit microprocessor; full documented ISA (pages 1/2/3, indexed postbyte indirection, TFR/EXG, MUL, long branches, FIRQ/CWAI/SYNC) passing the hardware-validated reyco2000 functional and interrupt suites; formal bmc/prove/cover | [motorola_6809](motorola_6809/) |
 | 1979 (September announcement) | Motorola MC68000 | Work in progress: 16/32-bit processor; verification harness complete (SingleStepTests 680x0 suite, 1,000,060 single-instruction vectors) and RTL skeleton lint/synthesis clean; instruction classes land incrementally against the vectors | [motorola_68000](motorola_68000/) |
 | 1979* (family) | Intel 8237 / 8237A | Four-channel programmable DMA controller; original IBM PC BIOS integration | [intel_8237](intel_8237/) |
@@ -133,6 +134,10 @@ The Intel 8080 entry records **1974**, following Intel's [manufacturer history](
 ### Intel â€” 8086
 
 The Intel 8086 entry records **1978**; Intel dates its introduction to June 8, 1978 in its [manufacturer history](https://timeline.intel.com/1978/the-beginning-of-a-legend%3A-the-8086). This design implements the complete documented instruction set, interrupts and a six-byte prefetch BIU with minimum/maximum-mode digital pins. Independent physical-chip vectors, original DEBUG.COM, formal checks and native bus tests verify the implementation; original EU cycle counts and electrical timing are outside its RTL contract. See the [chip overview](intel_8086_8088/intel_8086//README.md). Its standalone software regression runs unchanged Microsoft DEBUG.COM through the execution unit and both native bus modes.
+
+### Intel — 8088
+
+The Intel 8088 entry records **1979**; Intel's [Microprocessor Quick Reference Guide](https://www.intel.com/content/www/us/en/newsroom/resources/microprocessor-quick-reference-guide.html) dates its introduction to June 1, 1979. The design shares the 8086 execution unit by source reference and implements the 8088-specific bus interface: a four-byte prefetch queue refilled one byte per cycle whenever a byte is free, byte-only bus cycles where every 16-bit transaction is two ascending cycles completing as one transfer, non-multiplexed A8–A15, the reversed IO/M polarity and SS0 on pin 34 in place of BHE/S7. Independent physical-8088 vectors (SingleStepTests/8088, captured on an AMD D8088), original DEBUG.COM through the chip in both bus modes, formal BIU checks, a chip-pin UVM suite and directed native bus tests verify the implementation; original cycle counts and electrical timing are outside its RTL contract. See the [chip overview](intel_8086_8088/intel_8088/README.md).
 
 ### Motorola — 6800, 6809, 68000
 
