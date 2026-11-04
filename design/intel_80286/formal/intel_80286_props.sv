@@ -168,8 +168,10 @@
                 assert(shutdown_o);
             if (rst_n && $past(rst_n && shutdown_o) && shutdown_recovery_active)
                 assert($past(async_valid && async_vector==8'd2 && !shutdown_nmi_failed));
-            if (halted_o || fault_o)
+            // A halted CPU still serves extension operand requests (PRM App. A).
+            if ((halted_o && !pedc_transfer) || fault_o)
                 assert(!core_bus_req && !(descriptor_claim && descriptor_bus_req) && !event_bus_req);
+            if (halted_o && pedc_transfer) assert(!fault_o && !shutdown_o && !event_bus_req);
             assert(!(cpu_bus_ready && event_bus_ready));
             // The core ties the PEDC claim/request inputs of the bus owner to
             // zero, so the PEDC never owns the bus.
@@ -258,8 +260,9 @@
                 assert($stable(regs_o) && $stable(flags_o));
             end
             // Later states include WAIT_BUSY, direct task-switch paths and
-            // the ESC command phase; ESC_MEM_SEGMENT is the highest encoding.
-            assert(state <= ESC_MEM_SEGMENT);
+            // the ESC command phase and the extension data channel; PEDC_DONE is
+            // the highest encoding.
+            assert(state <= PEDC_DONE);
             // CS is untrusted only after a task-entry fault rejected the incoming
             // CS cache (Intel 210498-005 9.6.4); the fault's own delivery then
             // reloads CS. Real mode never clears it.
@@ -764,12 +767,13 @@
             end
             // Halt persists through idle recognition/acknowledgement, but
             // cannot own an instruction execution state or memory transfer.
-            assert(bus_halt_cycle_o==(halt_latch && !shutdown_o));
+            // An extension transfer served during HLT is not a halt cycle.
+            assert(bus_halt_cycle_o==(halt_latch && !shutdown_o && !pedc_transfer));
             assert(bus_shutdown_cycle_o==shutdown_o);
             assert(!(bus_halt_cycle_o && bus_shutdown_cycle_o));
             if (bus_halt_cycle_o) assert(!bus_req_o);
             if (halt_latch && !shutdown_o)
-                assert(state==HALTED || state==BOUNDARY || state==EVENT_POLL);
+                assert(state==HALTED || state==BOUNDARY || state==EVENT_POLL || pedc_transfer);
             if (state==HALTED) assert(halt_latch);
             if (rst_n && $past(rst_n && state==FETCH && !prefix_active &&
                 owner_cpu_grant && cpu_bus_ready && !fetch_reference_fault))
@@ -786,8 +790,12 @@
                        (state==BOUNDARY && $past(state==WAIT_BUSY && !escape_op)));
                 assert(!core_bus_req);
             end
+            // A selected event also waits while an extension operand transfer,
+            // which has higher bus priority than EU data (PRM App. A), runs.
             if (async_valid)
-                assert(async_poll || (state==BOUNDARY && $past(state==WAIT_BUSY && !escape_op)));
+                assert(async_poll || (state==BOUNDARY && $past(state==WAIT_BUSY && !escape_op)) ||
+                       (pedc_transfer && (pedc_resume==EVENT_POLL || pedc_resume==STRING_POLL ||
+                                          pedc_resume==WAIT_BUSY)));
             if (state==STRING_BOUNDARY || state==STRING_POLL) begin
                 assert(string_op && repeat_valid && gpr[1]!=0);
             end
@@ -830,6 +838,8 @@
                    memory_return == ESC_REG_IP || memory_return == ESC_REG_CS ||
                    memory_return == ESC_REG_DONE ||
                    memory_return == ESC_MEM_OFFSET || memory_return == ESC_MEM_SEGMENT ||
+                   memory_return == PEDC_MEM_DONE || memory_return == PEDC_IO_DONE ||
+                   memory_return == PEDC_DONE ||
                    memory_return == TASK_GATE_TSS_TAIL || memory_return == TASK_GATE_TSS_CHECK ||
                    memory_return == TASK_LDT_VALIDATE || memory_return == TASK_ENTRY_COMMIT ||
                    memory_return == TASK_RETURN_LINK_CHECK ||
@@ -885,6 +895,10 @@
                 if (opcode==8'h0f)
                     assert(memory_return==EXECUTE || memory_return==COMMIT_MEMORY ||
                             memory_return==SYSTEM_DONE ||
+                            // Extension-channel words are served at a boundary
+                            // with the previous instruction's opcode still held.
+                            memory_return==PEDC_MEM_DONE || memory_return==PEDC_IO_DONE ||
+                            memory_return==PEDC_DONE ||
                             memory_return==SYSTEM_DESC_MORE || memory_return==SYSTEM_DESC_VALIDATE ||
                             memory_return==SYSTEM_DESC_COMMIT || memory_return==SYSTEM_QUERY_VALIDATE ||
                            memory_return==EVENT_VECTOR || memory_return==EVENT_FLAGS ||
@@ -1007,6 +1021,23 @@
                                load_far_pointer_protected && !task_switch_active &&
                                !event_stack_active && !segment_load_fault))
                 assert(gpr[$past(modrm[5:3])]==$past(memory_result[15:0]) && retire_o);
+            // Only WAIT and ESC stall on BUSY.
+            if (rst_n && state==WAIT_BUSY) assert(opcode==8'h9b || escape_op);
+            // An extension-channel transfer resumes the boundary, string poll or
+            // BUSY wait it interrupted, and is a plain word transfer.
+            if (rst_n && (state==PEDC_START || state==PEDC_MEM_DONE || state==PEDC_IO_DONE ||
+                          state==PEDC_DONE ||
+                          ((state==BUS || state==MEMORY_CHECK) &&
+                           (memory_return==PEDC_MEM_DONE || memory_return==PEDC_IO_DONE ||
+                            memory_return==PEDC_DONE)))) begin
+                assert(pedc_resume==EVENT_POLL || pedc_resume==STRING_POLL ||
+                       pedc_resume==WAIT_BUSY);
+                if (state==BUS) assert(memory_size==2 && !memory_segmented);
+                // A string poll resumes only a live repeated string.
+                if (pedc_resume==STRING_POLL) assert(string_op && repeat_valid && gpr[1]!=0);
+                if (pedc_resume==WAIT_BUSY) assert(opcode==8'h9b || escape_op);
+                assert(!event_delivery_active && !task_switch_active);
+            end
             // Reset clears code_load_target and the core only assigns 0..6.
             if (rst_n) assert(code_load_target<=6);
             // Target 6 is the CS reload of a JMP through a call gate (B-54).

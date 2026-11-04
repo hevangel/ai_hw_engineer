@@ -18,12 +18,15 @@ module intel_80286_at_refresh_native (
     output logic refresh_row_oe_o, refresh_memr_n_o, refresh_memr_oe_o
 );
     logic cpu_reset, timer_latched, dma_hlda, refresh_selected, dma_selected;
+    logic peack_n_unused; // No 80287 is fitted to this fixture.
+    /* verilator lint_off UNUSEDSIGNAL */
+    /* verilator lint_on UNUSEDSIGNAL */
     /* verilator lint_off PINMISSING */
     intel_80286_native_cpu cpu (
         .clk_i(clk_i), .clk_2x_i(clk_2x_i), .reset_i(reset_i), .res_n_i(1'b1),
         .ready_n_i(ready_n_i), .cenl_i(1'b1), .cen_i(1'b1), .cmdly_i(1'b0),
         .hold_i(hold_o), .intr_i(1'b0), .nmi_i(1'b0), .busy_i(1'b0),
-        .error_n_i(1'b1), .data_i(data_i), .data_o(data_o),
+        .error_n_i(1'b1), .pereq_i(1'b0), .peack_n_o(peack_n_unused), .data_i(data_i), .data_o(data_o),
         .data_oe_o(data_oe_o), .address_o(address_o), .address_oe_o(address_oe_o),
         .bhe_n_o(bhe_n_o), .cod_inta_o(cod_inta_o), .m_io_o(m_io_o),
         .s1_o(s1_o), .s0_o(s0_o), .status_oe_o(status_oe_o),

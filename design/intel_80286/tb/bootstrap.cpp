@@ -13806,6 +13806,257 @@ static void processor_extension_contract() {
     std::cout << "PASS: 80286 WAIT interruption/BUSY/ERROR#, ESC fault gates and D8 register commands\n";
 }
 
+// Processor-extension data channel (1985 PRM App. A; Intel 210760-002 ch. 6):
+// after a memory ESC the CPU accepts PEREQ and moves one operand word per
+// request, memory then port FAh for loads and FAh then memory for stores,
+// with PEACK# low on the first operation. A word outside the operand segment
+// raises interrupt 9 (9.6.3). A small 80287 stand-in drives BUSY and PEREQ.
+static void processor_extension_data_channel() {
+    struct Npx {
+        unsigned words=0, served=0;
+        bool store=false, started=false, low_cycle=false;
+        std::vector<uint16_t> load_words;      // words the CPU wrote to FAh
+        std::vector<uint16_t> store_words;     // words supplied at FAh
+        std::vector<bool> peack_first;         // PEACK# low on each word's first byte
+        std::size_t seen=0;
+    };
+    auto run=[](Bench& b,Npx& npx,bool wait,unsigned cycles) {
+        for (unsigned n=0;n<cycles && !b.d.event_o && !b.d.halted_o && !b.d.fault_o;++n) {
+            const std::size_t before=b.data_transfers.size();
+            const bool peack=!b.d.peack_n_o;
+            b.tick(wait);
+            for (std::size_t i=before;i<b.data_transfers.size();++i) {
+                const auto& t=b.data_transfers[i];
+                if (t.io && t.write && t.address==0xf8) { npx.started=true; b.d.busy_i=1; }
+                if (npx.started && npx.served<npx.words && !t.io && i==b.data_transfers.size()-1) {}
+                if (t.io && t.address==0xfb && npx.served<npx.words) {
+                    const uint16_t lo=b.data_transfers[i-1].value;
+                    if (!npx.store) npx.load_words.push_back(uint16_t(lo|(t.value<<8)));
+                    ++npx.served; npx.low_cycle=true;
+                }
+            }
+            if (npx.started && b.data_transfers.size()>before) {
+                const auto& t=b.data_transfers[before];
+                const bool first=npx.store ? (t.io && t.address==0xfa) :
+                                             (!t.io && t.address!=0xfc && t.address!=0xfd &&
+                                              t.address!=0xf8 && t.address!=0xf9);
+                if (first && npx.peack_first.size()==npx.served) npx.peack_first.push_back(peack);
+            }
+            if (npx.started && npx.store && npx.served<npx.words) {
+                b.ports[0xfa]=uint8_t(npx.store_words[npx.served]);
+                b.ports[0xfb]=uint8_t(npx.store_words[npx.served]>>8);
+            }
+            // Command and pointer words first, then one request per word with
+            // an intervening low sample (A26); BUSY falls after the last word.
+            const bool command_done=npx.started && std::count_if(b.data_transfers.begin(),
+                b.data_transfers.end(),[](const auto& t){ return t.io && t.write && t.address==0xfd; })>=4;
+            if (npx.low_cycle) { b.d.pereq_i=0; npx.low_cycle=false; }
+            else b.d.pereq_i=command_done && npx.served<npx.words;
+            if (command_done && npx.served==npx.words && npx.words!=0) b.d.busy_i=0;
+        }
+    };
+    unsigned cases=0;
+    for (bool wait:{false,true}) {
+        // FLD qword [BX]: four loads, then WAIT and HLT.
+        Bench b;
+        b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+        b.put(0xf0100,{0xbb,0x00,0x02, 0xdd,0x07, 0x9b, 0xf4});
+        b.put(0x0200,{0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88});
+        b.reset();
+        b.step(0xfffff0,0xea,0xf000,0x0100,wait);
+        b.step(0xf0100,0xbb,0xf000,0x0103,wait);
+        Npx npx; npx.words=4;
+        b.data_transfers.clear();
+        run(b,npx,wait,20000);
+        if (!(b.d.halted_o && !b.d.fault_o && !b.d.event_o)) {
+            std::ostringstream o;
+            o<<"FLD qword channel did not reach HLT: ip="<<std::hex<<b.d.ip_o<<" fault="<<unsigned(b.d.fault_o)
+             <<" event="<<unsigned(b.d.event_o)<<" vec="<<unsigned(b.d.event_vector_o)<<" busy="<<unsigned(b.d.busy_i)
+             <<" pereq="<<unsigned(b.d.pereq_i)<<" served="<<std::dec<<npx.served<<" transfers:";
+            for (const auto& t:b.data_transfers) o<<' '<<std::hex<<t.address<<(t.io?"i":"m")<<(t.write?"w":"r")<<"="<<unsigned(t.value);
+            throw std::runtime_error(o.str());
+        }
+        const uint16_t want[]={0x2211,0x4433,0x6655,0x8877};
+        check(npx.load_words.size()==4 && std::equal(npx.load_words.begin(),npx.load_words.end(),want),
+              "load channel did not deliver the operand words to port FAh in order");
+        // Each word: memory read of the two bytes, then the FAh/FBh write.
+        std::vector<Bench::Transfer> words;
+        for (const auto& t:b.data_transfers)
+            if ((!t.io && t.address>=0x200 && t.address<0x208) || (t.io && (t.address==0xfa||t.address==0xfb)))
+                words.push_back(t);
+        check(words.size()==16,"load channel transfer count");
+        for (unsigned w=0;w<4;++w) {
+            check(!words[4*w].io && !words[4*w].write && words[4*w].address==0x200+2*w &&
+                  !words[4*w+1].io && words[4*w+1].address==0x201+2*w &&
+                  words[4*w+2].io && words[4*w+2].write && words[4*w+2].address==0xfa &&
+                  words[4*w+3].io && words[4*w+3].address==0xfb,
+                  "load channel did not read memory before writing port FAh");
+        }
+        check(npx.peack_first.size()==4 &&
+              std::all_of(npx.peack_first.begin(),npx.peack_first.end(),[](bool v){ return v; }),
+              "PEACK# was not low on each word's first operation");
+        ++cases;
+    }
+    for (bool wait:{false,true}) {
+        // FSTP tbyte [BX]: five stores from port FAh to memory.
+        Bench b;
+        b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+        b.put(0xf0100,{0xbb,0x01,0x03, 0xdb,0x3f, 0x9b, 0xf4});
+        b.reset();
+        b.step(0xfffff0,0xea,0xf000,0x0100,wait);
+        b.step(0xf0100,0xbb,0xf000,0x0103,wait);
+        Npx npx; npx.words=5; npx.store=true;
+        npx.store_words={0xa1b2,0xc3d4,0xe5f6,0x0718,0x293a};
+        b.data_transfers.clear();
+        run(b,npx,wait,20000);
+        check(b.d.halted_o && !b.d.fault_o,"FSTP tbyte channel did not reach HLT");
+        for (unsigned w=0;w<5;++w)
+            check(b.memory[0x301+2*w]==uint8_t(npx.store_words[w]) &&
+                  b.memory[0x302+2*w]==uint8_t(npx.store_words[w]>>8),
+                  "store channel did not write the extension words at the odd operand address");
+        std::vector<Bench::Transfer> seq;
+        for (const auto& t:b.data_transfers)
+            if ((!t.io && t.address>=0x301 && t.address<0x30b) || (t.io && (t.address==0xfa||t.address==0xfb)))
+                seq.push_back(t);
+        check(seq.size()==20 && seq[0].io && !seq[0].write && seq[2].address==0x301 && seq[2].write,
+              "store channel did not read port FAh before writing memory");
+        ++cases;
+    }
+    for (bool wait:{false,true}) {
+        // FLD qword then HLT: the halted CPU still serves PEREQ (App. A).
+        Bench b;
+        b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+        b.put(0xf0100,{0xbb,0x00,0x02, 0xdd,0x07, 0xf4});
+        b.put(0x0200,{0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88});
+        b.reset();
+        b.step(0xfffff0,0xea,0xf000,0x0100,wait);
+        b.step(0xf0100,0xbb,0xf000,0x0103,wait);
+        Npx npx; npx.words=4;
+        b.data_transfers.clear();
+        b.step(0xf0103,0xdd,0xf000,0x0105,wait);
+        b.step(0xf0105,0xf4,0xf000,0x0106,wait);
+        for (unsigned n=0;n<20000 && npx.served<4;++n) {
+            const std::size_t before=b.data_transfers.size();
+            b.tick(wait);
+            for (std::size_t i=before;i<b.data_transfers.size();++i)
+                if (b.data_transfers[i].io && b.data_transfers[i].address==0xfb) {
+                    npx.load_words.push_back(uint16_t(b.data_transfers[i-1].value|(b.data_transfers[i].value<<8)));
+                    ++npx.served; npx.low_cycle=true;
+                }
+            if (npx.low_cycle) { b.d.pereq_i=0; npx.low_cycle=false; }
+            else b.d.pereq_i=npx.served<4;
+            b.d.busy_i=npx.served<4;
+            if (b.d.bus_req_o) check(!b.d.bus_halt_cycle_o,"channel transfer during HLT was marked a halt cycle");
+        }
+        const uint16_t want[]={0x2211,0x4433,0x6655,0x8877};
+        check(npx.served==4 && std::equal(npx.load_words.begin(),npx.load_words.end(),want) &&
+              b.d.halted_o && b.retired==3+1,
+              "halted CPU did not serve the extension's operand requests");
+        ++cases;
+    }
+    for (bool wait:{false,true}) {
+        // FLD tbyte [BX] at FFFBh: the third word straddles FFFFh, which
+        // raises interrupt 9 while WAIT holds on BUSY (9.6.3).
+        Bench b;
+        b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+        b.put(0xf0100,{0xbb,0xfb,0xff, 0xdb,0x2f, 0x9b, 0xf4});
+        b.put(0x0024,{0x00,0x01,0x00,0x20});
+        b.put(0x20100,{0xf4});
+        for (uint32_t a=0xfffb;a<=0xffff;++a) b.memory[a]=uint8_t(a);
+        b.reset();
+        b.step(0xfffff0,0xea,0xf000,0x0100,wait);
+        b.step(0xf0100,0xbb,0xf000,0x0103,wait);
+        Npx npx; npx.words=5;
+        b.data_transfers.clear();
+        run(b,npx,wait,20000);
+        check(b.d.event_o && b.d.event_vector_o==9 && !b.d.event_packet_error_valid_o &&
+              b.cs()==0x2000 && b.d.ip_o==0x0100 && npx.load_words.size()==2,
+              "operand word past FFFFh did not raise interrupt 9 after the two words that fit");
+        check(std::none_of(b.data_transfers.begin(),b.data_transfers.end(),[](const auto& t){
+                  return !t.io && !t.write && (t.address==0xffff || t.address==0x10000); }),
+              "overrunning word touched memory");
+        ++cases;
+    }
+    // Protected mode: a memory ESC in a usable DS runs its command phase and
+    // channel through the descriptor base; a null DS or an SS word past the
+    // limit faults #GP(0)/#SS(0) before the command phase (A32).
+    for (bool wait:{false,true}) {
+        using namespace protected_mode_fixture;
+        const uint8_t ok_program[]={
+            0xb8,0x10,0x00, 0x8e,0xd8,  // 0200 MOV DS,0010 (base 020000, limit FF)
+            0xbb,0x20,0x00,             // 0205 MOV BX,0020
+            0xdd,0x07,                  // 0208 FLD qword [BX]
+            0xf4                        // 020A HLT
+        };
+        Bench b;
+        place_selector_fixture(b,ok_program,sizeof(ok_program));
+        b.put(kWideDataBase+0x20,{0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbb,kCodeSelector,0x0208,wait);
+        b.data_transfers.clear();
+        b.step(kCodeBase+0x0208,0xdd,kCodeSelector,0x020a,wait);
+        check(b.data_transfers.size()==10 && b.data_transfers[6].address==0xfc &&
+              b.data_transfers[6].value==0x20 && b.data_transfers[8].value==0x10,
+              "protected memory ESC did not send its offset and DS selector");
+        b.step(kCodeBase+0x020a,0xf4,kCodeSelector,0x020b,wait);
+        Npx npx;
+        for (unsigned n=0;n<20000 && npx.served<4;++n) {
+            const std::size_t before=b.data_transfers.size();
+            b.tick(wait);
+            for (std::size_t i=before;i<b.data_transfers.size();++i) {
+                const auto& t=b.data_transfers[i];
+                if (!t.io && !t.write) check(t.address>=kWideDataBase+0x20 && t.address<kWideDataBase+0x28,
+                                             "protected channel read outside the descriptor-based operand");
+                if (t.io && t.address==0xfb) {
+                    npx.load_words.push_back(uint16_t(b.data_transfers[i-1].value|(t.value<<8)));
+                    ++npx.served; npx.low_cycle=true;
+                }
+            }
+            if (npx.low_cycle) { b.d.pereq_i=0; npx.low_cycle=false; }
+            else b.d.pereq_i=npx.served<4;
+            b.d.busy_i=npx.served<4;
+        }
+        check(npx.served==4 && npx.load_words[0]==0x0201 && npx.load_words[3]==0x0807,
+              "protected channel did not load the operand through the DS descriptor base");
+        ++cases;
+        const struct { const char* name; std::vector<uint8_t> setup; uint8_t vector; } faults[]={
+            {"null DS",{0xb8,0x28,0x00,0x8e,0xd0, 0xbc,0x80,0x00, 0xb8,0x00,0x00,0x8e,0xd8, 0xbb,0x20,0x00},13},
+            {"SS past limit",{0xb8,0x28,0x00,0x8e,0xd0, 0xbc,0x80,0x00, 0xbd,0xff,0x00},12},
+        };
+        for (const auto& f:faults) {
+            std::vector<uint8_t> program=f.setup;
+            if (f.vector==13) program.insert(program.end(),{0xdd,0x07});      // FLD [BX]
+            else program.insert(program.end(),{0xdd,0x46,0x00});              // FLD [BP+0]
+            program.push_back(0xf4);
+            Bench c;
+            place_selector_fixture(c,program.data(),program.size());
+            c.put(kIdtBase+12*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+            protected_mode_boot(c,wait);
+            c.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+            c.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+            uint16_t esc_ip=0x020b;
+            c.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+            if (f.vector==13) {
+                c.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+                c.step(kCodeBase+0x020b,0x8e,kCodeSelector,0x020d,wait);
+                c.step(kCodeBase+0x020d,0xbb,kCodeSelector,0x0210,wait);
+                esc_ip=0x0210;
+            } else c.step(kCodeBase+0x0208,0xbd,kCodeSelector,0x020b,wait);
+            c.data_transfers.clear();
+            for (unsigned n=0;n<30000 && !c.d.event_o && !c.d.fault_o;++n) c.tick(wait);
+            check(c.d.event_o && !c.d.fault_o && c.d.event_vector_o==f.vector &&
+                  c.d.event_packet_error_code_o==0 && c.d.event_packet_saved_ip_o==esc_ip &&
+                  std::none_of(c.data_transfers.begin(),c.data_transfers.end(),
+                               [](const auto& t){ return t.io; }),
+                  (std::string("protected memory ESC with ")+f.name+" did not fault before its command phase").c_str());
+            ++cases;
+        }
+    }
+    std::cout<<"PASS: "<<cases<<" processor-extension channel runs: FLD qword loads memory-then-FAh, FSTP tbyte stores FAh-then-memory at an odd address, PEACK# on each first operation, transfers while halted, and interrupt 9 for a word past FFFFh, in both READY modes\n";
+}
+
 int main(int argc, char** argv) {
     Verilated::commandArgs(argc,argv);
     try {
@@ -13824,6 +14075,7 @@ int main(int argc, char** argv) {
         }
         else if (argc==2 && std::string(argv[1])=="--stack-wrap") stack_wrap_contracts();
         else if (argc==2 && std::string(argv[1])=="--gate-jump") protected_call_gate_jump();
+        else if (argc==2 && std::string(argv[1])=="--pedc") processor_extension_data_channel();
         else if (argc==2 && std::string(argv[1])=="--segment-pops")
             { protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); }
         else if (argc==2 && std::string(argv[1])=="--protected-event-outer")
@@ -13879,7 +14131,7 @@ int main(int argc, char** argv) {
         else if (argc==3 && std::string(argv[1])=="--bios-decimal") vectors(argv[2],false,true);
         else if (argc==2 && std::string(argv[1])=="--processor-extension") processor_extension_contract();
         else {
-            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); stack_wrap_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_delivery_faults(); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_jump(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix();
+            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); stack_wrap_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); processor_extension_data_channel(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_delivery_faults(); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_jump(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix();
             std::cout << "PASS: 80286 bootstrap reset, register aliases, flags, exact branches, stalls and diagnostic boundaries\n";
         }
     } catch (const std::exception& error) {

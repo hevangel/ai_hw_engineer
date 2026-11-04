@@ -10,8 +10,13 @@ module intel_80286 #(
     input logic [15:0] bus_rdata_i,
     input logic intr_i, nmi_i, inta_ready_i,
     input logic busy_i, error_n_i,
+    // 80287 processor-extension data request (active high).
+    input logic pereq_i,
     input logic [7:0] inta_vector_i,
     output logic inta_req_o, nmi_pending_o, nmi_blocked_o,
+    // Active-low processor-extension acknowledge during an operand transfer's
+    // first bus operation (Intel 210760-002 chapter 6).
+    output logic peack_n_o,
     output logic bus_req_o,
     output logic bus_lock_o,
     output logic bus_halt_cycle_o, bus_shutdown_cycle_o,
@@ -102,7 +107,8 @@ module intel_80286 #(
                      TASK_SWITCH_DIRECT_CURRENT_CHECK=109,
                      CALL_DESC_FINAL=110, ESC_REG_IP=111,
                      ESC_REG_CS=112, ESC_REG_DONE=113,
-                     ESC_MEM_OFFSET=114, ESC_MEM_SEGMENT=115;
+                     ESC_MEM_OFFSET=114, ESC_MEM_SEGMENT=115,
+                     PEDC_START=116, PEDC_MEM_DONE=117, PEDC_IO_DONE=118, PEDC_DONE=119;
     logic [6:0] state, memory_return;
     typedef struct packed {
         logic valid;
@@ -331,13 +337,39 @@ module intel_80286 #(
             shutdown_pending<=1'b1;
         end
     endtask
+    // Processor-extension data channel (PRM 1985 App. A: an ESC with a memory
+    // operand lets the CPU accept PEREQ; the CPU determines the operand start
+    // and read/write status). ASSUMPTION A32: transfers are serviced at
+    // instruction boundaries, HLT and WAIT/ESC BUSY stalls rather than between
+    // arbitrary bus cycles; each word is memory-then-FAh (load) or
+    // FAh-then-memory (store), and a word outside the latched operand segment
+    // raises interrupt 9 (9.6.3) and disarms the channel.
+    logic pedc_armed, pedc_store, pedc_busy_seen, pedc_low_seen, pedc_expand_down;
+    logic [16:0] pedc_offset; // carries past FFFF so a wrapped word overruns
+    logic [15:0] pedc_limit;
+    logic [23:0] pedc_base;
+    logic [6:0] pedc_resume;
+    logic pedc_service, pedc_transfer, esc_store, esc_operand_ok;
+    function automatic logic pe_word_fits(input [16:0] off, input [15:0] lim,
+                                          input expand_down);
+        pe_word_fits=expand_down ? (off>{1'b0,lim} && off<17'h0ffff) :
+                                   (off+17'd1)<={1'b0,lim};
+    endfunction
+    assign pedc_service=pedc_armed && pereq_i && pedc_low_seen;
+    // 80287 stores: D9 /2,/3,/6,/7, DB /2,/3,/7, DD /2,/3,/6,/7, DF /2,/3,/6,/7.
+    assign esc_store=opcode[0] && (modrm[5:3]==3'd2 || modrm[5:3]==3'd3 ||
+        modrm[5:3]==3'd7 || (modrm[5:3]==3'd6 && opcode!=8'hdb));
+    assign esc_operand_ok=cache_valid[rm_role] &&
+        pe_word_fits({1'b0,rm_offset},cache_limits[16*rm_role +: 16],
+                     !cache_access[8*rm_role+3] && cache_access[8*rm_role+2]);
+    assign peack_n_o=!(state==BUS && (memory_return==PEDC_MEM_DONE || memory_return==PEDC_IO_DONE));
     task automatic start_escape_command;
         // Physical Harris 286 D8 captures: command word is the two original
         // instruction bytes; instruction offset and CS follow at port FCh;
         // memory forms then write the operand offset and segment to FCh.
         // ASSUMPTION A30: D9h-DFh use the same CPU-side protocol (the CPU does
-        // not decode the extension opcode). Operand transfers belong to the
-        // PEDC on PEREQ, which is not connected.
+        // not decode the extension opcode). Operand words then move on PEREQ
+        // through the processor-extension data channel (PEDC_* states).
         memory_start(1'b0,2'd0,16'd0,24'h0000f8,1'b1,1'b1,3'd2,
                      {16'h0,modrm,opcode},ESC_REG_IP);
     endtask
@@ -627,7 +659,13 @@ module intel_80286 #(
     assign halted_o = halt_latch ||
                       ((shutdown_pending || state==SHUTDOWN) && !shutdown_recovery_active);
     assign shutdown_o = (shutdown_pending || state==SHUTDOWN) && !shutdown_recovery_active;
-    assign bus_halt_cycle_o = halt_latch && !shutdown_o;
+    // PRM App. A: PEREQ may be serviced during halt; those transfers are
+    // ordinary bus operations, not halt cycles.
+    assign pedc_transfer = state==PEDC_START || state==PEDC_MEM_DONE ||
+        state==PEDC_IO_DONE || state==PEDC_DONE ||
+        ((state==BUS || state==MEMORY_CHECK) &&
+         (memory_return==PEDC_MEM_DONE || memory_return==PEDC_IO_DONE || memory_return==PEDC_DONE));
+    assign bus_halt_cycle_o = halt_latch && !shutdown_o && !pedc_transfer;
     assign bus_shutdown_cycle_o = shutdown_o;
     assign event_vector_o=event_packet.vector;
     assign event_packet_valid_o=event_packet.valid;
@@ -1192,7 +1230,9 @@ module intel_80286 #(
     // WAIT is still busy it may accept an interrupt; once BUSY falls, defer
     // new selection until WAIT reports #MF or reaches its retirement boundary.
     assign async_boundary = state==BOUNDARY || state==STRING_BOUNDARY ||
-                            (state==WAIT_BUSY && !escape_op && busy_i);
+                            // A pending extension request is served first; do not
+                            // start an INTA handshake that the transfer would strand.
+                            (state==WAIT_BUSY && !escape_op && busy_i && !pedc_service);
     assign async_poll = state==EVENT_POLL || state==STRING_POLL ||
                         (state==WAIT_BUSY && !escape_op && async_valid) ||
                         (state==SHUTDOWN && shutdown_pending && !shutdown_recovery_active);
@@ -1328,6 +1368,9 @@ module intel_80286 #(
             halt_latch<=0; ss_shadow<=0; sti_shadow<=0;
             shutdown_pending<=0;
             shutdown_recovery_active<=0; shutdown_nmi_failed<=0;
+            pedc_armed<=0; pedc_store<=0; pedc_busy_seen<=0; pedc_low_seen<=0;
+            pedc_expand_down<=0; pedc_offset<=0; pedc_limit<=0; pedc_base<=0;
+            pedc_resume<=BOUNDARY;
             instruction_ss_shadow<=0; instruction_sti_shadow<=0;
             instruction_tf<=0;
             all_index<=0; stack_origin<=0; frame_pointer<=0; frame_sp<=0; frame_source<=0;
@@ -1338,6 +1381,13 @@ module intel_80286 #(
             retire_o <= 0;
             event_o <= 0;
             element_o <= 0;
+            // A26: a new PEREQ needs a sampled low after the previous one; the
+            // channel ends when BUSY falls after the extension took the command.
+            if (pedc_armed) begin
+                if (!pereq_i) pedc_low_seen<=1;
+                if (busy_i) pedc_busy_seen<=1;
+                else if (pedc_busy_seen) pedc_armed<=0;
+            end
             // After a failed NMI recovery only RESET exits shutdown (9.6.2),
             // even if the event controller still holds a selected NMI.
             if (shutdown_pending && !shutdown_recovery_active && async_valid &&
@@ -1403,7 +1453,9 @@ module intel_80286 #(
                 end
                 STRING_BOUNDARY: state<=STRING_POLL;
                 EVENT_POLL,STRING_POLL: begin
-                    if (async_valid) begin
+                    if (pedc_service && !inta_req_o) begin
+                        pedc_resume<=state; state<=PEDC_START;
+                    end else if (async_valid) begin
                         enter_event(async_vector,state==STRING_POLL ? instruction_ip : ip,
                                     1'b0,1'b0,1'b0,16'd0);
                         state<=EVENT_START; retire_o<=0;
@@ -1683,13 +1735,13 @@ module intel_80286 #(
                             state<=EVENT_START; retire_o<=0;
                         end
                     end else if (escape_op) begin
-                        if (modrm[7:6]==2'b11 || !msw[0])
-                            start_escape_command();
-                        else begin
-                            // Protected memory forms need the PEDC's operand
-                            // segment checks, which are not connected.
-                            retire_o<=0; state<=STOPPED; fault_code_o<=3; ip<=instruction_ip;
-                        end
+                        if (rm_memory && msw[0] && !esc_operand_ok) begin
+                            // ASSUMPTION A32: the first operand word must lie in
+                            // a usable segment, else #GP(0) or #SS(0) for SS.
+                            enter_event(rm_role==2'd2 ? 8'd12 : 8'd13,instruction_ip,
+                                        1'b0,1'b1,1'b1,16'd0);
+                            state<=EVENT_START; retire_o<=0;
+                        end else start_escape_command();
                     end else if (arpl_op) begin
                         if (rm_memory) begin
                             if (arpl_adjust)
@@ -2430,6 +2482,39 @@ module intel_80286 #(
                 ESC_REG_DONE: begin
                     retire_o<=1; retire_pc_o<=instruction_pc;
                     retire_opcode_o<=opcode; state<=BOUNDARY;
+                    // A memory ESC arms the channel with its operand; a register
+                    // form has no operand and disarms it.
+                    pedc_armed<=rm_memory; pedc_store<=esc_store;
+                    pedc_offset<={1'b0,rm_offset}; pedc_busy_seen<=busy_i;
+                    // The first request may already be high; A26 separates later ones.
+                    pedc_low_seen<=1'b1;
+                    pedc_base<=rm_role==2'd0 ? es_base : rm_role==2'd1 ? cs_base :
+                               rm_role==2'd2 ? ss_base : ds_base;
+                    pedc_limit<=cache_limits[16*rm_role +: 16];
+                    pedc_expand_down<=!cache_access[8*rm_role+3] && cache_access[8*rm_role+2];
+                end
+                PEDC_START: begin
+                    pedc_low_seen<=0;
+                    if (!pe_word_fits(pedc_offset,pedc_limit,pedc_expand_down)) begin
+                        // 9.6.3: external, not restartable, no error code.
+                        pedc_armed<=0;
+                        enter_event(8'd9,pedc_resume==WAIT_BUSY ? ip :
+                                    pedc_resume==STRING_POLL ? instruction_ip : ip,
+                                    1'b0,1'b0,1'b0,16'd0);
+                        state<=EVENT_START; retire_o<=0;
+                    end else if (pedc_store)
+                        memory_start(1'b0,2'd0,16'd0,24'h0000fa,1'b0,1'b1,3'd2,32'd0,PEDC_IO_DONE);
+                    else
+                        memory_start(1'b0,2'd0,16'd0,pedc_base+{8'd0,pedc_offset[15:0]},
+                                     1'b0,1'b0,3'd2,32'd0,PEDC_MEM_DONE);
+                end
+                PEDC_MEM_DONE: memory_start(1'b0,2'd0,16'd0,24'h0000fa,1'b1,1'b1,3'd2,
+                                            {16'h0,memory_result[15:0]},PEDC_DONE);
+                PEDC_IO_DONE: memory_start(1'b0,2'd0,16'd0,pedc_base+{8'd0,pedc_offset[15:0]},
+                                           1'b1,1'b0,3'd2,{16'h0,memory_result[15:0]},PEDC_DONE);
+                PEDC_DONE: begin
+                    pedc_offset<=pedc_offset+17'd2;
+                    state<=pedc_resume;
                 end
                 SYSTEM_DESC_MORE: begin
                     system_selector_descriptor[47:0]<=memory_result[47:0];
@@ -2527,7 +2612,10 @@ module intel_80286 #(
                         retire_o <= 1; retire_pc_o <= instruction_pc; retire_opcode_o <= opcode; state <= BOUNDARY;
                     end
                 end
-                WAIT_BUSY: if (!escape_op && async_valid) begin
+                WAIT_BUSY: if (pedc_service && !inta_req_o) begin
+                    // The extension waits on its operand while BUSY is held.
+                    pedc_resume<=WAIT_BUSY; state<=PEDC_START;
+                end else if (!escape_op && async_valid) begin
                     // Intel's 1983 iAPX 286/10 handbook says a pending
                     // interrupt may be accepted while WAIT is stalled on BUSY.
                     // ASSUMPTION: A25. Save the already advanced IP (the
@@ -2544,11 +2632,11 @@ module intel_80286 #(
                         // PREPARE entered WAIT_BUSY without EXECUTE's normal
                         // prefix cleanup, so clear it before the next fetch.
                         prefix_active<=0;
-                        if (modrm[7:6]==2'b11 || !msw[0])
-                            start_escape_command();
-                        else begin
-                            state<=STOPPED; fault_code_o<=3; ip<=instruction_ip;
-                        end
+                        if (rm_memory && msw[0] && !esc_operand_ok) begin
+                            enter_event(rm_role==2'd2 ? 8'd12 : 8'd13,instruction_ip,
+                                        1'b0,1'b1,1'b1,16'd0);
+                            state<=EVENT_START; retire_o<=0;
+                        end else start_escape_command();
                     end else begin
                         state<=BOUNDARY; retire_o<=1;
                         retire_pc_o<=instruction_pc; retire_opcode_o<=opcode;

@@ -154,6 +154,13 @@ NMI exit condition "IDT limit at least 000FH and SP greater than 0005H" is
 treated as a consequence of these rules, so an NMI with even SP below 6 is
 delivered. Validate both against independent 286 evidence before sign-off.
 
+ASSUMPTION A32: processor-extension operand requests (PEREQ) are served at
+instruction boundaries, during HLT and while WAIT/ESC wait on BUSY. A
+protected-mode memory ESC checks only its first operand word before the
+command phase. ASSUMPTION A33: interrupt 9 saves the boundary at which the
+overrun is detected. See the
+[processor-extension channel spec](processor_extension_channel.md).
+
 ASSUMPTION A31: an invalid outer-level return SS raises #SS(selector) per
 Table 7-4, although Appendix B lists #GP/#NP. See
 [the privilege-transition spec](protected_privilege_transition.md).
