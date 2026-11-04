@@ -2700,7 +2700,11 @@ module intel_80286 #(
                             ds <= memory_result[15:0]; ds_base<={4'h0,memory_result[15:0],4'h0}; cache_valid[3]<=1;
                         end
                         else if (opcode == 8'h9d) begin
-                            flags <= (flags & 16'h4000) |
+                            // App. B POPF pops the entire flag word; only IOPL
+                            // (CPL 0) and IF (CPL<=IOPL) are privileged, so
+                            // protected POPF loads NT at any CPL. Real mode
+                            // keeps NT/IOPL clear (286 real-mode FLAGS).
+                            flags <= (msw[0] ? (memory_result[15:0] & 16'h4000) : (flags & 16'h4000)) |
                                 ((msw[0] && cs[1:0]==0) ? (memory_result[15:0] & 16'h3000) :
                                                           (flags & 16'h3000)) |
                                 (memory_result[15:0] & 16'h0dd5) |
@@ -2897,7 +2901,9 @@ module intel_80286 #(
                             if (iret_es_invalid) begin es<=0; cache_valid[0]<=0; end
                             if (iret_ds_invalid) begin ds<=0; cache_valid[3]<=0; end
                         end else gpr[4]<=iret_saved_sp;
-                        flags<=(flags&16'h4000) |
+                        // Protected IRET loads NT from the frame (App. B: load flags
+                        // with the third word on the stack).
+                        flags<=(msw[0] ? (iret_saved_flags&16'h4000) : (flags&16'h4000)) |
                                ((msw[0] && cs[1:0]==0) ? (iret_saved_flags&16'h3000) :
                                                          (flags&16'h3000)) |
                                (iret_saved_flags&16'h0dd5) |
@@ -3282,9 +3288,13 @@ module intel_80286 #(
                         tr_selector[15:3]==0 || tr_limit<16'h002b ||
                         ({1'b0,{tr_selector[15:3],3'b000}}+17'd7)>
                             {1'b0,gdt_limit}) begin
-                        task_switch_active<=0; task_return_active<=0;
-                        state<=STOPPED; fault_code_o<=3; ip<=instruction_ip;
-                        retire_o<=0;
+                        // Intel 210498-005 App. B SWITCH_TASKS: an invalid
+                        // current TSS cache raises #TS with the new TSS
+                        // (back-link) selector as the error code.
+                        task_return_fault(8'd10,memory_result[15:0]&16'hfffc);
+                        event_delivery_active<=0; task_switch_active<=0;
+                        task_switch_from_event<=0; task_return_active<=0;
+                        state<=EVENT_START; retire_o<=0;
                     end else begin
                         event_task_selector<=memory_result[15:0];
                         event_task_descriptor_address<=gdt_base+
@@ -3376,9 +3386,13 @@ module intel_80286 #(
                 end
                 TASK_RETURN_CURRENT_CHECK: begin
                     if (task_current_access[4:0]!=5'b00011 || !task_current_access[7]) begin
-                        task_switch_active<=0; task_return_active<=0;
-                        state<=STOPPED; fault_code_o<=3; ip<=instruction_ip;
-                        retire_o<=0;
+                        // The current TSS descriptor is no longer a present
+                        // busy TSS: #TS(new TSS), as for an invalid current
+                        // TSS cache (App. B SWITCH_TASKS).
+                        task_return_fault(8'd10,event_task_selector&16'hfffc);
+                        event_delivery_active<=0; task_switch_active<=0;
+                        task_switch_from_event<=0; task_return_active<=0;
+                        state<=EVENT_START; retire_o<=0;
                     end else begin
                         task_save_index<=0; state<=TASK_SWITCH_SAVE; retire_o<=0;
                     end
@@ -3600,8 +3614,10 @@ module intel_80286 #(
                     ip<=event_pointer[15:0]; cs<=event_target_selector; cs_base<=event_target_base;
                     cache_limits[31:16]<=event_target_limit; cache_access[15:8]<=event_target_access;
                     cache_valid[1]<=1; cs_trusted<=1;
+                    // Intel 210498-005 9.x: an interrupt or trap gate clears TF and
+                    // NT (after the old FLAGS are pushed); an interrupt gate also IF.
                     flags<=event_packet.saved_flags&
-                        (event_gate[43:40]==4'h6 ? 16'hfcff : 16'hfeff);
+                        (event_gate[43:40]==4'h6 ? 16'hbcff : 16'hbeff);
                     gpr[4]<=pending_sp;
                     if (event_stack_active) begin
                         ss<=event_new_ss_selector; ss_base<=event_new_ss_base;

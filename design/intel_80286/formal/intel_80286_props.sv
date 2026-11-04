@@ -333,6 +333,7 @@
                 end
             end
             if (rst_n && $past(rst_n) && state==STOPPED) begin
+                assert(!$past(state==MEMORY_CHECK));
                 assert(!$past(state==CODE_LOAD_WAIT));
                 assert(!$past(state==SEGMENT_LOAD_WAIT));
                 assert(!$past(state==FAR_RETURN_DONE));
@@ -1350,10 +1351,10 @@
                     assert(!(flags[8]));
                     if ($past(event_gate[43:40]==4'h6)) begin
                         assert(!(flags[9]));
-                        assert(flags==(event_packet.saved_flags&16'hfcff));
+                        assert(flags==(event_packet.saved_flags&16'hbcff));
                     end else begin
                         assert(flags[9]==event_packet.saved_flags[9]);
-                        assert(flags==(event_packet.saved_flags&16'hfeff));
+                        assert(flags==(event_packet.saved_flags&16'hbeff));
                     end
                     if ($past(event_stack_active)) begin
                         assert(ss==$past(event_new_ss_selector) &&
@@ -1368,7 +1369,7 @@
                 assert(ip==$past(iret_saved_ip) &&
                        gpr[4]==($past(iret_outer_active) ? $past(iret_outer_sp) :
                                                            $past(iret_saved_sp)));
-                assert(flags==(($past(flags)&16'h4000) |
+                assert(flags==(($past(msw[0]) ? ($past(iret_saved_flags)&16'h4000) : ($past(flags)&16'h4000)) |
                     ($past(msw[0] && cs[1:0]==0) ? ($past(iret_saved_flags)&16'h3000) :
                                                     ($past(flags)&16'h3000)) |
                     ($past(iret_saved_flags)&16'h0dd5) |

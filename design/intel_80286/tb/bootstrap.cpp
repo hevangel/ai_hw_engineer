@@ -3526,6 +3526,82 @@ static void protected_call_gate_same_level() {
 // GATE): the gate offset is used, the target must be nonconforming with
 // DPL=CPL or conforming with DPL<=CPL, CS RPL becomes CPL, and no stack or
 // link frame changes. A more-privileged nonconforming target is #GP(CS).
+// NT flag contracts (Intel 210498-005): POPF pops the whole flag word (App. B
+// POPF); an interrupt or trap gate clears NT after pushing the old flags and
+// IRET reloads it from the frame (chapter 8/9 text and App. B IRET); IRET with
+// NT and an invalid current TSS raises #TS(back link) (App. B SWITCH_TASKS).
+static void protected_nt_flag_contracts() {
+    using namespace protected_mode_fixture;
+    unsigned runs=0;
+    for (bool wait:{false,true}) {
+        const uint8_t program[]={
+            0xb8,0x28,0x00, 0x8e,0xd0,  // 0200 MOV SS,0028
+            0xbc,0x80,0x00,             // 0205 MOV SP,0080
+            0xb8,0x02,0x40,             // 0208 MOV AX,4002 (NT=1)
+            0x50, 0x9d,                 // 020B PUSH AX / POPF
+            0xcd,0x20,                  // 020D INT 20h (interrupt gate)
+            0xf4                        // 020F HLT
+        };
+        Bench b;
+        place_selector_fixture(b,program,sizeof(program));
+        b.memory[0x46]=0xff; b.memory[0x47]=0x07;
+        b.put(kIdtBase+0x20*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+        b.put(kHandlerBase+kHandlerIp,{0xcf});              // IRET
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+        b.step(kCodeBase+0x020b,0x50,kCodeSelector,0x020c,wait);
+        b.step(kCodeBase+0x020c,0x9d,kCodeSelector,0x020d,wait);
+        check(b.d.flags_o==0x4002,"protected POPF did not load NT");
+        b.step(kCodeBase+0x020d,0xcd,kHandlerSelector,kHandlerIp,wait);
+        check(!(b.d.flags_o&0x4000),"interrupt gate did not clear NT");
+        const uint32_t frame=kStackBase+b.reg(4);
+        check(b.memory[frame+4]==0x02 && b.memory[frame+5]==0x40,
+              "interrupt gate did not push the old NT");
+        b.step(kHandlerBase+kHandlerIp,0xcf,kCodeSelector,0x020f,wait);
+        check(b.d.flags_o==0x4002 && b.reg(4)==0x0080,
+              "IRET did not reload NT from its frame");
+        b.step(kCodeBase+0x020f,0xf4,kCodeSelector,0x0210,wait);
+        ++runs;
+
+        const uint8_t nested[]={
+            0xb8,0x28,0x00, 0x8e,0xd0,  // 0200 MOV SS,0028
+            0xbc,0x80,0x00,             // 0205 MOV SP,0080
+            0xb8,0x02,0x40,             // 0208 MOV AX,4002 (NT=1)
+            0x50, 0x9d,                 // 020B PUSH AX / POPF
+            0xcf, 0xf4                  // 020D IRET with no TR loaded
+        };
+        Bench t;
+        place_selector_fixture(t,nested,sizeof(nested));
+        t.memory[0x46]=0xff; t.memory[0x47]=0x07;
+        t.memory[0x40]=0x77; t.memory[0x41]=0x00;
+        t.put(kIdtBase+10*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+        t.put(kHandlerBase+kHandlerIp,{0xf4});
+        t.put(0x000000,{0x58,0x00});      // back link read through the null TR cache
+        protected_mode_boot(t,wait);
+        t.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        t.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        t.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        t.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+        t.step(kCodeBase+0x020b,0x50,kCodeSelector,0x020c,wait);
+        t.step(kCodeBase+0x020c,0x9d,kCodeSelector,0x020d,wait);
+        bool entered=false;
+        for (unsigned n=0;n<60000 && !t.d.fault_o;++n) {
+            t.tick(wait);
+            if (t.d.event_o && t.cs()==kHandlerSelector && t.d.ip_o==kHandlerIp) { entered=true; break; }
+        }
+        check(entered && !t.d.fault_o && t.d.event_vector_o==10 &&
+              t.d.event_packet_error_code_o==0x0058 &&
+              t.d.event_packet_saved_ip_o==0x020d,
+              "NT IRET with an invalid current TSS did not raise #TS(back link)");
+        ++runs;
+    }
+    check(runs==4,"NT contracts missed a READY mode");
+    std::cout<<"PASS: protected POPF loads NT, gates clear it, IRET restores it, and NT IRET without a valid TSS raises #TS(back link) in both READY modes\n";
+}
+
 static void protected_call_gate_jump() {
     using namespace protected_mode_fixture;
     const uint8_t ring0_program[]={
@@ -14247,7 +14323,7 @@ int main(int argc, char** argv) {
     Verilated::commandArgs(argc,argv);
     try {
         if (argc==3 && std::string(argv[1])=="--hardware") hardware_vectors(argv[2]);
-        else if (argc==2 && std::string(argv[1])=="--ud") undefined_opcode_contracts(); else if (argc==2 && std::string(argv[1])=="--loadall") loadall_contract();
+        else if (argc==2 && std::string(argv[1])=="--ud") undefined_opcode_contracts(); else if (argc==2 && std::string(argv[1])=="--loadall") loadall_contract(); else if (argc==2 && std::string(argv[1])=="--nt") protected_nt_flag_contracts();
         else if (argc==2 && std::string(argv[1])=="--protection") protection_fault_contracts();
         else if (argc==2 && std::string(argv[1])=="--references") reference_routing_contracts();
         else if (argc==2 && std::string(argv[1])=="--caches") cache_state_contracts();
@@ -14317,7 +14393,7 @@ int main(int argc, char** argv) {
         else if (argc==3 && std::string(argv[1])=="--bios-decimal") vectors(argv[2],false,true);
         else if (argc==2 && std::string(argv[1])=="--processor-extension") processor_extension_contract();
         else {
-            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); loadall_contract(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); stack_wrap_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); processor_extension_data_channel(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_delivery_faults(); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_jump(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix();
+            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); loadall_contract(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); stack_wrap_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); processor_extension_data_channel(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_delivery_faults(); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_jump(); protected_nt_flag_contracts(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix();
             std::cout << "PASS: 80286 bootstrap reset, register aliases, flags, exact branches, stalls and diagnostic boundaries\n";
         }
     } catch (const std::exception& error) {
