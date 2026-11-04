@@ -29,9 +29,13 @@ and the ZEXALL/ZEXDOC exercisers, and a native M-cycle engine whose cycle
 shapes and T-state counts are checked against the manufacturer timing tables.
 The native engine is what the dependent TRS-80 Model I system will use.
 
-**Status: specification and plans only.** No RTL exists yet, nothing has been
-simulated, proved or synthesized, and this folder currently makes no
-implementation claim. The design index entry reflects that.
+**Status: byte ALU implemented and verified; instruction sequencer not started.**
+`src/zilog_z80_alu.sv` and `src/zilog_z80_pkg.sv` exist and the ALU matches the
+independent superzazu/z80 emulator over 648,328 cases with 0 mismatches
+(`scripts/run_alu.sh`; the `--negative-control` run rejects all cases after a
+one-bit expectation flip). There is no instruction sequencer, no top-level bus
+interface, no formal property and no synthesis result, so nothing here claims a
+working CPU. Details and open gates are in the report.
 
 - [Specification and assumption ledger](spec/spec.md)
 - [Implementation plan](plans/implementation_plan.md)

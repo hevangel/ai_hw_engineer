@@ -38,13 +38,32 @@
 - [superzazu/z80](https://github.com/superzazu/z80): complete Z80 emulator in
   C99 under the MIT license, single `z80.c`/`z80.h`, README states it passes
   both zexdoc and zexall. Same author as the `superzazu/8080` oracle already
-  vendored for `amd_am9080`/`intel_8080`. Vendor unmodified at a pinned commit
-  under `references/superzazu_z80/`, keep its license beside it, and record the
-  SHA-256 of the two source files before first use. The `roms/` directory of
-  that project is excluded: those images carry their own licenses.
+  vendored for `amd_am9080`/`intel_8080`. Vendored unmodified at
+  [commit d64fe10a2274e5e40019b1086bf7d8990cbc5f23](superzazu_z80/)
+  with `roms/` and `.github/` excluded (those images carry their own licenses)
+  and the nested `.git` removed. The harness refuses a modified oracle:
+  `z80.c` SHA-256
+  `6b4078da6ed97d730df2365257cac3def0be81c00f1f11811eebab48fab3fef7`,
+  `z80.h` SHA-256
+  `7711ddf25f61a36c2e734d9c953a1e017856f62556d1c653fd8bfb1af823544c`,
+  `LICENSE` SHA-256
+  `627d0b34fc43573657e51b060088b7971f227b37eeac16ef5d701e3d9a19daa5`.
+- The oracle exposes `mem_ptr` (WZ), `r`, `i`, `iff1`/`iff2` and the separate
+  `yf`/`xf` bits, which is why the differential comparison can cover the
+  undocumented flag sources rather than only the visible F byte.
 - Limitation to record: this oracle counts cycles at instruction granularity,
   so it cannot verify M-cycle shapes or T-state counts. The native engine's
   timing oracle is the extracted UM0080 timing table, checked by pin traces.
+
+### Oracle use so far
+
+`scripts/run_alu.sh` builds a Verilator model of `zilog_z80_alu`, links the
+unmodified oracle, and compares 648,328 cases (edge grid plus reproducible
+random operand pairs, carry-in and flag-state variants) for result and full
+flag byte: **0 mismatches**. `--negative-control` perturbs every expectation by
+one flag bit and reports that all 648,328 cases are rejected, which shows the
+comparison can actually detect drift. The result is recorded in
+[the report](../report/final_report.md).
 
 ## Exercisers
 

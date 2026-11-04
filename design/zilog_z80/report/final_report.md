@@ -2,14 +2,17 @@
 
 ## 1. Executive summary
 
-**Milestone: specification.** This folder currently contains the source-backed
-specification, the implementation, test and formal plans, and the source and
-oracle provenance record. There is no RTL, testbench, formal property or
-synthesis result yet. Nothing in this design has been simulated, proved,
-synthesized or run against an oracle, and no implementation claim is made.
+**Milestone 2: byte ALU implemented and differentially verified.** The folder
+contains the source-backed specification, the implementation, test and formal
+plans, the source and oracle provenance record, the vendored pinned oracle, and
+the first RTL unit: `src/zilog_z80_alu.sv` with `src/zilog_z80_pkg.sv`.
 
-The design index therefore describes this entry as being in its specification
-phase, matching the repository rule that scaffolding is not implementation.
+The ALU matches the independent superzazu/z80 emulator over 648,328 cases with
+0 mismatches, and the harness' negative control rejects all 648,328 cases after
+a one-bit expectation flip. The instruction sequencer, top-level bus interface,
+testbench for whole instructions, formal properties and synthesis are **not yet
+implemented**; no whole-instruction, exerciser, software or synthesis claim is
+made.
 
 ## 2. Design overview
 
@@ -24,18 +27,16 @@ phase, matching the repository rule that scaffolding is not implementation.
 
 ## 3. Verification status
 
-No verification tool has been run. This is not a pass; it is the absence of any
-artifact to check.
-
 | Gate | Status | Reason |
 |---|---|---|
-| Verilator lint | Not run | no RTL exists |
+| ALU differential vs pinned oracle | **PASS**, 648,328 cases, 0 mismatches | `scripts/run_alu.sh`, Verilator 5.052 in the project tool image |
+| ALU negative control | **PASS**, 648,328/648,328 rejected | `run_alu.sh --negative-control` |
+| Verilator lint (whole core) | Not run | core top does not exist yet |
 | Formal (bmc/prove/cover) | Not run | no properties or `.sby` exist |
-| Simulation / UVM | Not run | no testbench exists |
-| Oracle differential | Not run | oracle not yet vendored |
+| Instruction simulation / UVM | Not run | no instruction-level testbench exists |
 | ZEXDOC / ZEXALL / z80test | Not run | exercisers not yet obtained |
-| Historical software | Not run | no RTL, no CP/M harness yet |
-| Synthesis | Not run | no RTL exists |
+| Historical software | Not run | no CP/M harness yet |
+| Synthesis | Not run | no synthesizable top yet |
 | Native timing comparison | Not run | native engine not started |
 
 The `scripts/` directory holds the repository's scaffolded entry points
@@ -47,8 +48,10 @@ simulation when no sources exist and have not been exercised by this design.
 
 | Item | Impact | Status |
 |---|---|---|
-| Undocumented F3/F5 table not yet extracted | RTL flag contract undefined | Phase-0 task |
-| Oracle not vendored | no independent check yet | Phase-0 task |
+| Instruction sequencer and bus top absent | only the ALU is verified end to end | next milestone |
+| DAA verified in context only | standalone DAA after an arbitrary F byte is undefined hardware behavior (internal carry/half-carry latches); the harness drives a real ADD/SUB first | documented limitation |
+| Undocumented F3/F5 table not yet extracted for the whole ISA | per-opcode contract for the sequencer | phase-0 task |
+| ZEXALL/ZEXDOC/z80test not yet obtained | no exerciser gate | phase-0 task |
 | `OUT (C),0` data byte (NMOS 0xFF vs CMOS 0x00) | pin-level data value | open assumption, ledger row |
 | R increment on interrupt acknowledge | refresh counter value | open assumption, ledger row |
 | NMOS minimum clock frequency | sub-minimum-clock behavior | open, native engine boundary |
@@ -58,11 +61,12 @@ simulation when no sources exist and have not been exercised by this design.
 
 - [ ] Source-backed specification and assumption ledger — **specification
       written**; assumption rows still open
-- [ ] Implementation plan and synthesizable SystemVerilog — plan written; RTL
-      absent
-- [ ] Independent oracle and real historical software — plan and provenance
-      recorded; nothing obtained or run
-- [ ] Lint, simulation, formal with reachable covers, synthesis — none run
+- [ ] Implementation plan and synthesizable SystemVerilog — plan written; ALU
+      implemented and verified, sequencer and top absent
+- [ ] Independent oracle and real historical software — oracle vendored and in
+      use for the ALU; exercisers and software not yet run
+- [ ] Lint, simulation, formal with reachable covers, synthesis — none run for
+      the core
 - [ ] Native timing, analog approximations and physical validation qualified —
       boundaries stated, nothing measured
 
@@ -70,10 +74,10 @@ simulation when no sources exist and have not been exercised by this design.
 
 | Criterion | Status |
 |---|---|
-| RTL frozen | no RTL |
+| RTL frozen | no; ALU only |
 | Formal clean | not run |
 | Simulation coverage met | not run |
-| Lint clean | not run |
+| Lint clean | not run for the core |
 | Synthesis clean | not run |
 
 This report is replaced as milestones land; each entry will cite the exact
