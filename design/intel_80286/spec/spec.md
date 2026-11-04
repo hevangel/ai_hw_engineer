@@ -154,6 +154,16 @@ NMI exit condition "IDT limit at least 000FH and SP greater than 0005H" is
 treated as a consequence of these rules, so an NMI with even SP below 6 is
 delivered. Validate both against independent 286 evidence before sign-off.
 
+ASSUMPTION A36: string behavior that Intel does not state is taken from the
+pinned physical Harris-286 string captures (A4-A7, AA-AF; 50,000 records,
+`scripts/prepare_string_hardware.py`). F2h before MOVS, STOS or LODS acts as
+REP, and REP LODS repeats. A repeat prefix before a non-string opcode has no
+capture and stays a stop. At a word access to offset FFFFh, #13 leaves the
+pointers and CX advanced for the accesses reached; the table is in
+[the failure note](../../failure_notes/2026-11-04-intel80286-string-fault-state-and-rep-forms.md).
+Protected-mode MOVS, CMPS and STOS limit faults keep the restartability memo
+values, which differ from these captures for CMPS.
+
 ASSUMPTION A35: the same Intel note lists the only exclusions from "any
 undefined opcode causes exception 6". F1h is a prefix with no function that
 counts toward the ten-byte limit. 0F 04h and 0F 05h raise exception 13 with

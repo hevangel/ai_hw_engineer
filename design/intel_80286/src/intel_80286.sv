@@ -1093,7 +1093,10 @@ module intel_80286 #(
             8'hd6: opcode_valid = 1;
             default: begin end
         endcase
-        if (repeat_valid && (!string_op || (repeat_ne && !string_compare) || opcode==8'hac || opcode==8'had))
+        // ASSUMPTION A36: physical Harris-286 captures repeat LODS under F2/F3
+        // and treat F2 before a non-compare string as REP. A repeat prefix on
+        // a non-string opcode has no captured evidence and stays a stop.
+        if (repeat_valid && !string_op)
             opcode_valid=0;
         modrm_valid = 1;
         if ((opcode == 8'h8d || opcode == 8'hc4 || opcode == 8'hc5 || opcode == 8'h62) && modrm[7:6] == 3) modrm_valid = 0;
@@ -3627,6 +3630,32 @@ module intel_80286 #(
                         !(msw[0] && (opcode==8'ha4 || opcode==8'ha5 || opcode==8'haa ||
                                      opcode==8'hab || opcode==8'h6e || opcode==8'h6f ||
                                      opcode==8'ha6 || opcode==8'ha7))) begin
+                        // ASSUMPTION A36: register state at a word-FFFF #13 is
+                        // taken from physical Harris-286 captures (A5/A7/AB/AD/AF):
+                        // MOVS/CMPS advance the pointers they reached (CMPS reads
+                        // ES:DI first), and REP CX drops by 1 for a source, LODS,
+                        // SCAS or CMPS-second fault and by 2 for a MOVS/STOS
+                        // destination fault. CMPS first-read faults leave CX.
+                        if (opcode==8'ha5) begin
+                            gpr[6]<=gpr[6]+string_delta;
+                            if (gpr[6]!=16'hffff) gpr[7]<=gpr[7]+string_delta;
+                            if (repeat_valid) gpr[1]<=gpr[1]-(gpr[6]==16'hffff ? 16'd1 : 16'd2);
+                        end else if (opcode==8'ha7) begin
+                            gpr[7]<=gpr[7]+string_delta;
+                            if (gpr[7]!=16'hffff) begin
+                                gpr[6]<=gpr[6]+string_delta;
+                                if (repeat_valid) gpr[1]<=gpr[1]-16'd1;
+                            end
+                        end else if (opcode==8'hab) begin
+                            gpr[7]<=gpr[7]+string_delta;
+                            if (repeat_valid) gpr[1]<=gpr[1]-16'd2;
+                        end else if (opcode==8'had) begin
+                            gpr[6]<=gpr[6]+string_delta;
+                            if (repeat_valid) gpr[1]<=gpr[1]-16'd1;
+                        end else if (opcode==8'haf) begin
+                            gpr[7]<=gpr[7]+string_delta;
+                            if (repeat_valid) gpr[1]<=gpr[1]-16'd1;
+                        end
                         enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0); state<=EVENT_START;
                     end
                     else if (opcode==8'haa || opcode==8'hab)

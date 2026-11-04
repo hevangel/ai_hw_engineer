@@ -230,10 +230,11 @@ struct Bench {
         check(retired == before && !d.bus_req_o, "diagnostic stop persistence");
     }
     void processor_fault(unsigned vector, uint16_t saved_ip, bool wait=true,
-                         uint32_t vector_base=0, unsigned accepted_acks=0) {
+                         uint32_t vector_base=0, unsigned accepted_acks=0,
+                         const uint16_t* expected_regs=nullptr) {
         const auto saved_flags=uint16_t(d.flags_o),saved_cs=cs(),saved_sp=reg(4);
         uint16_t saved_regs[8];
-        for (unsigned r=0;r<8;++r) saved_regs[r]=reg(r);
+        for (unsigned r=0;r<8;++r) saved_regs[r]=expected_regs ? expected_regs[r] : reg(r);
         const auto saved_segments=uint64_t(d.segs_o);
         const auto before=retired,acks=acknowledgements;
         const auto stack=cache_base(2);
@@ -676,7 +677,12 @@ static void string_contracts() {
     }
     check(elements==1 && partial.reg(1)==1 && partial.reg(6)==0xffff && partial.reg(7)==0x2002,"REP lost completed-element progress");
     check(partial.data_transfers.size()==4 && partial.memory[0x2000]==0x34 && partial.memory[0x2001]==0x12 && partial.memory[0x2002]==0xcc,"REP limit accessed an incomplete element");
-    partial.processor_fault(13,0x109);
+    // A36: physical captures (A5.MOO) leave SI advanced and REP CX reduced by
+    // one when the MOVSW source word at FFFF raises #13; DI is unchanged.
+    uint16_t source_fault_regs[8];
+    for (unsigned r=0;r<8;++r) source_fault_regs[r]=partial.reg(r);
+    source_fault_regs[1]=0; source_fault_regs[6]=0x0001;
+    partial.processor_fault(13,0x109,true,0,0,source_fault_regs);
     for(unsigned cut=0;cut<=12;++cut) {
         Bench b; b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
         b.put(0xf0100,{0xb9,3,0,0xbe,0,0x10,0xbf,0,0x20,0xf3,0xa5,0x43,0xf4});

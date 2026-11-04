@@ -7,8 +7,12 @@ static void hardware_vectors(const char* path) {
     unsigned cases=0,runs=0;
     try {
         while (input>>token) {
-            const bool fault_case=token=="HWFAULT";
-            check(token=="HWCASE" || fault_case,"malformed physical case marker");
+            // HWSTRING/HWSTRFAULT: MOVS/CMPS/STOS/LODS/SCAS records with their
+            // captured REP/REPNE prefixes; operand traffic is expected, and a
+            // fault record may follow completed elements.
+            const bool fault_case=token=="HWFAULT" || token=="HWSTRFAULT";
+            const bool string_case=token=="HWSTRING" || token=="HWSTRFAULT";
+            check(token=="HWCASE" || fault_case || string_case,"malformed physical case marker");
             std::string code;
             unsigned opcode,mask;
             input>>label>>code>>std::hex>>opcode>>mask;
@@ -47,10 +51,12 @@ static void hardware_vectors(const char* path) {
                 opcode==0x14 || opcode==0x15 || opcode==0x1c || opcode==0x1d ||
                 opcode==0x2c || opcode==0x2d || opcode==0x3c || opcode==0x3d;
             const bool test_alias=opcode==0xf6 || opcode==0xf7;
-            check((arithmetic_immediate || (opcode>=0x40 && opcode<=0x4f) || test_alias) &&
-                  mask==(test_alias && !fault_case ? 0x7fc7u : 0x7fd7u),
+            const bool string_opcode=(opcode>=0xa4 && opcode<=0xa7) || (opcode>=0xaa && opcode<=0xaf);
+            check((string_case ? string_opcode && mask==0x7fd7u :
+                   (arithmetic_immediate || (opcode>=0x40 && opcode<=0x4f) || test_alias) &&
+                   mask==(test_alias && !fault_case ? 0x7fc7u : 0x7fd7u)),
                   "physical file needs an explicit instruction/flag contract");
-            check(!fault_case || (exception==13 && opcode==0xf7),"unsupported physical exception contract");
+            check(!fault_case || (exception==13 && (opcode==0xf7 || string_case)),"unsupported physical exception contract");
             check(!(initial[13]&0x7300),"physical initial FLAGS need unsupported state/debug setup");
             check(code.substr(code.size()-2)=="f4","physical successor is not HLT");
             const unsigned instruction_bytes=unsigned(code.size()/2)-1;
@@ -111,7 +117,7 @@ static void hardware_vectors(const char* path) {
                 const uint32_t start=uint32_t(initial[9])*16+initial[12];
                 const auto retired_before=b.retired;
                 if (fault_case) {
-                    for (unsigned n=0;n<2048 && !b.d.event_o;++n) {
+                    for (unsigned n=0;n<(string_case ? 2000000u : 2048u) && !b.d.event_o;++n) {
                         b.tick(wait);
                         check(!b.d.fault_o && b.retired==retired_before,"physical exception stopped or retired");
                     }
@@ -119,9 +125,11 @@ static void hardware_vectors(const char* path) {
                           "physical exception vector/entry");
                     check(b.cs()==final[9] && b.d.ip_o==uint16_t(final[12]-1),
                           "physical exact exception handler entry CS:IP");
-                    check(b.data_transfers.size()==10,"physical exception operand/frame transaction count");
+                    check(string_case ? b.data_transfers.size()>=10 : b.data_transfers.size()==10,
+                          "physical exception operand/frame transaction count");
+                    const std::size_t frame=b.data_transfers.size()-10;
                     for(unsigned i=0;i<10;++i) {
-                        const auto& transfer=b.data_transfers[i];
+                        const auto& transfer=b.data_transfers[frame+i];
                         const uint32_t expected=i<4 ? 4*exception+i : uint32_t(initial[10])*16+
                             uint16_t(initial[4]-2*(1+(i-4)/2))+(i&1);
                         check(transfer.address==expected && transfer.write==(i>=4) && !transfer.io,
@@ -138,8 +146,12 @@ static void hardware_vectors(const char* path) {
                 compare(final);
                 check(b.d.halted_o && b.accepted.size()==1 && b.accepted[0]==halt_pc,
                       "physical exact HLT successor");
-                check(fault_case ? b.data_transfers.size()==10 : b.data_transfers.empty(),
-                      "physical unexpected operand/I/O effects");
+                if (string_case)
+                    check(std::none_of(b.data_transfers.begin(),b.data_transfers.end(),[](const auto& t) {
+                              return t.io;
+                          }),"physical string record issued I/O");
+                else check(fault_case ? b.data_transfers.size()==10 : b.data_transfers.empty(),
+                           "physical unexpected operand/I/O effects");
                 for (const auto& byte:final_ram) check(b.memory.at(byte.first)==byte.second,
                                                        "physical final RAM mismatch");
                 ++runs;

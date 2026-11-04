@@ -1211,8 +1211,14 @@
                             ((opcode==8'ha4 || opcode==8'ha5 || opcode==8'ha6 || opcode==8'ha7) &&
                              (memory_return==STRING_FIRST || memory_return==STRING_COMMIT)) ||
                             ((opcode==8'haa || opcode==8'hab) && memory_return==STRING_COMMIT) ||
-                            ((opcode==8'h6e || opcode==8'h6f) && memory_return==STRING_FIRST))))
+                            ((opcode==8'h6e || opcode==8'h6f) && memory_return==STRING_FIRST))) &&
+                    !(state==EVENT_START && $past(state==STRING_START)))
                     assert($stable(regs_o));
+                // A36: a word-FFFF string #13 changes only CX, SI and DI.
+                if (state==EVENT_START && $past(state==STRING_START))
+                    assert(gpr[0]==$past(gpr[0]) && gpr[2]==$past(gpr[2]) &&
+                           gpr[3]==$past(gpr[3]) && gpr[4]==$past(gpr[4]) &&
+                           gpr[5]==$past(gpr[5]));
                 assert($stable(segs_o));
                 assert($stable(flags_o));
                 assert($stable(msw) && $stable(gdt_base) && $stable(gdt_limit));
