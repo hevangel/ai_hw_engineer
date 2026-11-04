@@ -16,10 +16,11 @@ module intel_80286_shift (
             1: value_o = wide_i ? {value_i[0],value_i[15:1]} : {8'h00,value_i[0],value_i[7:1]};
             2: value_o = {value_i[14:0],carry_i};
             3: value_o = wide_i ? {carry_i,value_i[15:1]} : {8'h00,carry_i,value_i[7:1]};
-            4: value_o = {value_i[14:0],1'b0};
+            // ASSUMPTION A34: /6 aliases SHL (/4); Intel's undocumented-opcode note
+            // and all physical Harris C0/C1/D0-D3 /6 register captures agree.
+            4,6: value_o = {value_i[14:0],1'b0};
             5: value_o = wide_i ? {1'b0,value_i[15:1]} : {8'h00,1'b0,value_i[7:1]};
             7: value_o = wide_i ? {msb,value_i[15:1]} : {8'h00,msb,value_i[7:1]};
-            default: begin end // /6 is rejected by decode.
         endcase
         if (!wide_i) value_o[15:8] = 0;
         if (!operation_i[0]) overflow_o = (wide_i ? value_o[15] : value_o[7]) ^ carry_o;

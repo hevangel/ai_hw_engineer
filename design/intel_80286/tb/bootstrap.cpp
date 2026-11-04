@@ -387,16 +387,43 @@ static void rejection_and_reset() {
         b.put(0xf0100,{0xb8,0x34,0x12,0xf9,opcode,modrm});
         b.reset(); b.step(0xfffff0,0xea,0xf000,0x100);
         b.step(0xf0100,0xb8,0xf000,0x103); b.step(0xf0103,0xf9,0xf000,0x104);
-        const bool undocumented_shift=(opcode==0xc0 || opcode==0xc1 || (opcode>=0xd0 && opcode<=0xd3));
-        if (undocumented_shift) b.stop(1,0x104);
-        else b.ud_fault(0x104);
+        b.ud_fault(0x104);
         check(b.reg(0)==0x1234 && b.d.flags_o==3,"rejected encoding changed input state");
         for (unsigned r=1;r<8;++r) if(r!=4) check(b.reg(r)==0,"rejected encoding changed other register");
         check(b.accepted.size()==11,"rejected encoding fetched an operand");
         ++rejected;
     };
-    for (auto op : {0xc0,0xc1,0xd0,0xd1,0xd2,0xd3})
-        for (unsigned r=0;r<8;++r) reject(uint8_t(op),uint8_t(0xf0|r)); // undocumented /6
+    // Undocumented aliases (A34): shift /6 is SHL, 82h is 80h, D6h sets AL
+    // from CF. Expected values come from the physical Harris captures'
+    // behavior summarized in scripts/analyze_alias_captures.py.
+    unsigned aliases=0;
+    for (bool wait:{false,true}) {
+        struct Alias { std::vector<uint8_t> code; uint16_t ax; uint16_t flags; };
+        // AX=8421, CF=1 from STC before each case.
+        const Alias cases[]={
+            {{0xd0,0xf0},0x8442,0x0006},        // SHL AL,1 alias: 21->42, CF=0, PF=1
+            {{0xd1,0xf0},0x0842,0x0807},        // SHL AX,1: 8421->0842, CF=1 OF=1
+            {{0xc0,0xf0,0x04},0x8410,0x0002},   // SHL AL,4: 21->10, CF=0
+            {{0x82,0xc0,0x10},0x8431,0x0002},   // ADD AL,10 via 82
+            {{0x82,0xf8,0x21},0x8421,0x0046},   // CMP AL,21 via 82: ZF
+            {{0xd6},0x84ff,0x0003},             // SALC with CF=1
+        };
+        for (const auto& a:cases) {
+            Bench b;
+            std::vector<uint8_t> program={0xb8,0x21,0x84,0xf9};
+            program.insert(program.end(),a.code.begin(),a.code.end());
+            program.push_back(0xf4);
+            b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+            for (std::size_t i=0;i<program.size();++i) b.memory[0xf0100+uint32_t(i)]=program[i];
+            b.reset(); b.step(0xfffff0,0xea,0xf000,0x100,wait);
+            b.step(0xf0100,0xb8,0xf000,0x103,wait); b.step(0xf0103,0xf9,0xf000,0x104,wait);
+            b.step(0xf0104,a.code[0],0xf000,uint16_t(0x104+a.code.size()),wait);
+            if (!(b.reg(0)==a.ax && (b.d.flags_o&0x08d5)==(a.flags&0x08d5)))
+                throw std::runtime_error("undocumented alias result: opcode "+std::to_string(a.code[0])+
+                    " AX="+std::to_string(b.reg(0))+" FLAGS="+std::to_string(b.d.flags_o));
+            ++aliases;
+        }
+    }
     for (auto op : {0xfe,0xff,0xf6,0xf7})
         for (unsigned extension=0;extension<8;++extension) {
             const bool supported = op==0xff ? extension<=2 || extension==4 || extension==6 :
@@ -430,7 +457,7 @@ static void rejection_and_reset() {
     limit.put(0xffffd,{0x81,0xc0}); limit.reset();
     limit.step(0xfffff0,0xea,0xf000,0xfffd); limit.processor_fault(13,0xfffd);
     check(limit.accepted.size()==7,"ModR/M immediate crossed segment boundary");
-    std::cout<<"PASS: "<<rejected<<" rejected ModR/M encodings, 100 reset cut points and immediate limit\n";
+    std::cout<<"PASS: "<<rejected<<" rejected ModR/M encodings, "<<aliases<<" undocumented alias executions (shift /6, 82h, D6h), 100 reset cut points and immediate limit\n";
 }
 
 static void intel_shift_carry() {

@@ -154,6 +154,14 @@ NMI exit condition "IDT limit at least 000FH and SP greater than 0005H" is
 treated as a consequence of these rules, so an NMI with even SP below 6 is
 delivered. Validate both against independent 286 evidence before sign-off.
 
+ASSUMPTION A34: undocumented opcodes follow Intel's "Undocumented iAPX 286
+Test Instruction" note (pp. 13-14, [PCjs copy](https://www.pcjs.org/documents/manuals/intel/80286/exceptions/)):
+shift `/6` is SHL, 82h is 80h, and D6h sets AL to FFh if CF=1 else 00h without
+changing flags. All non-revoked physical Harris register captures agree:
+1,248-1,249 per C0/C1/D0-D3 `/6` file, 1,255-1,256 per 82h `/n` file and 1,000
+D6h records (`scripts/analyze_alias_captures.py`). Memory forms are not yet
+replayed against captures.
+
 ASSUMPTION A32: processor-extension operand requests (PEREQ) are served at
 instruction boundaries, during HLT and while WAIT/ESC wait on BUSY. A
 protected-mode memory ESC checks only its first operand word before the

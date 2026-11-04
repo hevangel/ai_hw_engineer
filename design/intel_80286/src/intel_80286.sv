@@ -1027,7 +1027,9 @@ module intel_80286 #(
         binary_rm = opcode <= 8'h3b && opcode[2:0] <= 3;
         arpl_op = opcode == 8'h63;
         binary_acc = opcode <= 8'h3d && (opcode[2:0] == 4 || opcode[2:0] == 5);
-        group_alu = opcode == 8'h80 || opcode == 8'h81 || opcode == 8'h83;
+        // ASSUMPTION A34: 82h aliases 80h (Intel 'Undocumented iAPX 286 Test
+        // Instruction' pp. 13-14; matches 10,045 physical Harris register captures).
+        group_alu = opcode == 8'h80 || opcode == 8'h81 || opcode == 8'h82 || opcode == 8'h83;
         test_op = opcode == 8'h84 || opcode == 8'h85 || opcode == 8'ha8 || opcode == 8'ha9 ||
                   // ASSUMPTION: A15. Physical Harris-286 F6/F7 /1 captures
                   // establish a TEST alias despite Intel Appendix B's #UD example.
@@ -1087,7 +1089,8 @@ module intel_80286 #(
                                  system_opcode==8'h02 || system_opcode==8'h03 ||
                                  system_opcode==8'h06;
             8'hea,8'he9,8'heb,8'hf4,8'hf5,8'hf8,8'hf9,8'hfa,8'hfb,8'hfc,8'hfd,
-            8'h60,8'h61,8'h9a,8'h9b,8'hca,8'hcb,8'hcc,8'hcd,8'hce,8'hcf,8'hc8,8'hc9,8'hd7: opcode_valid = 1;
+            8'h60,8'h61,8'h9a,8'h9b,8'hca,8'hcb,8'hcc,8'hcd,8'hce,8'hcf,8'hc8,8'hc9,8'hd7,
+            8'hd6: opcode_valid = 1;
             default: begin end
         endcase
         if (repeat_valid && (!string_op || (repeat_ne && !string_compare) || opcode==8'hac || opcode==8'had))
@@ -1095,7 +1098,6 @@ module intel_80286 #(
         modrm_valid = 1;
         if ((opcode == 8'h8d || opcode == 8'hc4 || opcode == 8'hc5 || opcode == 8'h62) && modrm[7:6] == 3) modrm_valid = 0;
         if ((opcode == 8'h8f || opcode == 8'hc6 || opcode == 8'hc7) && modrm[5:3] != 0) modrm_valid = 0;
-        if (shift_op && modrm[5:3] == 6) modrm_valid = 0;
         if (opcode == 8'hfe && modrm[5:3] > 1) modrm_valid = 0;
         if (opcode == 8'hff && (modrm[5:3] == 7 || (far_memory_pointer && modrm[7:6]==3))) modrm_valid = 0;
         if ((opcode == 8'h8c || opcode == 8'h8e) && modrm[5]) modrm_valid = 0;
@@ -1109,11 +1111,11 @@ module intel_80286 #(
             (opcode==8'h0f && (system_opcode==8'hff ||
                               (!msw[0] && (system_opcode==8'h00 ||
                                            system_opcode==8'h02 || system_opcode==8'h03)))) ||
-            (state==MODRM_DECODE && !modrm_valid && !(shift_op && modrm[5:3]==6));
+            (state==MODRM_DECODE && !modrm_valid);
         immediate_bytes = 0;
         if ((opcode >= 8'hb0 && opcode <= 8'hb7) || (opcode >= 8'h70 && opcode <= 8'h7f) ||
             (opcode >= 8'he0 && opcode <= 8'he3) || opcode == 8'heb || opcode == 8'h80 ||
-            opcode == 8'h83 || opcode == 8'hc0 || opcode == 8'hc1) immediate_bytes = 1;
+            opcode == 8'h82 || opcode == 8'h83 || opcode == 8'hc0 || opcode == 8'hc1) immediate_bytes = 1;
         if ((opcode >= 8'hb8 && opcode <= 8'hbf) || opcode == 8'he9 || opcode == 8'h81 || opcode == 8'he8 ||
             opcode == 8'h68 || opcode == 8'hc2 || (opcode >= 8'ha0 && opcode <= 8'ha3)) immediate_bytes = 2;
         if ((opcode >= 8'he4 && opcode <= 8'he7) || opcode == 8'h6a) immediate_bytes = 1;
@@ -2049,6 +2051,9 @@ module intel_80286 #(
                             8'h9e: flags <= (flags & 16'hff2a) | {8'h00,(gpr[0][15:8] & 8'hd5)};
                             // ASSUMPTION: A3. Canonical values for undefined LAHF bits.
                             8'h9f: gpr[0][15:8] <= (flags[7:0] & 8'hd5) | 8'h02;
+                            // ASSUMPTION A34: D6h sets AL from CF (Intel's undocumented
+                            // opcode note; 1,000 physical Harris captures). Flags unchanged.
+                            8'hd6: gpr[0][7:0] <= flags[0] ? 8'hff : 8'h00;
                             8'hea: begin
                                 ip <= immediate[15:0]; cs <= immediate[31:16]; cs_base <= {4'h0,immediate[31:16],4'h0};
                                 cache_limits[31:16]<=16'hffff; cache_access[15:8]<=8'h93; cache_valid[1]<=1; cs_trusted<=1;
