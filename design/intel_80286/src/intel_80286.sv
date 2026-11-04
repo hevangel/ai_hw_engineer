@@ -242,6 +242,10 @@ module intel_80286 #(
     logic [7:0] code_load_fault_vector, code_load_access, code_load_bus_wdata;
     logic [15:0] code_load_fault_error, code_load_selector, code_load_limit;
     logic [15:0] code_load_request_selector, code_load_request_offset;
+    // Read only by the formal properties.
+    /* verilator lint_off UNUSEDSIGNAL */
+    logic [15:0] code_load_pending_selector, code_load_pending_offset;
+    /* verilator lint_on UNUSEDSIGNAL */
     logic [23:0] code_load_bus_addr, code_load_base;
     logic [47:0] code_load_special_descriptor;
     logic segment_load_start, segment_load_busy, segment_load_done, segment_load_req, segment_load_write;
@@ -904,6 +908,7 @@ module intel_80286 #(
         .fault_vector_o(code_load_fault_vector),.access_o(code_load_access),
         .fault_error_o(code_load_fault_error),.selector_o(code_load_selector),.limit_o(code_load_limit),
         .request_selector_o(code_load_request_selector),.request_offset_o(code_load_request_offset),
+        .pending_selector_o(code_load_pending_selector),.pending_offset_o(code_load_pending_offset),
         .base_o(code_load_base),.special_descriptor_o(code_load_special_descriptor),
         .special_tail_o(code_load_special_tail));
     intel_80286_segment_load segment_load_unit(
@@ -2149,8 +2154,10 @@ module intel_80286 #(
                     end
                 end
                 CODE_LOAD_WAIT: if (code_load_done) begin
+                    // A JMP to any system descriptor, including an all-zero
+                    // (type 0) slot, is classified in CALL_DESC_CHECK; type 0
+                    // there raises #GP(selector) per App. B B-54.
                     if (code_load_target==0 && code_load_special && !code_load_fault &&
-                        code_load_special_descriptor!=48'd0 &&
                         code_load_request_selector==(opcode==8'hea ? immediate[31:16] : memory_result[31:16]) &&
                         code_load_request_offset==(opcode==8'hea ? immediate[15:0] : memory_result[15:0])) begin
                         protected_call_selector<=code_load_request_selector;

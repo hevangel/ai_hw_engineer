@@ -21,6 +21,22 @@
          event_packet.saved_ip==$past(event_packet.instruction_retired ? \
                                       instruction_ip : event_packet.saved_ip))))
     logic past_valid = 0;
+    // Request each code-load target expects back (mirrors CODE_LOAD_WAIT).
+    wire [15:0] f_code_expected_selector =
+        code_load_target==1 ? event_pointer[31:16] :
+        code_load_target==2 ? iret_saved_cs :
+        code_load_target==3 ? protected_call_target_selector :
+        code_load_target==6 ? {protected_call_target_selector[15:2],2'b00} :
+        code_load_target==4 ? ret_saved_cs :
+        code_load_target==5 ? task_state_image[11] :
+        opcode==8'hea ? immediate[31:16] : memory_result[31:16];
+    wire [15:0] f_code_expected_offset =
+        code_load_target==1 ? event_pointer[15:0] :
+        code_load_target==2 ? (iret_outer_active ? 16'd0 : iret_saved_ip) :
+        (code_load_target==3 || code_load_target==6) ? protected_call_target_offset :
+        code_load_target==4 ? (ret_outer_active ? 16'd0 : ret_saved_ip) :
+        code_load_target==5 ? 16'd0 :
+        opcode==8'hea ? immediate[15:0] : memory_result[15:0];
     // Ghost: set once a LOADALL commits, cleared by reset.
     logic f_loadall_caches = 0;
     always_ff @(posedge clk)
@@ -286,7 +302,38 @@
                 (state==FAR_RETURN_DONE ||
                  ((state==BUS || state==MEMORY_CHECK) && memory_return==FAR_RETURN_DONE)))
                 assert(!flags[14]);
+            // A JMP reaches the call-descriptor path only for a system
+            // (special, S=0) descriptor, so its CS reload is always the
+            // call-gate target 6, never the descriptor-direct target 0.
+            if (rst_n && code_load_done && code_load_special)
+                assert(!code_load_special_descriptor[44]);
+            if (rst_n && state==CALL_DESC_CHECK && protected_call_direct_jump)
+                assert(!protected_call_descriptor_header[7]);
+            if (rst_n && state==CALL_CODE_START && protected_call_direct_jump)
+                assert(protected_call_through_gate);
+            if (rst_n && protected_call_direct_jump &&
+                (state==CALL_DESC_TAIL || state==CALL_DESC_FINAL ||
+                 ((state==BUS || state==MEMORY_CHECK) &&
+                  (memory_return==CALL_DESC_TAIL || memory_return==CALL_DESC_FINAL))))
+                assert(0);
+            // The code-load unit echoes the request its caller made; the
+            // caller's target registers stay put while it runs.
+            if (rst_n && state==CODE_LOAD_WAIT) begin
+                assert(code_load_target<=3'd6);
+                if (code_load_busy)
+                    assert(code_load_pending_selector==f_code_expected_selector &&
+                           code_load_pending_offset==f_code_expected_offset);
+                else assert(code_load_done);
+                if (code_load_done && !code_load_busy) begin
+                    assert(code_load_request_selector==f_code_expected_selector);
+                    assert(code_load_request_offset==f_code_expected_offset);
+                    if (code_load_special_descriptor!=48'd0)
+                        assert(code_load_special || code_load_fault);
+                    if (!code_load_fault && !code_load_special) assert(code_load_cache_valid);
+                end
+            end
             if (rst_n && $past(rst_n) && state==STOPPED) begin
+                assert(!$past(state==CODE_LOAD_WAIT));
                 assert(!$past(state==SEGMENT_LOAD_WAIT));
                 assert(!$past(state==FAR_RETURN_DONE));
             end
@@ -890,7 +937,9 @@
                    memory_return == ENTER_COPY || memory_return == ENTER_COMMIT || memory_return == LEAVE_DONE ||
                     memory_return == IRET_OUTER_SS || memory_return == IRET_OUTER_NEXT ||
                     memory_return == RET_OUTER_SS || memory_return == RET_OUTER_NEXT ||
-                    memory_return == CALL_DESC_TAIL || memory_return == CALL_DESC_CHECK ||
+                    // CALL_DESC_CHECK is entered directly, never as a
+                    // memory continuation.
+                    memory_return == CALL_DESC_TAIL ||
                     memory_return == CALL_FRAME_READY || memory_return == CALL_TSS_PAIR ||
                     memory_return == CALL_STACK_WRITE_OLD_SP || memory_return == CALL_STACK_WRITE_OLD_CS ||
                     memory_return == CALL_STACK_WRITE_RETURN || memory_return == CALL_GATE_COMMIT ||

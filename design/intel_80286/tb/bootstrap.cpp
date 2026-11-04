@@ -3540,12 +3540,14 @@ static void protected_call_gate_jump() {
         {0x006b,false,0x003b},      // DPL3 nonconforming target, same level
         {0x0063,false,0x004b},      // DPL0 conforming target, CPL stays 3
         {0x005b,true,0x0008},       // DPL0 nonconforming target: #GP(0008)
+        {0x0073,true,0x0070},       // all-zero (type 0) descriptor: #GP(0070), B-54
     };
     unsigned executions=0;
     for (bool wait:{false,true}) for (const auto& test:cases) {
         Bench b;
         place_selector_fixture(b,ring0_program,sizeof(ring0_program));
-        b.memory[0x41]=0x00; b.memory[0x40]=0x6f;
+        b.memory[0x41]=0x00; b.memory[0x40]=0x77;
+        b.put(kGdtBase+0x70,{0,0,0,0,0,0,0,0});                          // empty slot
         b.put(kGdtBase+0x38,{0xff,0x0f,0x00,0x00,0x06,0xfa,0x00,0x00}); // ring-3 code
         b.put(kGdtBase+0x40,{0xff,0x00,0x00,0x00,0x07,0xf2,0x00,0x00}); // ring-3 stack
         b.put(kGdtBase+0x48,{0xff,0x0f,0x00,0x00,0x06,0x9e,0x00,0x00}); // DPL0 conforming
@@ -3576,7 +3578,7 @@ static void protected_call_gate_jump() {
         } else {
             for (unsigned n=0;n<60000 && !b.d.event_o && !b.d.fault_o;++n) b.tick(wait);
             if (!(b.d.event_o && !b.d.fault_o && b.d.event_vector_o==13 &&
-                  b.d.event_packet_error_code_o==0x0008 &&
+                  b.d.event_packet_error_code_o==test.cs &&
                   b.d.event_packet_saved_cs_o==0x003b && b.d.event_packet_saved_ip_o==0x0400 &&
                   b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp))
                 throw std::runtime_error("JMP through a call gate to more-privileged code did not raise #GP(CS); event="+
