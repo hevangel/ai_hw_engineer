@@ -114,3 +114,49 @@ runs bug free").
 
 About 36 hours of wall-clock time across auto-nudge cycles. The prove runs,
 about 20 minutes each, dominated it.
+
+
+## Continuation: 2026-11-04 (PEDC branch, same conversation chain)
+
+**Capture timestamp:** 2026-11-04T17:20:00Z
+**Branch:** `design/intel-80286-pedc` ([PR #111](https://github.com/hevangel/ai_hw_engineer/pull/111))
+
+### Completed work
+
+- **Processor-extension channel and earlier PEDC fixes:**
+  - `98c0602`, `2d1d02e`: PEDC data channel and invariants.
+  - `ce8d7f2`: real-mode wrapped IRET/RETF frames.
+  - `7e53073`: A34 undocumented aliases.
+- **A35** (`bf42369`): F1h prefix, #UD for 65h-67h and 0F 07h-FFh, and #GP(0) for 0F 04h/05h at CPL>0. Source: Intel's undocumented-opcode note.
+- **A36** (`35334fa`): replay of the 50,000 physical string captures.
+  - REP LODS and F2 before non-compare strings now execute.
+  - Word-FFFFh #13 register state now matches the captures.
+- **A29 and A37-A40** (`6cd2fbe`): replay of 1,368,994 physical records from 301 opcode files. Fixed:
+  - ENTER wrap;
+  - POP m fault SP;
+  - AAM 0 flags;
+  - the IDIV division model;
+  - the real-mode 4-byte operand wrap.
+- **Documentation:**
+  - Post-mortems in `failure_notes/2026-11-04-intel80286-string-fault-state-and-rep-forms.md` and `failure_notes/2026-11-04-intel80286-general-capture-replay-defects.md`.
+  - Report: `design/intel_80286/report/2026-11-04-physical-capture-replay.md`.
+  - Progress comment posted on PR #111.
+
+### Validation
+
+All runs on `6cd2fbe` unless noted:
+- Connected-core prove: PASS, 408 assertions.
+- Muldiv BMC, prove and cover: PASS.
+- `run_sim.sh`: 227 PASS.
+- Full `run_hardware.sh`: PASS. That covers 68,510 + 52 + 50,000 + 1,368,994 physical records in both READY modes.
+- Connected-core BMC: started and not yet finished at capture time. The last completed BMC PASS was on `2d1d02e`.
+
+### Model-call evidence
+
+- Main thread: Claude Opus. Kiro does not expose the exact model id or call count.
+- No sub-agents in this continuation.
+- Exact token counts are not exposed.
+
+### Duration
+
+About 3.5 hours of wall-clock time for this continuation, judging by the log timestamps from about 13:50 to 17:20 UTC. Prove runs (about 20 minutes each) and full replays (about 20 minutes each) dominated it.
