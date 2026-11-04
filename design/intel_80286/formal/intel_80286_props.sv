@@ -968,7 +968,9 @@
                 assert(escape_op && !protected_ret_active && !ret_outer_active &&
                        !protected_iret_active && !iret_outer_active &&
                        !protected_call_stack_active && !task_switch_active &&
-                       !event_delivery_active && (modrm[7:6]==2'b11 || !msw[0]));
+                       // Protected memory forms now run once their first operand
+                       // word checks pass (A32).
+                       !event_delivery_active && (modrm[7:6]==2'b11 || !msw[0] || esc_operand_ok));
             // Any ModRM encoding decode rejects never reaches a later stage.
             if (rst_n && opcode_modrm &&
                 (state==DISPLACEMENT || state==AFTER_DISP || state==IMMEDIATE ||
@@ -1036,6 +1038,10 @@
                 // A string poll resumes only a live repeated string.
                 if (pedc_resume==STRING_POLL) assert(string_op && repeat_valid && gpr[1]!=0);
                 if (pedc_resume==WAIT_BUSY) assert(opcode==8'h9b || escape_op);
+                // While halted, a request is served only from the halt boundary.
+                if (halt_latch) assert(pedc_resume==EVENT_POLL);
+                // An ESC held on BUSY accepts no interrupt, before or after a transfer.
+                if (pedc_resume==WAIT_BUSY && escape_op) assert(!async_valid && !inta_req_o);
                 assert(!event_delivery_active && !task_switch_active);
             end
             // Reset clears code_load_target and the core only assigns 0..6.

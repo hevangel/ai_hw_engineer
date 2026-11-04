@@ -43,7 +43,7 @@ New assumptions are A32 (service points and the first-word check) and A33
   - A protected-mode DS operand loaded through its descriptor base.
   - #GP(0) for a null DS and #SS(0) for an SS operand past its limit.
 - `run_sim.sh`: 227 PASS, exit 0.
-- Connected-core k-induction is in progress; see the PR for the final run.
+- Connected-core k-induction passes for 401 assertions (prove run pedc_prove13). Runs 1-12 added invariants for the channel's resume points, HLT service and halt-cycle output, and corrected properties that still described a protected memory ESC as a stop.
 
 The standalone `intel_80286_pedc` engine is unchanged and still separately
 verified. The core channel reuses its own memory engine, so the byte and
