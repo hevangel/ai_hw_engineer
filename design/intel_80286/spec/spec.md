@@ -154,6 +154,10 @@ NMI exit condition "IDT limit at least 000FH and SP greater than 0005H" is
 treated as a consequence of these rules, so an NMI with even SP below 6 is
 delivered. Validate both against independent 286 evidence before sign-off.
 
+ASSUMPTION A31: an invalid outer-level return SS raises #SS(selector) per
+Table 7-4, although Appendix B lists #GP/#NP. See
+[the privilege-transition spec](protected_privilege_transition.md).
+
 ASSUMPTION A30: ESC D9h-DFh use the D8h command protocol captured on a physical
 286 (command word, IP, CS, then operand offset and segment at FCh), with their
 own opcode byte. See [the ESC report](../report/2026-11-03-esc-command-phase.md).

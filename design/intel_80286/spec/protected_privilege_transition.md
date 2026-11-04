@@ -635,6 +635,14 @@ five-word outer-IRET frame: an invalid starting SP faults with #SS(0) before
 any source-frame read, while a frame crossing the current SS limit reads only
 IP/CS/FLAGS before its full-span check faults.
 
+ASSUMPTION A31: the outer-level return SS checks (null, table limit, RPL,
+type, DPL, present) raise #SS(SS selector), following Table 7-4 of the 1985
+iAPX 286 PRM (page 7-22, "SF" for every SS row). The same manual's
+Appendix B pages B-50 (IRET) and B-92 (RET) instead list #GP(SS selector), and
+#NP(SS selector) for a not-present SS. The pinned 86Box `pmoderetf` uses #GP
+for the descriptor checks and #SS for not-present. The sources disagree, so
+validate against physical 286 evidence before sign-off.
+
 Table 7-4 orders outer-return checks as current-stack bounds, return-CS
 descriptor validation, outer-SS validation, then return-IP limit. The 12-
 execution priority matrix pairs both current-stack bounds faults with a null
