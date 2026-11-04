@@ -275,6 +275,21 @@
             // wrapped far-return frame and LOADALL; LOADALL_COMMIT is the
             // highest encoding.
             assert(state <= LOADALL_COMMIT);
+            // Defensive development stops proven unreachable: a completed
+            // segment load (invalid SS cache, unknown target or task segment
+            // index) and a protected IRET with NT reaching the ordinary far-return
+            // completion. The code-load request-mismatch stop still needs
+            // request/target invariants before it can be proven unreachable.
+            // A protected IRET with NT takes the task-return path at EXECUTE
+            // and never reads an ordinary return frame.
+            if (rst_n && msw[0] && opcode==8'hcf &&
+                (state==FAR_RETURN_DONE ||
+                 ((state==BUS || state==MEMORY_CHECK) && memory_return==FAR_RETURN_DONE)))
+                assert(!flags[14]);
+            if (rst_n && $past(rst_n) && state==STOPPED) begin
+                assert(!$past(state==SEGMENT_LOAD_WAIT));
+                assert(!$past(state==FAR_RETURN_DONE));
+            end
             // LOADALL reads its 102-byte physical image in 17 chunks of six
             // bytes from 000800h, only for 0F 05h outside CPL>0 (Intel note).
             if (rst_n && (state==LOADALL_READ || state==LOADALL_COMMIT ||
