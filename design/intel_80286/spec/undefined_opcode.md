@@ -21,8 +21,10 @@ operand transfers through the extension data channel and protected-mode
 memory forms remain unimplemented. Native LOCK arbitration and
 protected execution remain separate development boundaries. ARPL has a protected-mode execution slice; it
 remains #UD only in real mode. Undocumented shift `/6` executes as SHL, 82h as
-80h and D6h sets AL from CF (assumption A34 in [spec.md](spec.md)). Other
-unspecified aliases, unsupported REP combinations and overlength/segment-
+80h and D6h sets AL from CF (assumption A34 in [spec.md](spec.md)). F1h is a
+no-function prefix counted toward the ten-byte limit; 65h-67h and 0F 07h-FFh
+raise #UD; 0F 04h/05h raise #GP(0) at protected CPL>0 and stop at real mode
+or CPL 0 (assumption A35). Unsupported REP combinations and overlength/segment-
 boundary priorities remain explicit gaps.
 
 The F6/F7 `/1` example in Intel's #UD entry is contradicted by the pinned

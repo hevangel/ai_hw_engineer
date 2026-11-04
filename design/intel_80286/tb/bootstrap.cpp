@@ -1767,6 +1767,19 @@ static void system_register_contracts() {
             b.step(0xf010a,0x90,0xf000,0x10b); b.step(0xf010b,0xf4,0xf000,0x10c); }
         else { b.processor_fault(13,0x100); check(b.accepted.size()==10,"overlong instruction fetched extension"); } ++cases;
     }
+    // A35: Intel's undocumented-opcode note makes F1h a prefix with no
+    // function that counts toward the ten-byte limit like any other prefix.
+    for (unsigned prefixes: {1u,8u,9u,10u}) {
+        Bench b; b.put(0xfffff0,{0xea,0,1,0,0xf0});
+        for (unsigned i=0;i<prefixes;++i) b.memory[0xf0100+i]=(i&1)?0x3e:0xf1;
+        b.put(0xf0100+prefixes,{0xb0,0x5a,0xf4}); b.reset(); b.step(0xfffff0,0xea,0xf000,0x100); b.accepted.clear();
+        if (prefixes<=8) {
+            b.step(0xf0100,0xb0,0xf000,uint16_t(0x102+prefixes));
+            check(b.accepted.size()==prefixes+2 && (b.reg(0)&0xff)==0x5a,"F1 prefix executes as no-op");
+            b.step(0xf0102+prefixes,0xf4,0xf000,uint16_t(0x103+prefixes));
+        } else { b.processor_fault(13,0x100); check(prefixes==9 || b.accepted.size()==10,"F1 counted toward ten-byte limit"); }
+        ++cases;
+    }
     for (bool invalid_limit: {false,true}) {
         Bench b; b.put(0xfffff0,{0xea,0,1,0,0xf0});
         b.put(0xf0100,{0xbc,0,0x80,0x0f,1,0x1e,0,0x20,0xcd,0x20,0x43,0xf4});
@@ -8213,6 +8226,34 @@ static void protected_iopl_controls() {
         ++matrix_cases;
     }
     check(matrix_cases==256,"direct I/O privilege matrix missed an opcode/CPL/IOPL/READY case");
+
+    // A35: Intel's undocumented-opcode note gives 0F 04h/05h exception 13 in
+    // protected mode when CPL is not 0. At CPL 0 they stay a stop boundary.
+    unsigned loadall_cases=0;
+    for (bool wait:{false,true}) for (uint8_t second:{uint8_t(0x04),uint8_t(0x05)})
+      for (unsigned cpl=0;cpl<4;++cpl) {
+        Bench b;
+        const Context context=prepare(b,wait,cpl,0,{0x0f,second,0xf4});
+        b.data_transfers.clear();
+        const unsigned retired_before=b.retired;
+        bool event_seen=false,handler_entered=false;
+        for (unsigned cycle=0;cycle<50000 && !b.d.fault_o;++cycle) {
+            b.tick(wait);
+            event_seen=event_seen||b.d.event_o;
+            if (event_seen && b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp) {
+                handler_entered=true; break;
+            }
+        }
+        if (cpl==0) check(b.d.fault_o && b.d.fault_code_o==1 && !event_seen && b.retired==retired_before,
+                          "CPL0 0F 04/05 did not stop at the development boundary");
+        else check(handler_entered && b.d.event_vector_o==13 && b.d.event_packet_error_valid_o &&
+                   b.d.event_packet_error_code_o==0 &&
+                   b.d.event_packet_saved_cs_o==(context.level.cs|uint16_t(cpl)) &&
+                   b.d.event_packet_saved_ip_o==0x0400 && b.retired==retired_before,
+                   "CPL>0 0F 04/05 did not raise #GP(0)");
+        ++loadall_cases;
+    }
+    check(loadall_cases==16,"0F 04/05 privilege matrix incomplete");
 
     struct StringCase { uint8_t opcode; bool input,word; };
     const StringCase string_cases[]={

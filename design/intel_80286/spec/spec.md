@@ -154,6 +154,17 @@ NMI exit condition "IDT limit at least 000FH and SP greater than 0005H" is
 treated as a consequence of these rules, so an NMI with even SP below 6 is
 delivered. Validate both against independent 286 evidence before sign-off.
 
+ASSUMPTION A35: the same Intel note lists the only exclusions from "any
+undefined opcode causes exception 6". F1h is a prefix with no function that
+counts toward the ten-byte limit. 0F 04h and 0F 05h raise exception 13 with
+error code 0 in protected mode at CPL>0. Every other undefined opcode,
+including 65h-67h and 0F 07h-FFh, raises exception 6. The note's text for
+0F 04h/05h is inconsistent (it names LOADALL as 0F04h, then says 0F05h stops
+normal execution yet "may be executed at any time" in real mode), so real
+mode and CPL 0 remain a stop boundary (`fault_code_o=1`) until LOADALL is
+implemented from an independent source. No physical captures exist for these
+opcodes in the pinned SingleStepTests revision.
+
 ASSUMPTION A34: undocumented opcodes follow Intel's "Undocumented iAPX 286
 Test Instruction" note (pp. 13-14, [PCjs copy](https://www.pcjs.org/documents/manuals/intel/80286/exceptions/)):
 shift `/6` is SHL, 82h is 80h, and D6h sets AL to FFh if CF=1 else 00h without

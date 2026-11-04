@@ -1107,8 +1107,12 @@ module intel_80286 #(
             (modrm[5:3]==5 || modrm[5:3]==7 || (modrm[5:3]<4 && modrm[7:6]==3))) modrm_valid=0;
         // Intel 9.6.1 / Appendix B #UD: classify architectural invalidity
         // separately from unimplemented features and undocumented aliases.
-        undefined_encoding = opcode==8'h64 || (arpl_op && !msw[0]) ||
-            (opcode==8'h0f && (system_opcode==8'hff ||
+        // ASSUMPTION A35: Intel's undocumented-opcode note makes every other
+        // undefined opcode exception 6 (65h-67h, 0F 07h-FFh); only 0F 04h/05h,
+        // F1h and the A34 aliases are excluded.
+        undefined_encoding = opcode==8'h64 || opcode==8'h65 || opcode==8'h66 || opcode==8'h67 ||
+            (arpl_op && !msw[0]) ||
+            (opcode==8'h0f && (system_opcode>8'h06 ||
                               (!msw[0] && (system_opcode==8'h00 ||
                                            system_opcode==8'h02 || system_opcode==8'h03)))) ||
             (state==MODRM_DECODE && !modrm_valid);
@@ -1493,6 +1497,10 @@ module intel_80286 #(
                         ip <= ip + 16'd1;
                         if (owner_bus_rdata == 8'h26 || owner_bus_rdata == 8'h2e || owner_bus_rdata == 8'h36 || owner_bus_rdata == 8'h3e) begin
                             prefix_active <= 1; override_valid <= 1; override_segment <= owner_bus_rdata[4:3];
+                        end else if (owner_bus_rdata==8'hf1) begin
+                            // ASSUMPTION A35: F1h is a prefix with no function that counts
+                            // toward the ten-byte limit (Intel undocumented-opcode note).
+                            prefix_active<=1;
                         end else if (owner_bus_rdata==8'hf0) begin
                             prefix_active<=1; lock_prefix_active<=1;
                         end else if (owner_bus_rdata==8'hf2 || owner_bus_rdata==8'hf3) begin
@@ -1513,6 +1521,11 @@ module intel_80286 #(
                 DECODE,MODRM_DECODE,AFTER_DISP: begin
                     if (undefined_encoding) begin
                         enter_event(8'd6,instruction_ip,1'b0,1'b1,1'b0,16'd0); state<=EVENT_START;
+                    end else if (opcode==8'h0f && (system_opcode==8'h04 || system_opcode==8'h05) &&
+                                 msw[0] && cs[1:0]!=0) begin
+                        // ASSUMPTION A35: 0F 04h/05h raise exception 13 when CPL>0
+                        // (Intel note); real mode and CPL 0 remain a stop boundary.
+                        enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0); state<=EVENT_START;
                     end else if (!opcode_valid || (state == MODRM_DECODE && !modrm_valid)) begin
                         fault_code_o <= 1; ip <= instruction_ip; state <= STOPPED;
                     end else if (({1'b0,instruction_bytes} + remaining_bytes) > 10) begin

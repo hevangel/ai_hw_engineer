@@ -56,6 +56,15 @@ static void undefined_opcode_contracts() {
         {"SGDT requires a memory operand",{0x0f,0x01,0xc0}},
         {"0F 01 /5 is undefined on the 80286",{0x0f,0x01,0xe8}},
         {"0F 01 /7 is undefined on the 80286",{0x0f,0x01,0xf8}},
+        // Intel "Undocumented iAPX 286 Test Instruction" note pp. 13-14
+        // (assumption A35): every undefined opcode outside its exclusion
+        // list is exception 6, and F1h is a prefix kept in the saved PC.
+        {"65h is undefined on the 80286",{0x65}},
+        {"66h is undefined on the 80286",{0x66}},
+        {"67h is undefined on the 80286",{0x67}},
+        {"0F 07 is undefined on the 80286",{0x0f,0x07}},
+        {"0F 80 is undefined on the 80286",{0x0f,0x80,0x00,0x00}},
+        {"F1 prefix retained on #UD",{0xf1,0x64}},
     };
 
     unsigned runs=0;
