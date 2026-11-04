@@ -3368,6 +3368,74 @@ static void protected_call_gate_same_level() {
     std::cout<<"PASS: protected same-level CALL gate resolves the target, pushes the exact link and reaches its gate offset in both READY modes\n";
 }
 
+// JMP through a call gate (Intel 210498-005 App. B page B-54, JUMP TO CALL
+// GATE): the gate offset is used, the target must be nonconforming with
+// DPL=CPL or conforming with DPL<=CPL, CS RPL becomes CPL, and no stack or
+// link frame changes. A more-privileged nonconforming target is #GP(CS).
+static void protected_call_gate_jump() {
+    using namespace protected_mode_fixture;
+    const uint8_t ring0_program[]={
+        0xb8,0x28,0x00, 0x8e,0xd0,  // 0200 MOV SS,0028
+        0xbc,0x80,0x00,             // 0205 MOV SP,0080
+        0xb8,0x50,0x00, 0x0f,0x00,0xd8, // 0208 LTR 0050 (ring-0 stack for #GP)
+        0xcf,                       // 020E IRET to CPL3 0x3b:0400
+        0xf4
+    };
+    struct Case { uint16_t gate; bool fault; uint16_t cs; };
+    const Case cases[]={
+        {0x006b,false,0x003b},      // DPL3 nonconforming target, same level
+        {0x0063,false,0x004b},      // DPL0 conforming target, CPL stays 3
+        {0x005b,true,0x0008},       // DPL0 nonconforming target: #GP(0008)
+    };
+    unsigned executions=0;
+    for (bool wait:{false,true}) for (const auto& test:cases) {
+        Bench b;
+        place_selector_fixture(b,ring0_program,sizeof(ring0_program));
+        b.memory[0x41]=0x00; b.memory[0x40]=0x6f;
+        b.put(kGdtBase+0x38,{0xff,0x0f,0x00,0x00,0x06,0xfa,0x00,0x00}); // ring-3 code
+        b.put(kGdtBase+0x40,{0xff,0x00,0x00,0x00,0x07,0xf2,0x00,0x00}); // ring-3 stack
+        b.put(kGdtBase+0x48,{0xff,0x0f,0x00,0x00,0x06,0x9e,0x00,0x00}); // DPL0 conforming
+        b.put(kGdtBase+0x58,{0x00,0x03,0x08,0x00,0x00,0xe4,0x00,0x00}); // gate -> 0008:0300
+        b.put(kGdtBase+0x60,{0x00,0x05,0x48,0x00,0x00,0xe4,0x00,0x00}); // gate -> 0048:0500
+        b.put(kGdtBase+0x68,{0x00,0x05,0x3b,0x00,0x00,0xe4,0x00,0x00}); // gate -> 003b:0500
+        b.put(0x00000742,{0x00,0x01,0x28,0x00});                        // TSS SP0:SS0
+        b.put(0x00060400,{0xea,0x34,0x12,uint8_t(test.gate),uint8_t(test.gate>>8)});
+        b.put(0x00060500,{0x90});
+        b.put(kStackBase+0x0080,{0x00,0x04,0x3b,0x00,0x02,0x02,0x00,0x01,0x43,0x00});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+        b.step(kCodeBase+0x020b,0x0f,kCodeSelector,0x020e,wait);
+        b.step(kCodeBase+0x020e,0xcf,0x003b,0x0400,wait);
+        check(b.reg(4)==0x0100 && uint16_t(b.d.segs_o>>32)==0x0043,
+              "gate JMP fixture did not reach CPL3 with its outer stack");
+        b.data_transfers.clear();
+        if (!test.fault) {
+            b.step(0x00060400,0xea,test.cs,0x0500,wait);
+            check(b.reg(4)==0x0100 && uint16_t(b.d.segs_o>>32)==0x0043 &&
+                  std::none_of(b.data_transfers.begin(),b.data_transfers.end(),
+                               [](const auto& t){ return t.write && !(t.address>=kGdtBase && t.address<kGdtBase+0x70); }),
+                  "call-gate JMP changed the stack or wrote a link frame");
+            b.step(0x00060500,0x90,test.cs,0x0501,wait);
+        } else {
+            for (unsigned n=0;n<60000 && !b.d.event_o && !b.d.fault_o;++n) b.tick(wait);
+            if (!(b.d.event_o && !b.d.fault_o && b.d.event_vector_o==13 &&
+                  b.d.event_packet_error_code_o==0x0008 &&
+                  b.d.event_packet_saved_cs_o==0x003b && b.d.event_packet_saved_ip_o==0x0400 &&
+                  b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp))
+                throw std::runtime_error("JMP through a call gate to more-privileged code did not raise #GP(CS); event="+
+                    std::to_string(b.d.event_o)+" fault="+std::to_string(b.d.fault_o)+
+                    " code="+std::to_string(b.d.fault_code_o)+" vector="+std::to_string(b.d.event_vector_o)+
+                    " error="+std::to_string(b.d.event_packet_error_code_o)+" cs="+std::to_string(b.cs()));
+        }
+        ++executions;
+    }
+    std::cout<<"PASS: "<<executions
+             <<" CPL3 call-gate JMPs reach same-level and conforming targets without stack changes and raise #GP(CS) for a more-privileged target in both READY modes\n";
+}
+
 static void protected_call_gate_access_faults() {
     using namespace protected_mode_fixture;
     struct FaultCase {
@@ -13755,6 +13823,7 @@ int main(int argc, char** argv) {
             protected_selector_query_ring12_matrix();
         }
         else if (argc==2 && std::string(argv[1])=="--stack-wrap") stack_wrap_contracts();
+        else if (argc==2 && std::string(argv[1])=="--gate-jump") protected_call_gate_jump();
         else if (argc==2 && std::string(argv[1])=="--segment-pops")
             { protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); }
         else if (argc==2 && std::string(argv[1])=="--protected-event-outer")
@@ -13810,7 +13879,7 @@ int main(int argc, char** argv) {
         else if (argc==3 && std::string(argv[1])=="--bios-decimal") vectors(argv[2],false,true);
         else if (argc==2 && std::string(argv[1])=="--processor-extension") processor_extension_contract();
         else {
-            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); stack_wrap_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_delivery_faults(); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix();
+            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); stack_wrap_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_delivery_faults(); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_jump(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix();
             std::cout << "PASS: 80286 bootstrap reset, register aliases, flags, exact branches, stalls and diagnostic boundaries\n";
         }
     } catch (const std::exception& error) {

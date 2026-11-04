@@ -814,6 +814,8 @@ module intel_80286 #(
         .clk(clk),.rst_n(rst_n),.start_i(code_load_start),
         .selector_i(state==EVENT_CODE_START ? event_pointer[31:16] :
                     state==IRET_CODE_START ? iret_saved_cs :
+                    (state==CALL_CODE_START && protected_call_direct_jump) ?
+                        {protected_call_target_selector[15:2],2'b00} :
                     state==CALL_CODE_START ? protected_call_target_selector :
                     state==RET_CODE_START ? ret_saved_cs :
                     state==TASK_CODE_START ? task_state_image[11] :
@@ -834,7 +836,8 @@ module intel_80286 #(
         .cpl_i(state==TASK_CODE_START ? task_state_image[11][1:0] :
                (state==IRET_CODE_START && iret_outer_active) ? iret_saved_cs[1:0] :
                (state==RET_CODE_START && ret_outer_active) ? ret_saved_cs[1:0] : cs[1:0]),
-        .call_i(1'b0),.gate_call_i((state==CALL_CODE_START && protected_call_through_gate) ||
+        .call_i(1'b0),.gate_call_i((state==CALL_CODE_START && protected_call_through_gate &&
+                                    !protected_call_direct_jump) ||
                                    state==EVENT_CODE_START),
         .stack_ok_i(1'b1),
         .ldt_valid_i(task_switch_active ? task_ldtr_valid : ldtr_valid),
@@ -2055,16 +2058,18 @@ module intel_80286 #(
                         code_load_request_selector!=(code_load_target==1 ? event_pointer[31:16] :
                             code_load_target==2 ? iret_saved_cs :
                             code_load_target==3 ? protected_call_target_selector :
+                            code_load_target==6 ? {protected_call_target_selector[15:2],2'b00} :
                             code_load_target==4 ? ret_saved_cs :
                             code_load_target==5 ? task_state_image[11] :
                             opcode==8'hea ? immediate[31:16] : memory_result[31:16]) ||
                         code_load_request_offset!=(code_load_target==1 ? event_pointer[15:0] :
                         code_load_target==2 ? (iret_outer_active ? 16'd0 : iret_saved_ip) :
-                        code_load_target==3 ? protected_call_target_offset :
+                        (code_load_target==3 || code_load_target==6) ? protected_call_target_offset :
                         code_load_target==4 ? (ret_outer_active ? 16'd0 : ret_saved_ip) :
                         code_load_target==5 ? 16'd0 :
                             opcode==8'hea ? immediate[15:0] : memory_result[15:0])) begin
-                        if ((code_load_target==0 || code_load_target==3 || code_load_target==4) &&
+                        if ((code_load_target==0 || code_load_target==3 || code_load_target==4 ||
+                             code_load_target==6) &&
                             code_load_fault && !code_load_special) begin
                             enter_event(code_load_fault_vector,instruction_ip,1'b0,1'b1,1'b1,code_load_fault_error);
                             protected_ret_active<=0; ret_outer_active<=0;
@@ -2088,7 +2093,7 @@ module intel_80286 #(
                             protected_iret_active<=0; iret_outer_active<=0;
                             iret_outer_preflight_done<=0; iret_outer_ss_ready<=0;
                             state<=EVENT_START; retire_o<=0;
-                        end else if (code_load_target==3 && code_load_special) begin
+                        end else if ((code_load_target==3 || code_load_target==6) && code_load_special) begin
                             enter_event(13,instruction_ip,1'b0,1'b1,1'b1,
                                         protected_call_target_selector & 16'hfffc);
                             state<=EVENT_START; retire_o<=0;
@@ -2831,7 +2836,7 @@ module intel_80286 #(
                         end
                     end else if (protected_call_descriptor_header[6:3]!=4'h4 ||
                                  protected_call_descriptor_header[2:0]!=3'b000 ||
-                                 protected_call_descriptor_tail!=0 || protected_call_direct_jump) begin
+                                 protected_call_descriptor_tail!=0) begin
                         enter_event(13,instruction_ip,1'b0,1'b1,1'b1,
                                     protected_call_selector & 16'hfffc);
                         state<=EVENT_START; retire_o<=0;
@@ -2852,7 +2857,10 @@ module intel_80286 #(
                     end
                 end
                 CALL_CODE_START: if (owner_cpu_grant) begin
-                    code_load_target<=protected_call_direct_jump ? 3'd0 : 3'd3;
+                    // B-54 JUMP TO CALL GATE reloads CS only (target 6);
+                    // CALL also builds the link frame (target 3).
+                    code_load_target<=!protected_call_direct_jump ? 3'd3 :
+                                      protected_call_through_gate ? 3'd6 : 3'd0;
                     state<=CODE_LOAD_WAIT; retire_o<=0;
                 end
                 CALL_FRAME_READY:

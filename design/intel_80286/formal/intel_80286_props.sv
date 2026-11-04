@@ -1007,8 +1007,21 @@
                                load_far_pointer_protected && !task_switch_active &&
                                !event_stack_active && !segment_load_fault))
                 assert(gpr[$past(modrm[5:3])]==$past(memory_result[15:0]) && retire_o);
-            // Reset clears code_load_target and the core only assigns 0..5.
-            if (rst_n) assert(code_load_target<=5);
+            // Reset clears code_load_target and the core only assigns 0..6.
+            if (rst_n) assert(code_load_target<=6);
+            // Target 6 is the CS reload of a JMP through a call gate (B-54).
+            if (rst_n && state==CODE_LOAD_WAIT && code_load_target==6)
+                assert(protected_call_direct_jump && protected_call_through_gate &&
+                       (opcode==8'hea ||
+                        (opcode==8'hff && modrm[5:3]==3'd5 && modrm[7:6]!=2'b11)));
+            if (rst_n && $past(rst_n && state==CODE_LOAD_WAIT && code_load_target==6 &&
+                               code_load_done && code_load_cache_valid && !code_load_fault &&
+                               !code_load_special && code_load_special_descriptor==48'd0 &&
+                               code_load_request_selector=={protected_call_target_selector[15:2],2'b00} &&
+                               code_load_request_offset==protected_call_target_offset))
+                assert(state==BOUNDARY && retire_o && cs==$past(code_load_selector) &&
+                       ip==$past(protected_call_target_offset) &&
+                       gpr[4]==$past(gpr[4]) && ss==$past(ss));
             // (Only a far JMP starts it; protected far CALL validates its target
             // descriptor through CALL_DESC_* instead.)
             if (rst_n && state==CODE_LOAD_WAIT && code_load_target==0)

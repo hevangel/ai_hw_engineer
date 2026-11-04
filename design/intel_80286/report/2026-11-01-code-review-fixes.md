@@ -144,3 +144,17 @@ Several stale properties were also corrected:
 
 The cover run on the earlier RTL was stopped at 45 of 89 covers after 42
 hours. It has been restarted on the final tree.
+
+
+### JMP through a call gate (2026-11-04)
+
+An audit of App. B page B-54 found that every protected-mode JMP through a
+call gate raised #GP(gate selector). A gate JMP now reloads CS through
+code-load target 6:
+- A nonconforming target needs DPL=CPL; a conforming target needs DPL<=CPL.
+- The target selector's RPL is not checked.
+- The CS RPL becomes CPL, with no stack or frame change.
+
+Post-mortem: `failure_notes/2026-11-04-intel80286-call-gate-jmp-rejected.md`.
+New test `protected_call_gate_jump` runs 6 cases. `run_sim.sh` passes 226
+tests, exit 0.

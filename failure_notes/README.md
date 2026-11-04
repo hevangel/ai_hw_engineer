@@ -26,6 +26,10 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-11-04 - 80286 JMP through a call gate raised #GP instead of transferring](2026-11-04-intel80286-call-gate-jmp-rejected.md)
+  An audit against Intel App. B B-54 found every call-gate JMP faulting, with a
+  latent privilege-escalating CS-load path behind it; no test covered gate JMPs.
+
 - [2026-11-03 - 80286 task-switch DS/ES load inherited a stale ModRM stack check](2026-11-03-intel80286-task-switch-stale-modrm-stack-check.md)
   RTL review found that the segment-load stack rules followed ModRM bits, so a
   task gate after `MOV SS` rejected a legal read-only incoming DS/ES; tests

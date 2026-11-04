@@ -55,7 +55,7 @@
     "cover": 4
   },
   "formal/intel_80286_props.sv": {
-    "assert": 390,
+    "assert": 392,
     "assume": 1,
     "cover": 54
   },
