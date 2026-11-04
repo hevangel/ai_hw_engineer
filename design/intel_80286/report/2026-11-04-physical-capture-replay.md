@@ -61,7 +61,8 @@ See the PR #111 comment for the final run list and results:
   The memo's CMPS/SCAS CX values disagree with the real-mode captures.
 - No capture covers a repeat prefix before a non-string opcode. That
   combination is still a development stop.
-- 0F 04h/05h at real mode or CPL 0 stop the core. LOADALL is not
-  implemented.
+- LOADALL (0F 05h) is implemented from Intel's memory-area table and checked
+  by a directed test (`--loadall`); no physical capture covers it. 0F 04h at
+  real mode or CPL 0 still stops the core.
 - I/O, ESC, WAIT and HLT files are not replayed. IN returns FFh in the
   captures, and the bench port model differs.

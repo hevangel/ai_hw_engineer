@@ -56,7 +56,10 @@ struct Bench {
         if (shift>8 && word<2) value|=uint64_t(d.seg_bases_o[word+1])<<32;
         return uint32_t(value>>shift)&0xffffff;
     }
+    // LOADALL may load non-canonical real-mode caches (Intel LOADALL memo).
+    bool canonical_real_caches=true;
     void check_real_caches() const {
+        if (!canonical_real_caches) return;
         check(!(d.msw_o&1),"cache prelude unexpectedly enabled PE");
         check(d.seg_limits_o==0xffffffffffffffffULL && d.seg_access_o==0x93939393 && d.seg_valid_o==15,
               "real-cache limits/usability/A14 attributes");
@@ -280,6 +283,75 @@ struct Bench {
 #include "hardware_replay.h"
 #include "undefined_opcode_cases.h"
 #include "protection_fault_cases.h"
+
+// LOADALL (0F 05h): Intel "Undocumented iAPX 286 Test Instruction" pp. 1-4
+// define the 102-byte image at physical 000800h and its field offsets. The
+// expected state below is written from that table, not from the RTL.
+static void loadall_contract() {
+    unsigned runs=0;
+    for (bool wait:{false,true}) {
+        Bench b; b.canonical_real_caches=false;
+        b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+        b.put(0xf0100,{0x0f,0x05});
+        // At the loaded CS:IP F000:0110 (CS cache base 0F0000h):
+        b.put(0xf0110,{0x26,0xa0,0x10,0x00,       // MOV AL,ES:[0010]
+                       0x0f,0x01,0x0e,0x00,0x09,  // SIDT [0900]
+                       0x0f,0x01,0x06,0x08,0x09,  // SGDT [0908]
+                       0xf4});
+        std::vector<uint8_t> image(102,0);
+        auto word=[&](unsigned address,uint16_t value) {
+            image[address-0x800]=uint8_t(value); image[address-0x7ff]=uint8_t(value>>8);
+        };
+        auto cache=[&](unsigned address,uint32_t base,uint8_t access,uint16_t limit) {
+            for (unsigned i=0;i<3;++i) image[address-0x800+i]=uint8_t(base>>(8*i));
+            image[address-0x800+3]=access; word(address+4,limit);
+        };
+        word(0x806,0xfff0); word(0x816,0x0028); word(0x818,0x0893); word(0x81a,0x0110);
+        word(0x81c,0x0030); word(0x81e,0x0000); word(0x820,0x0050); word(0x822,0xf000);
+        word(0x824,0x1234); word(0x826,0x7777); word(0x828,0x6666); word(0x82a,0x5555);
+        word(0x82c,0x8000); word(0x82e,0x3333); word(0x830,0x2222); word(0x832,0x1111);
+        word(0x834,0x0000);
+        cache(0x836,0x123450,0x93,0xffff);   // ES above 1 MB (HIMEM-style)
+        cache(0x83c,0x0f0000,0x9b,0xffff);   // CS
+        cache(0x842,0x000500,0x93,0xffff);   // SS
+        cache(0x848,0x000000,0x93,0xffff);   // DS
+        cache(0x84e,0x012340,0x00,0x0047);   // GDTR
+        cache(0x854,0x005000,0x82,0x0fff);   // LDT
+        cache(0x85a,0x002000,0x00,0x01ff);   // IDTR
+        cache(0x860,0x006000,0x81,0x002b);   // TSS
+        for (unsigned i=0;i<image.size();++i) b.memory[0x800+i]=image[i];
+        b.memory[0x123460]=0xa5;
+        b.reset(); b.step(0xfffff0,0xea,0xf000,0x0100,wait);
+        b.data_transfers.clear();
+        b.step(0xf0100,0x0f,0xf000,0x0110,wait);
+        check(b.data_transfers.size()==102,"LOADALL did not read exactly 102 bytes");
+        for (unsigned i=0;i<102;++i)
+            check(b.data_transfers[i].address==0x800+i && !b.data_transfers[i].write &&
+                  !b.data_transfers[i].io,"LOADALL read outside its ascending 800h-865h image");
+        const uint16_t want_regs[8]={0x0000,0x1111,0x2222,0x3333,0x8000,0x5555,0x6666,0x7777};
+        for (unsigned r=0;r<8;++r) check(b.reg(r)==want_regs[r],"LOADALL general register");
+        check(b.d.segs_o==(0x1234ULL|(0xf000ULL<<16)|(0x0050ULL<<32)),"LOADALL selectors");
+        check(b.cache_base(0)==0x123450 && b.cache_base(1)==0x0f0000 &&
+              b.cache_base(2)==0x000500 && b.cache_base(3)==0,"LOADALL descriptor-cache bases");
+        check(b.d.seg_limits_o==0xffffffffffffffffULL && b.d.seg_access_o==0x93939b93 &&
+              b.d.seg_valid_o==15,"LOADALL descriptor-cache limits/access");
+        check(b.d.flags_o==0x0893 && b.d.msw_o==0xfff0 && b.d.ip_o==0x0110 &&
+              b.d.cs_base_o==0x0f0000,"LOADALL FLAGS/MSW/IP");
+        b.data_transfers.clear();
+        b.step(0xf0110,0xa0,0xf000,0x0114,wait);
+        check((b.reg(0)&0xff)==0xa5 && b.data_transfers.size()==1 &&
+              b.data_transfers[0].address==0x123460,"LOADALL ES cache base not used above 1 MB");
+        b.step(0xf0114,0x0f,0xf000,0x0119,wait);
+        b.step(0xf0119,0x0f,0xf000,0x011e,wait);
+        const uint8_t idtr[]={0xff,0x01,0x00,0x20,0x00},gdtr[]={0x47,0x00,0x40,0x23,0x01};
+        for (unsigned i=0;i<5;++i)
+            check(b.memory[0x900+i]==idtr[i] && b.memory[0x908+i]==gdtr[i],"LOADALL IDTR/GDTR");
+        b.step(0xf011e,0xf4,0xf000,0x011f,wait);
+        ++runs;
+    }
+    check(runs==2,"LOADALL contract missed a READY mode");
+    std::cout<<"PASS: LOADALL loads the Intel 800h image (registers, selectors, caches, GDTR/IDTR) and an above-1MB ES cache in both READY modes\n";
+}
 
 static void directed(bool wait) {
     Bench b;
@@ -8244,10 +8316,12 @@ static void protected_iopl_controls() {
     check(matrix_cases==256,"direct I/O privilege matrix missed an opcode/CPL/IOPL/READY case");
 
     // A35: Intel's undocumented-opcode note gives 0F 04h/05h exception 13 in
-    // protected mode when CPL is not 0. At CPL 0 they stay a stop boundary.
+    // protected mode when CPL is not 0. At CPL 0, 0F 04h stays a stop
+    // boundary; 0F 05h is LOADALL and has its own contract test.
     unsigned loadall_cases=0;
     for (bool wait:{false,true}) for (uint8_t second:{uint8_t(0x04),uint8_t(0x05)})
       for (unsigned cpl=0;cpl<4;++cpl) {
+        if (cpl==0 && second==0x05) continue;
         Bench b;
         const Context context=prepare(b,wait,cpl,0,{0x0f,second,0xf4});
         b.data_transfers.clear();
@@ -8261,7 +8335,7 @@ static void protected_iopl_controls() {
             }
         }
         if (cpl==0) check(b.d.fault_o && b.d.fault_code_o==1 && !event_seen && b.retired==retired_before,
-                          "CPL0 0F 04/05 did not stop at the development boundary");
+                          "CPL0 0F 04 did not stop at the development boundary");
         else check(handler_entered && b.d.event_vector_o==13 && b.d.event_packet_error_valid_o &&
                    b.d.event_packet_error_code_o==0 &&
                    b.d.event_packet_saved_cs_o==(context.level.cs|uint16_t(cpl)) &&
@@ -8269,7 +8343,7 @@ static void protected_iopl_controls() {
                    "CPL>0 0F 04/05 did not raise #GP(0)");
         ++loadall_cases;
     }
-    check(loadall_cases==16,"0F 04/05 privilege matrix incomplete");
+    check(loadall_cases==14,"0F 04/05 privilege matrix incomplete");
 
     struct StringCase { uint8_t opcode; bool input,word; };
     const StringCase string_cases[]={
@@ -14171,7 +14245,7 @@ int main(int argc, char** argv) {
     Verilated::commandArgs(argc,argv);
     try {
         if (argc==3 && std::string(argv[1])=="--hardware") hardware_vectors(argv[2]);
-        else if (argc==2 && std::string(argv[1])=="--ud") undefined_opcode_contracts();
+        else if (argc==2 && std::string(argv[1])=="--ud") undefined_opcode_contracts(); else if (argc==2 && std::string(argv[1])=="--loadall") loadall_contract();
         else if (argc==2 && std::string(argv[1])=="--protection") protection_fault_contracts();
         else if (argc==2 && std::string(argv[1])=="--references") reference_routing_contracts();
         else if (argc==2 && std::string(argv[1])=="--caches") cache_state_contracts();
@@ -14241,7 +14315,7 @@ int main(int argc, char** argv) {
         else if (argc==3 && std::string(argv[1])=="--bios-decimal") vectors(argv[2],false,true);
         else if (argc==2 && std::string(argv[1])=="--processor-extension") processor_extension_contract();
         else {
-            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); stack_wrap_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); processor_extension_data_channel(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_delivery_faults(); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_jump(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix();
+            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); loadall_contract(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); stack_wrap_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); processor_extension_data_channel(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_delivery_faults(); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_jump(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix();
             std::cout << "PASS: 80286 bootstrap reset, register aliases, flags, exact branches, stalls and diagnostic boundaries\n";
         }
     } catch (const std::exception& error) {

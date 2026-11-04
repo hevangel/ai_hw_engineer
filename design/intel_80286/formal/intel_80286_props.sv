@@ -21,6 +21,11 @@
          event_packet.saved_ip==$past(event_packet.instruction_retired ? \
                                       instruction_ip : event_packet.saved_ip))))
     logic past_valid = 0;
+    // Ghost: set once a LOADALL commits, cleared by reset.
+    logic f_loadall_caches = 0;
+    always_ff @(posedge clk)
+        if (!rst_n) f_loadall_caches<=0;
+        else if (state==LOADALL_COMMIT) f_loadall_caches<=1;
     // A37: real-mode POP m whose destination check fails keeps SP+2.
     wire i286p_pop_memory_fault = state==MEMORY_CHECK && !msw[0] && !data_reference_allow &&
         opcode==8'h8f && memory_return==COMMIT_MEMORY &&
@@ -146,8 +151,10 @@
             if (rst_n && $past(rst_n && state==MEMORY_CHECK && !data_reference_allow))
                 assert(!protected_ret_active && !ret_outer_active &&
                        !ret_outer_preflight_done && !ret_outer_ss_ready);
-            if (rst_n && !msw[0]) begin
+            if (rst_n && !msw[0] && !f_loadall_caches) begin
                 // ASSUMPTION A14 applies to the inherited real-mode cache only, after reset.
+                // LOADALL may load any real-mode caches (Intel LOADALL memo),
+                // so the canonical form holds only until the first LOADALL.
                 assert(seg_limits_o==64'hffffffffffffffff && seg_access_o==32'h93939393 && seg_valid_o==4'hf);
                 assert(es_base=={4'h0,es,4'h0} && ss_base=={4'h0,ss,4'h0} && ds_base=={4'h0,ds,4'h0});
                 assert(cs_base=={4'h0,cs,4'h0} || (cs==16'hf000 && cs_base==24'hff0000));
@@ -254,7 +261,7 @@
                 state==CODE_LOAD_WAIT || state==SEGMENT_LOAD_WAIT || state==WAIT_BUSY ||
                 // ESC register save and task entry retire after this list
                 // was first written.
-                state==ESC_REG_DONE || state==TASK_ENTRY_COMMIT)));
+                state==ESC_REG_DONE || state==TASK_ENTRY_COMMIT || state==LOADALL_COMMIT)));
             if (state == SHIFT) assert(shift_remaining != 0);
             if (state == SHIFT) assert(shift_op);
             if (rst_n && $past(rst_n &&
@@ -265,8 +272,32 @@
             end
             // Later states include WAIT_BUSY, direct task-switch paths and
             // the ESC command phase, the extension data channel and the real-mode
-            // wrapped far-return frame; RM_FRAME_3 is the highest encoding.
-            assert(state <= RM_FRAME_3);
+            // wrapped far-return frame and LOADALL; LOADALL_COMMIT is the
+            // highest encoding.
+            assert(state <= LOADALL_COMMIT);
+            // LOADALL reads its 102-byte physical image in 17 chunks of six
+            // bytes from 000800h, only for 0F 05h outside CPL>0 (Intel note).
+            if (rst_n && (state==LOADALL_READ || state==LOADALL_COMMIT ||
+                          ((state==BUS || state==MEMORY_CHECK) && memory_return==LOADALL_READ))) begin
+                assert(opcode==8'h0f && system_opcode==8'h05 && (!msw[0] || cs[1:0]==0));
+                assert(!event_delivery_active && !task_switch_active && !retire_o);
+                assert(loadall_index<=5'd16);
+            end
+            // A35: decode already rejected 0F 05h at protected CPL>0, and CPL
+            // cannot change before it executes.
+            if (rst_n && opcode==8'h0f && system_opcode==8'h05 &&
+                (state==IMMEDIATE || state==PREPARE || state==EXECUTE))
+                assert(!msw[0] || cs[1:0]==0);
+            // LOADALL has no ModRM operand, so no operand read returns to EXECUTE.
+            if (rst_n && opcode==8'h0f && system_opcode==8'h05 &&
+                (state==BUS || state==MEMORY_CHECK))
+                assert(memory_return!=EXECUTE && memory_return!=COMMIT_MEMORY);
+            if (rst_n && (state==BUS || state==MEMORY_CHECK) && memory_return==LOADALL_READ)
+                assert(state==BUS && !memory_segmented && !memory_write && !memory_io &&
+                       memory_size==6 &&
+                       memory_address-({21'd0,memory_size}-{21'd0,memory_remaining})==
+                           24'h000800+24'd6*{19'd0,loadall_index});
+            if (rst_n && state==LOADALL_COMMIT) assert(loadall_index==5'd16);
             // The wrapped frame path serves only real-mode IRET/RETF.
             if (rst_n && (state==RM_FRAME_1 || state==RM_FRAME_2 || state==RM_FRAME_3 ||
                           ((state==BUS || state==MEMORY_CHECK) &&
@@ -861,7 +892,7 @@
                    memory_return == PEDC_MEM_DONE || memory_return == PEDC_IO_DONE ||
                    memory_return == PEDC_DONE ||
                    memory_return == RM_FRAME_1 || memory_return == RM_FRAME_2 ||
-                   memory_return == RM_FRAME_3 ||
+                   memory_return == RM_FRAME_3 || memory_return == LOADALL_READ ||
                    memory_return == TASK_GATE_TSS_TAIL || memory_return == TASK_GATE_TSS_CHECK ||
                    memory_return == TASK_LDT_VALIDATE || memory_return == TASK_ENTRY_COMMIT ||
                    memory_return == TASK_RETURN_LINK_CHECK ||
@@ -916,7 +947,7 @@
                 assert(({1'b0,memory_index}+{1'b0,memory_remaining})<=6);
                 if (opcode==8'h0f)
                     assert(memory_return==EXECUTE || memory_return==COMMIT_MEMORY ||
-                            memory_return==SYSTEM_DONE ||
+                            memory_return==SYSTEM_DONE || memory_return==LOADALL_READ ||
                             // Extension-channel words are served at a boundary
                             // with the previous instruction's opcode still held.
                             memory_return==PEDC_MEM_DONE || memory_return==PEDC_IO_DONE ||
@@ -1323,9 +1354,17 @@
                 end
             end
             if (rst_n && $past(rst_n) && (!$stable(gdt_base) || !$stable(gdt_limit)))
-                assert(retire_o && $past(state==EXECUTE && opcode==8'h0f && system_opcode==1 && modrm[5:3]==2));
+                assert(retire_o && ($past(state==EXECUTE && opcode==8'h0f && system_opcode==1 && modrm[5:3]==2) ||
+                                    $past(state==LOADALL_COMMIT)));
             if (rst_n && $past(rst_n) && (!$stable(idt_base) || !$stable(idt_limit)))
-                assert(retire_o && $past(state==EXECUTE && opcode==8'h0f && system_opcode==1 && modrm[5:3]==3));
+                assert(retire_o && ($past(state==EXECUTE && opcode==8'h0f && system_opcode==1 && modrm[5:3]==3) ||
+                                    $past(state==LOADALL_COMMIT)));
+            // LOADALL loads GDTR/IDTR from 84Eh/85Ah of its image (Intel table).
+            if (rst_n && $past(rst_n && state==LOADALL_COMMIT)) begin
+                assert(gdt_base==$past(loadall_image[624 +: 24]) && gdt_limit==$past(loadall_image[656 +: 16]));
+                assert(idt_base==$past(loadall_image[720 +: 24]) && idt_limit==$past(loadall_image[752 +: 16]));
+                assert(msw[0]==$past(msw[0] | loadall_image[48]));
+            end
             if (retire_o && $past(state == EXECUTE && opcode == 8'h9e)) begin
                 assert((flags_o & 16'h00d5) == ($past(gpr[0]) >> 8 & 16'h00d5));
                 assert((flags_o & 16'hff2a) == ($past(flags_o) & 16'hff2a));

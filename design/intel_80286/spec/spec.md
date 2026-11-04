@@ -196,12 +196,25 @@ ASSUMPTION A35: the same Intel note lists the only exclusions from "any
 undefined opcode causes exception 6". F1h is a prefix with no function that
 counts toward the ten-byte limit. 0F 04h and 0F 05h raise exception 13 with
 error code 0 in protected mode at CPL>0. Every other undefined opcode,
-including 65h-67h and 0F 07h-FFh, raises exception 6. The note's text for
-0F 04h/05h is inconsistent (it names LOADALL as 0F04h, then says 0F05h stops
-normal execution yet "may be executed at any time" in real mode), so real
-mode and CPL 0 remain a stop boundary (`fault_code_o=1`) until LOADALL is
-implemented from an independent source. No physical captures exist for these
-opcodes in the pinned SingleStepTests revision.
+including 65h-67h and 0F 07h-FFh, raises exception 6. The exception note
+swaps the two encodings (it names LOADALL 0F04h, then says 0F05h "stops
+normal execution"). The same document's LOADALL section (pp. 1-4,
+[PCjs copy](https://www.pcjs.org/documents/manuals/intel/80286/loadall/))
+encodes LOADALL as 0F 05h. So 0F 05h executes LOADALL in real mode and at
+CPL 0, and 0F 04h in real mode or at CPL 0 remains a stop (`fault_code_o=1`).
+No physical captures exist for these opcodes in the pinned SingleStepTests
+revision.
+
+LOADALL reads the 102-byte image at physical 000800h-000865h in ascending
+order and loads every register from Intel's field table. That includes the
+ES/CS/SS/DS, LDT and TSS descriptor caches and the GDTR and IDTR. Each
+cache's access-byte present bit becomes its valid bit, and MSW.PE stays set
+once set. ASSUMPTION A41: the core keeps using the CS selector RPL as CPL,
+whereas Intel defines CPL as the CS cache DPL after LOADALL. The two differ
+only for an image whose CS selector RPL differs from its CS cache DPL. The
+core also uses the trusted-CS fetch rule, so an execute-only, execute/read
+or writable-data CS cache can all fetch. The TSS and LDT cache access bytes
+supply only their valid bits.
 
 ASSUMPTION A34: undocumented opcodes follow Intel's "Undocumented iAPX 286
 Test Instruction" note (pp. 13-14, [PCjs copy](https://www.pcjs.org/documents/manuals/intel/80286/exceptions/)):

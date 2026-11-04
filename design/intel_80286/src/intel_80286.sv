@@ -109,7 +109,8 @@ module intel_80286 #(
                      ESC_REG_CS=112, ESC_REG_DONE=113,
                      ESC_MEM_OFFSET=114, ESC_MEM_SEGMENT=115,
                      PEDC_START=116, PEDC_MEM_DONE=117, PEDC_IO_DONE=118, PEDC_DONE=119,
-                     RM_FRAME_1=120, RM_FRAME_2=121, RM_FRAME_3=122;
+                     RM_FRAME_1=120, RM_FRAME_2=121, RM_FRAME_3=122,
+                     LOADALL_READ=123, LOADALL_COMMIT=124;
     logic [6:0] state, memory_return;
     typedef struct packed {
         logic valid;
@@ -323,6 +324,15 @@ module intel_80286 #(
     logic repeat_valid, repeat_ne;
     logic [15:0] string_value, string_delta;
     logic decimal_op, aam_op;
+    // LOADALL image: chunk k holds physical bytes 800h+6k .. 805h+6k.
+    logic [815:0] loadall_image;
+    logic [4:0] loadall_index;
+    // Intel marks 800h-805h, 808h-815h and the GDTR/IDTR byte 3 unused; the
+    // LDT/TSS access bytes only supply their valid bits here.
+    logic loadall_unused;
+    assign loadall_unused=^{loadall_image[798:792],loadall_image[751:744],
+                            loadall_image[702:696],loadall_image[655:648],
+                            loadall_image[175:52],loadall_image[47:0]};
     logic [15:0] aam_zero_flags;
     assign aam_zero_flags = (flags & 16'hf72a) |
                             {9'd0, gpr[0][7:1]==7'd0, 3'd0, ~^gpr[0][7:1], 2'd0};
@@ -1090,7 +1100,7 @@ module intel_80286 #(
         case (opcode)
             8'h0f: opcode_valid=system_opcode==8'h00 || system_opcode==8'h01 ||
                                  system_opcode==8'h02 || system_opcode==8'h03 ||
-                                 system_opcode==8'h06;
+                                 system_opcode==8'h05 || system_opcode==8'h06;
             8'hea,8'he9,8'heb,8'hf4,8'hf5,8'hf8,8'hf9,8'hfa,8'hfb,8'hfc,8'hfd,
             8'h60,8'h61,8'h9a,8'h9b,8'hca,8'hcb,8'hcc,8'hcd,8'hce,8'hcf,8'hc8,8'hc9,8'hd7,
             8'hd6: opcode_valid = 1;
@@ -1312,6 +1322,7 @@ module intel_80286 #(
             for (integer r=0; r<8; r=r+1) gpr[r] <= 0;
             instruction_ip <= 0; instruction_pc <= 0; opcode <= 0; modrm <= 0;
             system_opcode<=0; msw<=16'hfff0; idt_base<=0; idt_limit<=16'h03ff;
+            loadall_image<=0; loadall_index<=0;
             // ASSUMPTION A17: reset exposes deterministic null LDTR/TR selectors and
             // invalid zeroed descriptor caches; Intel's 286 reset docs do not specify these values.
             ldtr_selector<=0; tr_selector<=0; ldtr_base<=0; tr_base<=0;
@@ -1875,6 +1886,13 @@ module intel_80286 #(
                                         1'b0,1'b0,3'd6,32'd0,SYSTEM_DESC_MORE);
                                 end
                             end
+                        else if (system_opcode==8'h05) begin
+                            // LOADALL (Intel "Undocumented iAPX 286 Test Instruction"
+                            // pp. 1-4): read 102 bytes at physical 000800h in 17
+                            // six-byte chunks, then load the whole CPU state.
+                            loadall_index<=0; retire_o<=0;
+                            memory_start(1'b0,2'd0,16'd0,24'h000800,1'b0,1'b0,3'd6,32'd0,LOADALL_READ);
+                        end
                         else if (system_opcode==8'h06) msw[3]<=0;
                         else if (system_table) begin
                             if (!modrm[4]) begin
@@ -3655,6 +3673,51 @@ module intel_80286 #(
                 end
                 LEAVE_DONE: begin
                     gpr[4]<=gpr[5]+16'd2; gpr[5]<=memory_result[15:0]; state<=BOUNDARY;
+                    retire_o<=1; retire_pc_o<=instruction_pc; retire_opcode_o<=opcode;
+                end
+                LOADALL_READ: begin
+                    loadall_image[loadall_index*48 +: 48]<=memory_result[47:0];
+                    if (loadall_index==5'd16) state<=LOADALL_COMMIT;
+                    else begin
+                        loadall_index<=loadall_index+5'd1;
+                        memory_start(1'b0,2'd0,16'd0,24'h000800+24'd6*{19'd0,loadall_index+5'd1},
+                                     1'b0,1'b0,3'd6,32'd0,LOADALL_READ);
+                    end
+                end
+                LOADALL_COMMIT: begin
+                    // Field offsets from 800h follow Intel's LOADALL memory-area
+                    // table; caches are base[23:0], access byte, limit[15:0], and
+                    // the access byte's present bit is the cache valid bit.
+                    // MSW.PE stays set once set (only RESET returns to real mode).
+                    msw<={msw[15:4],loadall_image[49 +: 3],loadall_image[48] | msw[0]};
+                    tr_selector<=loadall_image[176 +: 16];
+                    flags<=(loadall_image[192 +: 16] & 16'h7fd5) | 16'h0002;
+                    ip<=loadall_image[208 +: 16];
+                    ldtr_selector<=loadall_image[224 +: 16];
+                    ds<=loadall_image[240 +: 16]; ss<=loadall_image[256 +: 16];
+                    cs<=loadall_image[272 +: 16]; es<=loadall_image[288 +: 16];
+                    gpr[7]<=loadall_image[304 +: 16]; gpr[6]<=loadall_image[320 +: 16];
+                    gpr[5]<=loadall_image[336 +: 16]; gpr[4]<=loadall_image[352 +: 16];
+                    gpr[3]<=loadall_image[368 +: 16]; gpr[2]<=loadall_image[384 +: 16];
+                    gpr[1]<=loadall_image[400 +: 16]; gpr[0]<=loadall_image[416 +: 16];
+                    es_base<=loadall_image[432 +: 24]; cache_access[7:0]<=loadall_image[456 +: 8];
+                    cache_limits[15:0]<=loadall_image[464 +: 16]; cache_valid[0]<=loadall_image[463];
+                    cs_base<=loadall_image[480 +: 24]; cache_access[15:8]<=loadall_image[504 +: 8];
+                    cache_limits[31:16]<=loadall_image[512 +: 16]; cache_valid[1]<=loadall_image[511];
+                    ss_base<=loadall_image[528 +: 24]; cache_access[23:16]<=loadall_image[552 +: 8];
+                    cache_limits[47:32]<=loadall_image[560 +: 16]; cache_valid[2]<=loadall_image[559];
+                    ds_base<=loadall_image[576 +: 24]; cache_access[31:24]<=loadall_image[600 +: 8];
+                    cache_limits[63:48]<=loadall_image[608 +: 16]; cache_valid[3]<=loadall_image[607];
+                    gdt_base<=loadall_image[624 +: 24]; gdt_limit<=loadall_image[656 +: 16];
+                    ldtr_base<=loadall_image[672 +: 24]; ldtr_limit<=loadall_image[704 +: 16];
+                    ldtr_valid<=loadall_image[703];
+                    idt_base<=loadall_image[720 +: 24]; idt_limit<=loadall_image[752 +: 16];
+                    tr_base<=loadall_image[768 +: 24]; tr_limit<=loadall_image[800 +: 16];
+                    tr_valid<=loadall_image[799];
+                    // Intel allows an execute-only, execute/read or writable
+                    // data CS cache, so fetches use the trusted CS role.
+                    cs_trusted<=1'b1;
+                    state<=BOUNDARY;
                     retire_o<=1; retire_pc_o<=instruction_pc; retire_opcode_o<=opcode;
                 end
                 STRING_START: begin
