@@ -29,13 +29,15 @@ and the ZEXALL/ZEXDOC exercisers, and a native M-cycle engine whose cycle
 shapes and T-state counts are checked against the manufacturer timing tables.
 The native engine is what the dependent TRS-80 Model I system will use.
 
-**Status: byte ALU implemented and verified; instruction sequencer not started.**
-`src/zilog_z80_alu.sv` and `src/zilog_z80_pkg.sv` exist and the ALU matches the
-independent superzazu/z80 emulator over 648,328 cases with 0 mismatches
-(`scripts/run_alu.sh`; the `--negative-control` run rejects all cases after a
-one-bit expectation flip). There is no instruction sequencer, no top-level bus
-interface, no formal property and no synthesis result, so nothing here claims a
-working CPU. Details and open gates are in the report.
+**Status: register-execution core implemented and verified; memory, stack, index
+and ED-page instructions outstanding.** `src/zilog_z80_pkg.sv`,
+`src/zilog_z80_alu.sv` and `src/zilog_z80.sv` exist. Two gates pass against the
+pinned superzazu/z80 emulator: the byte ALU over 648,328 cases with 0 mismatches
+(with a negative control that rejects every perturbed case), and the instruction
+core over 1,612 executions with 0 mismatches. Encodings outside the current
+subset raise `fault_o` rather than executing wrongly. There is still no formal
+proof, exerciser run, historical software run or synthesis result, so nothing
+here claims a working or verified CPU. Details and open gates are in the report.
 
 - [Specification and assumption ledger](spec/spec.md)
 - [Implementation plan](plans/implementation_plan.md)

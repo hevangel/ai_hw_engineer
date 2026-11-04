@@ -2,17 +2,26 @@
 
 ## 1. Executive summary
 
-**Milestone 2: byte ALU implemented and differentially verified.** The folder
-contains the source-backed specification, the implementation, test and formal
-plans, the source and oracle provenance record, the vendored pinned oracle, and
-the first RTL unit: `src/zilog_z80_alu.sv` with `src/zilog_z80_pkg.sv`.
+**Milestone 3: register-execution core implemented and differentially verified.**
+The folder contains the source-backed specification, the plans, the provenance
+record, the vendored pinned oracle, and these RTL units: `src/zilog_z80_pkg.sv`,
+`src/zilog_z80_alu.sv` and `src/zilog_z80.sv` (transaction-bus core with fetch,
+prefix handling, decode and the register-only instruction subset).
 
-The ALU matches the independent superzazu/z80 emulator over 648,328 cases with
-0 mismatches, and the harness' negative control rejects all 648,328 cases after
-a one-bit expectation flip. The instruction sequencer, top-level bus interface,
-testbench for whole instructions, formal properties and synthesis are **not yet
-implemented**; no whole-instruction, exerciser, software or synthesis claim is
-made.
+Two independent gates pass against the pinned superzazu/z80 emulator:
+
+- Byte ALU: 648,328 cases, 0 mismatches; negative control rejects
+  648,328/648,328 perturbed cases.
+- Instruction core: 1,612 instruction executions compared (each from a
+  randomized prologue state, comparing A/F/alternates/BC/DE/HL/SP/PC/R/IFF/IM/
+  halt), 0 mismatches; 77 encodings outside this milestone's subset fault as
+  designed.
+
+**Not implemented yet:** memory operands `(HL)`/`(BC)`/`(DE)`/`(nn)`, the stack
+(PUSH/POP/CALL/RET/RST), IX/IY and the DD/FD pages, the ED page, block
+instructions, I/O, and interrupt entry. Those encodings raise `fault_o` instead
+of executing wrongly. Formal properties, ZEXDOC/ZEXALL, historical software,
+native timing and synthesis are also outstanding and are reported as such.
 
 ## 2. Design overview
 
@@ -31,12 +40,13 @@ made.
 |---|---|---|
 | ALU differential vs pinned oracle | **PASS**, 648,328 cases, 0 mismatches | `scripts/run_alu.sh`, Verilator 5.052 in the project tool image |
 | ALU negative control | **PASS**, 648,328/648,328 rejected | `run_alu.sh --negative-control` |
-| Verilator lint (whole core) | Not run | core top does not exist yet |
+| Instruction differential | **PASS**, 1,612 compared, 0 mismatches, 77 unimplemented | `scripts/run_instr.sh` |
+| Verilator lint (core) | Clean, warnings only (unused params/signals) | `verilator --lint-only -Wall` |
 | Formal (bmc/prove/cover) | Not run | no properties or `.sby` exist |
-| Instruction simulation / UVM | Not run | no instruction-level testbench exists |
-| ZEXDOC / ZEXALL / z80test | Not run | exercisers not yet obtained |
-| Historical software | Not run | no CP/M harness yet |
-| Synthesis | Not run | no synthesizable top yet |
+| UVM environment | Not run | not written |
+| ZEXDOC / ZEXALL / z80test | Not run | needs memory/stack instructions first |
+| Historical software | Not run | needs CALL/RET/stack and CP/M harness |
+| Synthesis | Not run | top is not yet synthesizable-complete (fault path is fine, subset is not) |
 | Native timing comparison | Not run | native engine not started |
 
 The `scripts/` directory holds the repository's scaffolded entry points
@@ -48,25 +58,25 @@ simulation when no sources exist and have not been exercised by this design.
 
 | Item | Impact | Status |
 |---|---|---|
-| Instruction sequencer and bus top absent | only the ALU is verified end to end | next milestone |
+| Memory-indirect, stack, CALL/RET/RST, IX/IY, DD/FD, ED, block and I/O instructions absent | the core cannot run a program yet | next milestone; they fault |
 | DAA verified in context only | standalone DAA after an arbitrary F byte is undefined hardware behavior (internal carry/half-carry latches); the harness drives a real ADD/SUB first | documented limitation |
-| Undocumented F3/F5 table not yet extracted for the whole ISA | per-opcode contract for the sequencer | phase-0 task |
-| ZEXALL/ZEXDOC/z80test not yet obtained | no exerciser gate | phase-0 task |
+| SCF/CCF F3/F5 from A, no Q latch | matches the pinned oracle and the common ZEXALL expectation; hardware Q behavior is a later refinement | documented assumption |
+| EI delay and interrupt entry not modelled | EI takes effect immediately | documented assumption |
+| Undocumented F3/F5 table not yet extracted for memory/ED forms | per-opcode contract beyond this subset | phase-0 task |
+| ZEXALL/ZEXDOC/z80test not yet obtained | no exerciser gate | needs the fuller core first |
 | `OUT (C),0` data byte (NMOS 0xFF vs CMOS 0x00) | pin-level data value | open assumption, ledger row |
-| R increment on interrupt acknowledge | refresh counter value | open assumption, ledger row |
 | NMOS minimum clock frequency | sub-minimum-clock behavior | open, native engine boundary |
-| Timing tables are 2016 reformatting until a dated manual is pinned | pin-level citations | phase-0 mitigation |
 
 ## 5. Open items mapped to the issue's acceptance criteria
 
 - [ ] Source-backed specification and assumption ledger — **specification
       written**; assumption rows still open
-- [ ] Implementation plan and synthesizable SystemVerilog — plan written; ALU
-      implemented and verified, sequencer and top absent
-- [ ] Independent oracle and real historical software — oracle vendored and in
-      use for the ALU; exercisers and software not yet run
-- [ ] Lint, simulation, formal with reachable covers, synthesis — none run for
-      the core
+- [ ] Implementation plan and synthesizable SystemVerilog — register-execution
+      core implemented and verified; memory/stack/index/ED pages absent
+- [ ] Independent oracle and real historical software — oracle vendored and
+      driving two differential gates; exercisers and software not yet run
+- [ ] Lint, simulation, formal with reachable covers, synthesis — lint clean;
+      formal and synthesis not run
 - [ ] Native timing, analog approximations and physical validation qualified —
       boundaries stated, nothing measured
 
@@ -74,10 +84,10 @@ simulation when no sources exist and have not been exercised by this design.
 
 | Criterion | Status |
 |---|---|
-| RTL frozen | no; ALU only |
+| RTL frozen | no; register-execution subset |
 | Formal clean | not run |
-| Simulation coverage met | not run |
-| Lint clean | not run for the core |
+| Simulation coverage met | differential gates pass; coverage not measured |
+| Lint clean | clean with warnings |
 | Synthesis clean | not run |
 
 This report is replaced as milestones land; each entry will cite the exact
