@@ -23,6 +23,7 @@
     logic past_valid = 0;
     logic protected_event_path_state;
     logic protected_call_path_state;
+    logic protected_call_path_return;
     logic event_delivery_path_state;
     logic nested_df_idt_limit_escalation;
     logic witnessed_async, witnessed_halt, witnessed_rep, rep_progress;
@@ -44,6 +45,13 @@
             state==CALL_STACK_WRITE_RETURN || state==CALL_PARAM_READ ||
             state==CALL_PARAM_WRITE || state==CALL_PARAM_NEXT ||
             state==CALL_GATE_COMMIT || state==CALL_DESC_FINAL;
+        protected_call_path_return = (state==BUS || state==MEMORY_CHECK) &&
+            (memory_return==CALL_DESC_TAIL || memory_return==CALL_DESC_CHECK ||
+             memory_return==CALL_FRAME_READY || memory_return==CALL_TSS_PAIR ||
+             memory_return==CALL_STACK_WRITE_OLD_SP || memory_return==CALL_STACK_WRITE_OLD_CS ||
+             memory_return==CALL_STACK_WRITE_RETURN || memory_return==CALL_PARAM_READ ||
+             memory_return==CALL_PARAM_WRITE || memory_return==CALL_PARAM_NEXT ||
+             memory_return==CALL_GATE_COMMIT || memory_return==CALL_DESC_FINAL);
         // Event delivery through a task gate stays active until
         // TASK_ENTRY_COMMIT, so the task-switch path is part of it.
         event_delivery_path_state = protected_event_path_state ||
@@ -472,13 +480,21 @@
                 assert(!task_switch_jump && !task_switch_instruction && task_switch_nested &&
                        !task_return_active);
             // The far-transfer kind recorded for a CALL/JMP matches its opcode.
-            if (rst_n && (protected_call_path_state ||
-                          ((state==BUS || state==MEMORY_CHECK) &&
-                           (memory_return==CALL_DESC_TAIL || memory_return==CALL_DESC_FINAL))))
+            if (rst_n && (protected_call_path_state || protected_call_path_return ||
+                          (protected_call_stack_active && state!=STOPPED) ||
+                          (state==CODE_LOAD_WAIT && code_load_target==3)))
                 assert(protected_call_direct_jump==far_jump);
+            // A gate JMP reloads CS through target 0, so target 3 and the
+            // inner-stack switch belong to CALL only.
+            if (rst_n && ((state==CODE_LOAD_WAIT && code_load_target==3) ||
+                          state==CALL_TSS_PAIR || state==CALL_STACK_SELECT ||
+                          ((state==BUS || state==MEMORY_CHECK) && memory_return==CALL_TSS_PAIR) ||
+                          (protected_call_stack_active && state!=STOPPED)))
+                assert(!protected_call_direct_jump);
             // A task JMP is a far JMP (EA or FF /5).
             if (rst_n && task_switch_active && task_switch_jump && state!=STOPPED)
-                assert(opcode==8'hea || (opcode==8'hff && modrm[5:3]==3'd5));
+                assert(opcode==8'hea ||
+                       (opcode==8'hff && modrm[5:3]==3'd5 && modrm[7:6]!=2'b11));
             // The task-return (IRET with NT) checks run only inside a live task
             // return, started by IRET.
             if (rst_n && (state==TASK_RETURN_LINK || state==TASK_RETURN_LINK_CHECK ||
@@ -901,11 +917,10 @@
             end
             // The same opcode ownership holds in the transfer states themselves,
             // so induction cannot start a far transfer under a foreign opcode.
-            if (rst_n && (protected_call_path_state ||
-                          ((state==BUS || state==MEMORY_CHECK) &&
-                           (memory_return==CALL_DESC_TAIL || memory_return==CALL_DESC_FINAL))))
+            if (rst_n && (protected_call_path_state || protected_call_path_return))
                 assert(opcode==8'h9a || opcode==8'hea ||
-                       (opcode==8'hff && (modrm[5:3]==3'd3 || modrm[5:3]==3'd5)));
+                       (opcode==8'hff && (modrm[5:3]==3'd3 || modrm[5:3]==3'd5) &&
+                        modrm[7:6]!=2'b11));
             // CS loads for far transfers carry their instruction's opcode:
             // target 2 is IRET, 3 a far CALL/JMP gate target, 4 a far RET.
             // Target 0 is the direct far JMP/CALL CS load from EXECUTE.
@@ -940,6 +955,12 @@
                        !protected_iret_active && !iret_outer_active &&
                        !protected_call_stack_active && !task_switch_active &&
                        !event_delivery_active && (modrm[7:6]==2'b11 || !msw[0]));
+            // Any ModRM encoding decode rejects never reaches a later stage.
+            if (rst_n && opcode_modrm &&
+                (state==DISPLACEMENT || state==AFTER_DISP || state==IMMEDIATE ||
+                 state==PREPARE || state==EXECUTE ||
+                 ((state==BUS || state==MEMORY_CHECK) && memory_return==EXECUTE)))
+                assert(modrm_valid);
             // Decode rejects MOV Sreg to CS and reg fields 4-7 before any later stage.
             if (rst_n && opcode==8'h8e &&
                 (state==DISPLACEMENT || state==AFTER_DISP || state==IMMEDIATE ||
@@ -950,7 +971,8 @@
             // and the CALL-gate stack switch belongs to its CALL instruction.
             if (rst_n && state==SEGMENT_LOAD_WAIT) assert(segment_load_target!=2'd1);
             if (rst_n && protected_call_stack_active && state!=STOPPED)
-                assert(opcode==8'h9a || opcode==8'hff);
+                assert(opcode==8'h9a ||
+                       (opcode==8'hff && modrm[5:3]==3'd3 && modrm[7:6]!=2'b11));
             // The stack-switch flag lives from the TSS SS:SP read to the gate
             // commit (or a fault through enter_event).
             if (rst_n && protected_call_stack_active)
@@ -990,7 +1012,8 @@
             // (Only a far JMP starts it; protected far CALL validates its target
             // descriptor through CALL_DESC_* instead.)
             if (rst_n && state==CODE_LOAD_WAIT && code_load_target==0)
-                assert(opcode==8'hea || (opcode==8'hff && modrm[5:3]==3'd5));
+                assert(opcode==8'hea ||
+                       (opcode==8'hff && modrm[5:3]==3'd5 && modrm[7:6]!=2'b11));
             // Far RETF/IRET and CALL-gate transfers run from an instruction the
             // CPU fetched, so the event engine never owns the bus there.
             if (rst_n && (state==RET_CODE_START || state==RET_OUTER_NEXT ||
@@ -1001,7 +1024,9 @@
                 assert(bus_owner!=2);
             if (rst_n && state==CODE_LOAD_WAIT && code_load_target==2) assert(opcode==8'hcf);
             if (rst_n && state==CODE_LOAD_WAIT && code_load_target==3)
-                assert(opcode==8'h9a || opcode==8'hea || opcode==8'hff);
+                assert(opcode==8'h9a || opcode==8'hea ||
+                       (opcode==8'hff && (modrm[5:3]==3'd3 || modrm[5:3]==3'd5) &&
+                        modrm[7:6]!=2'b11));
             if (rst_n && state==CODE_LOAD_WAIT && code_load_target==4)
                 assert(opcode==8'hca || opcode==8'hcb);
             if (rst_n && (state==RET_CODE_START || state==RET_OUTER_NEXT ||
