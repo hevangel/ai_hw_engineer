@@ -1,0 +1,16 @@
+; Index, index-skip, and the two compare-and-skip instructions.
+        law 5
+        dac 100         ; M[100] = 5
+        idx 100         ; M[100] = 6, AC = 6
+        isp 101         ; M[101] = -3 -> -2, AC = -2 (negative: no skip)
+        lac 100
+        sad 102         ; AC (6) differs from M[102] (7) -> skip
+        law 1
+        lac 100
+        sas 100         ; AC equals M[100] -> skip
+        law 2
+        hlt
+.org 0o100
+        .word 0
+        .word -3
+        .word 7

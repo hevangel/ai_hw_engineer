@@ -1,0 +1,23 @@
+; Skip group: every member plus the inverted form.
+        law 0
+        sza             ; +0 -> skip
+        law 1
+        spa             ; +1 -> skip
+        law -1
+        sma             ; -1 -> skip
+        law 0
+        szo             ; overflow clear -> skip
+        law 1
+        spi             ; IO positive (0) -> skip
+        law 5
+        i sza           ; inverted: AC zero is false -> skip
+        law 0
+        i sza           ; inverted: AC zero is true -> no skip
+        law 77
+        szs 1           ; sense switch 1 zero -> skip
+        law 0
+        szf 3           ; flag 3 zero -> skip
+        stf 3
+        szf 3           ; flag 3 set -> no skip
+        hlt
+        hlt

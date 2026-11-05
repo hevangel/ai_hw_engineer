@@ -1,0 +1,17 @@
+; Logical instructions against fixed operands.
+        law 0
+        and 30
+        ior 30
+        and 31
+        xor 31
+        ior 32
+        xor 32
+        law -0
+        and 33
+        hlt
+
+.org 0o30
+        .word 125252
+        .word 052525
+        .word 777000
+        .word 0

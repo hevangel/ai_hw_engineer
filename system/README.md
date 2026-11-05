@@ -9,6 +9,7 @@ and a host bridge for external storage, media and user input.
 | System | Year | Chips used | Folder |
 |---|---|---|---|
 | DEC PDP-8 (Am29xx bit-slice reconstruction) | 1965 | 3× Am2901, Am2910, 4K×12 core, ASR-33 console, paper tape | [pdp8_am29xx/](pdp8_am29xx/) |
+| DEC PDP-1 (Am29xx bit-slice reconstruction) | 1959 | 5× Am2901, Am2910, 4096-word core, Type 30 display, paper tape, typewriter | [pdp1_am29xx/](pdp1_am29xx/) |
 | MITS Altair 8800 | 1975 | Intel 8080, 88-SIO, front panel, 16 KiB RAM | [altair_8800/](altair_8800/) |
 | Space Invaders arcade | 1978 | Intel 8080, hardware shift register, 8 KiB ROM, 1 KiB RAM + 7 KiB VRAM | [space_invaders/](space_invaders/) |
 | Apple IIe functional virtual platform | 1983 | NMOS 6502, IIe MMU, IOU, timing PAL, 128 KiB RAM | [apple_iie/](apple_iie/) |
