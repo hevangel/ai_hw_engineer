@@ -160,3 +160,44 @@ All runs on `6cd2fbe` unless noted:
 ### Duration
 
 About 3.5 hours of wall-clock time for this continuation, judging by the log timestamps from about 13:50 to 17:20 UTC. Prove runs (about 20 minutes each) and full replays (about 20 minutes each) dominated it.
+
+
+## Continuation: 2026-11-04 to 2026-11-05 (PEDC branch, auto-nudge cycles 70-77)
+
+**Capture timestamp:** 2026-11-05T01:30:00Z
+
+### Completed work
+
+- **LOADALL (0F 05h)** (`365bc9e`): implemented from Intel's LOADALL memory-area table, with assumption A41 and a `--loadall` test.
+- **Development stops proven unreachable by k-induction:**
+  - segment-load completion and the NT far-return stops (`b8ebd69`);
+  - the code-load mismatch (`bd9cf2d`);
+  - the memory-check escalation (`f4d97ab`).
+- **JMP to an all-zero descriptor** (`bd9cf2d`): it stopped the core and now raises #GP(selector). Found while proving the code-load stop unreachable.
+- **NT flag** (`f4d97ab`, `42e53c3`):
+  - POPF and IRET load NT in protected mode.
+  - Interrupt and trap gates clear NT.
+  - Task switches follow Table 8-2.
+  - NT IRET with an invalid TSS raises #TS(back link).
+  - Post-mortem: `failure_notes/2026-11-04-intel80286-nt-flag-handling.md`.
+- **Physical replay:**
+  - Port I/O captures (48,000 records). Fixed the real-mode INS/OUTS fault state at offset FFFFh (`7e46383`).
+  - ESC/WAIT captures (10,000 records) (`fdab3a3`).
+- **PR #111:** summary comment posted.
+
+### Validation
+
+- Prove: PASS, 437 assertions.
+- `run_sim.sh`: 229 PASS.
+- Full `run_hardware.sh` on `7e46383`: PASS. The ESC/WAIT files passed in a separate replay run.
+- BMC: PASS on `6cd2fbe` and `365bc9e`. The run on `42e53c3` was still in progress at capture time.
+
+### Model-call evidence
+
+- Main thread: Claude Opus. Kiro does not expose the exact model id or call count.
+- No sub-agents were used.
+- Token counts are not exposed.
+
+### Duration
+
+About 8 hours of wall-clock time (17:20 to about 01:30 UTC). About 20 prove runs of roughly 22 minutes each dominated it.
