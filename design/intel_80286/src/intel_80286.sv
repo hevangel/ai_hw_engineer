@@ -547,8 +547,11 @@ module intel_80286 #(
                 event_packet.restartable && event_packet.vector==8) begin
                 request_shutdown();
             end else begin
-                incoming_flags=task_return_active ? (task_state_image[1]&16'hbfff) :
-                    (task_state_image[1] | (task_switch_nested ? 16'h4002 : 16'h0002));
+                // Table 8-2: incoming NT is unchanged by IRET, set by CALL/INT
+                // and cleared by JMP.
+                incoming_flags=task_return_active ? (task_state_image[1] | 16'h0002) :
+                    task_switch_nested ? (task_state_image[1] | 16'h4002) :
+                    ((task_state_image[1] & 16'hbfff) | 16'h0002);
                 gpr[0]<=task_state_image[2]; gpr[1]<=task_state_image[3];
                 gpr[2]<=task_state_image[4]; gpr[3]<=task_state_image[5];
                 gpr[4]<=task_state_image[6]; gpr[5]<=task_state_image[7];
@@ -3524,8 +3527,11 @@ module intel_80286 #(
                     es<=task_state_image[10]; cs<=task_state_image[11];
                     ss<=task_state_image[12]; ds<=task_state_image[13];
                     ip<=task_state_image[0];
-                    flags<=task_state_image[1] |
-                        ((task_return_active || !task_switch_nested) ? 16'h0002 : 16'h4002);
+                    // Table 8-2: incoming NT unchanged by IRET, set by CALL/INT,
+                    // cleared by JMP.
+                    flags<=task_return_active ? (task_state_image[1] | 16'h0002) :
+                        task_switch_nested ? (task_state_image[1] | 16'h4002) :
+                        ((task_state_image[1] & 16'hbfff) | 16'h0002);
                     ldtr_selector<=task_state_image[14];
                     ldtr_base<=task_ldtr_base;
                     ldtr_limit<=task_ldtr_limit;

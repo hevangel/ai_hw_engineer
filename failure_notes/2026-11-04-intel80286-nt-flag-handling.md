@@ -49,3 +49,26 @@ busy TSS also stopped it. App. B SWITCH_TASKS requires #TS with the new TSS
   entry, not from the RTL expression.
 - For each FLAGS bit, keep at least one directed test per instruction that
   App. B says loads or clears it.
+
+
+## Follow-up: Table 8-2 incoming NT
+
+Intel 210498-005 Table 8-2 specifies the incoming task's NT for each
+transfer:
+
+| Transfer | Incoming NT |
+|---|---|
+| JMP | cleared |
+| CALL/INT | set |
+| IRET | unchanged |
+
+The core had two problems:
+- **Task-entry commit:** a JMP kept the TSS image's NT.
+- **Task-entry fault context:** a JMP kept NT, and an IRET task return
+  cleared the returning task's NT. A nested task that returned to its
+  caller lost its own link, so the caller's IRET became an ordinary return.
+
+Both sites now apply the table. The direct-TSS test sets NT in the target
+image and checks:
+- after a JMP, the resumed task has NT=0;
+- after a CALL and the callee's IRET, NT=0 in the abandoned task's TSS image.
