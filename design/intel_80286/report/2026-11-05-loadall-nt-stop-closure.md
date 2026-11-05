@@ -26,9 +26,12 @@ k-induction now proves these stops unreachable:
 - the code-load request mismatch;
 - the memory-check escalation.
 
+REP before a non-string opcode no longer stops the core: the prefix is
+ignored (assumption A43, 8086-compatible; App. B leaves it undefined).
+
 Stops that remain:
-- 0F 04h in real mode or at CPL 0;
-- REP before a non-string opcode (App. B says REP cannot be applied to anything other than string operations);
+- 0F 04h in real mode or at CPL 0. Intel's undocumented-opcode note says the
+  286 "stops normal execution" and needs RESET, so the stop reflects that.
 - the default state, which the state-bound invariant already excludes.
 
 ## Verification

@@ -17,8 +17,10 @@ Every real-mode file in the pinned physical Harris-286 capture set
 (SingleStepTests/80286 `37c73ca`) now replays exactly, in both READY modes. See the
 [capture replay report](report/2026-11-04-physical-capture-replay.md).
 LOADALL, protected-mode NT handling and protected ENTER limit checks follow
-Intel's documents. Only three development stops remain: 0F 04h, REP before a
-non-string opcode, and the unreachable default state. See the
+Intel's documents. REP before a non-string opcode is ignored (assumption A43).
+Only two development stops remain: 0F 04h in real mode or at CPL 0, which
+Intel's note says "stops normal execution", and the unreachable default state.
+See the
 [LOADALL/NT/stop report](report/2026-11-05-loadall-nt-stop-closure.md).
 
 The IBM AT's source-backed U118 refresh-detect flip-flop is modeled and

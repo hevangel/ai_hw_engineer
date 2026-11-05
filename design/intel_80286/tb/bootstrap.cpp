@@ -1866,6 +1866,22 @@ static void system_register_contracts() {
             b.step(0xf010a,0x90,0xf000,0x10b); b.step(0xf010b,0xf4,0xf000,0x10c); }
         else { b.processor_fault(13,0x100); check(b.accepted.size()==10,"overlong instruction fetched extension"); } ++cases;
     }
+    // A43: REP/REPNE before a non-string opcode is ignored; the instruction
+    // runs once and CX is unchanged.
+    for (bool wait:{false,true}) {
+        Bench b; b.put(0xfffff0,{0xea,0,1,0,0xf0});
+        b.put(0xf0100,{0xb9,0x05,0x00, 0xf3,0x40, 0xf2,0xbb,0x34,0x12, 0xf3,0xf2,0x43, 0xf4});
+        b.reset(); b.step(0xfffff0,0xea,0xf000,0x100,wait);
+        b.step(0xf0100,0xb9,0xf000,0x103,wait);
+        const uint16_t ax=b.reg(0);
+        b.step(0xf0103,0x40,0xf000,0x105,wait);
+        b.step(0xf0105,0xbb,0xf000,0x109,wait);
+        b.step(0xf0109,0x43,0xf000,0x10c,wait);
+        check(b.reg(0)==uint16_t(ax+1) && b.reg(3)==0x1235 && b.reg(1)==5,
+              "REP before a non-string opcode was not ignored");
+        b.step(0xf010c,0xf4,0xf000,0x10d,wait);
+        ++cases;
+    }
     // A35: Intel's undocumented-opcode note makes F1h a prefix with no
     // function that counts toward the ten-byte limit like any other prefix.
     for (unsigned prefixes: {1u,8u,9u,10u}) {

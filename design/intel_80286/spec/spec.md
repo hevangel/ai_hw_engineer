@@ -185,8 +185,8 @@ Intel leaves these flags undefined.
 ASSUMPTION A36: string behavior that Intel does not state is taken from the
 pinned physical Harris-286 string captures (A4-A7, AA-AF; 50,000 records,
 `scripts/prepare_string_hardware.py`). F2h before MOVS, STOS or LODS acts as
-REP, and REP LODS repeats. A repeat prefix before a non-string opcode has no
-capture and stays a stop. At a word access to offset FFFFh, #13 leaves the
+REP, and REP LODS repeats. A repeat prefix before a non-string opcode is
+covered by A43. At a word access to offset FFFFh, #13 leaves the
 pointers and CX advanced for the accesses reached; the table is in
 [the failure note](../../failure_notes/2026-11-04-intel80286-string-fault-state-and-rep-forms.md).
 Protected-mode MOVS, CMPS and STOS limit faults keep the restartability memo
@@ -212,7 +212,15 @@ LOADALL reads the 102-byte image at physical 000800h-000865h in ascending
 order and loads every register from Intel's field table. That includes the
 ES/CS/SS/DS, LDT and TSS descriptor caches and the GDTR and IDTR. Each
 cache's access-byte present bit becomes its valid bit, and MSW.PE stays set
-once set. ASSUMPTION A42: protected-mode ENTER raises restartable #SS(0) when the
+once set. ASSUMPTION A43: a REP, REPE or REPNE prefix before a non-string opcode is
+ignored: the instruction executes once and CX is unchanged. Intel App. B says
+REP "cannot be applied to anything other than string operations" and does not
+define the result. The 8086 ignores such prefixes, and later x86 processors do
+too for compatibility. The pinned physical 286 captures contain no such
+record, so this is unconfirmed on the 286. The 8086's sign inversion of
+REP-prefixed multiply and divide is microcode-specific and is not modeled.
+
+ASSUMPTION A42: protected-mode ENTER raises restartable #SS(0) when the
 allocated SP (frame SP minus the first operand) falls outside the SS limit.
 For expand-up SS that means above the limit, including a 16-bit wrap; for
 expand-down SS it means at or below the limit. This reads App. B's "if SP were

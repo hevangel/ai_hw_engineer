@@ -1116,9 +1116,10 @@ module intel_80286 #(
         endcase
         // ASSUMPTION A36: physical Harris-286 captures repeat LODS under F2/F3
         // and treat F2 before a non-compare string as REP. A repeat prefix on
-        // a non-string opcode has no captured evidence and stays a stop.
-        if (repeat_valid && !string_op)
-            opcode_valid=0;
+        // ASSUMPTION A43: Intel App. B leaves REP before a non-string opcode
+        // undefined; the core ignores the prefix (8086-compatible behavior),
+        // so the instruction executes once. repeat_valid only affects the
+        // string engine. No 286 capture covers this case.
         modrm_valid = 1;
         if ((opcode == 8'h8d || opcode == 8'hc4 || opcode == 8'hc5 || opcode == 8'h62) && modrm[7:6] == 3) modrm_valid = 0;
         if ((opcode == 8'h8f || opcode == 8'hc6 || opcode == 8'hc7) && modrm[5:3] != 0) modrm_valid = 0;
