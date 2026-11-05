@@ -1,0 +1,22 @@
+; One's-complement addition, subtraction, and the carry edges.
+        law 0
+        add 30          ; +0 + +0
+        law -0
+        add 30          ; -0 + +0
+        law -0
+        add 31          ; -0 + 1  -> 1, exercises end-around carry
+        law -0
+        add 32          ; -0 + -0 -> -0
+        law 400000
+        sub 31          ; most negative minus 1 -> overflow
+        law 1
+        sub 33          ; 1 - 2 = -1
+        law 0
+        sub 31          ; +0 - 1 = -0
+        hlt
+
+.org 0o30
+        .word 0         ; +0
+        .word 1
+        .word -0        ; -0 (777777)
+        .word 2

@@ -1,0 +1,11 @@
+; Operate group: clear, complement, load test word, clear IO, flags, halt.
+        law 1234
+        cla
+        lat             ; AC <- test word (0 in this run)
+        cma             ; AC <- ~TW
+        cli
+        stf 7           ; set all flags
+        clf 3           ; clear flag 3
+        law -1
+        cma             ; AC <- +0
+        hlt
