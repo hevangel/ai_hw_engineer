@@ -36,15 +36,15 @@ Stops that remain:
 
 ## Verification
 
-All results are on RTL `ba2be56` unless noted.
+All results are on RTL `bd74361` unless noted.
 
 | Check | Result |
 |---|---|
 | Connected-core prove (k-induction) | PASS, 437 assertions |
-| Connected-core BMC (depth 24) | PASS on `42e53c3`, `7e46383` and `ba2be56` |
+| Connected-core BMC (depth 24) | PASS on `42e53c3`, `7e46383`, `ba2be56` and `bd74361` |
 | Component formal (13 configurations: bmc, prove, cover) | PASS on `43bb26c`, before the ENTER change |
 | `run_sim.sh` | 230 PASS |
-| `run_hardware.sh` | PASS on `7e46383`: 1,416,994 general records plus the string, register and #GP sets. ESC, WAIT and HLT (11,000 records) passed in separate runs. |
+| `run_hardware.sh` | PASS: 1,427,994 general records (every real-mode file, including port I/O, ESC, WAIT and HLT) plus the string, register and #GP sets |
 | Vectors, native bus/core, mutation campaigns, IBM AT BIOS software, synthesis | PASS on `7e46383` |
 
 ## Open items
