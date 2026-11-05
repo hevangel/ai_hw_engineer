@@ -9,7 +9,7 @@ Date: 2026-11-04. Issue [#184](https://github.com/hevangel/ai_engineer/issues/18
 | Lint | `sh scripts/run_lint.sh` | clean (`verilator --lint-only -Wall`, documented local waivers) |
 | Build | `sh scripts/build_sim.sh` | `work/obj/Vpdp1_am29xx` built |
 | Instruction-level oracle | `oracle_simh.sh` + `oracle_compare.py` | **100 / 100 instructions match SIMH exactly** (PC, AC, IO, OV) on seven programs; two programs reproduce known arithmetic defects |
-| Synthesis | `sh scripts/run_synth.sh` | 6,298 cells; 360 latch bits, all inside the five Am2901 slices |
+| Synthesis | `sh scripts/run_synth.sh` | 6,350 cells; 360 latch bits, all inside the five Am2901 slices |
 | Panel demo | `run_panel.sh`, LOAD DEMO → RUN | 64 display points, typewriter codes `P D P 1 CR`, machine halts |
 
 Per-program oracle results (RTl vs SIMH PDP-1, commit `698dc8a1`):

@@ -30,7 +30,7 @@ ledger and the stated limits.
 | 1961 instruction set (27 legal opcodes incl. `mus`/`dis`) | implemented in microcode and verified |
 | External oracle comparison | 100/100 instructions of seven directed programs match the SIMH PDP-1 exactly (PC/AC/IO/OV); two arithmetic defects remain (see below) |
 | Verilator lint | clean (`-Wall` with documented local waivers) |
-| Synthesis | 6,298 cells, 360 latch bits, all inside the five Am2901 slices |
+| Synthesis | 6,350 cells, 360 latch bits, all inside the five Am2901 slices |
 | Console, typewriter, paper tape, Type 30 display | functional models, exercised by the panel demo |
 | Sequence break | implemented (one channel); not yet exercised by authentic software |
 | Spacewar! 4.1 | image archived with provenance; **not yet run** (needs the paper-tape read-in path and the display break timing) |
