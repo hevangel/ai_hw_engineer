@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PDP-8 — Am29xx reconstruction</title>
+<style>
+  :root{--panel:#23262b;--panel2:#2b2f36;--edge:#0e1013;--cream:#e8e2d0;
+        --amber:#ffb347;--green:#7dff9b;--red:#ff6b5e;--dim:#6b7079;}
+  *{box-sizing:border-box}
+  body{margin:0;background:#15171a;color:var(--cream);
+       font:14px/1.4 "IBM Plex Mono",ui-monospace,Consolas,monospace}
+  header{padding:14px 20px;border-bottom:1px solid #000;background:#1b1e22}
+  header h1{margin:0;font-size:16px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber)}
+  header p{margin:4px 0 0;color:var(--dim);font-size:12px}
+  main{display:grid;grid-template-columns:minmax(430px,1fr) minmax(360px,1fr);gap:16px;padding:16px}
+  .panel{background:var(--panel);border:1px solid var(--edge);border-radius:6px;padding:14px}
+  .panel h2{margin:0 0 10px;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
+  .row{display:flex;align-items:center;gap:8px;margin:6px 0}
+  .label{width:42px;color:var(--dim);font-size:11px;letter-spacing:.12em}
+  .lamps{display:flex;gap:4px}
+  .lamp{width:14px;height:14px;border-radius:50%;background:#111;border:1px solid #000;
+        box-shadow:inset 0 0 4px #000}
+  .lamp.on{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+  .lamp.g{background:#123;border-color:#000}
+  .lamp.g.on{background:var(--green);box-shadow:0 0 8px var(--green)}
+  .oct{color:var(--amber);font-size:13px;min-width:52px;text-align:right}
+  .keys{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  button{font:inherit;background:var(--panel2);color:var(--cream);border:1px solid #000;
+         border-radius:4px;padding:7px 10px;cursor:pointer;letter-spacing:.08em}
+  button:active{transform:translateY(1px)}
+  button.hot{background:#4a3a1d;border-color:#000;color:var(--amber)}
+  .switches{display:flex;gap:5px;margin:8px 0}
+  .sw{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9px;color:var(--dim)}
+  .sw button{padding:0;width:20px;height:34px;background:#111;border:1px solid #000;
+             border-radius:3px;position:relative}
+  .sw button i{position:absolute;left:3px;right:3px;height:13px;background:#3a3f47;
+               border-radius:2px;top:3px;transition:top .08s}
+  .sw button.on i{top:17px;background:var(--amber)}
+  #console{background:#0b0d0f;border:1px solid #000;border-radius:4px;min-height:190px;
+           max-height:300px;overflow:auto;padding:10px;white-space:pre-wrap;
+           color:var(--green);font-size:13px}
+  #kbd{width:100%;margin-top:8px;background:#0b0d0f;border:1px solid #000;border-radius:4px;
+       color:var(--green);font:inherit;padding:7px}
+  canvas{width:100%;height:190px;background:#0b0d0f;border:1px solid #000;border-radius:4px}
+  .hint{color:var(--dim);font-size:11px;margin-top:8px}
+  input[type=file]{color:var(--dim);font-size:12px}
+  .status{color:var(--dim);font-size:11px;margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>PDP-8 · 1965 · Am2901 ×3 + Am2910</h1>
+  <p>Front panel, console and waveform, driven by the synthesizable RTL (4K core, straight-8 profile).</p>
+</header>
+<main>
+  <section class="panel">
+    <h2>Register lamps</h2>
+    <div class="row"><span class="label">PC</span><div class="lamps" id="l-pc"></div><span class="oct" id="o-pc">0000</span></div>
+    <div class="row"><span class="label">AC</span><div class="lamps" id="l-ac"></div><span class="oct" id="o-ac">0000</span></div>
+    <div class="row"><span class="label">MA</span><div class="lamps" id="l-ma"></div><span class="oct" id="o-ma">0000</span></div>
+    <div class="row"><span class="label">MB</span><div class="lamps" id="l-mb"></div><span class="oct" id="o-mb">0000</span></div>
+    <div class="row"><span class="label">SR</span><div class="lamps" id="l-sw"></div><span class="oct" id="o-sw">0000</span></div>
+    <div class="row" style="margin-top:10px">
+      <span class="label">STATE</span>
+      <span class="lamps"><i class="lamp g" id="l-run"></i></span><span class="hint">RUN</span>
+      <span class="lamps"><i class="lamp" id="l-l"></i></span><span class="hint">LINK</span>
+      <span class="lamps"><i class="lamp" id="l-ion"></i></span><span class="hint">ION</span>
+    </div>
+
+    <h2 style="margin-top:16px">Switch register</h2>
+    <div class="switches" id="switches"></div>
+    <div class="keys">
+      <button data-key="load_addr">LOAD ADDR</button>
+      <button data-key="examine">EXAMINE</button>
+      <button data-key="deposit">DEPOSIT</button>
+      <button class="hot" data-key="start">START</button>
+      <button data-key="stop">STOP</button>
+      <button data-key="cont">CONT</button>
+      <button data-key="step">STEP</button>
+    </div>
+    <div class="keys" style="margin-top:10px">
+      <button id="run-toggle" class="hot">RUN (free)</button>
+      <button id="reset">MASTER CLEAR</button>
+    </div>
+    <div class="status" id="status">idle</div>
+  </section>
+
+  <section class="panel">
+    <h2>Console printer / keyboard</h2>
+    <div id="console"></div>
+    <input id="kbd" placeholder="type here, Enter sends one character" autocomplete="off">
+    <div class="hint">Devices: 01 reader · 02 punch · 03 keyboard · 04 printer</div>
+
+    <h2 style="margin-top:16px">Paper tape</h2>
+    <input type="file" id="tape">
+    <div class="hint" id="tape-info">no tape loaded</div>
+
+    <h2 style="margin-top:16px">Waveform (PC / AC / LINK / RUN)</h2>
+    <canvas id="wave" width="760" height="190"></canvas>
+  </section>
+</main>
+<script>
+let sw = 0;
+let freeRun = false;
+
+function api(cmd) {
+  return fetch('/api', {method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({cmd})}).then(r => r.json());
+}
+
+function buildSwitches() {
+  const host = document.getElementById('switches');
+  for (let bit = 11; bit >= 0; --bit) {
+    const cell = document.createElement('div');
+    cell.className = 'sw';
+    const button = document.createElement('button');
+    button.innerHTML = '<i></i>';
+    button.onclick = () => { sw ^= (1 << bit); paintSwitches(); api('SW ' + sw.toString(8)); };
+    cell.appendChild(button);
+    const tag = document.createElement('span');
+    tag.textContent = bit;
+    cell.appendChild(tag);
+    host.appendChild(cell);
+  }
+  for (let i = 0; i < 12; i++) {
+    for (const name of ['pc', 'ac', 'ma', 'mb', 'sw']) {
+      const lamp = document.createElement('i');
+      lamp.className = 'lamp';
+      document.getElementById('l-' + name).appendChild(lamp);
+    }
+  }
+}
+
+function paintSwitches() {
+  document.querySelectorAll('#switches button').forEach((button, index) => {
+    const bit = 11 - index;
+    button.classList.toggle('on', Boolean(sw & (1 << bit)));
+  });
+  document.getElementById('o-sw').textContent = sw.toString(8).padStart(4, '0');
+}
+
+function paintLamps(name, value) {
+  const lamps = document.getElementById('l-' + name).children;
+  for (let i = 0; i < 12; i++) {
+    const bit = 11 - i;
+    lamps[i].classList.toggle('on', Boolean(value & (1 << bit)));
+  }
+  document.getElementById('o-' + name).textContent = value.toString(8).padStart(4, '0');
+}
+
+function paintState(state) {
+  if (!state || state.error) { document.getElementById('status').textContent = state?.error ?? 'offline'; return; }
+  paintLamps('pc', state.pc); paintLamps('ac', state.ac);
+  paintLamps('ma', state.ma); paintLamps('mb', state.mb);
+  document.getElementById('l-run').classList.toggle('on', Boolean(state.run));
+  document.getElementById('l-l').classList.toggle('on', Boolean(state.link));
+  document.getElementById('l-ion').classList.toggle('on', Boolean(state.ion));
+  if (state.tty) {
+    const consoleEl = document.getElementById('console');
+    consoleEl.textContent += state.tty.replace(/\r/g, '\n');
+    consoleEl.scrollTop = consoleEl.scrollHeight;
+  }
+  document.getElementById('status').textContent =
+    `PC ${state.pc.toString(8).padStart(4, '0')} · AC ${state.ac.toString(8).padStart(4, '0')}` +
+    ` · LINK ${state.link} · ION ${state.ion} · tape ${state.tapeLen}`;
+}
+
+async function refresh() {
+  paintState(await api('STATE'));
+  drawWave(await api('WAVE 160'));
+}
+
+async function drawWave(payload) {
+  const canvas = document.getElementById('wave');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+  if (!payload || !payload.pc) return;
+  const colours = ['#ffb347', '#7dff9b', '#6bb6ff', '#ff6b5e'];
+  // Scale the address/accumulator lanes to their own range: a program paging
+  // inside one 4K field would otherwise draw a flat line.
+  const scale = values => {
+    const low = Math.min(...values), high = Math.max(...values);
+    if (high === low) return values.map(() => 0.5);
+    return values.map(v => (v - low) / (high - low));
+  };
+  const lanes = [scale(payload.pc), scale(payload.ac),
+                 payload.link.map(v => v * 0.9), payload.run.map(v => v * 0.9)];
+  lanes.forEach((lane, index) => {
+    const top = 10 + index * 44, height = 34;
+    ctx.strokeStyle = '#1e2226'; ctx.beginPath();
+    ctx.moveTo(0, top + height); ctx.lineTo(w, top + height); ctx.stroke();
+    ctx.strokeStyle = colours[index]; ctx.lineWidth = 1.5; ctx.beginPath();
+    lane.forEach((v, i) => {
+      const x = (i / Math.max(1, lane.length - 1)) * w;
+      const y = top + height - v * height;
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    });
+    ctx.stroke();
+    ctx.fillStyle = '#6b7079'; ctx.font = '10px monospace';
+    ctx.fillText(['PC', 'AC', 'LINK', 'RUN'][index], 4, top + 10);
+    if (index < 2) {
+      const values = index === 0 ? payload.pc : payload.ac;
+      ctx.fillStyle = '#8f959e';
+      ctx.fillText(Math.max(...values).toString(8).padStart(4, '0'), w - 44, top + 10);
+    }
+  });
+}
+
+document.querySelectorAll('[data-key]').forEach(button => {
+  button.onclick = async () => paintState(await api('KEY ' + button.dataset.key));
+});
+
+document.getElementById('reset').onclick = async () => paintState(await api('RESET'));
+
+document.getElementById('run-toggle').onclick = event => {
+  freeRun = !freeRun;
+  event.target.textContent = freeRun ? 'RUNNING…' : 'RUN (free)';
+  event.target.classList.toggle('hot', !freeRun);
+};
+
+document.getElementById('kbd').addEventListener('keydown', async event => {
+  if (event.key !== 'Enter') return;
+  const text = event.target.value;
+  event.target.value = '';
+  for (const ch of text) {
+    paintState(await api('KBD ' + ch.charCodeAt(0)));
+  }
+  paintState(await api('RUN 20000'));
+});
+
+document.getElementById('tape').onchange = async event => {
+  const file = event.target.files[0];
+  if (!file) return;
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+  const state = await api('TAPE ' + hex);
+  document.getElementById('tape-info').textContent = `${bytes.length} bytes loaded`;
+  paintState(state);
+};
+
+// ?run=1 free-runs the machine as soon as the panel opens (used for the
+// documented screenshot capture and for kiosk-style demonstrations).
+if (new URLSearchParams(location.search).get('run') === '1') {
+  freeRun = true;
+  const button = document.getElementById('run-toggle');
+  button.textContent = 'RUNNING…';
+  button.classList.remove('hot');
+}
+
+setInterval(async () => {
+  if (freeRun) paintState(await api('RUN 2000'));
+  drawWave(await api('WAVE 160'));
+}, 250);
+
+setInterval(refresh, 1200);
+buildSwitches();
+paintSwitches();
+refresh();
+</script>
+</body>
+</html>
