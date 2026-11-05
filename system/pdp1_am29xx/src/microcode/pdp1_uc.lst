@@ -1,0 +1,270 @@
+000  000700c70000004100b8000000  RESET1           a=AC, b=AC, d=ZERO, src=DZ, fn=ADD, cn=0, dest=3, pc_load, imm=0, ov_clr, flag_we, flag_clr, flag_sel=7
+001  000700c7110000000000000000  RESET2           a=IO, b=IO, d=ZERO, src=DZ, fn=ADD, cn=0, dest=3
+002  0059ac40000000000000000000  F0               seq=CJP, cc=SBS_REQ, next=SBS0
+003  00070047000e00040000000000  F1               ma_load, d=PC, src=DZ, dest=1
+004  00070040000000a01000400000  F2               ir_load, pc_inc, mem=READ, core
+005  00398840000000000000100000  F3               seq=CJP, cc=IR_IND, next=IND0, trace
+006  00010040000000000000040000  F4               seq=JMAP, disp=OP
+007  00070047000a00041000400000  IND0             ma_load, d=ADDR, src=DZ, dest=1, mem=READ, core
+008  00070040000000101000400000  IND1             ir_ind, mem=READ, core
+009  00398840000000000000000000  IND2             seq=CJP, cc=IR_IND, next=IND0
+00a  00010040000000000000040000  IND3             seq=JMAP, disp=OP
+00b  00070047000000042000400000  SBS0             ma_load, d=ZERO, src=DZ, dest=1, mem=WRITE, core
+00c  00070084001600002000400000  SBS1             a=AC, b=AC, d=Y, src=ZA, fn=ADD, cn=0, dest=2, mem=WRITE, core
+00d  00070047000200042000400000  SBS2             ma_load, d=ONE, src=DZ, dest=1, mem=WRITE, core
+00e  000700c7430e00002000400000  SBS3             a=ZERO, b=TMP1, d=PC, src=DZ, fn=ADD, cn=0, dest=3, mem=WRITE, core
+00f  00190047001a00400100000002  SBS4             pc_load, d=IMM, imm=2, sbs_vec, src=DZ, dest=1, seq=JMAP, next=F1
+010  000700c5000200000000000000  ADD_FIX          a=AC, b=AC, d=ONE, src=DA, fn=ADD, cn=0, dest=3
+011  0081a440000000000000000000  FIX_TEST         seq=CJP, cc=EAC, next=ADD_FIX
+012  00050440000000000000000000                   seq=CRTN, cc=TRUE
+013  00110047000000004000000000  SKIP_TAKEN       skip, src=DZ, dest=1, seq=JMAP, next=F0
+014  00050447000000010000000000  CLR_OV           ov_clr, src=DZ, dest=1, seq=CRTN, cc=TRUE
+015  00a9f040000000000000000000  HALT_WAIT        seq=CJP, cc=HALTED, next=HALT_WAIT
+016  00110040000000000000000000                   seq=JMAP, next=F0
+017  00070047000000000000800000  ILLEGAL          illegal, src=DZ, dest=1
+018  00c18440000000000000000000  ILLEGAL_L        seq=CJP, cc=TRUE, next=ILLEGAL_L
+019  000504c7400000000000000000  SUB_CLA          a=ZERO, b=AC, d=ZERO, src=DZ, fn=ADD, cn=0, dest=3, seq=CRTN, cc=TRUE
+01a  000504c7410000000000000000  SUB_CLI          a=ZERO, b=IO, d=ZERO, src=DZ, fn=ADD, cn=0, dest=3, seq=CRTN, cc=TRUE
+01b  000504f5000400000000000000  SUB_CMA          a=AC, b=AC, d=ONES, src=DA, fn=XOR, cn=0, dest=3, seq=CRTN, cc=TRUE
+01c  000504dd001200000000000000  SUB_LAT          a=AC, b=AC, d=TW, src=DA, fn=OR, cn=0, dest=3, seq=CRTN, cc=TRUE
+01d  00050447000000000084000000  SUB_FLAGS        flag_we, flag_dyn, src=DZ, dest=1, seq=CRTN, cc=TRUE
+01e  00a90047000000008000000000  SUB_HALT         halt, src=DZ, dest=1, seq=JMAP, next=HALT_WAIT
+0f8  00000040000000000000000000  JZ               seq=JZ
+100  00b90040000000000000000000  SLOT_00          seq=JMAP, next=ILLEGAL
+108  20090040000000000000000000  SLOT_01          seq=JMAP, next=H_AND
+110  20890040000000000000000000  SLOT_02          seq=JMAP, next=H_IOR
+118  21090040000000000000000000  SLOT_03          seq=JMAP, next=H_XOR
+120  21890040000000000000000000  SLOT_04          seq=JMAP, next=H_XCT
+128  00b90040000000000000000000  SLOT_05          seq=JMAP, next=ILLEGAL
+130  00b90040000000000000000000  SLOT_06          seq=JMAP, next=ILLEGAL
+138  22890040000000000000000000  SLOT_07          seq=JMAP, next=H_CAL
+140  24090040000000000000000000  SLOT_10          seq=JMAP, next=H_LAC
+148  24890040000000000000000000  SLOT_11          seq=JMAP, next=H_LIO
+150  25090040000000000000000000  SLOT_12          seq=JMAP, next=H_DAC
+158  25890040000000000000000000  SLOT_13          seq=JMAP, next=H_DAP
+160  26090040000000000000000000  SLOT_14          seq=JMAP, next=H_DIP
+168  26890040000000000000000000  SLOT_15          seq=JMAP, next=H_DIO
+170  27090040000000000000000000  SLOT_16          seq=JMAP, next=H_DZM
+178  00b90040000000000000000000  SLOT_17          seq=JMAP, next=ILLEGAL
+180  28090040000000000000000000  SLOT_20          seq=JMAP, next=H_ADD
+188  28890040000000000000000000  SLOT_21          seq=JMAP, next=H_SUB
+190  29090040000000000000000000  SLOT_22          seq=JMAP, next=H_IDX
+198  29890040000000000000000000  SLOT_23          seq=JMAP, next=H_ISP
+1a0  2a090040000000000000000000  SLOT_24          seq=JMAP, next=H_SAD
+1a8  2a890040000000000000000000  SLOT_25          seq=JMAP, next=H_SAS
+1b0  2b090040000000000000000000  SLOT_26          seq=JMAP, next=H_MUS
+1b8  2b890040000000000000000000  SLOT_27          seq=JMAP, next=H_DIS
+1c0  2c090040000000000000000000  SLOT_30          seq=JMAP, next=H_JMP
+1c8  2c890040000000000000000000  SLOT_31          seq=JMAP, next=H_JSP
+1d0  2d090040000000000000000000  SLOT_32          seq=JMAP, next=H_SKP
+1d8  2d890040000000000000000000  SLOT_33          seq=JMAP, next=H_SFT
+1e0  2e090040000000000000000000  SLOT_34          seq=JMAP, next=H_LAW
+1e8  2e890040000000000000000000  SLOT_35          seq=JMAP, next=H_IOT
+1f0  00b90040000000000000000000  SLOT_36          seq=JMAP, next=ILLEGAL
+1f8  2f090040000000000000000000  SLOT_37          seq=JMAP, next=H_OPR
+200  00110047000000000000000000  IO_WAIT          seq=JMAP, next=F0, src=DZ, dest=1
+204  1021aa40000000000000000000  IO_RDR           seq=CJP, cc=IO_READY, cc_inv, next=IO_RDR
+205  00070047000000000400000000                   io_strobe, src=DZ, dest=1
+206  000700c7411e00000000000000                   a=ZERO, b=IO, d=DEVDATA, src=DZ, fn=ADD, cn=0, dest=3
+207  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+208  1041aa40000000000000000000  IO_RDR2          seq=CJP, cc=IO_READY, cc_inv, next=IO_RDR2
+209  00070047000000000400000000                   io_strobe, src=DZ, dest=1
+20a  000700c7411e00000000000000                   a=ZERO, b=IO, d=DEVDATA, src=DZ, fn=ADD, cn=0, dest=3
+20b  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+20c  00070047000000000400000000  IO_TTO           io_strobe, src=DZ, dest=1
+20d  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+210  1081aa40000000000000000000  IO_TTI           seq=CJP, cc=IO_READY, cc_inv, next=IO_TTI
+211  00070047000000000400000000                   io_strobe, src=DZ, dest=1
+212  000700c7411e00000000000000                   a=ZERO, b=IO, d=DEVDATA, src=DZ, fn=ADD, cn=0, dest=3
+213  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+214  00070047000000000400000000  IO_PTP           io_strobe, src=DZ, dest=1
+215  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+218  00070047000000000400000000  IO_PTP2          io_strobe, src=DZ, dest=1
+219  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+21c  00070047000000000400000000  IO_DPY           io_strobe, src=DZ, dest=1
+21d  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+224  00070047000000000400000000  IO_CTL           io_strobe, src=DZ, dest=1
+225  000700c7411e00000000000000                   a=ZERO, b=IO, d=DEVDATA, src=DZ, fn=ADD, cn=0, dest=3
+226  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+260  1301aa40000000000000000000  IO_RRB           seq=CJP, cc=IO_READY, cc_inv, next=IO_RRB
+261  00070047000000000400000000                   io_strobe, src=DZ, dest=1
+262  000700c7411e00000000000000                   a=ZERO, b=IO, d=DEVDATA, src=DZ, fn=ADD, cn=0, dest=3
+263  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+26c  00070047000000000400000000  IO_STA           io_strobe, src=DZ, dest=1
+26d  000700c7411e00000000000000                   a=ZERO, b=IO, d=DEVDATA, src=DZ, fn=ADD, cn=0, dest=3
+26e  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+2b0  00070047000000000400000000  IO_LSM           io_strobe, src=DZ, dest=1
+2b1  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+2b4  00070047000000000400000000  IO_ESM           io_strobe, src=DZ, dest=1
+2b5  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+300  00070047000000000000800000                   illegal, src=DZ, dest=1
+301  00b90040000000000000000000                   seq=JMAP, next=ILLEGAL
+308  00070087001860000001000000  SFT_RAL          a=AC, b=AC, d=SHF, shf=LEFT, fill=ROT, src=DZ, fn=ADD, cn=0, dest=2, nfc_dec
+309  0011a040000000000000000000  SFT_RAL_T        seq=CJP, cc=NFC_ZERO, next=F0
+30a  18410047000000000000000000                   seq=JMAP, next=SFT_RAL, src=DZ, dest=1
+310  00070087111860000001000000  SFT_RIL          a=IO, b=IO, d=SHF, shf=LEFT, fill=ROT, src=DZ, fn=ADD, cn=0, dest=2, nfc_dec
+311  0011a040000000000000000000  SFT_RIL_T        seq=CJP, cc=NFC_ZERO, next=F0
+312  18810047000000000000000000                   seq=JMAP, next=SFT_RIL, src=DZ, dest=1
+318  00070084001641000000000000  SFT_RCL          a=AC, b=AC, d=Y, src=ZA, fn=ADD, cn=0, dest=2, shf=LEFT, cap=A
+319  00070084111642000000000000  SFT_RCL_B        a=IO, b=IO, d=Y, src=ZA, fn=ADD, cn=0, dest=2, shf=LEFT, cap=B
+31a  00070087111850000000000000  SFT_RCL_IO       a=IO, b=IO, d=SHF, shf=LEFT, fill=EXT_A, src=DZ, fn=ADD, cn=0, dest=2
+31b  00070087001858000001000000  SFT_RCL_AC       a=AC, b=AC, d=SHF, shf=LEFT, fill=EXT_B, src=DZ, fn=ADD, cn=0, dest=2, nfc_dec
+31c  0011a040000000000000000000  SFT_RCL_T        seq=CJP, cc=NFC_ZERO, next=F0
+31d  18c10047000000000000000000                   seq=JMAP, next=SFT_RCL, src=DZ, dest=1
+328  0007008700184c000001000000  SFT_SAL          a=AC, b=AC, d=SHF, shf=LEFT, fill=SIGN, shf_sign, src=DZ, fn=ADD, cn=0, dest=2, nfc_dec
+329  0011a040000000000000000000  SFT_SAL_T        seq=CJP, cc=NFC_ZERO, next=F0
+32a  19410047000000000000000000                   seq=JMAP, next=SFT_SAL, src=DZ, dest=1
+330  0007008711184c000001000000  SFT_SIL          a=IO, b=IO, d=SHF, shf=LEFT, fill=SIGN, shf_sign, src=DZ, fn=ADD, cn=0, dest=2, nfc_dec
+331  0011a040000000000000000000  SFT_SIL_T        seq=CJP, cc=NFC_ZERO, next=F0
+332  19810047000000000000000000                   seq=JMAP, next=SFT_SIL, src=DZ, dest=1
+338  00070084001641000000000000  SFT_SCL          a=AC, b=AC, d=Y, src=ZA, fn=ADD, cn=0, dest=2, shf=LEFT, cap=A
+339  00070084111642000000000000  SFT_SCL_B        a=IO, b=IO, d=Y, src=ZA, fn=ADD, cn=0, dest=2, shf=LEFT, cap=B
+33a  00070087111850000000000000  SFT_SCL_IO       a=IO, b=IO, d=SHF, shf=LEFT, fill=EXT_A, src=DZ, fn=ADD, cn=0, dest=2
+33b  0007008700185c000001000000  SFT_SCL_AC       a=AC, b=AC, d=SHF, shf=LEFT, fill=EXT_B, shf_sign, src=DZ, fn=ADD, cn=0, dest=2, nfc_dec
+33c  0011a040000000000000000000  SFT_SCL_T        seq=CJP, cc=NFC_ZERO, next=F0
+33d  19c10047000000000000000000                   seq=JMAP, next=SFT_SCL, src=DZ, dest=1
+348  000700870018a0000001000000  SFT_RAR          a=AC, b=AC, d=SHF, shf=RIGHT, fill=ROT, src=DZ, fn=ADD, cn=0, dest=2, nfc_dec
+349  0011a040000000000000000000  SFT_RAR_T        seq=CJP, cc=NFC_ZERO, next=F0
+34a  1a410047000000000000000000                   seq=JMAP, next=SFT_RAR, src=DZ, dest=1
+350  000700871118a0000001000000  SFT_RIR          a=IO, b=IO, d=SHF, shf=RIGHT, fill=ROT, src=DZ, fn=ADD, cn=0, dest=2, nfc_dec
+351  0011a040000000000000000000  SFT_RIR_T        seq=CJP, cc=NFC_ZERO, next=F0
+352  1a810047000000000000000000                   seq=JMAP, next=SFT_RIR, src=DZ, dest=1
+358  00070084001681000000000000  SFT_RCR          a=AC, b=AC, d=Y, src=ZA, fn=ADD, cn=0, dest=2, shf=RIGHT, cap=A
+359  00070084111682000000000000  SFT_RCR_B        a=IO, b=IO, d=Y, src=ZA, fn=ADD, cn=0, dest=2, shf=RIGHT, cap=B
+35a  00070087111890000000000000  SFT_RCR_IO       a=IO, b=IO, d=SHF, shf=RIGHT, fill=EXT_A, src=DZ, fn=ADD, cn=0, dest=2
+35b  00070087001898000001000000  SFT_RCR_AC       a=AC, b=AC, d=SHF, shf=RIGHT, fill=EXT_B, src=DZ, fn=ADD, cn=0, dest=2, nfc_dec
+35c  0011a040000000000000000000  SFT_RCR_T        seq=CJP, cc=NFC_ZERO, next=F0
+35d  1ac10047000000000000000000                   seq=JMAP, next=SFT_RCR, src=DZ, dest=1
+368  00070087001888000001000000  SFT_SAR          a=AC, b=AC, d=SHF, shf=RIGHT, fill=SIGN, src=DZ, fn=ADD, cn=0, dest=2, nfc_dec
+369  0011a040000000000000000000  SFT_SAR_T        seq=CJP, cc=NFC_ZERO, next=F0
+36a  1b410047000000000000000000                   seq=JMAP, next=SFT_SAR, src=DZ, dest=1
+370  00070087111888000001000000  SFT_SIR          a=IO, b=IO, d=SHF, shf=RIGHT, fill=SIGN, src=DZ, fn=ADD, cn=0, dest=2, nfc_dec
+371  0011a040000000000000000000  SFT_SIR_T        seq=CJP, cc=NFC_ZERO, next=F0
+372  1b810047000000000000000000                   seq=JMAP, next=SFT_SIR, src=DZ, dest=1
+378  00070084001681000000000000  SFT_SCR          a=AC, b=AC, d=Y, src=ZA, fn=ADD, cn=0, dest=2, shf=RIGHT, cap=A
+379  00070084111682000000000000  SFT_SCR_B        a=IO, b=IO, d=Y, src=ZA, fn=ADD, cn=0, dest=2, shf=RIGHT, cap=B
+37a  00070087111890000000000000  SFT_SCR_IO       a=IO, b=IO, d=SHF, shf=RIGHT, fill=EXT_A, src=DZ, fn=ADD, cn=0, dest=2
+37b  00070087001888000001000000  SFT_SCR_AC       a=AC, b=AC, d=SHF, shf=RIGHT, fill=SIGN, src=DZ, fn=ADD, cn=0, dest=2, nfc_dec
+37c  0011a040000000000000000000  SFT_SCR_T        seq=CJP, cc=NFC_ZERO, next=F0
+37d  1bc10047000000000000000000                   seq=JMAP, next=SFT_SCR, src=DZ, dest=1
+401  00070047000a00040000000000  H_AND            ma_load, d=ADDR, src=DZ, dest=1
+402  00070040000000081000400000                   mb_load, mem=READ, core
+403  001100e5000600000000000000                   a=AC, b=AC, d=MB, src=DA, fn=AND, cn=0, dest=3, seq=JMAP, next=F0
+411  00070047000a00040000000000  H_IOR            ma_load, d=ADDR, src=DZ, dest=1
+412  00070040000000081000400000                   mb_load, mem=READ, core
+413  001100dd000600000000000000                   a=AC, b=AC, d=MB, src=DA, fn=OR, cn=0, dest=3, seq=JMAP, next=F0
+421  00070047000a00040000000000  H_XOR            ma_load, d=ADDR, src=DZ, dest=1
+422  00070040000000081000400000                   mb_load, mem=READ, core
+423  001100f5000600000000000000                   a=AC, b=AC, d=MB, src=DA, fn=XOR, cn=0, dest=3, seq=JMAP, next=F0
+431  00070047000a00040000000000  H_XCT            ma_load, d=ADDR, src=DZ, dest=1
+432  00070040000000201000400000                   ir_load, mem=READ, core
+433  00398840000000000000000000                   seq=CJP, cc=IR_IND, next=IND0
+434  00010047000000000000040000                   seq=JMAP, disp=OP, src=DZ, dest=1
+451  22b9f840000000000000000000  H_CAL            seq=CJP, cc=IR_A12, next=H_JDA
+452  00070047001a00040000000040                   ma_load, imm=0o100, d=IMM, src=DZ, dest=1
+453  00070084001600002000400000                   a=AC, b=AC, d=Y, src=ZA, fn=ADD, cn=0, dest=2, mem=WRITE, core
+454  000700c7400e00000000000000                   a=ZERO, b=AC, d=PC, src=DZ, fn=ADD, cn=0, dest=3
+455  00070047001a00400000000041                   pc_load, d=IMM, imm=0o101, src=DZ, dest=1
+456  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+457  00070047000a00040000000000  H_JDA            ma_load, d=ADDR, src=DZ, dest=1
+458  00070084001600002000400000                   a=AC, b=AC, d=Y, src=ZA, fn=ADD, cn=0, dest=2, mem=WRITE, core
+459  000700c7400e00000000000000                   a=ZERO, b=AC, d=PC, src=DZ, fn=ADD, cn=0, dest=3
+45a  00070047000c00400000000000                   pc_load, d=ADDR1, src=DZ, dest=1
+45b  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+481  00070047000a00040000000000  H_LAC            ma_load, d=ADDR, src=DZ, dest=1
+482  001100c7400800001000400000                   a=ZERO, b=AC, d=MEM, src=DZ, fn=ADD, cn=0, dest=3, mem=READ, core, seq=JMAP, next=F0
+491  00070047000a00040000000000  H_LIO            ma_load, d=ADDR, src=DZ, dest=1
+492  001100c7410800001000400000                   a=ZERO, b=IO, d=MEM, src=DZ, fn=ADD, cn=0, dest=3, mem=READ, core, seq=JMAP, next=F0
+4a1  00070047000a00040000000000  H_DAC            ma_load, d=ADDR, src=DZ, dest=1
+4a2  00070084001600002000400000                   a=AC, b=AC, d=Y, src=ZA, fn=ADD, cn=0, dest=2, mem=WRITE, core
+4a3  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+4b1  00070047000a00040000000000  H_DAP            ma_load, d=ADDR, src=DZ, dest=1
+4b2  00070040000000081000400000                   mb_load, mem=READ, core
+4b3  000700c7430600000000000000                   a=ZERO, b=TMP1, d=MB, src=DZ, fn=ADD, cn=0, dest=3
+4b4  000700e5021a00000000000fff                   a=AC, b=TMP0, d=IMM, imm=0o7777, src=DA, fn=AND, cn=0, dest=3
+4b5  000700e5331a0000000003ffc0                   a=TMP1, b=TMP1, d=IMM, imm=0o777700, src=DA, fn=AND, cn=0, dest=3
+4b6  000700d9230000000000000000                   a=TMP0, b=TMP1, src=AB, fn=OR, cn=0, dest=3
+4b7  00070084331600002000400000                   a=TMP1, b=TMP1, d=Y, src=ZA, fn=ADD, cn=0, dest=2, mem=WRITE, core
+4b8  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+4c1  00070047000a00040000000000  H_DIP            ma_load, d=ADDR, src=DZ, dest=1
+4c2  00070040000000081000400000                   mb_load, mem=READ, core
+4c3  000700c7430600000000000000                   a=ZERO, b=TMP1, d=MB, src=DZ, fn=ADD, cn=0, dest=3
+4c4  000700e5021a0000000003ffc0                   a=AC, b=TMP0, d=IMM, imm=0o777700, src=DA, fn=AND, cn=0, dest=3
+4c5  000700e5331a00000000000fff                   a=TMP1, b=TMP1, d=IMM, imm=0o7777, src=DA, fn=AND, cn=0, dest=3
+4c6  000700d9230000000000000000                   a=TMP0, b=TMP1, src=AB, fn=OR, cn=0, dest=3
+4c7  00070084331600002000400000                   a=TMP1, b=TMP1, d=Y, src=ZA, fn=ADD, cn=0, dest=2, mem=WRITE, core
+4c8  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+4d1  00070047000a00040000000000  H_DIO            ma_load, d=ADDR, src=DZ, dest=1
+4d2  00070084111600002000400000                   a=IO, b=IO, d=Y, src=ZA, fn=ADD, cn=0, dest=2, mem=WRITE, core
+4d3  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+4e1  00070047000a00040000000000  H_DZM            ma_load, d=ADDR, src=DZ, dest=1
+4e2  00070084431600002000400000                   a=ZERO, b=TMP1, d=Y, src=ZA, fn=ADD, cn=0, dest=2, mem=WRITE, core
+4e3  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+501  00070047000a00040000000000  H_ADD            ma_load, d=ADDR, src=DZ, dest=1
+502  00070040000000081000400000                   mb_load, mem=READ, core
+503  0080a4c5000600020000000000                   a=AC, b=AC, d=MB, src=DA, fn=ADD, cn=0, dest=3, ov_upd, seq=CJS, cc=EAC, next=ADD_FIX
+504  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+511  00070047000a00040000000000  H_SUB            ma_load, d=ADDR, src=DZ, dest=1
+512  00070040000000081000400000                   mb_load, mem=READ, core
+513  0080a4d5000600020000000000                   a=AC, b=AC, d=MB, src=DA, fn=SUB, cn=0, dest=3, ov_upd, seq=CJS, cc=EAC, next=ADD_FIX
+514  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+521  00070047000a00040000000000  H_IDX            ma_load, d=ADDR, src=DZ, dest=1
+522  00070040000000081000400000                   mb_load, mem=READ, core
+523  0080a4c5404600000000000000                   a=ZERO, b=AC, d=MB, src=DA, fn=ADD, cn=1, dest=3, seq=CJS, cc=EAC, next=ADD_FIX
+524  00070084001600002000400000                   a=AC, b=AC, d=Y, src=ZA, fn=ADD, cn=0, dest=2, mem=WRITE, core
+525  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+531  00070047000a00040000000000  H_ISP            ma_load, d=ADDR, src=DZ, dest=1
+532  00070040000000081000400000                   mb_load, mem=READ, core
+533  0080a4c5404600000000000000                   a=ZERO, b=AC, d=MB, src=DA, fn=ADD, cn=1, dest=3, seq=CJS, cc=EAC, next=ADD_FIX
+534  00999284001600002000400000                   a=AC, b=AC, d=Y, src=ZA, fn=ADD, cn=0, dest=2, mem=WRITE, core, seq=CJP, cc=AC_SIGN, cc_inv, next=SKIP_TAKEN
+535  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+541  00070047000a00040000000000  H_SAD            ma_load, d=ADDR, src=DZ, dest=1
+542  00070040000000081000400000                   mb_load, mem=READ, core
+543  0099f675030600000000000000                   a=AC, b=TMP1, d=MB, src=DA, fn=XOR, cn=0, dest=1, seq=CJP, cc=RESULT_ZERO, cc_inv, next=SKIP_TAKEN
+544  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+551  00070047000a00040000000000  H_SAS            ma_load, d=ADDR, src=DZ, dest=1
+552  00070040000000081000400000                   mb_load, mem=READ, core
+553  0099f475030600000000000000                   a=AC, b=TMP1, d=MB, src=DA, fn=XOR, cn=0, dest=1, seq=CJP, cc=RESULT_ZERO, next=SKIP_TAKEN
+554  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+561  00070047000a00040000000000  H_MUS            ma_load, d=ADDR, src=DZ, dest=1
+562  00070040000000081000400000                   mb_load, mem=READ, core
+563  2b299840000000000000000000                   seq=CJP, cc=IO_LSB, next=MUS_ADD
+564  2b390040000000000000000000                   seq=JMAP, next=MUS_SHIFT
+565  0080a4c5000600020000000000  MUS_ADD          a=AC, b=AC, d=MB, src=DA, fn=ADD, cn=0, dest=3, ov_upd, seq=CJS, cc=EAC, next=ADD_FIX
+566  2b390040000000000000000000                   seq=JMAP, next=MUS_SHIFT
+567  00070084001681000000000000  MUS_SHIFT        a=AC, b=AC, d=Y, src=ZA, fn=ADD, cn=0, dest=2, shf=RIGHT, cap=A
+568  00070087111890000000000000                   a=IO, b=IO, d=SHF, shf=RIGHT, fill=EXT_A, src=DZ, fn=ADD, cn=0, dest=2
+569  00070087001880000000000000                   a=AC, b=AC, d=SHF, shf=RIGHT, fill=ZERO, src=DZ, fn=ADD, cn=0, dest=2
+56a  00110040000000000000000000                   seq=JMAP, next=F0
+571  00070047000a00040000000000  H_DIS            ma_load, d=ADDR, src=DZ, dest=1
+572  00070040000000081000400000                   mb_load, mem=READ, core
+573  00070084001641000000000000  DIS_INIT         a=AC, b=AC, d=Y, src=ZA, fn=ADD, cn=0, dest=2, shf=LEFT, cap=A
+574  00070084111642000000000000  DIS_INIT_B       a=IO, b=IO, d=Y, src=ZA, fn=ADD, cn=0, dest=2, shf=LEFT, cap=B
+575  00070087111850000000000000                   a=IO, b=IO, d=SHF, shf=LEFT, fill=EXT_A, src=DZ, fn=ADD, cn=0, dest=2
+576  00070087001858000000000000                   a=AC, b=AC, d=SHF, shf=LEFT, fill=EXT_B, src=DZ, fn=ADD, cn=0, dest=2
+577  000700f5110200000000000000                   a=IO, b=IO, d=ONE, src=DA, fn=XOR, cn=0, dest=3
+578  2bd99840000000000000000000                   seq=CJP, cc=IO_LSB, next=DIS_SUB
+579  0080a4c5004600020000000000                   a=AC, b=AC, d=MB, src=DA, fn=ADD, cn=1, dest=3, ov_upd, seq=CJS, cc=EAC, next=ADD_FIX
+57a  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+57b  0080a4d5000600020000000000  DIS_SUB          a=AC, b=AC, d=MB, src=DA, fn=SUB, cn=0, dest=3, ov_upd, seq=CJS, cc=EAC, next=ADD_FIX
+57c  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+581  00110047000a00400000000000  H_JMP            pc_load, d=ADDR, src=DZ, dest=1, seq=JMAP, next=F0
+591  000700c7400e00000000000000  H_JSP            a=ZERO, b=AC, d=PC, src=DZ, fn=ADD, cn=0, dest=3
+592  00110047000a00400000000000                   pc_load, d=ADDR, src=DZ, dest=1, seq=JMAP, next=F0
+5a1  00a0b840000000000000000000  H_SKP            seq=CJS, cc=IR_A9, next=CLR_OV
+5a2  0099cc40000000000000000000                   seq=CJP, cc=SKIP_ANY, next=SKIP_TAKEN
+5a3  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1
+5b1  00070047000000000002000000  H_SFT            nfc_load, src=DZ, dest=1
+5b2  0011a040000000000000000000                   seq=CJP, cc=NFC_ZERO, next=F0
+5b3  000100470000000000000c0000                   seq=JMAP, disp=OPX, src=DZ, dest=1
+5c1  2e198840000000000000000000  H_LAW            seq=CJP, cc=IR_IND, next=LAW_NEG
+5c2  001100c7400a00000000000000                   a=ZERO, b=AC, d=ADDR, src=DZ, fn=ADD, cn=0, dest=3, seq=JMAP, next=F0
+5c3  001100c7400b00000000000000  LAW_NEG          a=ZERO, b=AC, d=ADDR, d_inv, src=DZ, fn=ADD, cn=0, dest=3, seq=JMAP, next=F0
+5d1  00010047000000000000080000  H_IOT            seq=JMAP, disp=DEV, src=DZ, dest=1
+5e1  00c8b040000000000000000000  H_OPR            seq=CJS, cc=IR_A7, next=SUB_CLA
+5e2  00e0bc40000000000000000000                   seq=CJS, cc=IR_A10, next=SUB_LAT
+5e3  00d8b840000000000000000000                   seq=CJS, cc=IR_A9, next=SUB_CMA
+5e4  00d0c040000000000000000000                   seq=CJS, cc=IR_A11, next=SUB_CLI
+5e5  00e8c440000000000000000000                   seq=CJS, cc=IR_A3, next=SUB_FLAGS
+5e6  00f0b440000000000000000000                   seq=CJS, cc=IR_A8, next=SUB_HALT
+5e7  00110047000000000000000000                   seq=JMAP, next=F0, src=DZ, dest=1

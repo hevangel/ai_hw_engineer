@@ -42,6 +42,7 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | By 1976* (KIM-1 manual; launch year unconfirmed) | MOS Technology 6530 RRIOT | Mask ROM, 64-byte RAM, ports and timer; both KIM-1 masks and original monitor regression | [mos_6530](mos_6530/) |
 | 1976* (availability evidence) | AMD Am2911 | Four-bit microprogram sequencer; shared direct/register bus, four-word return stack | [amd_am2911](amd_am29xx/amd_am2911//) |
 | 1976 | Intel 8259 / 8259A | Eight-input programmable interrupt controller; manufacturer-based request-withdrawal regression | [intel_8259](intel_8259/) |
+| 1976 (July launch) | Zilog Z80 | 8-bit microprocessor; 8080-compatible ISA plus alternate register file, IX/IY, bit and block instructions, three interrupt modes and DRAM refresh. Work in progress: differential-verified byte ALU and register-execution core; memory, stack, index-register, ED-page and native cycle work outstanding | [zilog_z80](zilog_z80/) |
 | 1977 (manufacturer history) | AMD Am9511 | Signed integer/native floating arithmetic, conversions and transcendental processing unit | [amd_am9511](amd_am9511/) |
 | 1977* (board use) | Apple II revision-0 support packages | 4116 RAM, ROM, 2513, TTL/bus interfaces and analog support; package years vary | [apple_ii_chips](apple_ii_chips/) |
 | By 1977* (preliminary datasheet; launch unconfirmed) | MOS Technology 6522 VIA | Ports, input latches, handshake, timers and eight serial modes; sampled contract verified, NMOS timing open | [mos_6522](mos_6522/) |
@@ -131,13 +132,13 @@ The Intel 8008 entry records **1972**, with Intel dating its introduction to Apr
 
 The Intel 8080 entry records **1974**, following Intel's [manufacturer history](https://www.intel.com/content/www/us/en/newsroom/news/50-years-ago-the-influential-intel-8080.html). Announcement and release are distinguished differently in month-level retellings; no exact month is claimed here. The initial design implements documented instructions through a functional transaction bus, with Intel-specific ANA/ANI flags; native pin timing and undocumented aliases remain separate milestones. See the [design overview](intel_8080/README.md).
 
+### Zilog — Z80
+
+The Zilog Z80 entry records **July 1976**, the launch month given by the [Z80 historical summary](https://en.wikipedia.org/wiki/Zilog_Z80), which also dates the first working Mostek samples to 9 March 1976. No primary Zilog announcement fixing a specific day was located, so only the month is claimed. The design targets the NMOS Z8400 family and separates a functional transaction-bus engine from a later native M-cycle engine; the undocumented encodings that the ZEXALL exerciser and the published undocumented-instruction list agree on are part of the compatibility contract, while the MEMPTR flag leaks need the separate z80test gate. See the [chip overview](zilog_z80/README.md) and [specification](zilog_z80/spec/spec.md).
+
 ### Intel â€” 8086
 
 The Intel 8086 entry records **1978**; Intel dates its introduction to June 8, 1978 in its [manufacturer history](https://timeline.intel.com/1978/the-beginning-of-a-legend%3A-the-8086). This design implements the complete documented instruction set, interrupts and a six-byte prefetch BIU with minimum/maximum-mode digital pins. Independent physical-chip vectors, original DEBUG.COM, formal checks and native bus tests verify the implementation; original EU cycle counts and electrical timing are outside its RTL contract. See the [chip overview](intel_8086_8088/intel_8086//README.md). Its standalone software regression runs unchanged Microsoft DEBUG.COM through the execution unit and both native bus modes.
-
-### Intel — 8088
-
-The Intel 8088 entry records **1979**; Intel's [Microprocessor Quick Reference Guide](https://www.intel.com/content/www/us/en/newsroom/resources/microprocessor-quick-reference-guide.html) dates its introduction to June 1, 1979. The design shares the 8086 execution unit by source reference and implements the 8088-specific bus interface: a four-byte prefetch queue refilled one byte per cycle whenever a byte is free, byte-only bus cycles where every 16-bit transaction is two ascending cycles completing as one transfer, non-multiplexed A8–A15, the reversed IO/M polarity and SS0 on pin 34 in place of BHE/S7. Independent physical-8088 vectors (SingleStepTests/8088, captured on an AMD D8088), original DEBUG.COM through the chip in both bus modes, formal BIU checks, a chip-pin UVM suite and directed native bus tests verify the implementation; original cycle counts and electrical timing are outside its RTL contract. See the [chip overview](intel_8086_8088/intel_8088/README.md).
 
 ### Motorola — 6800, 6809, 68000
 
