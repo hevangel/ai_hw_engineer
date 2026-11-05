@@ -38,7 +38,7 @@ struct Machine {
   std::deque<unsigned> keys;
   std::vector<std::string> trace_lines;
   std::vector<std::array<int, 3>> plots;
-  std::string tty_text;
+  std::vector<unsigned> tty_codes;
   unsigned micro = 0;
   unsigned long long total_micro = 0;
 #if VM_TRACE_FST
@@ -94,9 +94,8 @@ struct Machine {
       if (plots.size() > 20000) plots.erase(plots.begin(), plots.begin() + 10000);
     }
     if (top->tty_stb_o) {
-      unsigned ch = (unsigned)top->tty_data_o & 0x3ffff;
-      tty_text.push_back(ch < 128 ? (char)ch : '?');
-      if (tty_text.size() > 4000) tty_text.erase(0, 2000);
+      tty_codes.push_back((unsigned)top->tty_data_o & 0x3fff);
+      if (tty_codes.size() > 4000) tty_codes.erase(tty_codes.begin(), tty_codes.begin() + 2000);
     }
   }
 };
@@ -260,7 +259,7 @@ int main(int argc, char **argv) {
       unsigned long n = 1;
       iss >> n;
       for (unsigned long i = 0; i < n; i++) {
-        std::printf("C %04o %06o %06o %06o %06o %o %06o %05o %08o\n",
+        std::printf("C %04o %06o %06o %06o %06o %o %06o %05o %08o %o\n",
                     (unsigned)m.top->microaddr_o,
                     (unsigned)m.top->pc_o, (unsigned)m.top->ir_o,
                     (unsigned)m.top->ac_o, (unsigned)m.top->io_o,
@@ -350,14 +349,15 @@ int main(int argc, char **argv) {
                       m.plots[i][0], m.plots[i][1], m.plots[i][2]);
         out += buf;
       }
-      out += "],\"tty\":\"";
-      for (char c : m.tty_text) {
-        if (c == '"' || c == '\\') out += '\\';
-        if (c >= 32 && c < 127) out += c;
+      out += "],\"tty\":[";
+      for (size_t i = 0; i < m.tty_codes.size(); i++) {
+        char buf[16];
+        std::snprintf(buf, sizeof(buf), "%s%u", i ? "," : "", m.tty_codes[i]);
+        out += buf;
       }
-      out += "\"}";
+      out += "]}";
       m.plots.clear();
-      m.tty_text.clear();
+      m.tty_codes.clear();
       std::cout << out << "\n";
     } else if (cmd == "TRACEDUMP") {
       std::cout << "{\"count\":" << m.trace_lines.size() << "}\n";

@@ -31,6 +31,31 @@ class Simulator:
             [str(SIM)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=(ROOT / "work/server_simulator.log").open("w"),
             text=True, bufsize=1, cwd=ROOT)
+        self.plots = []          # full display history for late-joining pages
+        self.tty = []
+        self.boot_demo()
+
+    def boot_demo(self):
+        """Load and run the panel demonstration so a fresh page opens on a
+        representative machine state (the committed screenshot relies on it)."""
+        try:
+            self.command("RESET")
+            self.command("LOAD work/demo.hex")
+            self.command("RESET")
+            for _ in range(4):
+                reply = self.command("RUN 8000")
+                self._absorb()
+                if reply.get("halted"):
+                    break
+        except Exception as exc:
+            print(f"demo boot failed: {exc}", flush=True)
+
+    def _absorb(self):
+        events = self.command("EVENTS")
+        self.plots.extend(events.get("plots", []))
+        codes = events.get("tty", [])
+        if codes:
+            self.tty.extend(codes)
 
     def command(self, line):
         with self.lock:
@@ -46,9 +71,9 @@ class Simulator:
     def state(self):
         with self.lock:
             state = self.command("STATE")
-            events = self.command("EVENTS")
-            state["plots"] = events.get("plots", [])
-            state["tty"] = events.get("tty", "")
+            self._absorb()
+            state["plots"] = self.plots
+            state["tty"] = self.tty
             return state
 
     def waveform(self):
@@ -104,8 +129,27 @@ def main():
         def log_message(self, *args):
             pass
 
+        def end_headers(self):
+            # The panel is a development tool: never let a browser cache the
+            # page, the script or the state.
+            self.send_header("Cache-Control", "no-store, max-age=0")
+            super().end_headers()
+
         def do_GET(self):
             parts = urlsplit(self.path)
+            if parts.path in ("/", "/index.html"):
+                page = (ROOT / "host/web/index.html").read_text()
+                blob = json.dumps(sim.state())
+                page = page.replace(
+                    '<script id="bootstrap" type="application/json">{}</script>',
+                    f'<script id="bootstrap" type="application/json">{blob}</script>')
+                data = page.encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+                return
             if parts.path == "/api/state":
                 self._json(sim.state())
             elif parts.path == "/api/command":

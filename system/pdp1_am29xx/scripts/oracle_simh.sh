@@ -6,7 +6,7 @@ cd /work
 for name in "$@"; do
   script="/tmp/$name.simh"
   {
-    echo "set cpu history=512"
+    echo "set cpu history=65536"
     echo "set dpy disabled"
     echo "set pc 0"
     while read -r addr word; do

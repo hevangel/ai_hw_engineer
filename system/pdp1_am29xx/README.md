@@ -28,7 +28,7 @@ ledger and the stated limits.
 | Area | State |
 | --- | --- |
 | 1961 instruction set (27 legal opcodes incl. `mus`/`dis`) | implemented in microcode and verified |
-| External oracle comparison | 125/125 instructions match the SIMH PDP-1 simulator exactly (PC/AC/IO/OV) |
+| External oracle comparison | 100/100 instructions of seven directed programs match the SIMH PDP-1 exactly (PC/AC/IO/OV); two arithmetic defects remain (see below) |
 | Verilator lint | clean (`-Wall` with documented local waivers) |
 | Synthesis | 6,298 cells, 360 latch bits, all inside the five Am2901 slices |
 | Console, typewriter, paper tape, Type 30 display | functional models, exercised by the panel demo |
@@ -42,7 +42,7 @@ regression in `scripts/` cover every opcode.
 
 ## Web interface and waveform
 
-![PDP-1 Am29xx front panel with the display sweep and registers](assets/web-interface.jpg)
+![PDP-1 Am29xx front panel with the display sweep, registers and typewriter](assets/web-interface.jpg)
 
 The panel after running `tests/demo.pdp1`: the Type 30 display shows the
 64-point sweep the program drew through the real display IOT path, the console
@@ -92,10 +92,24 @@ The oracle is SIMH's PDP-1 simulator (`PDP1/pdp1_cpu.c`, commit pinned in
 `spec/reference/simh_commit.txt`), an independent implementation that runs the
 same memory image and prints its instruction history. The comparison covers
 PC, AC, IO and OV at every instruction start and stops at the first difference.
-Current result: **125 of 125 instructions match** across nine directed
+Current result: **100 of 100 instructions match** across seven directed
 programs (arithmetic with positive/negative zero and end-around carry, logic,
 all twelve shift/rotate subcodes, jumps and subroutine linkage, the skip group,
-index/compare, the operate group, and the panel demo).
+index/compare, and the operate group).
+
+Two arithmetic defects remain, both found by the oracle and both with exact
+reproducers in [the report](report/final_report.md):
+
+1. **Spurious overflow flag.** `0o370000 + 0o4000` sets OV although the
+   operands and result share a sign. Software that tests `szo` (Spacewar!
+   included) cannot be trusted yet.
+2. **End-around-carry repair loop on subtraction.** `0o1235 - 0o000001`
+   enters the repair loop and leaves AC = 0 instead of `0o1234`; the loop runs
+   hundreds of iterations before the machine continues. The `arith` program
+   passes because its subtraction cases happen to avoid the condition.
+
+Neither defect is worked around in the tests: `tests/smoke.pdp1` and
+`tests/demo.pdp1` exist to reproduce them.
 
 Not covered, and stated as limits rather than implied: no transistor-level or
 electrical timing, no destructive core read, no PDP-1D extensions, no

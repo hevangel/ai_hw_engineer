@@ -8,7 +8,7 @@ Date: 2026-11-04. Issue [#184](https://github.com/hevangel/ai_engineer/issues/18
 | --- | --- | --- |
 | Lint | `sh scripts/run_lint.sh` | clean (`verilator --lint-only -Wall`, documented local waivers) |
 | Build | `sh scripts/build_sim.sh` | `work/obj/Vpdp1_am29xx` built |
-| Instruction-level oracle | `oracle_simh.sh` + `oracle_compare.py` | **125 / 125 instructions match SIMH exactly** (PC, AC, IO, OV) |
+| Instruction-level oracle | `oracle_simh.sh` + `oracle_compare.py` | **100 / 100 instructions match SIMH exactly** (PC, AC, IO, OV) on seven programs; two programs reproduce known arithmetic defects |
 | Synthesis | `sh scripts/run_synth.sh` | 6,298 cells; 360 latch bits, all inside the five Am2901 slices |
 | Panel demo | `run_panel.sh`, LOAD DEMO → RUN | 64 display points, typewriter codes `P D P 1 CR`, machine halts |
 
@@ -16,7 +16,7 @@ Per-program oracle results (RTl vs SIMH PDP-1, commit `698dc8a1`):
 
 | Program | Instructions compared | Result |
 | --- | --- | --- |
-| `smoke` | 5 | match |
+| `smoke` | 5 | **mismatch** (defect 2) |
 | `arith` (one's complement, ±0, EAC, overflow) | 8 | match |
 | `logic` | 10 | match |
 | `shift` (12 subcodes, multi-step) | 35 | match |
@@ -24,12 +24,36 @@ Per-program oracle results (RTl vs SIMH PDP-1, commit `698dc8a1`):
 | `skip` (all members + inverted) | 15 | match |
 | `index` (idx/isp/sad/sas) | 9 | match |
 | `operate` (cla/cma/lat/cli/clf/stf) | 10 | match |
-| `demo` (display + typewriter) | 20 | match |
+| `demo` (display + typewriter) | 690 | **mismatch on OV** (defect 1) |
 
 The comparison reads SIMH's `show cpu history` dump and the RTL's
 instruction-start trace, both at the same state point, and stops at the first
 difference. It is an independent implementation: SIMH's PDP-1 is a separate
 C code base, not derived from this RTL.
+
+### Known defects (found by the oracle, not fixed)
+
+**Defect 1 — spurious overflow.** `0o370000 + 0o4000` produces the correct sum
+`0o374000` but sets OV; SIMH and the handbook rule leave OV clear (the operands
+share a sign and the result keeps it). The flag is sticky, so the demo
+comparison diverges at instruction 690 of 717 on OV alone. Reproducer:
+
+```pdp1
+        lac 20          ; M[20] = 0o370000
+        add 21          ; M[21] = 0o4000
+        hlt
+```
+
+**Defect 2 — EAC repair loop on subtraction.** `0o1235 - 0o000001` should
+return `0o1234` with the end-around carry applied once. The repair loop instead
+iterates hundreds of times and leaves AC = 0, so `tests/smoke.pdp1` diverges at
+its fifth instruction. The `arith` program passes because its subtraction cases
+(`0o400000-1`, `1-2`, `+0-1`) take a different path through the same loop.
+
+Both live in the end-around-carry/overflow glue (`src/pdp1_datapath.sv` and the
+`ADD_FIX`/`FIX_TEST` microcode pair). They are recorded rather than papered
+over: the directed suite is split into the seven programs that pass and the two
+reproducers, and no test was weakened to make the suite green.
 
 ### Defects the oracle caught
 

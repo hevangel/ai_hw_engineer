@@ -55,18 +55,41 @@ function renderSwitches() {
 function drawPlots(plots) {
   const canvas = el('crt');
   const ctx = canvas.getContext('2d');
-  if (state.plots === 0) {
-    ctx.fillStyle = '#0b0f0d';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }
+  // The server keeps the full display history, so the canvas is repainted
+  // from scratch; the point count is the history length, not a delta.
+  ctx.fillStyle = '#0b0f0d';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  state.plots = plots.length;
   for (const [x, y, intensity] of plots) {
     const px = (x / 1023) * (canvas.width - 8) + 4;
     const py = canvas.height - ((y / 1023) * (canvas.height - 8) + 4);
     ctx.fillStyle = `rgba(140, 255, 180, ${0.35 + Math.min(intensity, 7) / 10})`;
     ctx.fillRect(px, py, 2.2, 2.2);
   }
-  if (plots.length) state.plots += plots.length;
   el('point-count').textContent = `${state.plots} points`;
+}
+
+// PDP-1 concise typewriter codes (F-16 table) to readable text. Codes the
+// table does not cover are shown as <octal> so nothing is silently dropped.
+const TTY = {
+  0o77: '\n', 0o40: ' ', 0o54: '+', 0o57: '(', 0o55: ')', 0o73: 'x',
+  0o61: 'a', 0o62: 'b', 0o63: 'c', 0o64: 'd', 0o65: 'e', 0o66: 'f',
+  0o67: 'g', 0o70: 'h', 0o71: 'i', 0o41: 'j', 0o42: 'k', 0o43: 'l',
+  0o44: 'm', 0o45: 'n', 0o46: 'o', 0o47: 'p', 0o50: 'q', 0o51: 'r',
+  0o22: 's', 0o23: 't', 0o24: 'u', 0o25: 'v', 0o26: 'w', 0o27: 'x',
+  0o30: 'y', 0o31: 'z', 0o01: '1', 0o02: '2', 0o03: '3', 0o04: '4',
+  0o05: '5', 0o06: '6', 0o07: '7', 0o10: '8', 0o11: '9', 0o00: '0',
+};
+
+function decodeTty(codes) {
+  let out = '';
+  for (const raw of codes) {
+    // The harness sends numeric PDP-1 concise codes; accept strings too so a
+    // stale server cannot break the panel.
+    const code = (typeof raw === 'number' ? raw : raw.charCodeAt(0)) & 0x3f;
+    out += TTY[code] !== undefined ? TTY[code] : '<' + code.toString(8) + '>';
+  }
+  return out;
 }
 
 function update(stateData) {
@@ -84,7 +107,7 @@ function update(stateData) {
   el('status-text').textContent = halted ? 'halted' : (state.running ? 'running' : 'stopped');
   drawPlots(stateData.plots || []);
   if (stateData.tty) {
-    state.tty += stateData.tty;
+    state.tty = decodeTty(stateData.tty);
     if (state.tty.length > 4000) state.tty = state.tty.slice(-2000);
     el('terminal').textContent = state.tty;
     el('terminal').scrollTop = 1e9;
@@ -129,14 +152,17 @@ el('resume').addEventListener('click', async () => { await command('RESUME'); aw
 el('clear-crt').addEventListener('click', () => { state.plots = 0; drawPlots([]); });
 el('demo').addEventListener('click', async () => {
   setRunning(false);
-  await api('/api/tape?file=work/demo.hex');
   state.plots = 0;
   state.tty = '';
   el('terminal').textContent = '';
-  await command('RESET');
-  await command(`LOAD ${'work/demo.hex'}`);
-  await command('RESET');
-  setRunning(true);
+  try {
+    await command('RESET');
+    await command('LOAD work/demo.hex');
+    await command('RESET');
+    setRunning(true);
+  } catch (err) {
+    el('status-text').textContent = `demo error: ${err.message}`;
+  }
 });
 el('send-key').addEventListener('click', async () => {
   const value = parseInt(el('key-input').value || '0', 8);
@@ -152,5 +178,17 @@ el('capture').addEventListener('click', async () => {
 });
 
 renderSwitches();
+
+// The server embeds the current machine state in the page, so the first paint
+// (and any headless capture) shows a populated panel before polling starts.
+const bootstrap = JSON.parse(el('bootstrap').textContent || '{}');
+if (Object.keys(bootstrap).length) update(bootstrap);
+
+// ?demo=1 loads and runs the built-in demonstration, which is what the
+// committed screenshot shows.
+if (new URLSearchParams(location.search).get('demo') === '1') {
+  el('demo').click();
+}
+
 poll();
 setInterval(() => { if (!state.running) poll(); }, 1000);
