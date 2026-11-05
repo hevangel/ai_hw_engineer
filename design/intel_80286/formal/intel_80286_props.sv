@@ -43,6 +43,8 @@
         if (!rst_n) f_loadall_caches<=0;
         else if (state==LOADALL_COMMIT) f_loadall_caches<=1;
     // A37: real-mode POP m whose destination check fails keeps SP+2.
+    wire i286p_ins_real_fault = state==MEMORY_CHECK && !msw[0] && !data_reference_allow &&
+        ins_precheck_active && !event_delivery_active && !protected_iret_active && !task_switch_active;
     wire i286p_pop_memory_fault = state==MEMORY_CHECK && !msw[0] && !data_reference_allow &&
         opcode==8'h8f && memory_return==COMMIT_MEMORY &&
         !event_delivery_active && !protected_iret_active && !task_switch_active;
@@ -772,6 +774,11 @@
                         assert(gpr[7]==$past(gpr[7]));
                         assert(gpr[1]==($past(repeat_valid) ? $past(gpr[1])-16'd2 : $past(gpr[1])));
                     end else assert($stable(regs_o));
+                end else if ($past(i286p_ins_real_fault)) begin
+                    // A36: real-mode INS keeps the protected-mode DI/CX repair state.
+                    assert(gpr[6]==$past(gpr[6]));
+                    assert(gpr[7]==$past(gpr[7])+$past(string_delta));
+                    assert(gpr[1]==($past(repeat_valid) ? $past(gpr[1])-16'd2 : $past(gpr[1])));
                 end else if (!$past(i286p_pop_memory_fault)) assert($stable(regs_o));
                 if ($past(data_reference_allow)) begin
                     if ($past(memory_precheck_only)) begin
@@ -1319,6 +1326,7 @@
                             ((opcode==8'haa || opcode==8'hab) && memory_return==STRING_COMMIT) ||
                             ((opcode==8'h6e || opcode==8'h6f) && memory_return==STRING_FIRST))) &&
                     !(state==EVENT_START && $past(state==STRING_START)) &&
+                    !(state==EVENT_START && $past(i286p_ins_real_fault)) &&
                     !(state==EVENT_START && $past(state==MEMORY_CHECK && !msw[0] &&
                                                   opcode==8'h8f && memory_return==COMMIT_MEMORY)))
                     assert($stable(regs_o));

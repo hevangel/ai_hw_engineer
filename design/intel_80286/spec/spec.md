@@ -190,7 +190,10 @@ capture and stays a stop. At a word access to offset FFFFh, #13 leaves the
 pointers and CX advanced for the accesses reached; the table is in
 [the failure note](../../failure_notes/2026-11-04-intel80286-string-fault-state-and-rep-forms.md).
 Protected-mode MOVS, CMPS and STOS limit faults keep the restartability memo
-values, which differ from these captures for CMPS.
+values, which differ from these captures for CMPS. The port I/O captures
+(E4-E7, EC-EF, 6C-6F; every IN reads FFh) add the same rule for INS/OUTS
+at a word-FFFFh operand. INS advances DI and reduces REP CX by 2. OUTS
+advances SI and reduces REP CX by 1; the memo says 2 for OUTS.
 
 ASSUMPTION A35: the same Intel note lists the only exclusions from "any
 undefined opcode causes exception 6". F1h is a prefix with no function that

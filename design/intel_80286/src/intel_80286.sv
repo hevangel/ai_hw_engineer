@@ -1707,7 +1707,9 @@ module intel_80286 #(
                             protected_ret_active<=0; ret_outer_active<=0;
                             ret_outer_preflight_done<=0; ret_outer_ss_ready<=0;
                         end else begin
-                            if (msw[0] && ins_precheck_active) begin
+                            // A36: real-mode INS at a word-FFFF destination leaves the
+                            // same DI/CX state (physical 6D captures).
+                            if (ins_precheck_active) begin
                                 // Native 286 handler-repair state: Intel LOADALL
                                 // memo p14 and REP restart memo 1984-10-15.
                                 // Target corrected post-C2 behavior: a failed
@@ -3786,6 +3788,10 @@ module intel_80286 #(
                             if (repeat_valid) gpr[1]<=gpr[1]-16'd1;
                         end else if (opcode==8'haf) begin
                             gpr[7]<=gpr[7]+string_delta;
+                            if (repeat_valid) gpr[1]<=gpr[1]-16'd1;
+                        end else if (opcode==8'h6f) begin
+                            // Physical 6F captures: OUTS source fault, CX-1.
+                            gpr[6]<=gpr[6]+string_delta;
                             if (repeat_valid) gpr[1]<=gpr[1]-16'd1;
                         end
                         enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0); state<=EVENT_START;

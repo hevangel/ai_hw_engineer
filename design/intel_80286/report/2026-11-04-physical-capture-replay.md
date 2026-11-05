@@ -12,7 +12,7 @@ it covered 28 opcode files (68,510 register-only records).
 | `prepare_hardware_tests.py` (existing) | 28 | 68,510 | 7,490 outside the register adapter |
 | `prepare_protection_hardware.py` (existing) | 1 | 52 | - |
 | `prepare_string_hardware.py` (new) | 10 | 50,000 (1,865 #13) | none |
-| `prepare_general_hardware.py` (new) | 301 | 1,368,994 | IF/TF/IOPL setup, prefetch queue, final TF, revoked |
+| `prepare_general_hardware.py` (new) | 313 | 1,416,994 (incl. 48,000 port I/O) | IF/TF/IOPL setup, prefetch queue, final TF, revoked |
 
 Each record replays in both READY modes and checks:
 - the exact general registers, segment registers and IP;

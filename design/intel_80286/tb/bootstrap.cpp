@@ -25,6 +25,8 @@ struct Bench {
     std::unordered_map<uint32_t, uint8_t> memory;
     std::vector<uint32_t> accepted;
     std::unordered_map<uint16_t,uint8_t> ports;
+    // Value of an unwritten port; the physical captures read FFh.
+    uint8_t port_default=0;
     struct Transfer {
         uint32_t address; uint8_t value; bool write,io;
         bool segmented=false; unsigned role=0,kind=0,offset=0,size=0;
@@ -117,7 +119,10 @@ struct Bench {
             } else {
                 if (d.bus_io_o) {
                     if (d.bus_write_o) ports[uint16_t(address)]=d.bus_wdata_o;
-                    else d.bus_rdata_i=ports[uint16_t(address)];
+                    else {
+                        const auto port=ports.find(uint16_t(address));
+                        d.bus_rdata_i=port!=ports.end() ? port->second : port_default;
+                    }
                 } else {
                     if (d.bus_write_o) memory[address]=d.bus_wdata_o;
                     else d.bus_rdata_i=memory[address];
@@ -772,7 +777,13 @@ static void string_contracts() {
     Bench ins; ins.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
     ins.put(0xf0100,{0xb9,1,0,0xbf,0xff,0xff,0xf3,0x6d}); ins.reset();
     ins.step(0xfffff0,0xea,0xf000,0x100); ins.step(0xf0100,0xb9,0xf000,0x103);
-    ins.step(0xf0103,0xbf,0xf000,0x106); ins.processor_fault(13,0x106);
+    ins.step(0xf0103,0xbf,0xf000,0x106);
+    // A36 (physical 6D captures): REP INSW at DI=FFFF raises 13 with DI
+    // advanced and CX reduced by two.
+    uint16_t ins_fault_regs[8];
+    for (unsigned r=0;r<8;++r) ins_fault_regs[r]=ins.reg(r);
+    ins_fault_regs[1]=0xffff; ins_fault_regs[7]=0x0001;
+    ins.processor_fault(13,0x106,true,0,0,ins_fault_regs);
 
     Bench ins_ok; ins_ok.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
     ins_ok.put(0xf0100,{0xba,0x20,0x00,0xbf,0xfe,0xff,0x6d,0xf4});

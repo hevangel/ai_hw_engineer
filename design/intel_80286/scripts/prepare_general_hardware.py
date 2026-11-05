@@ -5,8 +5,9 @@ Evidence importer only: expected registers, RAM and exception vectors are
 copied from the immutable captures, never computed. The upstream metadata
 only narrows the FLAGS comparison to bits it marks defined.
 
-Excluded files: port I/O (E4-E7, EC-EF, 6C-6F), ESC (D8), HLT (F4), WAIT (9B)
-and the string files replayed by prepare_string_hardware.py. Excluded
+Excluded files: ESC (D8), HLT (F4), WAIT (9B) and the string files replayed by
+prepare_string_hardware.py. Port I/O files replay with every unwritten port
+reading FFh, as the capture README states. Excluded
 records: initial IF/TF/IOPL/NT, a non-empty prefetch queue, TF set in the
 final FLAGS, RAM inside the replay bootstrap, and revoked hashes.
 """
@@ -29,8 +30,7 @@ BLOBS = {entry['path']: (entry['sha'], entry['size']) for entry in TREE['files']
 REVOCATION = ('revocation_list.txt', 'b589c24fa5316cad0899e8ceff310ab6f7f38991', 249)
 REGISTERS = ('ax', 'cx', 'dx', 'bx', 'sp', 'bp', 'si', 'di', 'es', 'cs', 'ss', 'ds', 'ip', 'flags')
 PREFIXES = (0x26, 0x2e, 0x36, 0x3e, 0xf0, 0xf2, 0xf3)
-EXCLUDED_OPCODES = set(range(0xe4, 0xe8)) | set(range(0xec, 0xf0)) | set(range(0x6c, 0x70)) | \
-    {0xd8, 0xf4, 0x9b} | set(range(0xa4, 0xa8)) | set(range(0xaa, 0xb0))
+EXCLUDED_OPCODES = {0xd8, 0xf4, 0x9b} | set(range(0xa4, 0xa8)) | set(range(0xaa, 0xb0))
 RESERVED_MASK = 0x7fd7
 
 

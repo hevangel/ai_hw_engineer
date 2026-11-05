@@ -75,6 +75,8 @@ static void hardware_vectors(const char* path) {
             try {
             for (bool wait:{false,true}) {
                 Bench b;
+                // SingleStepTests README: every IN form reads FFh / FFFFh.
+                if (general_case) b.port_default=0xff;
                 // Near JMP preserves the special reset CS base, providing an
                 // isolated high bootstrap outside every real-mode capture.
                 b.put(0xfffff0,{0xe9,0x0d,0x10});
@@ -174,7 +176,13 @@ static void hardware_vectors(const char* path) {
                 compare(final);
                 check(b.d.halted_o && b.accepted.size()==1 && b.accepted[0]==halt_pc,
                       "physical exact HLT successor");
-                if (string_case)
+                if (general_case) {
+                    // Only the port I/O opcodes may reach I/O space.
+                    const bool io_opcode=(opcode>=0xe4 && opcode<=0xe7) ||
+                        (opcode>=0xec && opcode<=0xef) || (opcode>=0x6c && opcode<=0x6f);
+                    check(io_opcode || std::none_of(b.data_transfers.begin(),b.data_transfers.end(),
+                              [](const auto& t) { return t.io; }),"physical record issued unexpected I/O");
+                } else if (string_case)
                     check(std::none_of(b.data_transfers.begin(),b.data_transfers.end(),[](const auto& t) {
                               return t.io;
                           }),"physical string record issued I/O");
