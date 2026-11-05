@@ -3613,6 +3613,49 @@ static void protected_nt_flag_contracts() {
     std::cout<<"PASS: protected POPF loads NT, gates clear it, IRET restores it, and NT IRET without a valid TSS raises #TS(back link) in both READY modes\n";
 }
 
+// A42: App. B ENTER raises #SS(0) if SP would leave the stack limit during
+// any part of the instruction, including the final allocation. The fixture's
+// SS (0028h) is expand-up with limit 00FFh.
+static void protected_enter_stack_limit() {
+    using namespace protected_mode_fixture;
+    unsigned runs=0;
+    for (bool wait:{false,true}) for (bool overflow:{false,true}) {
+        const uint8_t program[]={
+            0xb8,0x28,0x00, 0x8e,0xd0,  // 0200 MOV SS,0028
+            0xbc,0x80,0x00,             // 0205 MOV SP,0080
+            0xbd,0x34,0x12,             // 0208 MOV BP,1234
+            0xc8,uint8_t(overflow ? 0x00 : 0x10),uint8_t(overflow ? 0x01 : 0x00),0x00, // 020B ENTER n,0
+            0xf4                        // 020F HLT
+        };
+        Bench b;
+        place_selector_fixture(b,program,sizeof(program));
+        b.put(kIdtBase+12*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+        b.put(kHandlerBase+kHandlerIp,{0xf4});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xbd,kCodeSelector,0x020b,wait);
+        if (!overflow) {
+            b.step(kCodeBase+0x020b,0xc8,kCodeSelector,0x020f,wait);
+            check(b.reg(4)==0x006e && b.reg(5)==0x007e,"in-limit protected ENTER frame");
+        } else {
+            bool entered=false;
+            for (unsigned n=0;n<60000 && !b.d.fault_o;++n) {
+                b.tick(wait);
+                if (b.d.event_o && b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp) { entered=true; break; }
+            }
+            check(entered && b.d.event_vector_o==12 && b.d.event_packet_error_code_o==0 &&
+                  b.d.event_packet_saved_ip_o==0x020b && b.d.event_packet_saved_sp_o==0x0080 &&
+                  b.reg(5)==0x1234,
+                  "ENTER allocating below the SS limit did not raise restartable #SS(0)");
+        }
+        ++runs;
+    }
+    check(runs==4,"ENTER stack-limit cases incomplete");
+    std::cout<<"PASS: protected ENTER allocates within the SS limit and raises restartable #SS(0) when the frame would leave it, in both READY modes\n";
+}
+
 static void protected_call_gate_jump() {
     using namespace protected_mode_fixture;
     const uint8_t ring0_program[]={
@@ -14357,7 +14400,7 @@ int main(int argc, char** argv) {
     Verilated::commandArgs(argc,argv);
     try {
         if (argc==3 && std::string(argv[1])=="--hardware") hardware_vectors(argv[2]);
-        else if (argc==2 && std::string(argv[1])=="--ud") undefined_opcode_contracts(); else if (argc==2 && std::string(argv[1])=="--loadall") loadall_contract(); else if (argc==2 && std::string(argv[1])=="--nt") protected_nt_flag_contracts();
+        else if (argc==2 && std::string(argv[1])=="--ud") undefined_opcode_contracts(); else if (argc==2 && std::string(argv[1])=="--loadall") loadall_contract(); else if (argc==2 && std::string(argv[1])=="--nt") protected_nt_flag_contracts(); else if (argc==2 && std::string(argv[1])=="--enter-limit") protected_enter_stack_limit();
         else if (argc==2 && std::string(argv[1])=="--protection") protection_fault_contracts();
         else if (argc==2 && std::string(argv[1])=="--references") reference_routing_contracts();
         else if (argc==2 && std::string(argv[1])=="--caches") cache_state_contracts();
@@ -14427,7 +14470,7 @@ int main(int argc, char** argv) {
         else if (argc==3 && std::string(argv[1])=="--bios-decimal") vectors(argv[2],false,true);
         else if (argc==2 && std::string(argv[1])=="--processor-extension") processor_extension_contract();
         else {
-            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); loadall_contract(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); stack_wrap_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); processor_extension_data_channel(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_delivery_faults(); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_jump(); protected_nt_flag_contracts(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix();
+            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); loadall_contract(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); stack_wrap_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); processor_extension_data_channel(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_delivery_faults(); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_jump(); protected_nt_flag_contracts(); protected_enter_stack_limit(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix();
             std::cout << "PASS: 80286 bootstrap reset, register aliases, flags, exact branches, stalls and diagnostic boundaries\n";
         }
     } catch (const std::exception& error) {

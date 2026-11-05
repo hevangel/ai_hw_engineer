@@ -3699,8 +3699,18 @@ module intel_80286 #(
                     else begin frame_index<=frame_index+5'd1; memory_start(1'b1, 2, frame_source, 24'd0, 1'b0, 1'b0, 2, 0, ENTER_READ); end
                 end
                 ENTER_COMMIT: begin
-                    gpr[5]<=frame_pointer; gpr[4]<=frame_sp-immediate[15:0]; state<=BOUNDARY;
-                    retire_o<=1; retire_pc_o<=instruction_pc; retire_opcode_o<=opcode;
+                    // ASSUMPTION A42: App. B ENTER raises #SS(0) "if SP were to go
+                    // outside of the stack limit within any part of the instruction",
+                    // so the allocated SP is checked against the SS limit too.
+                    if (msw[0] && (cache_access[18] ?
+                            (frame_sp-immediate[15:0])<=cache_limits[47:32] :
+                            (frame_sp-immediate[15:0])>cache_limits[47:32])) begin
+                        enter_event(12,instruction_ip,1'b0,1'b1,1'b1,16'd0);
+                        state<=EVENT_START; retire_o<=0;
+                    end else begin
+                        gpr[5]<=frame_pointer; gpr[4]<=frame_sp-immediate[15:0]; state<=BOUNDARY;
+                        retire_o<=1; retire_pc_o<=instruction_pc; retire_opcode_o<=opcode;
+                    end
                 end
                 LEAVE_DONE: begin
                     gpr[4]<=gpr[5]+16'd2; gpr[5]<=memory_result[15:0]; state<=BOUNDARY;

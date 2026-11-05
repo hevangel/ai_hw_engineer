@@ -212,7 +212,15 @@ LOADALL reads the 102-byte image at physical 000800h-000865h in ascending
 order and loads every register from Intel's field table. That includes the
 ES/CS/SS/DS, LDT and TSS descriptor caches and the GDTR and IDTR. Each
 cache's access-byte present bit becomes its valid bit, and MSW.PE stays set
-once set. ASSUMPTION A41: the core keeps using the CS selector RPL as CPL,
+once set. ASSUMPTION A42: protected-mode ENTER raises restartable #SS(0) when the
+allocated SP (frame SP minus the first operand) falls outside the SS limit.
+For expand-up SS that means above the limit, including a 16-bit wrap; for
+expand-down SS it means at or below the limit. This reads App. B's "if SP were
+to go outside of the stack limit within any part of the instruction
+execution" as covering the final allocation as well as the pushes. No
+protected-mode capture confirms it.
+
+ASSUMPTION A41: the core keeps using the CS selector RPL as CPL,
 whereas Intel defines CPL as the CS cache DPL after LOADALL. The two differ
 only for an image whose CS selector RPL differs from its CS cache DPL. The
 core also uses the trusted-CS fetch rule, so an execute-only, execute/read
