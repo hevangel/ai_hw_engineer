@@ -51,15 +51,16 @@ MUTATIONS = (
     ),
     (
         'interrupt_gate_preserves_if',
-        "(event_gate[43:40]==4'h6 ? 16'hfcff : 16'hfeff)",
-        "16'hfeff",
+        "(event_gate[43:40]==4'h6 ? 16'hbcff : 16'hbeff)",
+        "16'hbeff",
     ),
 )
 
 MUTATION_SUITES = {
     'wrong_saved_pc': ('protected-segments', 'protected-event-outer'),
     'missing_error_code': ('protected-segments', 'protected-event-outer'),
-    'early_handler_cs_cache_commit': ('protected-event-outer',),
+    # Only a fault after the handler CS check can expose an early cache commit.
+    'early_handler_cs_cache_commit': ('protected-event-delivery-faults',),
     'ignored_segment_permission_failure': ('protected-segments',),
     'software_int_dpl_polarity_reversed': ('protected-event-outer',),
     'interrupt_gate_preserves_if': ('protected-event-outer',),
@@ -122,7 +123,8 @@ def main(argv=None):
     parser.add_argument('--work-dir', type=Path,
                         help='fresh evidence directory for mutant builds/logs')
     parser.add_argument('--suite', choices=('all', 'protected-segments',
-                                            'protected-event-outer'),
+                                            'protected-event-outer',
+                                            'protected-event-delivery-faults'),
                         default='all',
                         help='directed regression(s) used to reject each mutant')
     args = parser.parse_args(argv)
@@ -137,7 +139,8 @@ def main(argv=None):
     except FileExistsError:
         parser.error(f'evidence directory already exists: {work}')
     print(f'Mutation evidence directory: {work}', flush=True)
-    suites = (('protected-segments', 'protected-event-outer')
+    suites = (('protected-segments', 'protected-event-outer',
+               'protected-event-delivery-faults')
               if args.suite == 'all' else (args.suite,))
     for suite in suites:
         run(baseline, work / f'baseline_{suite}.log', suite=suite,
