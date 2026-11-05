@@ -69,6 +69,7 @@ static void hardware_vectors(const char* path) {
             const bool hlt_suffix=code.substr(code.size()-2)=="f4";
             check(hlt_suffix || general_case,"physical successor is not HLT");
             const unsigned instruction_bytes=unsigned(code.size()/2)-(hlt_suffix ? 1 : 0);
+            const bool hlt_record=general_case && !fault_case && opcode==0xf4;
             check(fault_case || general_case ||
                   (final[9]==initial[9] && final[12]==uint16_t(initial[12]+instruction_bytes+1)),
                   "physical non-flow final PC accounting mismatch");
@@ -160,7 +161,8 @@ static void hardware_vectors(const char* path) {
                             throw std::runtime_error(message.str());
                         }
                     }
-                } else b.step(start,uint8_t(opcode),final[9],uint16_t(final[12]-1),wait);
+                } else if (hlt_record) b.step(start,0xf4,final[9],final[12],wait);
+                else b.step(start,uint8_t(opcode),final[9],uint16_t(final[12]-1),wait);
                 compare(final);
                 // A control transfer's captured byte list can include bytes
                 // past the instruction, so only bound its fetch count.
@@ -171,11 +173,17 @@ static void hardware_vectors(const char* path) {
                       b.accepted.size()==instruction_bytes,"physical tested-instruction fetch length");
                 for (unsigned i=0;i<b.accepted.size();++i) check(b.accepted[i]==start+i,
                                                                "physical tested-instruction exact fetch address");
+                if (hlt_record) {
+                    // The HLT under test is itself the terminator: it halts with
+                    // IP past it and no successor executes.
+                    check(b.d.halted_o,"physical HLT record did not halt");
+                } else {
                 const uint32_t halt_pc=uint32_t(final[9])*16+uint16_t(final[12]-1);
                 b.accepted.clear(); b.step(halt_pc,0xf4,final[9],final[12],wait);
                 compare(final);
                 check(b.d.halted_o && b.accepted.size()==1 && b.accepted[0]==halt_pc,
                       "physical exact HLT successor");
+                }
                 if (general_case) {
                     // Only port I/O and the ESC command phase (D8, ports
                     // 00F8h-00FFh) may reach I/O space.
