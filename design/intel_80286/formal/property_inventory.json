@@ -45,7 +45,7 @@
     "cover": 7
   },
   "formal/intel_80286_muldiv_props.sv": {
-    "assert": 14,
+    "assert": 16,
     "assume": 1,
     "cover": 4
   },
@@ -55,7 +55,7 @@
     "cover": 4
   },
   "formal/intel_80286_props.sv": {
-    "assert": 392,
+    "assert": 437,
     "assume": 1,
     "cover": 54
   },

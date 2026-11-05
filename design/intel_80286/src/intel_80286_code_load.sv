@@ -17,6 +17,8 @@ module intel_80286_code_load (
     output logic [7:0] fault_vector_o, access_o,
     output logic [15:0] fault_error_o, selector_o, limit_o,
     output logic [15:0] request_selector_o, request_offset_o,
+    // The request held while busy (the caller's verification view).
+    output logic [15:0] pending_selector_o, pending_offset_o,
     output logic [23:0] base_o,
     output logic [47:0] special_descriptor_o,
     output logic [15:0] special_tail_o
@@ -44,6 +46,8 @@ module intel_80286_code_load (
         .access_o(check_access),.accessed_value_o(check_accessed));
 
     assign busy_o=state!=IDLE;
+    assign pending_selector_o=saved_selector;
+    assign pending_offset_o=saved_offset;
     assign bus_req_o=rst_n && (state==READ_DESCRIPTOR || state==WRITE_ACCESSED);
     assign bus_write_o=state==WRITE_ACCESSED;
     assign bus_addr_o=descriptor_address+(state==WRITE_ACCESSED ? 24'd5 : {21'h0,byte_index});

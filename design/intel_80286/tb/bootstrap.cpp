@@ -2,7 +2,9 @@
 #include "protected_mode_fixture.h"
 #include "verilated.h"
 #include <cstdint>
+#include <cstdlib>
 #include <fstream>
+#include <map>
 #include <iostream>
 #include <iterator>
 #include <limits>
@@ -23,6 +25,8 @@ struct Bench {
     std::unordered_map<uint32_t, uint8_t> memory;
     std::vector<uint32_t> accepted;
     std::unordered_map<uint16_t,uint8_t> ports;
+    // Value of an unwritten port; the physical captures read FFh.
+    uint8_t port_default=0;
     struct Transfer {
         uint32_t address; uint8_t value; bool write,io;
         bool segmented=false; unsigned role=0,kind=0,offset=0,size=0;
@@ -54,7 +58,10 @@ struct Bench {
         if (shift>8 && word<2) value|=uint64_t(d.seg_bases_o[word+1])<<32;
         return uint32_t(value>>shift)&0xffffff;
     }
+    // LOADALL may load non-canonical real-mode caches (Intel LOADALL memo).
+    bool canonical_real_caches=true;
     void check_real_caches() const {
+        if (!canonical_real_caches) return;
         check(!(d.msw_o&1),"cache prelude unexpectedly enabled PE");
         check(d.seg_limits_o==0xffffffffffffffffULL && d.seg_access_o==0x93939393 && d.seg_valid_o==15,
               "real-cache limits/usability/A14 attributes");
@@ -112,7 +119,10 @@ struct Bench {
             } else {
                 if (d.bus_io_o) {
                     if (d.bus_write_o) ports[uint16_t(address)]=d.bus_wdata_o;
-                    else d.bus_rdata_i=ports[uint16_t(address)];
+                    else {
+                        const auto port=ports.find(uint16_t(address));
+                        d.bus_rdata_i=port!=ports.end() ? port->second : port_default;
+                    }
                 } else {
                     if (d.bus_write_o) memory[address]=d.bus_wdata_o;
                     else d.bus_rdata_i=memory[address];
@@ -230,10 +240,11 @@ struct Bench {
         check(retired == before && !d.bus_req_o, "diagnostic stop persistence");
     }
     void processor_fault(unsigned vector, uint16_t saved_ip, bool wait=true,
-                         uint32_t vector_base=0, unsigned accepted_acks=0) {
+                         uint32_t vector_base=0, unsigned accepted_acks=0,
+                         const uint16_t* expected_regs=nullptr) {
         const auto saved_flags=uint16_t(d.flags_o),saved_cs=cs(),saved_sp=reg(4);
         uint16_t saved_regs[8];
-        for (unsigned r=0;r<8;++r) saved_regs[r]=reg(r);
+        for (unsigned r=0;r<8;++r) saved_regs[r]=expected_regs ? expected_regs[r] : reg(r);
         const auto saved_segments=uint64_t(d.segs_o);
         const auto before=retired,acks=acknowledgements;
         const auto stack=cache_base(2);
@@ -277,6 +288,75 @@ struct Bench {
 #include "hardware_replay.h"
 #include "undefined_opcode_cases.h"
 #include "protection_fault_cases.h"
+
+// LOADALL (0F 05h): Intel "Undocumented iAPX 286 Test Instruction" pp. 1-4
+// define the 102-byte image at physical 000800h and its field offsets. The
+// expected state below is written from that table, not from the RTL.
+static void loadall_contract() {
+    unsigned runs=0;
+    for (bool wait:{false,true}) {
+        Bench b; b.canonical_real_caches=false;
+        b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+        b.put(0xf0100,{0x0f,0x05});
+        // At the loaded CS:IP F000:0110 (CS cache base 0F0000h):
+        b.put(0xf0110,{0x26,0xa0,0x10,0x00,       // MOV AL,ES:[0010]
+                       0x0f,0x01,0x0e,0x00,0x09,  // SIDT [0900]
+                       0x0f,0x01,0x06,0x08,0x09,  // SGDT [0908]
+                       0xf4});
+        std::vector<uint8_t> image(102,0);
+        auto word=[&](unsigned address,uint16_t value) {
+            image[address-0x800]=uint8_t(value); image[address-0x7ff]=uint8_t(value>>8);
+        };
+        auto cache=[&](unsigned address,uint32_t base,uint8_t access,uint16_t limit) {
+            for (unsigned i=0;i<3;++i) image[address-0x800+i]=uint8_t(base>>(8*i));
+            image[address-0x800+3]=access; word(address+4,limit);
+        };
+        word(0x806,0xfff0); word(0x816,0x0028); word(0x818,0x0893); word(0x81a,0x0110);
+        word(0x81c,0x0030); word(0x81e,0x0000); word(0x820,0x0050); word(0x822,0xf000);
+        word(0x824,0x1234); word(0x826,0x7777); word(0x828,0x6666); word(0x82a,0x5555);
+        word(0x82c,0x8000); word(0x82e,0x3333); word(0x830,0x2222); word(0x832,0x1111);
+        word(0x834,0x0000);
+        cache(0x836,0x123450,0x93,0xffff);   // ES above 1 MB (HIMEM-style)
+        cache(0x83c,0x0f0000,0x9b,0xffff);   // CS
+        cache(0x842,0x000500,0x93,0xffff);   // SS
+        cache(0x848,0x000000,0x93,0xffff);   // DS
+        cache(0x84e,0x012340,0x00,0x0047);   // GDTR
+        cache(0x854,0x005000,0x82,0x0fff);   // LDT
+        cache(0x85a,0x002000,0x00,0x01ff);   // IDTR
+        cache(0x860,0x006000,0x81,0x002b);   // TSS
+        for (unsigned i=0;i<image.size();++i) b.memory[0x800+i]=image[i];
+        b.memory[0x123460]=0xa5;
+        b.reset(); b.step(0xfffff0,0xea,0xf000,0x0100,wait);
+        b.data_transfers.clear();
+        b.step(0xf0100,0x0f,0xf000,0x0110,wait);
+        check(b.data_transfers.size()==102,"LOADALL did not read exactly 102 bytes");
+        for (unsigned i=0;i<102;++i)
+            check(b.data_transfers[i].address==0x800+i && !b.data_transfers[i].write &&
+                  !b.data_transfers[i].io,"LOADALL read outside its ascending 800h-865h image");
+        const uint16_t want_regs[8]={0x0000,0x1111,0x2222,0x3333,0x8000,0x5555,0x6666,0x7777};
+        for (unsigned r=0;r<8;++r) check(b.reg(r)==want_regs[r],"LOADALL general register");
+        check(b.d.segs_o==(0x1234ULL|(0xf000ULL<<16)|(0x0050ULL<<32)),"LOADALL selectors");
+        check(b.cache_base(0)==0x123450 && b.cache_base(1)==0x0f0000 &&
+              b.cache_base(2)==0x000500 && b.cache_base(3)==0,"LOADALL descriptor-cache bases");
+        check(b.d.seg_limits_o==0xffffffffffffffffULL && b.d.seg_access_o==0x93939b93 &&
+              b.d.seg_valid_o==15,"LOADALL descriptor-cache limits/access");
+        check(b.d.flags_o==0x0893 && b.d.msw_o==0xfff0 && b.d.ip_o==0x0110 &&
+              b.d.cs_base_o==0x0f0000,"LOADALL FLAGS/MSW/IP");
+        b.data_transfers.clear();
+        b.step(0xf0110,0xa0,0xf000,0x0114,wait);
+        check((b.reg(0)&0xff)==0xa5 && b.data_transfers.size()==1 &&
+              b.data_transfers[0].address==0x123460,"LOADALL ES cache base not used above 1 MB");
+        b.step(0xf0114,0x0f,0xf000,0x0119,wait);
+        b.step(0xf0119,0x0f,0xf000,0x011e,wait);
+        const uint8_t idtr[]={0xff,0x01,0x00,0x20,0x00},gdtr[]={0x47,0x00,0x40,0x23,0x01};
+        for (unsigned i=0;i<5;++i)
+            check(b.memory[0x900+i]==idtr[i] && b.memory[0x908+i]==gdtr[i],"LOADALL IDTR/GDTR");
+        b.step(0xf011e,0xf4,0xf000,0x011f,wait);
+        ++runs;
+    }
+    check(runs==2,"LOADALL contract missed a READY mode");
+    std::cout<<"PASS: LOADALL loads the Intel 800h image (registers, selectors, caches, GDTR/IDTR) and an above-1MB ES cache in both READY modes\n";
+}
 
 static void directed(bool wait) {
     Bench b;
@@ -387,16 +467,43 @@ static void rejection_and_reset() {
         b.put(0xf0100,{0xb8,0x34,0x12,0xf9,opcode,modrm});
         b.reset(); b.step(0xfffff0,0xea,0xf000,0x100);
         b.step(0xf0100,0xb8,0xf000,0x103); b.step(0xf0103,0xf9,0xf000,0x104);
-        const bool undocumented_shift=(opcode==0xc0 || opcode==0xc1 || (opcode>=0xd0 && opcode<=0xd3));
-        if (undocumented_shift) b.stop(1,0x104);
-        else b.ud_fault(0x104);
+        b.ud_fault(0x104);
         check(b.reg(0)==0x1234 && b.d.flags_o==3,"rejected encoding changed input state");
         for (unsigned r=1;r<8;++r) if(r!=4) check(b.reg(r)==0,"rejected encoding changed other register");
         check(b.accepted.size()==11,"rejected encoding fetched an operand");
         ++rejected;
     };
-    for (auto op : {0xc0,0xc1,0xd0,0xd1,0xd2,0xd3})
-        for (unsigned r=0;r<8;++r) reject(uint8_t(op),uint8_t(0xf0|r)); // undocumented /6
+    // Undocumented aliases (A34): shift /6 is SHL, 82h is 80h, D6h sets AL
+    // from CF. Expected values come from the physical Harris captures'
+    // behavior summarized in scripts/analyze_alias_captures.py.
+    unsigned aliases=0;
+    for (bool wait:{false,true}) {
+        struct Alias { std::vector<uint8_t> code; uint16_t ax; uint16_t flags; };
+        // AX=8421, CF=1 from STC before each case.
+        const Alias cases[]={
+            {{0xd0,0xf0},0x8442,0x0006},        // SHL AL,1 alias: 21->42, CF=0, PF=1
+            {{0xd1,0xf0},0x0842,0x0807},        // SHL AX,1: 8421->0842, CF=1 OF=1
+            {{0xc0,0xf0,0x04},0x8410,0x0002},   // SHL AL,4: 21->10, CF=0
+            {{0x82,0xc0,0x10},0x8431,0x0002},   // ADD AL,10 via 82
+            {{0x82,0xf8,0x21},0x8421,0x0046},   // CMP AL,21 via 82: ZF
+            {{0xd6},0x84ff,0x0003},             // SALC with CF=1
+        };
+        for (const auto& a:cases) {
+            Bench b;
+            std::vector<uint8_t> program={0xb8,0x21,0x84,0xf9};
+            program.insert(program.end(),a.code.begin(),a.code.end());
+            program.push_back(0xf4);
+            b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+            for (std::size_t i=0;i<program.size();++i) b.memory[0xf0100+uint32_t(i)]=program[i];
+            b.reset(); b.step(0xfffff0,0xea,0xf000,0x100,wait);
+            b.step(0xf0100,0xb8,0xf000,0x103,wait); b.step(0xf0103,0xf9,0xf000,0x104,wait);
+            b.step(0xf0104,a.code[0],0xf000,uint16_t(0x104+a.code.size()),wait);
+            if (!(b.reg(0)==a.ax && (b.d.flags_o&0x08d5)==(a.flags&0x08d5)))
+                throw std::runtime_error("undocumented alias result: opcode "+std::to_string(a.code[0])+
+                    " AX="+std::to_string(b.reg(0))+" FLAGS="+std::to_string(b.d.flags_o));
+            ++aliases;
+        }
+    }
     for (auto op : {0xfe,0xff,0xf6,0xf7})
         for (unsigned extension=0;extension<8;++extension) {
             const bool supported = op==0xff ? extension<=2 || extension==4 || extension==6 :
@@ -430,7 +537,7 @@ static void rejection_and_reset() {
     limit.put(0xffffd,{0x81,0xc0}); limit.reset();
     limit.step(0xfffff0,0xea,0xf000,0xfffd); limit.processor_fault(13,0xfffd);
     check(limit.accepted.size()==7,"ModR/M immediate crossed segment boundary");
-    std::cout<<"PASS: "<<rejected<<" rejected ModR/M encodings, 100 reset cut points and immediate limit\n";
+    std::cout<<"PASS: "<<rejected<<" rejected ModR/M encodings, "<<aliases<<" undocumented alias executions (shift /6, 82h, D6h), 100 reset cut points and immediate limit\n";
 }
 
 static void intel_shift_carry() {
@@ -649,7 +756,12 @@ static void string_contracts() {
     }
     check(elements==1 && partial.reg(1)==1 && partial.reg(6)==0xffff && partial.reg(7)==0x2002,"REP lost completed-element progress");
     check(partial.data_transfers.size()==4 && partial.memory[0x2000]==0x34 && partial.memory[0x2001]==0x12 && partial.memory[0x2002]==0xcc,"REP limit accessed an incomplete element");
-    partial.processor_fault(13,0x109);
+    // A36: physical captures (A5.MOO) leave SI advanced and REP CX reduced by
+    // one when the MOVSW source word at FFFF raises #13; DI is unchanged.
+    uint16_t source_fault_regs[8];
+    for (unsigned r=0;r<8;++r) source_fault_regs[r]=partial.reg(r);
+    source_fault_regs[1]=0; source_fault_regs[6]=0x0001;
+    partial.processor_fault(13,0x109,true,0,0,source_fault_regs);
     for(unsigned cut=0;cut<=12;++cut) {
         Bench b; b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
         b.put(0xf0100,{0xb9,3,0,0xbe,0,0x10,0xbf,0,0x20,0xf3,0xa5,0x43,0xf4});
@@ -665,7 +777,13 @@ static void string_contracts() {
     Bench ins; ins.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
     ins.put(0xf0100,{0xb9,1,0,0xbf,0xff,0xff,0xf3,0x6d}); ins.reset();
     ins.step(0xfffff0,0xea,0xf000,0x100); ins.step(0xf0100,0xb9,0xf000,0x103);
-    ins.step(0xf0103,0xbf,0xf000,0x106); ins.processor_fault(13,0x106);
+    ins.step(0xf0103,0xbf,0xf000,0x106);
+    // A36 (physical 6D captures): REP INSW at DI=FFFF raises 13 with DI
+    // advanced and CX reduced by two.
+    uint16_t ins_fault_regs[8];
+    for (unsigned r=0;r<8;++r) ins_fault_regs[r]=ins.reg(r);
+    ins_fault_regs[1]=0xffff; ins_fault_regs[7]=0x0001;
+    ins.processor_fault(13,0x106,true,0,0,ins_fault_regs);
 
     Bench ins_ok; ins_ok.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
     ins_ok.put(0xf0100,{0xba,0x20,0x00,0xbf,0xfe,0xff,0x6d,0xf4});
@@ -1160,7 +1278,33 @@ static void stack_wrap_contracts() {
               "protected PUSH at SP=1 did not escalate #SS(0) through #DF to shutdown");
         ++cases;
     }
-    std::cout<<"PASS: "<<cases<<" stack-wrap cases: real-mode odd-SP PUSH/CALL/INT/PUSHA shutdown, PUSHA/POP segment overrun 13, exception-13 IDT-limit shutdown with NMI recovery, INT 0Dh limit to vector 8, and protected #SS(0) and #DF shutdown\n";
+    // Real mode, even SP: an aligned IRET/RETF frame wraps from FFFE to 0000.
+    for (bool wait:{false,true}) {
+        struct Wrap { uint8_t op; uint16_t sp; uint16_t sp_after; };
+        for (const Wrap w : {Wrap{0xcf,0xfffc,0x0002},Wrap{0xcf,0xfffe,0x0004},
+                             Wrap{0xcb,0xfffe,0x0002},Wrap{0xca,0xfffe,0x0012}}) {
+            Bench b;
+            std::vector<uint8_t> program={0xbc,uint8_t(w.sp),uint8_t(w.sp>>8),w.op};
+            if (w.op==0xca) program.insert(program.end(),{0x10,0x00});
+            b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+            for (std::size_t i=0;i<program.size();++i) b.memory[0xf0100+uint32_t(i)]=program[i];
+            const uint16_t words[]={0x0200,0x2000,0x08d7};
+            for (unsigned i=0;i<3;++i) {
+                const uint16_t off=uint16_t(w.sp+2*i);
+                b.memory[off]=uint8_t(words[i]); b.memory[uint16_t(off+1)]=uint8_t(words[i]>>8);
+            }
+            b.put(0x20200,{0xf4});
+            b.reset();
+            b.step(0xfffff0,0xea,0xf000,0x0100,wait);
+            b.step(0xf0100,0xbc,0xf000,0x0103,wait);
+            b.step(0xf0103,w.op,0x2000,0x0200,wait);
+            check(b.reg(4)==w.sp_after && (w.op!=0xcf || b.d.flags_o==0x08d7),
+                  "real-mode far return did not wrap its aligned frame past FFFF");
+            b.step(0x20200,0xf4,0x2000,0x0201,wait);
+            ++cases;
+        }
+    }
+    std::cout<<"PASS: "<<cases<<" stack-wrap cases: real-mode odd-SP PUSH/CALL/INT/PUSHA shutdown, PUSHA/POP segment overrun 13, exception-13 IDT-limit shutdown with NMI recovery, INT 0Dh limit to vector 8, aligned IRET/RETF frames wrapping past FFFF, and protected #SS(0) and #DF shutdown\n";
 }
 
 static void procedure_reset_contracts() {
@@ -1244,6 +1388,14 @@ static void bounds_translation_contracts() {
         b.put(0xf0100,{0x62,0x06,uint8_t(offset),uint8_t(offset>>8),0xf4});
         b.put(offset,{0,0,0xff,0x7f}); b.reset(); b.step(0xfffff0,0xea,0xf000,0x100);
         if(offset==0xfffc) {b.step(0xf0100,0x62,0xf000,0x104); check(b.data_transfers.size()==4,"BOUND endpoint bytes");}
+        else if(offset==0xfffe) {
+            // A40 (physical 62/C4/C5 captures): the upper bound word wraps to
+            // offset 0000 of DS instead of raising 13.
+            b.put(0,{0xff,0x7f}); b.step(0xf0100,0x62,0xf000,0x104);
+            check(b.data_transfers.size()==4 && b.data_transfers[0].address==0xfffe &&
+                  b.data_transfers[1].address==0xffff && b.data_transfers[2].address==0 &&
+                  b.data_transfers[3].address==1,"BOUND upper word wraps to offset 0000");
+        }
         else b.processor_fault(13,0x100);
     }
     Bench x; x.put(0xfffff0,{0xbb,0xff,0xff,0xb0,0x02,0x2e,0xd7,0xf4});
@@ -1713,6 +1865,19 @@ static void system_register_contracts() {
         if (prefixes==8) { b.step(0xf0100,0x0f,0xf000,0x10a); check(b.accepted.size()==10,"ten-byte system fetch count");
             b.step(0xf010a,0x90,0xf000,0x10b); b.step(0xf010b,0xf4,0xf000,0x10c); }
         else { b.processor_fault(13,0x100); check(b.accepted.size()==10,"overlong instruction fetched extension"); } ++cases;
+    }
+    // A35: Intel's undocumented-opcode note makes F1h a prefix with no
+    // function that counts toward the ten-byte limit like any other prefix.
+    for (unsigned prefixes: {1u,8u,9u,10u}) {
+        Bench b; b.put(0xfffff0,{0xea,0,1,0,0xf0});
+        for (unsigned i=0;i<prefixes;++i) b.memory[0xf0100+i]=(i&1)?0x3e:0xf1;
+        b.put(0xf0100+prefixes,{0xb0,0x5a,0xf4}); b.reset(); b.step(0xfffff0,0xea,0xf000,0x100); b.accepted.clear();
+        if (prefixes<=8) {
+            b.step(0xf0100,0xb0,0xf000,uint16_t(0x102+prefixes));
+            check(b.accepted.size()==prefixes+2 && (b.reg(0)&0xff)==0x5a,"F1 prefix executes as no-op");
+            b.step(0xf0102+prefixes,0xf4,0xf000,uint16_t(0x103+prefixes));
+        } else { b.processor_fault(13,0x100); check(prefixes==9 || b.accepted.size()==10,"F1 counted toward ten-byte limit"); }
+        ++cases;
     }
     for (bool invalid_limit: {false,true}) {
         Bench b; b.put(0xfffff0,{0xea,0,1,0,0xf0});
@@ -3372,6 +3537,125 @@ static void protected_call_gate_same_level() {
 // GATE): the gate offset is used, the target must be nonconforming with
 // DPL=CPL or conforming with DPL<=CPL, CS RPL becomes CPL, and no stack or
 // link frame changes. A more-privileged nonconforming target is #GP(CS).
+// NT flag contracts (Intel 210498-005): POPF pops the whole flag word (App. B
+// POPF); an interrupt or trap gate clears NT after pushing the old flags and
+// IRET reloads it from the frame (chapter 8/9 text and App. B IRET); IRET with
+// NT and an invalid current TSS raises #TS(back link) (App. B SWITCH_TASKS).
+static void protected_nt_flag_contracts() {
+    using namespace protected_mode_fixture;
+    unsigned runs=0;
+    for (bool wait:{false,true}) {
+        const uint8_t program[]={
+            0xb8,0x28,0x00, 0x8e,0xd0,  // 0200 MOV SS,0028
+            0xbc,0x80,0x00,             // 0205 MOV SP,0080
+            0xb8,0x02,0x40,             // 0208 MOV AX,4002 (NT=1)
+            0x50, 0x9d,                 // 020B PUSH AX / POPF
+            0xcd,0x20,                  // 020D INT 20h (interrupt gate)
+            0xf4                        // 020F HLT
+        };
+        Bench b;
+        place_selector_fixture(b,program,sizeof(program));
+        b.memory[0x46]=0xff; b.memory[0x47]=0x07;
+        b.put(kIdtBase+0x20*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+        b.put(kHandlerBase+kHandlerIp,{0xcf});              // IRET
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+        b.step(kCodeBase+0x020b,0x50,kCodeSelector,0x020c,wait);
+        b.step(kCodeBase+0x020c,0x9d,kCodeSelector,0x020d,wait);
+        check(b.d.flags_o==0x4002,"protected POPF did not load NT");
+        b.step(kCodeBase+0x020d,0xcd,kHandlerSelector,kHandlerIp,wait);
+        check(!(b.d.flags_o&0x4000),"interrupt gate did not clear NT");
+        const uint32_t frame=kStackBase+b.reg(4);
+        check(b.memory[frame+4]==0x02 && b.memory[frame+5]==0x40,
+              "interrupt gate did not push the old NT");
+        b.step(kHandlerBase+kHandlerIp,0xcf,kCodeSelector,0x020f,wait);
+        check(b.d.flags_o==0x4002 && b.reg(4)==0x0080,
+              "IRET did not reload NT from its frame");
+        b.step(kCodeBase+0x020f,0xf4,kCodeSelector,0x0210,wait);
+        ++runs;
+
+        const uint8_t nested[]={
+            0xb8,0x28,0x00, 0x8e,0xd0,  // 0200 MOV SS,0028
+            0xbc,0x80,0x00,             // 0205 MOV SP,0080
+            0xb8,0x02,0x40,             // 0208 MOV AX,4002 (NT=1)
+            0x50, 0x9d,                 // 020B PUSH AX / POPF
+            0xcf, 0xf4                  // 020D IRET with no TR loaded
+        };
+        Bench t;
+        place_selector_fixture(t,nested,sizeof(nested));
+        t.memory[0x46]=0xff; t.memory[0x47]=0x07;
+        t.memory[0x40]=0x77; t.memory[0x41]=0x00;
+        t.put(kIdtBase+10*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+        t.put(kHandlerBase+kHandlerIp,{0xf4});
+        t.put(0x000000,{0x58,0x00});      // back link read through the null TR cache
+        protected_mode_boot(t,wait);
+        t.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        t.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        t.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        t.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+        t.step(kCodeBase+0x020b,0x50,kCodeSelector,0x020c,wait);
+        t.step(kCodeBase+0x020c,0x9d,kCodeSelector,0x020d,wait);
+        bool entered=false;
+        for (unsigned n=0;n<60000 && !t.d.fault_o;++n) {
+            t.tick(wait);
+            if (t.d.event_o && t.cs()==kHandlerSelector && t.d.ip_o==kHandlerIp) { entered=true; break; }
+        }
+        check(entered && !t.d.fault_o && t.d.event_vector_o==10 &&
+              t.d.event_packet_error_code_o==0x0058 &&
+              t.d.event_packet_saved_ip_o==0x020d,
+              "NT IRET with an invalid current TSS did not raise #TS(back link)");
+        ++runs;
+    }
+    check(runs==4,"NT contracts missed a READY mode");
+    std::cout<<"PASS: protected POPF loads NT, gates clear it, IRET restores it, and NT IRET without a valid TSS raises #TS(back link) in both READY modes\n";
+}
+
+// A42: App. B ENTER raises #SS(0) if SP would leave the stack limit during
+// any part of the instruction, including the final allocation. The fixture's
+// SS (0028h) is expand-up with limit 00FFh.
+static void protected_enter_stack_limit() {
+    using namespace protected_mode_fixture;
+    unsigned runs=0;
+    for (bool wait:{false,true}) for (bool overflow:{false,true}) {
+        const uint8_t program[]={
+            0xb8,0x28,0x00, 0x8e,0xd0,  // 0200 MOV SS,0028
+            0xbc,0x80,0x00,             // 0205 MOV SP,0080
+            0xbd,0x34,0x12,             // 0208 MOV BP,1234
+            0xc8,uint8_t(overflow ? 0x00 : 0x10),uint8_t(overflow ? 0x01 : 0x00),0x00, // 020B ENTER n,0
+            0xf4                        // 020F HLT
+        };
+        Bench b;
+        place_selector_fixture(b,program,sizeof(program));
+        b.put(kIdtBase+12*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+        b.put(kHandlerBase+kHandlerIp,{0xf4});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xbd,kCodeSelector,0x020b,wait);
+        if (!overflow) {
+            b.step(kCodeBase+0x020b,0xc8,kCodeSelector,0x020f,wait);
+            check(b.reg(4)==0x006e && b.reg(5)==0x007e,"in-limit protected ENTER frame");
+        } else {
+            bool entered=false;
+            for (unsigned n=0;n<60000 && !b.d.fault_o;++n) {
+                b.tick(wait);
+                if (b.d.event_o && b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp) { entered=true; break; }
+            }
+            check(entered && b.d.event_vector_o==12 && b.d.event_packet_error_code_o==0 &&
+                  b.d.event_packet_saved_ip_o==0x020b && b.d.event_packet_saved_sp_o==0x0080 &&
+                  b.reg(5)==0x1234,
+                  "ENTER allocating below the SS limit did not raise restartable #SS(0)");
+        }
+        ++runs;
+    }
+    check(runs==4,"ENTER stack-limit cases incomplete");
+    std::cout<<"PASS: protected ENTER allocates within the SS limit and raises restartable #SS(0) when the frame would leave it, in both READY modes\n";
+}
+
 static void protected_call_gate_jump() {
     using namespace protected_mode_fixture;
     const uint8_t ring0_program[]={
@@ -3386,12 +3670,14 @@ static void protected_call_gate_jump() {
         {0x006b,false,0x003b},      // DPL3 nonconforming target, same level
         {0x0063,false,0x004b},      // DPL0 conforming target, CPL stays 3
         {0x005b,true,0x0008},       // DPL0 nonconforming target: #GP(0008)
+        {0x0073,true,0x0070},       // all-zero (type 0) descriptor: #GP(0070), B-54
     };
     unsigned executions=0;
     for (bool wait:{false,true}) for (const auto& test:cases) {
         Bench b;
         place_selector_fixture(b,ring0_program,sizeof(ring0_program));
-        b.memory[0x41]=0x00; b.memory[0x40]=0x6f;
+        b.memory[0x41]=0x00; b.memory[0x40]=0x77;
+        b.put(kGdtBase+0x70,{0,0,0,0,0,0,0,0});                          // empty slot
         b.put(kGdtBase+0x38,{0xff,0x0f,0x00,0x00,0x06,0xfa,0x00,0x00}); // ring-3 code
         b.put(kGdtBase+0x40,{0xff,0x00,0x00,0x00,0x07,0xf2,0x00,0x00}); // ring-3 stack
         b.put(kGdtBase+0x48,{0xff,0x0f,0x00,0x00,0x06,0x9e,0x00,0x00}); // DPL0 conforming
@@ -3422,7 +3708,7 @@ static void protected_call_gate_jump() {
         } else {
             for (unsigned n=0;n<60000 && !b.d.event_o && !b.d.fault_o;++n) b.tick(wait);
             if (!(b.d.event_o && !b.d.fault_o && b.d.event_vector_o==13 &&
-                  b.d.event_packet_error_code_o==0x0008 &&
+                  b.d.event_packet_error_code_o==test.cs &&
                   b.d.event_packet_saved_cs_o==0x003b && b.d.event_packet_saved_ip_o==0x0400 &&
                   b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp))
                 throw std::runtime_error("JMP through a call gate to more-privileged code did not raise #GP(CS); event="+
@@ -6876,7 +7162,8 @@ static void protected_event_task_gate_delivery() {
     constexpr uint32_t current_tss_base=0x00000700;
     constexpr uint32_t task_gate_tss_base=0x000a0000;
     const uint16_t task_words[]={
-        0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+        // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
         0x0205,0x0206,0x0207,0x0010,0x0030,0x0028,0x0010,0x0000
     };
     enum class EventSource { external_intr, software_int, nmi };
@@ -8161,6 +8448,36 @@ static void protected_iopl_controls() {
     }
     check(matrix_cases==256,"direct I/O privilege matrix missed an opcode/CPL/IOPL/READY case");
 
+    // A35: Intel's undocumented-opcode note gives 0F 04h/05h exception 13 in
+    // protected mode when CPL is not 0. At CPL 0, 0F 04h stays a stop
+    // boundary; 0F 05h is LOADALL and has its own contract test.
+    unsigned loadall_cases=0;
+    for (bool wait:{false,true}) for (uint8_t second:{uint8_t(0x04),uint8_t(0x05)})
+      for (unsigned cpl=0;cpl<4;++cpl) {
+        if (cpl==0 && second==0x05) continue;
+        Bench b;
+        const Context context=prepare(b,wait,cpl,0,{0x0f,second,0xf4});
+        b.data_transfers.clear();
+        const unsigned retired_before=b.retired;
+        bool event_seen=false,handler_entered=false;
+        for (unsigned cycle=0;cycle<50000 && !b.d.fault_o;++cycle) {
+            b.tick(wait);
+            event_seen=event_seen||b.d.event_o;
+            if (event_seen && b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp) {
+                handler_entered=true; break;
+            }
+        }
+        if (cpl==0) check(b.d.fault_o && b.d.fault_code_o==1 && !event_seen && b.retired==retired_before,
+                          "CPL0 0F 04 did not stop at the development boundary");
+        else check(handler_entered && b.d.event_vector_o==13 && b.d.event_packet_error_valid_o &&
+                   b.d.event_packet_error_code_o==0 &&
+                   b.d.event_packet_saved_cs_o==(context.level.cs|uint16_t(cpl)) &&
+                   b.d.event_packet_saved_ip_o==0x0400 && b.retired==retired_before,
+                   "CPL>0 0F 04/05 did not raise #GP(0)");
+        ++loadall_cases;
+    }
+    check(loadall_cases==14,"0F 04/05 privilege matrix incomplete");
+
     struct StringCase { uint8_t opcode; bool input,word; };
     const StringCase string_cases[]={
         {0x6c,true,false},{0x6d,true,true},{0x6e,false,false},{0x6f,false,true}
@@ -9149,7 +9466,8 @@ static void protected_iopl_controls() {
     unsigned incoming_ldtr_double_fault_task_cases=0;
     constexpr uint32_t incoming_df_tss_base=0x000a0000;
     const uint16_t incoming_df_task_words[]={
-        0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+        // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
         0x0205,0x0206,0x0207,0x0010,0x0030,0x0028,0x0010,0x0000
     };
     for (bool wait:{false,true}) for (const auto& test:incoming_ldtr_faults) {
@@ -9849,7 +10167,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t ss_fault_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0020,0x0030,0x0028,0x0020,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -9980,7 +10299,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t ss_type_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0020,0x0030,0x0028,0x0020,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -10104,7 +10424,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t ss_privilege_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0020,0x0030,0x0028,0x0020,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -10228,7 +10549,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t ss_privilege_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0020,0x0030,0x0028,0x0020,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -10352,7 +10674,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t ss_null_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0020,0x0030,0x0028,0x0020,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -10597,7 +10920,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t es_fault_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0010,0x0030,0x0028,0x0010,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -10723,7 +11047,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t ds_fault_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0020,0x0030,0x0028,0x0020,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -10849,7 +11174,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t es_readability_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0010,0x0030,0x0028,0x0010,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -10976,7 +11302,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t ds_readability_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0010,0x0030,0x0028,0x0010,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -11101,7 +11428,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t es_type_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0010,0x0030,0x0028,0x0010,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -11226,7 +11554,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t ds_type_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0010,0x0030,0x0028,0x0010,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -11351,7 +11680,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t ds_ldtr_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0010,0x0030,0x0028,0x0010,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -11611,7 +11941,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t ds_privilege_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0010,0x0030,0x0028,0x0010,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -11736,7 +12067,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t es_privilege_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0010,0x0030,0x0028,0x0010,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -12002,7 +12334,8 @@ static void protected_iopl_controls() {
     constexpr uint16_t current_task_tss_selector=0x0058;
     const uint8_t direct_task_tss_descriptor[]={0x2b,0x00,0x00,0x00,0x0a,0x81,0x00,0x00};
     const uint16_t direct_task_words[]={
-        0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+        // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
         0x0205,0x0206,0x0207,0x0010,0x0030,0x0028,0x0010,0x0000
     };
     unsigned direct_task_switch_cases=0;
@@ -12062,6 +12395,12 @@ static void protected_iopl_controls() {
               uint16_t(b.memory[0x00070024] |
                        (uint16_t(b.memory[0x00070025])<<8))==context.level.cs,
               "direct TSS CALL/JMP did not save the exact outgoing instruction successor and state");
+        // Table 8-2: JMP clears the incoming NT; IRET leaves the returning
+        // caller's NT unchanged and clears NT in the abandoned task's image.
+        check(!(b.d.flags_o & 0x4000),"direct TSS CALL/JMP left NT set in the resumed task");
+        if (nested_call)
+            check(!(b.memory[direct_task_tss_base+0x11] & 0x40),
+                  "IRET task return did not clear NT in the outgoing TSS image");
         check(std::any_of(b.data_transfers.begin(),b.data_transfers.end(),[&](const auto& t) {
                   return !t.write && !t.io &&
                       t.address==kGdtBase+(through_task_gate ? direct_task_gate_selector :
@@ -13806,11 +14145,262 @@ static void processor_extension_contract() {
     std::cout << "PASS: 80286 WAIT interruption/BUSY/ERROR#, ESC fault gates and D8 register commands\n";
 }
 
+// Processor-extension data channel (1985 PRM App. A; Intel 210760-002 ch. 6):
+// after a memory ESC the CPU accepts PEREQ and moves one operand word per
+// request, memory then port FAh for loads and FAh then memory for stores,
+// with PEACK# low on the first operation. A word outside the operand segment
+// raises interrupt 9 (9.6.3). A small 80287 stand-in drives BUSY and PEREQ.
+static void processor_extension_data_channel() {
+    struct Npx {
+        unsigned words=0, served=0;
+        bool store=false, started=false, low_cycle=false;
+        std::vector<uint16_t> load_words;      // words the CPU wrote to FAh
+        std::vector<uint16_t> store_words;     // words supplied at FAh
+        std::vector<bool> peack_first;         // PEACK# low on each word's first byte
+        std::size_t seen=0;
+    };
+    auto run=[](Bench& b,Npx& npx,bool wait,unsigned cycles) {
+        for (unsigned n=0;n<cycles && !b.d.event_o && !b.d.halted_o && !b.d.fault_o;++n) {
+            const std::size_t before=b.data_transfers.size();
+            const bool peack=!b.d.peack_n_o;
+            b.tick(wait);
+            for (std::size_t i=before;i<b.data_transfers.size();++i) {
+                const auto& t=b.data_transfers[i];
+                if (t.io && t.write && t.address==0xf8) { npx.started=true; b.d.busy_i=1; }
+                if (npx.started && npx.served<npx.words && !t.io && i==b.data_transfers.size()-1) {}
+                if (t.io && t.address==0xfb && npx.served<npx.words) {
+                    const uint16_t lo=b.data_transfers[i-1].value;
+                    if (!npx.store) npx.load_words.push_back(uint16_t(lo|(t.value<<8)));
+                    ++npx.served; npx.low_cycle=true;
+                }
+            }
+            if (npx.started && b.data_transfers.size()>before) {
+                const auto& t=b.data_transfers[before];
+                const bool first=npx.store ? (t.io && t.address==0xfa) :
+                                             (!t.io && t.address!=0xfc && t.address!=0xfd &&
+                                              t.address!=0xf8 && t.address!=0xf9);
+                if (first && npx.peack_first.size()==npx.served) npx.peack_first.push_back(peack);
+            }
+            if (npx.started && npx.store && npx.served<npx.words) {
+                b.ports[0xfa]=uint8_t(npx.store_words[npx.served]);
+                b.ports[0xfb]=uint8_t(npx.store_words[npx.served]>>8);
+            }
+            // Command and pointer words first, then one request per word with
+            // an intervening low sample (A26); BUSY falls after the last word.
+            const bool command_done=npx.started && std::count_if(b.data_transfers.begin(),
+                b.data_transfers.end(),[](const auto& t){ return t.io && t.write && t.address==0xfd; })>=4;
+            if (npx.low_cycle) { b.d.pereq_i=0; npx.low_cycle=false; }
+            else b.d.pereq_i=command_done && npx.served<npx.words;
+            if (command_done && npx.served==npx.words && npx.words!=0) b.d.busy_i=0;
+        }
+    };
+    unsigned cases=0;
+    for (bool wait:{false,true}) {
+        // FLD qword [BX]: four loads, then WAIT and HLT.
+        Bench b;
+        b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+        b.put(0xf0100,{0xbb,0x00,0x02, 0xdd,0x07, 0x9b, 0xf4});
+        b.put(0x0200,{0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88});
+        b.reset();
+        b.step(0xfffff0,0xea,0xf000,0x0100,wait);
+        b.step(0xf0100,0xbb,0xf000,0x0103,wait);
+        Npx npx; npx.words=4;
+        b.data_transfers.clear();
+        run(b,npx,wait,20000);
+        if (!(b.d.halted_o && !b.d.fault_o && !b.d.event_o)) {
+            std::ostringstream o;
+            o<<"FLD qword channel did not reach HLT: ip="<<std::hex<<b.d.ip_o<<" fault="<<unsigned(b.d.fault_o)
+             <<" event="<<unsigned(b.d.event_o)<<" vec="<<unsigned(b.d.event_vector_o)<<" busy="<<unsigned(b.d.busy_i)
+             <<" pereq="<<unsigned(b.d.pereq_i)<<" served="<<std::dec<<npx.served<<" transfers:";
+            for (const auto& t:b.data_transfers) o<<' '<<std::hex<<t.address<<(t.io?"i":"m")<<(t.write?"w":"r")<<"="<<unsigned(t.value);
+            throw std::runtime_error(o.str());
+        }
+        const uint16_t want[]={0x2211,0x4433,0x6655,0x8877};
+        check(npx.load_words.size()==4 && std::equal(npx.load_words.begin(),npx.load_words.end(),want),
+              "load channel did not deliver the operand words to port FAh in order");
+        // Each word: memory read of the two bytes, then the FAh/FBh write.
+        std::vector<Bench::Transfer> words;
+        for (const auto& t:b.data_transfers)
+            if ((!t.io && t.address>=0x200 && t.address<0x208) || (t.io && (t.address==0xfa||t.address==0xfb)))
+                words.push_back(t);
+        check(words.size()==16,"load channel transfer count");
+        for (unsigned w=0;w<4;++w) {
+            check(!words[4*w].io && !words[4*w].write && words[4*w].address==0x200+2*w &&
+                  !words[4*w+1].io && words[4*w+1].address==0x201+2*w &&
+                  words[4*w+2].io && words[4*w+2].write && words[4*w+2].address==0xfa &&
+                  words[4*w+3].io && words[4*w+3].address==0xfb,
+                  "load channel did not read memory before writing port FAh");
+        }
+        check(npx.peack_first.size()==4 &&
+              std::all_of(npx.peack_first.begin(),npx.peack_first.end(),[](bool v){ return v; }),
+              "PEACK# was not low on each word's first operation");
+        ++cases;
+    }
+    for (bool wait:{false,true}) {
+        // FSTP tbyte [BX]: five stores from port FAh to memory.
+        Bench b;
+        b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+        b.put(0xf0100,{0xbb,0x01,0x03, 0xdb,0x3f, 0x9b, 0xf4});
+        b.reset();
+        b.step(0xfffff0,0xea,0xf000,0x0100,wait);
+        b.step(0xf0100,0xbb,0xf000,0x0103,wait);
+        Npx npx; npx.words=5; npx.store=true;
+        npx.store_words={0xa1b2,0xc3d4,0xe5f6,0x0718,0x293a};
+        b.data_transfers.clear();
+        run(b,npx,wait,20000);
+        check(b.d.halted_o && !b.d.fault_o,"FSTP tbyte channel did not reach HLT");
+        for (unsigned w=0;w<5;++w)
+            check(b.memory[0x301+2*w]==uint8_t(npx.store_words[w]) &&
+                  b.memory[0x302+2*w]==uint8_t(npx.store_words[w]>>8),
+                  "store channel did not write the extension words at the odd operand address");
+        std::vector<Bench::Transfer> seq;
+        for (const auto& t:b.data_transfers)
+            if ((!t.io && t.address>=0x301 && t.address<0x30b) || (t.io && (t.address==0xfa||t.address==0xfb)))
+                seq.push_back(t);
+        check(seq.size()==20 && seq[0].io && !seq[0].write && seq[2].address==0x301 && seq[2].write,
+              "store channel did not read port FAh before writing memory");
+        ++cases;
+    }
+    for (bool wait:{false,true}) {
+        // FLD qword then HLT: the halted CPU still serves PEREQ (App. A).
+        Bench b;
+        b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+        b.put(0xf0100,{0xbb,0x00,0x02, 0xdd,0x07, 0xf4});
+        b.put(0x0200,{0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88});
+        b.reset();
+        b.step(0xfffff0,0xea,0xf000,0x0100,wait);
+        b.step(0xf0100,0xbb,0xf000,0x0103,wait);
+        Npx npx; npx.words=4;
+        b.data_transfers.clear();
+        b.step(0xf0103,0xdd,0xf000,0x0105,wait);
+        b.step(0xf0105,0xf4,0xf000,0x0106,wait);
+        for (unsigned n=0;n<20000 && npx.served<4;++n) {
+            const std::size_t before=b.data_transfers.size();
+            b.tick(wait);
+            for (std::size_t i=before;i<b.data_transfers.size();++i)
+                if (b.data_transfers[i].io && b.data_transfers[i].address==0xfb) {
+                    npx.load_words.push_back(uint16_t(b.data_transfers[i-1].value|(b.data_transfers[i].value<<8)));
+                    ++npx.served; npx.low_cycle=true;
+                }
+            if (npx.low_cycle) { b.d.pereq_i=0; npx.low_cycle=false; }
+            else b.d.pereq_i=npx.served<4;
+            b.d.busy_i=npx.served<4;
+            if (b.d.bus_req_o) check(!b.d.bus_halt_cycle_o,"channel transfer during HLT was marked a halt cycle");
+        }
+        const uint16_t want[]={0x2211,0x4433,0x6655,0x8877};
+        check(npx.served==4 && std::equal(npx.load_words.begin(),npx.load_words.end(),want) &&
+              b.d.halted_o && b.retired==3+1,
+              "halted CPU did not serve the extension's operand requests");
+        ++cases;
+    }
+    for (bool wait:{false,true}) {
+        // FLD tbyte [BX] at FFFBh: the third word straddles FFFFh, which
+        // raises interrupt 9 while WAIT holds on BUSY (9.6.3).
+        Bench b;
+        b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+        b.put(0xf0100,{0xbb,0xfb,0xff, 0xdb,0x2f, 0x9b, 0xf4});
+        b.put(0x0024,{0x00,0x01,0x00,0x20});
+        b.put(0x20100,{0xf4});
+        for (uint32_t a=0xfffb;a<=0xffff;++a) b.memory[a]=uint8_t(a);
+        b.reset();
+        b.step(0xfffff0,0xea,0xf000,0x0100,wait);
+        b.step(0xf0100,0xbb,0xf000,0x0103,wait);
+        Npx npx; npx.words=5;
+        b.data_transfers.clear();
+        run(b,npx,wait,20000);
+        check(b.d.event_o && b.d.event_vector_o==9 && !b.d.event_packet_error_valid_o &&
+              b.cs()==0x2000 && b.d.ip_o==0x0100 && npx.load_words.size()==2,
+              "operand word past FFFFh did not raise interrupt 9 after the two words that fit");
+        check(std::none_of(b.data_transfers.begin(),b.data_transfers.end(),[](const auto& t){
+                  return !t.io && !t.write && (t.address==0xffff || t.address==0x10000); }),
+              "overrunning word touched memory");
+        ++cases;
+    }
+    // Protected mode: a memory ESC in a usable DS runs its command phase and
+    // channel through the descriptor base; a null DS or an SS word past the
+    // limit faults #GP(0)/#SS(0) before the command phase (A32).
+    for (bool wait:{false,true}) {
+        using namespace protected_mode_fixture;
+        const uint8_t ok_program[]={
+            0xb8,0x10,0x00, 0x8e,0xd8,  // 0200 MOV DS,0010 (base 020000, limit FF)
+            0xbb,0x20,0x00,             // 0205 MOV BX,0020
+            0xdd,0x07,                  // 0208 FLD qword [BX]
+            0xf4                        // 020A HLT
+        };
+        Bench b;
+        place_selector_fixture(b,ok_program,sizeof(ok_program));
+        b.put(kWideDataBase+0x20,{0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbb,kCodeSelector,0x0208,wait);
+        b.data_transfers.clear();
+        b.step(kCodeBase+0x0208,0xdd,kCodeSelector,0x020a,wait);
+        check(b.data_transfers.size()==10 && b.data_transfers[6].address==0xfc &&
+              b.data_transfers[6].value==0x20 && b.data_transfers[8].value==0x10,
+              "protected memory ESC did not send its offset and DS selector");
+        b.step(kCodeBase+0x020a,0xf4,kCodeSelector,0x020b,wait);
+        Npx npx;
+        for (unsigned n=0;n<20000 && npx.served<4;++n) {
+            const std::size_t before=b.data_transfers.size();
+            b.tick(wait);
+            for (std::size_t i=before;i<b.data_transfers.size();++i) {
+                const auto& t=b.data_transfers[i];
+                if (!t.io && !t.write) check(t.address>=kWideDataBase+0x20 && t.address<kWideDataBase+0x28,
+                                             "protected channel read outside the descriptor-based operand");
+                if (t.io && t.address==0xfb) {
+                    npx.load_words.push_back(uint16_t(b.data_transfers[i-1].value|(t.value<<8)));
+                    ++npx.served; npx.low_cycle=true;
+                }
+            }
+            if (npx.low_cycle) { b.d.pereq_i=0; npx.low_cycle=false; }
+            else b.d.pereq_i=npx.served<4;
+            b.d.busy_i=npx.served<4;
+        }
+        check(npx.served==4 && npx.load_words[0]==0x0201 && npx.load_words[3]==0x0807,
+              "protected channel did not load the operand through the DS descriptor base");
+        ++cases;
+        const struct { const char* name; std::vector<uint8_t> setup; uint8_t vector; } faults[]={
+            {"null DS",{0xb8,0x28,0x00,0x8e,0xd0, 0xbc,0x80,0x00, 0xb8,0x00,0x00,0x8e,0xd8, 0xbb,0x20,0x00},13},
+            {"SS past limit",{0xb8,0x28,0x00,0x8e,0xd0, 0xbc,0x80,0x00, 0xbd,0xff,0x00},12},
+        };
+        for (const auto& f:faults) {
+            std::vector<uint8_t> program=f.setup;
+            if (f.vector==13) program.insert(program.end(),{0xdd,0x07});      // FLD [BX]
+            else program.insert(program.end(),{0xdd,0x46,0x00});              // FLD [BP+0]
+            program.push_back(0xf4);
+            Bench c;
+            place_selector_fixture(c,program.data(),program.size());
+            c.put(kIdtBase+12*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+            protected_mode_boot(c,wait);
+            c.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+            c.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+            uint16_t esc_ip=0x020b;
+            c.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+            if (f.vector==13) {
+                c.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+                c.step(kCodeBase+0x020b,0x8e,kCodeSelector,0x020d,wait);
+                c.step(kCodeBase+0x020d,0xbb,kCodeSelector,0x0210,wait);
+                esc_ip=0x0210;
+            } else c.step(kCodeBase+0x0208,0xbd,kCodeSelector,0x020b,wait);
+            c.data_transfers.clear();
+            for (unsigned n=0;n<30000 && !c.d.event_o && !c.d.fault_o;++n) c.tick(wait);
+            check(c.d.event_o && !c.d.fault_o && c.d.event_vector_o==f.vector &&
+                  c.d.event_packet_error_code_o==0 && c.d.event_packet_saved_ip_o==esc_ip &&
+                  std::none_of(c.data_transfers.begin(),c.data_transfers.end(),
+                               [](const auto& t){ return t.io; }),
+                  (std::string("protected memory ESC with ")+f.name+" did not fault before its command phase").c_str());
+            ++cases;
+        }
+    }
+    std::cout<<"PASS: "<<cases<<" processor-extension channel runs: FLD qword loads memory-then-FAh, FSTP tbyte stores FAh-then-memory at an odd address, PEACK# on each first operation, transfers while halted, and interrupt 9 for a word past FFFFh, in both READY modes\n";
+}
+
 int main(int argc, char** argv) {
     Verilated::commandArgs(argc,argv);
     try {
         if (argc==3 && std::string(argv[1])=="--hardware") hardware_vectors(argv[2]);
-        else if (argc==2 && std::string(argv[1])=="--ud") undefined_opcode_contracts();
+        else if (argc==2 && std::string(argv[1])=="--ud") undefined_opcode_contracts(); else if (argc==2 && std::string(argv[1])=="--loadall") loadall_contract(); else if (argc==2 && std::string(argv[1])=="--nt") protected_nt_flag_contracts(); else if (argc==2 && std::string(argv[1])=="--enter-limit") protected_enter_stack_limit();
         else if (argc==2 && std::string(argv[1])=="--protection") protection_fault_contracts();
         else if (argc==2 && std::string(argv[1])=="--references") reference_routing_contracts();
         else if (argc==2 && std::string(argv[1])=="--caches") cache_state_contracts();
@@ -13824,6 +14414,7 @@ int main(int argc, char** argv) {
         }
         else if (argc==2 && std::string(argv[1])=="--stack-wrap") stack_wrap_contracts();
         else if (argc==2 && std::string(argv[1])=="--gate-jump") protected_call_gate_jump();
+        else if (argc==2 && std::string(argv[1])=="--pedc") processor_extension_data_channel();
         else if (argc==2 && std::string(argv[1])=="--segment-pops")
             { protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); }
         else if (argc==2 && std::string(argv[1])=="--protected-event-outer")
@@ -13879,7 +14470,7 @@ int main(int argc, char** argv) {
         else if (argc==3 && std::string(argv[1])=="--bios-decimal") vectors(argv[2],false,true);
         else if (argc==2 && std::string(argv[1])=="--processor-extension") processor_extension_contract();
         else {
-            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); stack_wrap_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_delivery_faults(); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_jump(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix();
+            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); loadall_contract(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); stack_wrap_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); processor_extension_data_channel(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_delivery_faults(); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_jump(); protected_nt_flag_contracts(); protected_enter_stack_limit(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix();
             std::cout << "PASS: 80286 bootstrap reset, register aliases, flags, exact branches, stalls and diagnostic boundaries\n";
         }
     } catch (const std::exception& error) {

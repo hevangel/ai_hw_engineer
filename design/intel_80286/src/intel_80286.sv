@@ -10,8 +10,13 @@ module intel_80286 #(
     input logic [15:0] bus_rdata_i,
     input logic intr_i, nmi_i, inta_ready_i,
     input logic busy_i, error_n_i,
+    // 80287 processor-extension data request (active high).
+    input logic pereq_i,
     input logic [7:0] inta_vector_i,
     output logic inta_req_o, nmi_pending_o, nmi_blocked_o,
+    // Active-low processor-extension acknowledge during an operand transfer's
+    // first bus operation (Intel 210760-002 chapter 6).
+    output logic peack_n_o,
     output logic bus_req_o,
     output logic bus_lock_o,
     output logic bus_halt_cycle_o, bus_shutdown_cycle_o,
@@ -102,7 +107,10 @@ module intel_80286 #(
                      TASK_SWITCH_DIRECT_CURRENT_CHECK=109,
                      CALL_DESC_FINAL=110, ESC_REG_IP=111,
                      ESC_REG_CS=112, ESC_REG_DONE=113,
-                     ESC_MEM_OFFSET=114, ESC_MEM_SEGMENT=115;
+                     ESC_MEM_OFFSET=114, ESC_MEM_SEGMENT=115,
+                     PEDC_START=116, PEDC_MEM_DONE=117, PEDC_IO_DONE=118, PEDC_DONE=119,
+                     RM_FRAME_1=120, RM_FRAME_2=121, RM_FRAME_3=122,
+                     LOADALL_READ=123, LOADALL_COMMIT=124;
     logic [6:0] state, memory_return;
     typedef struct packed {
         logic valid;
@@ -234,6 +242,10 @@ module intel_80286 #(
     logic [7:0] code_load_fault_vector, code_load_access, code_load_bus_wdata;
     logic [15:0] code_load_fault_error, code_load_selector, code_load_limit;
     logic [15:0] code_load_request_selector, code_load_request_offset;
+    // Read only by the formal properties.
+    /* verilator lint_off UNUSEDSIGNAL */
+    logic [15:0] code_load_pending_selector, code_load_pending_offset;
+    /* verilator lint_on UNUSEDSIGNAL */
     logic [23:0] code_load_bus_addr, code_load_base;
     logic [47:0] code_load_special_descriptor;
     logic segment_load_start, segment_load_busy, segment_load_done, segment_load_req, segment_load_write;
@@ -316,6 +328,18 @@ module intel_80286 #(
     logic repeat_valid, repeat_ne;
     logic [15:0] string_value, string_delta;
     logic decimal_op, aam_op;
+    // LOADALL image: chunk k holds physical bytes 800h+6k .. 805h+6k.
+    logic [815:0] loadall_image;
+    logic [4:0] loadall_index;
+    // Intel marks 800h-805h, 808h-815h and the GDTR/IDTR byte 3 unused; the
+    // LDT/TSS access bytes only supply their valid bits here.
+    logic loadall_unused;
+    assign loadall_unused=^{loadall_image[798:792],loadall_image[751:744],
+                            loadall_image[702:696],loadall_image[655:648],
+                            loadall_image[175:52],loadall_image[47:0]};
+    logic [15:0] aam_zero_flags;
+    assign aam_zero_flags = (flags & 16'hf72a) |
+                            {9'd0, gpr[0][7:1]==7'd0, 3'd0, ~^gpr[0][7:1], 2'd0};
     logic [2:0] decimal_operation;
     logic [15:0] decimal_ax, decimal_flags;
     logic async_valid, async_boundary, async_poll;
@@ -331,13 +355,42 @@ module intel_80286 #(
             shutdown_pending<=1'b1;
         end
     endtask
+    // Processor-extension data channel (PRM 1985 App. A: an ESC with a memory
+    // operand lets the CPU accept PEREQ; the CPU determines the operand start
+    // and read/write status). ASSUMPTION A32: transfers are serviced at
+    // instruction boundaries, HLT and WAIT/ESC BUSY stalls rather than between
+    // arbitrary bus cycles; each word is memory-then-FAh (load) or
+    // FAh-then-memory (store), and a word outside the latched operand segment
+    // raises interrupt 9 (9.6.3) and disarms the channel.
+    logic pedc_armed, pedc_store, pedc_busy_seen, pedc_low_seen, pedc_expand_down;
+    logic [16:0] pedc_offset; // carries past FFFF so a wrapped word overruns
+    logic [15:0] pedc_limit;
+    logic [23:0] pedc_base;
+    logic [6:0] pedc_resume;
+    logic pedc_service, pedc_transfer, esc_store, esc_operand_ok;
+    // Real-mode far-return frame words gathered one word at a time when the
+    // aligned frame wraps past offset FFFF (SP=0 follows FFFE).
+    logic [31:0] rm_frame;
+    function automatic logic pe_word_fits(input [16:0] off, input [15:0] lim,
+                                          input expand_down);
+        pe_word_fits=expand_down ? (off>{1'b0,lim} && off<17'h0ffff) :
+                                   (off+17'd1)<={1'b0,lim};
+    endfunction
+    assign pedc_service=pedc_armed && pereq_i && pedc_low_seen;
+    // 80287 stores: D9 /2,/3,/6,/7, DB /2,/3,/7, DD /2,/3,/6,/7, DF /2,/3,/6,/7.
+    assign esc_store=opcode[0] && (modrm[5:3]==3'd2 || modrm[5:3]==3'd3 ||
+        modrm[5:3]==3'd7 || (modrm[5:3]==3'd6 && opcode!=8'hdb));
+    assign esc_operand_ok=cache_valid[rm_role] &&
+        pe_word_fits({1'b0,rm_offset},cache_limits[16*rm_role +: 16],
+                     !cache_access[8*rm_role+3] && cache_access[8*rm_role+2]);
+    assign peack_n_o=!(state==BUS && (memory_return==PEDC_MEM_DONE || memory_return==PEDC_IO_DONE));
     task automatic start_escape_command;
         // Physical Harris 286 D8 captures: command word is the two original
         // instruction bytes; instruction offset and CS follow at port FCh;
         // memory forms then write the operand offset and segment to FCh.
         // ASSUMPTION A30: D9h-DFh use the same CPU-side protocol (the CPU does
-        // not decode the extension opcode). Operand transfers belong to the
-        // PEDC on PEREQ, which is not connected.
+        // not decode the extension opcode). Operand words then move on PEREQ
+        // through the processor-extension data channel (PEDC_* states).
         memory_start(1'b0,2'd0,16'd0,24'h0000f8,1'b1,1'b1,3'd2,
                      {16'h0,modrm,opcode},ESC_REG_IP);
     endtask
@@ -494,8 +547,11 @@ module intel_80286 #(
                 event_packet.restartable && event_packet.vector==8) begin
                 request_shutdown();
             end else begin
-                incoming_flags=task_return_active ? (task_state_image[1]&16'hbfff) :
-                    (task_state_image[1] | (task_switch_nested ? 16'h4002 : 16'h0002));
+                // Table 8-2: incoming NT is unchanged by IRET, set by CALL/INT
+                // and cleared by JMP.
+                incoming_flags=task_return_active ? (task_state_image[1] | 16'h0002) :
+                    task_switch_nested ? (task_state_image[1] | 16'h4002) :
+                    ((task_state_image[1] & 16'hbfff) | 16'h0002);
                 gpr[0]<=task_state_image[2]; gpr[1]<=task_state_image[3];
                 gpr[2]<=task_state_image[4]; gpr[3]<=task_state_image[5];
                 gpr[4]<=task_state_image[6]; gpr[5]<=task_state_image[7];
@@ -627,7 +683,13 @@ module intel_80286 #(
     assign halted_o = halt_latch ||
                       ((shutdown_pending || state==SHUTDOWN) && !shutdown_recovery_active);
     assign shutdown_o = (shutdown_pending || state==SHUTDOWN) && !shutdown_recovery_active;
-    assign bus_halt_cycle_o = halt_latch && !shutdown_o;
+    // PRM App. A: PEREQ may be serviced during halt; those transfers are
+    // ordinary bus operations, not halt cycles.
+    assign pedc_transfer = state==PEDC_START || state==PEDC_MEM_DONE ||
+        state==PEDC_IO_DONE || state==PEDC_DONE ||
+        ((state==BUS || state==MEMORY_CHECK) &&
+         (memory_return==PEDC_MEM_DONE || memory_return==PEDC_IO_DONE || memory_return==PEDC_DONE));
+    assign bus_halt_cycle_o = halt_latch && !shutdown_o && !pedc_transfer;
     assign bus_shutdown_cycle_o = shutdown_o;
     assign event_vector_o=event_packet.vector;
     assign event_packet_valid_o=event_packet.valid;
@@ -849,6 +911,7 @@ module intel_80286 #(
         .fault_vector_o(code_load_fault_vector),.access_o(code_load_access),
         .fault_error_o(code_load_fault_error),.selector_o(code_load_selector),.limit_o(code_load_limit),
         .request_selector_o(code_load_request_selector),.request_offset_o(code_load_request_offset),
+        .pending_selector_o(code_load_pending_selector),.pending_offset_o(code_load_pending_offset),
         .base_o(code_load_base),.special_descriptor_o(code_load_special_descriptor),
         .special_tail_o(code_load_special_tail));
     intel_80286_segment_load segment_load_unit(
@@ -985,7 +1048,9 @@ module intel_80286 #(
         binary_rm = opcode <= 8'h3b && opcode[2:0] <= 3;
         arpl_op = opcode == 8'h63;
         binary_acc = opcode <= 8'h3d && (opcode[2:0] == 4 || opcode[2:0] == 5);
-        group_alu = opcode == 8'h80 || opcode == 8'h81 || opcode == 8'h83;
+        // ASSUMPTION A34: 82h aliases 80h (Intel 'Undocumented iAPX 286 Test
+        // Instruction' pp. 13-14; matches 10,045 physical Harris register captures).
+        group_alu = opcode == 8'h80 || opcode == 8'h81 || opcode == 8'h82 || opcode == 8'h83;
         test_op = opcode == 8'h84 || opcode == 8'h85 || opcode == 8'ha8 || opcode == 8'ha9 ||
                   // ASSUMPTION: A15. Physical Harris-286 F6/F7 /1 captures
                   // establish a TEST alias despite Intel Appendix B's #UD example.
@@ -1043,17 +1108,20 @@ module intel_80286 #(
         case (opcode)
             8'h0f: opcode_valid=system_opcode==8'h00 || system_opcode==8'h01 ||
                                  system_opcode==8'h02 || system_opcode==8'h03 ||
-                                 system_opcode==8'h06;
+                                 system_opcode==8'h05 || system_opcode==8'h06;
             8'hea,8'he9,8'heb,8'hf4,8'hf5,8'hf8,8'hf9,8'hfa,8'hfb,8'hfc,8'hfd,
-            8'h60,8'h61,8'h9a,8'h9b,8'hca,8'hcb,8'hcc,8'hcd,8'hce,8'hcf,8'hc8,8'hc9,8'hd7: opcode_valid = 1;
+            8'h60,8'h61,8'h9a,8'h9b,8'hca,8'hcb,8'hcc,8'hcd,8'hce,8'hcf,8'hc8,8'hc9,8'hd7,
+            8'hd6: opcode_valid = 1;
             default: begin end
         endcase
-        if (repeat_valid && (!string_op || (repeat_ne && !string_compare) || opcode==8'hac || opcode==8'had))
+        // ASSUMPTION A36: physical Harris-286 captures repeat LODS under F2/F3
+        // and treat F2 before a non-compare string as REP. A repeat prefix on
+        // a non-string opcode has no captured evidence and stays a stop.
+        if (repeat_valid && !string_op)
             opcode_valid=0;
         modrm_valid = 1;
         if ((opcode == 8'h8d || opcode == 8'hc4 || opcode == 8'hc5 || opcode == 8'h62) && modrm[7:6] == 3) modrm_valid = 0;
         if ((opcode == 8'h8f || opcode == 8'hc6 || opcode == 8'hc7) && modrm[5:3] != 0) modrm_valid = 0;
-        if (shift_op && modrm[5:3] == 6) modrm_valid = 0;
         if (opcode == 8'hfe && modrm[5:3] > 1) modrm_valid = 0;
         if (opcode == 8'hff && (modrm[5:3] == 7 || (far_memory_pointer && modrm[7:6]==3))) modrm_valid = 0;
         if ((opcode == 8'h8c || opcode == 8'h8e) && modrm[5]) modrm_valid = 0;
@@ -1063,15 +1131,19 @@ module intel_80286 #(
             (modrm[5:3]==5 || modrm[5:3]==7 || (modrm[5:3]<4 && modrm[7:6]==3))) modrm_valid=0;
         // Intel 9.6.1 / Appendix B #UD: classify architectural invalidity
         // separately from unimplemented features and undocumented aliases.
-        undefined_encoding = opcode==8'h64 || (arpl_op && !msw[0]) ||
-            (opcode==8'h0f && (system_opcode==8'hff ||
+        // ASSUMPTION A35: Intel's undocumented-opcode note makes every other
+        // undefined opcode exception 6 (65h-67h, 0F 07h-FFh); only 0F 04h/05h,
+        // F1h and the A34 aliases are excluded.
+        undefined_encoding = opcode==8'h64 || opcode==8'h65 || opcode==8'h66 || opcode==8'h67 ||
+            (arpl_op && !msw[0]) ||
+            (opcode==8'h0f && (system_opcode>8'h06 ||
                               (!msw[0] && (system_opcode==8'h00 ||
                                            system_opcode==8'h02 || system_opcode==8'h03)))) ||
-            (state==MODRM_DECODE && !modrm_valid && !(shift_op && modrm[5:3]==6));
+            (state==MODRM_DECODE && !modrm_valid);
         immediate_bytes = 0;
         if ((opcode >= 8'hb0 && opcode <= 8'hb7) || (opcode >= 8'h70 && opcode <= 8'h7f) ||
             (opcode >= 8'he0 && opcode <= 8'he3) || opcode == 8'heb || opcode == 8'h80 ||
-            opcode == 8'h83 || opcode == 8'hc0 || opcode == 8'hc1) immediate_bytes = 1;
+            opcode == 8'h82 || opcode == 8'h83 || opcode == 8'hc0 || opcode == 8'hc1) immediate_bytes = 1;
         if ((opcode >= 8'hb8 && opcode <= 8'hbf) || opcode == 8'he9 || opcode == 8'h81 || opcode == 8'he8 ||
             opcode == 8'h68 || opcode == 8'hc2 || (opcode >= 8'ha0 && opcode <= 8'ha3)) immediate_bytes = 2;
         if ((opcode >= 8'he4 && opcode <= 8'he7) || opcode == 8'h6a) immediate_bytes = 1;
@@ -1192,7 +1264,9 @@ module intel_80286 #(
     // WAIT is still busy it may accept an interrupt; once BUSY falls, defer
     // new selection until WAIT reports #MF or reaches its retirement boundary.
     assign async_boundary = state==BOUNDARY || state==STRING_BOUNDARY ||
-                            (state==WAIT_BUSY && !escape_op && busy_i);
+                            // A pending extension request is served first; do not
+                            // start an INTA handshake that the transfer would strand.
+                            (state==WAIT_BUSY && !escape_op && busy_i && !pedc_service);
     assign async_poll = state==EVENT_POLL || state==STRING_POLL ||
                         (state==WAIT_BUSY && !escape_op && async_valid) ||
                         (state==SHUTDOWN && shutdown_pending && !shutdown_recovery_active);
@@ -1238,6 +1312,11 @@ module intel_80286 #(
     // Stack pushes with odd SP that wrap: real-mode shutdown, else #SS(0).
     `define I286_PUSH_WRAP begin if (msw[0]) `I286_STACK_OVERRUN \
         else `I286_REAL_SHUTDOWN(instruction_ip) end
+    // ASSUMPTION A29: a real-mode ENTER whose push wraps raises 13 with SP
+    // unchanged, as physical Harris-286 C8 captures show for SP=000Fh; it
+    // shuts down only when that frame cannot be pushed (SP<6, as PUSHA B-84).
+    `define I286_ENTER_WRAP begin if (msw[0] || gpr[4]>=16'd6) `I286_STACK_OVERRUN \
+        else `I286_REAL_SHUTDOWN(instruction_ip) end
     always_ff @(posedge clk) begin
         if (!rst_n) begin
             state <= BOUNDARY;
@@ -1251,6 +1330,7 @@ module intel_80286 #(
             for (integer r=0; r<8; r=r+1) gpr[r] <= 0;
             instruction_ip <= 0; instruction_pc <= 0; opcode <= 0; modrm <= 0;
             system_opcode<=0; msw<=16'hfff0; idt_base<=0; idt_limit<=16'h03ff;
+            loadall_image<=0; loadall_index<=0;
             // ASSUMPTION A17: reset exposes deterministic null LDTR/TR selectors and
             // invalid zeroed descriptor caches; Intel's 286 reset docs do not specify these values.
             ldtr_selector<=0; tr_selector<=0; ldtr_base<=0; tr_base<=0;
@@ -1328,6 +1408,9 @@ module intel_80286 #(
             halt_latch<=0; ss_shadow<=0; sti_shadow<=0;
             shutdown_pending<=0;
             shutdown_recovery_active<=0; shutdown_nmi_failed<=0;
+            pedc_armed<=0; pedc_store<=0; pedc_busy_seen<=0; pedc_low_seen<=0;
+            pedc_expand_down<=0; pedc_offset<=0; pedc_limit<=0; pedc_base<=0;
+            pedc_resume<=BOUNDARY; rm_frame<=0;
             instruction_ss_shadow<=0; instruction_sti_shadow<=0;
             instruction_tf<=0;
             all_index<=0; stack_origin<=0; frame_pointer<=0; frame_sp<=0; frame_source<=0;
@@ -1338,6 +1421,13 @@ module intel_80286 #(
             retire_o <= 0;
             event_o <= 0;
             element_o <= 0;
+            // A26: a new PEREQ needs a sampled low after the previous one; the
+            // channel ends when BUSY falls after the extension took the command.
+            if (pedc_armed) begin
+                if (!pereq_i) pedc_low_seen<=1;
+                if (busy_i) pedc_busy_seen<=1;
+                else if (pedc_busy_seen) pedc_armed<=0;
+            end
             // After a failed NMI recovery only RESET exits shutdown (9.6.2),
             // even if the event controller still holds a selected NMI.
             if (shutdown_pending && !shutdown_recovery_active && async_valid &&
@@ -1403,7 +1493,9 @@ module intel_80286 #(
                 end
                 STRING_BOUNDARY: state<=STRING_POLL;
                 EVENT_POLL,STRING_POLL: begin
-                    if (async_valid) begin
+                    if (pedc_service && !inta_req_o) begin
+                        pedc_resume<=state; state<=PEDC_START;
+                    end else if (async_valid) begin
                         enter_event(async_vector,state==STRING_POLL ? instruction_ip : ip,
                                     1'b0,1'b0,1'b0,16'd0);
                         state<=EVENT_START; retire_o<=0;
@@ -1435,6 +1527,10 @@ module intel_80286 #(
                         ip <= ip + 16'd1;
                         if (owner_bus_rdata == 8'h26 || owner_bus_rdata == 8'h2e || owner_bus_rdata == 8'h36 || owner_bus_rdata == 8'h3e) begin
                             prefix_active <= 1; override_valid <= 1; override_segment <= owner_bus_rdata[4:3];
+                        end else if (owner_bus_rdata==8'hf1) begin
+                            // ASSUMPTION A35: F1h is a prefix with no function that counts
+                            // toward the ten-byte limit (Intel undocumented-opcode note).
+                            prefix_active<=1;
                         end else if (owner_bus_rdata==8'hf0) begin
                             prefix_active<=1; lock_prefix_active<=1;
                         end else if (owner_bus_rdata==8'hf2 || owner_bus_rdata==8'hf3) begin
@@ -1455,6 +1551,11 @@ module intel_80286 #(
                 DECODE,MODRM_DECODE,AFTER_DISP: begin
                     if (undefined_encoding) begin
                         enter_event(8'd6,instruction_ip,1'b0,1'b1,1'b0,16'd0); state<=EVENT_START;
+                    end else if (opcode==8'h0f && (system_opcode==8'h04 || system_opcode==8'h05) &&
+                                 msw[0] && cs[1:0]!=0) begin
+                        // ASSUMPTION A35: 0F 04h/05h raise exception 13 when CPL>0
+                        // (Intel note); real mode and CPL 0 remain a stop boundary.
+                        enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0); state<=EVENT_START;
                     end else if (!opcode_valid || (state == MODRM_DECODE && !modrm_valid)) begin
                         fault_code_o <= 1; ip <= instruction_ip; state <= STOPPED;
                     end else if (({1'b0,instruction_bytes} + remaining_bytes) > 10) begin
@@ -1522,9 +1623,15 @@ module intel_80286 #(
                         state<=EVENT_START;
                     end else if (arpl_op && arpl_source[15:2]==0) begin
                         enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0); state<=EVENT_START;
-                    end else if (rm_memory && opcode != 8'h8d && (((wide || escape_op) && ea_offset == 16'hffff) ||
+                    end else if (rm_memory && opcode != 8'h8d && !(opcode==8'h8f && !msw[0]) &&
+                        // A37: real-mode POP m pops before its destination check.
+                        (((wide || escape_op) && ea_offset == 16'hffff) ||
                         (system_table && ea_offset>16'hfffa) ||
-                        ((opcode == 8'hc4 || opcode == 8'hc5 || opcode == 8'h62 || far_memory_pointer) && ea_offset > 16'hfffc))) begin
+                        ((opcode == 8'hc4 || opcode == 8'hc5 || opcode == 8'h62 || far_memory_pointer) &&
+                         // ASSUMPTION A40: real mode checks each word of a
+                         // 4-byte operand, so only a word at FFFF faults and
+                         // offset FFFE wraps to 0000 (physical C4/C5/62/FF captures).
+                         (msw[0] ? ea_offset > 16'hfffc : ea_offset == 16'hfffd)))) begin
                         // App. B: an operand past FFFF is #GP(0), or #SS(0) when
                         // it is in SS (protected); real mode raises 13.
                         enter_event((msw[0] && (override_valid ? override_segment : (ea_stack ? 2'd2 : 2'd3))==2'd2) ?
@@ -1535,6 +1642,11 @@ module intel_80286 #(
                             (exchange_rm && rm_memory)) lock_window<=1;
                         memory_start(1'b1, override_valid ? override_segment : (ea_stack ? 2'd2 : 2'd3), ea_offset, 24'd0, 1'b0, 1'b0, system_table ? 3'd6 :
                             ((opcode == 8'hc4 || opcode == 8'hc5 || opcode == 8'h62 || far_memory_pointer) ? 3'd4 : (wide ? 3'd2 : 3'd1)), 0, EXECUTE);
+                        // A40: the real-mode limit check covers the first word;
+                        // the second word wraps inside the segment.
+                        if (!msw[0] && !system_table &&
+                            (opcode == 8'hc4 || opcode == 8'hc5 || opcode == 8'h62 || far_memory_pointer))
+                            memory_span_delta<=16'd1;
                         if (memory_destination && ((alu_enable && alu_write) || exchange_rm || arpl_op ||
                             (unary_op && modrm[5:3]==2) || shift_op)) memory_kind<=3;
                     end else if (opcode>=8'ha0 && opcode<=8'ha3) begin
@@ -1595,7 +1707,9 @@ module intel_80286 #(
                             protected_ret_active<=0; ret_outer_active<=0;
                             ret_outer_preflight_done<=0; ret_outer_ss_ready<=0;
                         end else begin
-                            if (msw[0] && ins_precheck_active) begin
+                            // A36: real-mode INS at a word-FFFF destination leaves the
+                            // same DI/CX state (physical 6D captures).
+                            if (ins_precheck_active) begin
                                 // Native 286 handler-repair state: Intel LOADALL
                                 // memo p14 and REP restart memo 1984-10-15.
                                 // Target corrected post-C2 behavior: a failed
@@ -1630,6 +1744,11 @@ module intel_80286 #(
                                 // for memory-source protection failure.
                                 gpr[6]<=gpr[6]+string_delta;
                                 if (repeat_valid) gpr[1]<=gpr[1]-16'd2;
+                            end else if (!msw[0] && opcode==8'h8f && memory_return==COMMIT_MEMORY) begin
+                                // ASSUMPTION A37: physical Harris-286 8F captures keep
+                                // the POP's SP increment when its memory destination
+                                // raises 13; the frame is pushed below the new SP.
+                                gpr[4]<=pending_sp;
                             end
                             // A failed outer-RETF stack-span precheck faults
                             // before descriptor validation or RET_COMMIT. The
@@ -1639,6 +1758,10 @@ module intel_80286 #(
                             ret_outer_preflight_done<=0; ret_outer_ss_ready<=0;
                             if (data_reference_fault && msw[0]) enter_event(data_reference_vector,instruction_ip,1'b0,1'b1,1'b1,data_reference_error);
                             else enter_event(13,instruction_ip,1'b0,1'b1,1'b0,16'd0);
+                            // A37: the frame goes below the incremented SP.
+                            if (!msw[0] && opcode==8'h8f && memory_return==COMMIT_MEMORY) begin
+                                event_packet.saved_sp<=pending_sp; pending_sp<=pending_sp-16'd6;
+                            end
                             state<=EVENT_START;
                         end
                     end
@@ -1660,8 +1783,13 @@ module intel_80286 #(
                     end
                     memory_index <= memory_index + {1'b0,bus_beat_bytes_o};
                     memory_remaining <= memory_remaining - {1'b0,bus_beat_bytes_o};
+                    // A40: a real-mode segmented access that steps past offset
+                    // FFFF continues at offset 0000 of the same segment.
                     memory_address <= memory_io ?
                         {8'h0,memory_address[15:0]+{14'd0,bus_beat_bytes_o}} :
+                        (memory_segmented && !msw[0] &&
+                         ({1'b0,memory_offset}+{14'd0,memory_index}+{15'd0,bus_beat_bytes_o})==17'h10000) ?
+                        memory_address + {{22{1'b0}},bus_beat_bytes_o} - 24'h010000 :
                         memory_address + {{22{1'b0}},bus_beat_bytes_o};
                     if (memory_remaining == {1'b0,bus_beat_bytes_o}) begin
                         state <= memory_return;
@@ -1683,13 +1811,13 @@ module intel_80286 #(
                             state<=EVENT_START; retire_o<=0;
                         end
                     end else if (escape_op) begin
-                        if (modrm[7:6]==2'b11 || !msw[0])
-                            start_escape_command();
-                        else begin
-                            // Protected memory forms need the PEDC's operand
-                            // segment checks, which are not connected.
-                            retire_o<=0; state<=STOPPED; fault_code_o<=3; ip<=instruction_ip;
-                        end
+                        if (rm_memory && msw[0] && !esc_operand_ok) begin
+                            // ASSUMPTION A32: the first operand word must lie in
+                            // a usable segment, else #GP(0) or #SS(0) for SS.
+                            enter_event(rm_role==2'd2 ? 8'd12 : 8'd13,instruction_ip,
+                                        1'b0,1'b1,1'b1,16'd0);
+                            state<=EVENT_START; retire_o<=0;
+                        end else start_escape_command();
                     end else if (arpl_op) begin
                         if (rm_memory) begin
                             if (arpl_adjust)
@@ -1768,6 +1896,13 @@ module intel_80286 #(
                                         1'b0,1'b0,3'd6,32'd0,SYSTEM_DESC_MORE);
                                 end
                             end
+                        else if (system_opcode==8'h05) begin
+                            // LOADALL (Intel "Undocumented iAPX 286 Test Instruction"
+                            // pp. 1-4): read 102 bytes at physical 000800h in 17
+                            // six-byte chunks, then load the whole CPU state.
+                            loadall_index<=0; retire_o<=0;
+                            memory_start(1'b0,2'd0,16'd0,24'h000800,1'b0,1'b0,3'd6,32'd0,LOADALL_READ);
+                        end
                         else if (system_opcode==8'h06) msw[3]<=0;
                         else if (system_table) begin
                             if (!modrm[4]) begin
@@ -1854,9 +1989,10 @@ module intel_80286 #(
                             state<=TASK_RETURN_LINK; retire_o<=0;
                         end else if (gpr[4]>(opcode==8'hcf ? 16'hfffa : 16'hfffc) && (msw[0] || gpr[4][0])) `I286_STACK_OVERRUN
                         else if (gpr[4]>(opcode==8'hcf ? 16'hfffa : 16'hfffc)) begin
-                            // Real-mode aligned frame wrap past FFFF is legal but the
-                            // single multi-word frame read cannot wrap yet.
-                            state<=STOPPED; fault_code_o<=2; ip<=instruction_ip; retire_o<=0;
+                            // Real mode, even SP: the aligned frame wraps to offset 0
+                            // like the 8086 stack (os2museum; 1985 PRM App. A only
+                            // faults odd-SP wraps). Read it word by word.
+                            memory_start(1'b1,2,gpr[4],24'd0,1'b0,1'b0,2,0,RM_FRAME_1);
                         end
                         else begin
                             if (msw[0] && opcode==8'hcf) protected_iret_active<=1;
@@ -1882,8 +2018,7 @@ module intel_80286 #(
                     end else if (opcode==8'hc8) begin
                         frame_pointer<=gpr[4]-16'd2; frame_sp<=gpr[4]-16'd2; frame_source<=gpr[5]-16'd2;
                         frame_level<=immediate[20:16]; frame_index<=1;
-                        // ASSUMPTION A29: ENTER's BP push wraps like PUSH (real-mode shutdown).
-                        if (gpr[4]-16'd2==16'hffff) `I286_PUSH_WRAP
+                        if (gpr[4]-16'd2==16'hffff) `I286_ENTER_WRAP
                         else memory_start(1'b1, 2, (gpr[4]-16'd2), 24'd0, 1'b1, 1'b0, 2, {16'h0,gpr[5]}, ENTER_FIRST);
                     end else if (opcode==8'hc9) begin
                         if (gpr[5]==16'hffff) `I286_STACK_OVERRUN
@@ -1992,6 +2127,9 @@ module intel_80286 #(
                             8'h9e: flags <= (flags & 16'hff2a) | {8'h00,(gpr[0][15:8] & 8'hd5)};
                             // ASSUMPTION: A3. Canonical values for undefined LAHF bits.
                             8'h9f: gpr[0][15:8] <= (flags[7:0] & 8'hd5) | 8'h02;
+                            // ASSUMPTION A34: D6h sets AL from CF (Intel's undocumented
+                            // opcode note; 1,000 physical Harris captures). Flags unchanged.
+                            8'hd6: gpr[0][7:0] <= flags[0] ? 8'hff : 8'h00;
                             8'hea: begin
                                 ip <= immediate[15:0]; cs <= immediate[31:16]; cs_base <= {4'h0,immediate[31:16],4'h0};
                                 cache_limits[31:16]<=16'hffff; cache_access[15:8]<=8'h93; cache_valid[1]<=1; cs_trusted<=1;
@@ -2021,8 +2159,10 @@ module intel_80286 #(
                     end
                 end
                 CODE_LOAD_WAIT: if (code_load_done) begin
+                    // A JMP to any system descriptor, including an all-zero
+                    // (type 0) slot, is classified in CALL_DESC_CHECK; type 0
+                    // there raises #GP(selector) per App. B B-54.
                     if (code_load_target==0 && code_load_special && !code_load_fault &&
-                        code_load_special_descriptor!=48'd0 &&
                         code_load_request_selector==(opcode==8'hea ? immediate[31:16] : memory_result[31:16]) &&
                         code_load_request_offset==(opcode==8'hea ? immediate[15:0] : memory_result[15:0])) begin
                         protected_call_selector<=code_load_request_selector;
@@ -2430,6 +2570,56 @@ module intel_80286 #(
                 ESC_REG_DONE: begin
                     retire_o<=1; retire_pc_o<=instruction_pc;
                     retire_opcode_o<=opcode; state<=BOUNDARY;
+                    // A memory ESC arms the channel with its operand; a register
+                    // form has no operand and disarms it.
+                    pedc_armed<=rm_memory; pedc_store<=esc_store;
+                    pedc_offset<={1'b0,rm_offset}; pedc_busy_seen<=busy_i;
+                    // The first request may already be high; A26 separates later ones.
+                    pedc_low_seen<=1'b1;
+                    pedc_base<=rm_role==2'd0 ? es_base : rm_role==2'd1 ? cs_base :
+                               rm_role==2'd2 ? ss_base : ds_base;
+                    pedc_limit<=cache_limits[16*rm_role +: 16];
+                    pedc_expand_down<=!cache_access[8*rm_role+3] && cache_access[8*rm_role+2];
+                end
+                PEDC_START: begin
+                    pedc_low_seen<=0;
+                    if (!pe_word_fits(pedc_offset,pedc_limit,pedc_expand_down)) begin
+                        // 9.6.3: external, not restartable, no error code.
+                        pedc_armed<=0;
+                        enter_event(8'd9,pedc_resume==WAIT_BUSY ? ip :
+                                    pedc_resume==STRING_POLL ? instruction_ip : ip,
+                                    1'b0,1'b0,1'b0,16'd0);
+                        state<=EVENT_START; retire_o<=0;
+                    end else if (pedc_store)
+                        memory_start(1'b0,2'd0,16'd0,24'h0000fa,1'b0,1'b1,3'd2,32'd0,PEDC_IO_DONE);
+                    else
+                        memory_start(1'b0,2'd0,16'd0,pedc_base+{8'd0,pedc_offset[15:0]},
+                                     1'b0,1'b0,3'd2,32'd0,PEDC_MEM_DONE);
+                end
+                PEDC_MEM_DONE: memory_start(1'b0,2'd0,16'd0,24'h0000fa,1'b1,1'b1,3'd2,
+                                            {16'h0,memory_result[15:0]},PEDC_DONE);
+                PEDC_IO_DONE: memory_start(1'b0,2'd0,16'd0,pedc_base+{8'd0,pedc_offset[15:0]},
+                                           1'b1,1'b0,3'd2,{16'h0,memory_result[15:0]},PEDC_DONE);
+                RM_FRAME_1: begin
+                    rm_frame[15:0]<=memory_result[15:0];
+                    memory_start(1'b1,2,gpr[4]+16'd2,24'd0,1'b0,1'b0,2,0,RM_FRAME_2);
+                end
+                RM_FRAME_2: begin
+                    if (opcode==8'hcf) begin
+                        rm_frame[31:16]<=memory_result[15:0];
+                        memory_start(1'b1,2,gpr[4]+16'd4,24'd0,1'b0,1'b0,2,0,RM_FRAME_3);
+                    end else begin
+                        memory_result<={16'h0,memory_result[15:0],rm_frame[15:0]};
+                        state<=FAR_RETURN_DONE;
+                    end
+                end
+                RM_FRAME_3: begin
+                    memory_result<={memory_result[15:0],rm_frame};
+                    state<=FAR_RETURN_DONE;
+                end
+                PEDC_DONE: begin
+                    pedc_offset<=pedc_offset+17'd2;
+                    state<=pedc_resume;
                 end
                 SYSTEM_DESC_MORE: begin
                     system_selector_descriptor[47:0]<=memory_result[47:0];
@@ -2515,7 +2705,11 @@ module intel_80286 #(
                             ds <= memory_result[15:0]; ds_base<={4'h0,memory_result[15:0],4'h0}; cache_valid[3]<=1;
                         end
                         else if (opcode == 8'h9d) begin
-                            flags <= (flags & 16'h4000) |
+                            // App. B POPF pops the entire flag word; only IOPL
+                            // (CPL 0) and IF (CPL<=IOPL) are privileged, so
+                            // protected POPF loads NT at any CPL. Real mode
+                            // keeps NT/IOPL clear (286 real-mode FLAGS).
+                            flags <= (msw[0] ? (memory_result[15:0] & 16'h4000) : (flags & 16'h4000)) |
                                 ((msw[0] && cs[1:0]==0) ? (memory_result[15:0] & 16'h3000) :
                                                           (flags & 16'h3000)) |
                                 (memory_result[15:0] & 16'h0dd5) |
@@ -2527,7 +2721,10 @@ module intel_80286 #(
                         retire_o <= 1; retire_pc_o <= instruction_pc; retire_opcode_o <= opcode; state <= BOUNDARY;
                     end
                 end
-                WAIT_BUSY: if (!escape_op && async_valid) begin
+                WAIT_BUSY: if (pedc_service && !inta_req_o) begin
+                    // The extension waits on its operand while BUSY is held.
+                    pedc_resume<=WAIT_BUSY; state<=PEDC_START;
+                end else if (!escape_op && async_valid) begin
                     // Intel's 1983 iAPX 286/10 handbook says a pending
                     // interrupt may be accepted while WAIT is stalled on BUSY.
                     // ASSUMPTION: A25. Save the already advanced IP (the
@@ -2544,18 +2741,26 @@ module intel_80286 #(
                         // PREPARE entered WAIT_BUSY without EXECUTE's normal
                         // prefix cleanup, so clear it before the next fetch.
                         prefix_active<=0;
-                        if (modrm[7:6]==2'b11 || !msw[0])
-                            start_escape_command();
-                        else begin
-                            state<=STOPPED; fault_code_o<=3; ip<=instruction_ip;
-                        end
+                        if (rm_memory && msw[0] && !esc_operand_ok) begin
+                            enter_event(rm_role==2'd2 ? 8'd12 : 8'd13,instruction_ip,
+                                        1'b0,1'b1,1'b1,16'd0);
+                            state<=EVENT_START; retire_o<=0;
+                        end else start_escape_command();
                     end else begin
                         state<=BOUNDARY; retire_o<=1;
                         retire_pc_o<=instruction_pc; retire_opcode_o<=opcode;
                     end
                 end
                 MULDIV_WAIT: if (md_done && !md_busy) begin
-                    if (md_fault) begin enter_event(0,instruction_ip,1'b0,1'b1,1'b0,16'd0); state<=EVENT_START; retire_o<=0; end
+                    if (md_fault) begin
+                        enter_event(0,instruction_ip,1'b0,1'b1,1'b0,16'd0); state<=EVENT_START; retire_o<=0;
+                        if (aam_op) begin
+                            // ASSUMPTION A38: physical Harris-286 D4 captures with a
+                            // zero divisor clear OF/SF/AF/CF and set ZF/PF from AL>>1
+                            // before exception 0; the saved FLAGS carry the result.
+                            flags<=aam_zero_flags; event_packet.saved_flags<=aam_zero_flags;
+                        end
+                    end
                     else begin
                         if (immediate_imul) gpr[modrm[5:3]]<=md_ax;
                         else begin gpr[0]<=md_ax; if (wide) gpr[2]<=md_dx; end
@@ -2701,7 +2906,9 @@ module intel_80286 #(
                             if (iret_es_invalid) begin es<=0; cache_valid[0]<=0; end
                             if (iret_ds_invalid) begin ds<=0; cache_valid[3]<=0; end
                         end else gpr[4]<=iret_saved_sp;
-                        flags<=(flags&16'h4000) |
+                        // Protected IRET loads NT from the frame (App. B: load flags
+                        // with the third word on the stack).
+                        flags<=(msw[0] ? (iret_saved_flags&16'h4000) : (flags&16'h4000)) |
                                ((msw[0] && cs[1:0]==0) ? (iret_saved_flags&16'h3000) :
                                                          (flags&16'h3000)) |
                                (iret_saved_flags&16'h0dd5) |
@@ -3086,9 +3293,13 @@ module intel_80286 #(
                         tr_selector[15:3]==0 || tr_limit<16'h002b ||
                         ({1'b0,{tr_selector[15:3],3'b000}}+17'd7)>
                             {1'b0,gdt_limit}) begin
-                        task_switch_active<=0; task_return_active<=0;
-                        state<=STOPPED; fault_code_o<=3; ip<=instruction_ip;
-                        retire_o<=0;
+                        // Intel 210498-005 App. B SWITCH_TASKS: an invalid
+                        // current TSS cache raises #TS with the new TSS
+                        // (back-link) selector as the error code.
+                        task_return_fault(8'd10,memory_result[15:0]&16'hfffc);
+                        event_delivery_active<=0; task_switch_active<=0;
+                        task_switch_from_event<=0; task_return_active<=0;
+                        state<=EVENT_START; retire_o<=0;
                     end else begin
                         event_task_selector<=memory_result[15:0];
                         event_task_descriptor_address<=gdt_base+
@@ -3180,9 +3391,13 @@ module intel_80286 #(
                 end
                 TASK_RETURN_CURRENT_CHECK: begin
                     if (task_current_access[4:0]!=5'b00011 || !task_current_access[7]) begin
-                        task_switch_active<=0; task_return_active<=0;
-                        state<=STOPPED; fault_code_o<=3; ip<=instruction_ip;
-                        retire_o<=0;
+                        // The current TSS descriptor is no longer a present
+                        // busy TSS: #TS(new TSS), as for an invalid current
+                        // TSS cache (App. B SWITCH_TASKS).
+                        task_return_fault(8'd10,event_task_selector&16'hfffc);
+                        event_delivery_active<=0; task_switch_active<=0;
+                        task_switch_from_event<=0; task_return_active<=0;
+                        state<=EVENT_START; retire_o<=0;
                     end else begin
                         task_save_index<=0; state<=TASK_SWITCH_SAVE; retire_o<=0;
                     end
@@ -3314,8 +3529,11 @@ module intel_80286 #(
                     es<=task_state_image[10]; cs<=task_state_image[11];
                     ss<=task_state_image[12]; ds<=task_state_image[13];
                     ip<=task_state_image[0];
-                    flags<=task_state_image[1] |
-                        ((task_return_active || !task_switch_nested) ? 16'h0002 : 16'h4002);
+                    // Table 8-2: incoming NT unchanged by IRET, set by CALL/INT,
+                    // cleared by JMP.
+                    flags<=task_return_active ? (task_state_image[1] | 16'h0002) :
+                        task_switch_nested ? (task_state_image[1] | 16'h4002) :
+                        ((task_state_image[1] & 16'hbfff) | 16'h0002);
                     ldtr_selector<=task_state_image[14];
                     ldtr_base<=task_ldtr_base;
                     ldtr_limit<=task_ldtr_limit;
@@ -3404,8 +3622,10 @@ module intel_80286 #(
                     ip<=event_pointer[15:0]; cs<=event_target_selector; cs_base<=event_target_base;
                     cache_limits[31:16]<=event_target_limit; cache_access[15:8]<=event_target_access;
                     cache_valid[1]<=1; cs_trusted<=1;
+                    // Intel 210498-005 9.x: an interrupt or trap gate clears TF and
+                    // NT (after the old FLAGS are pushed); an interrupt gate also IF.
                     flags<=event_packet.saved_flags&
-                        (event_gate[43:40]==4'h6 ? 16'hfcff : 16'hfeff);
+                        (event_gate[43:40]==4'h6 ? 16'hbcff : 16'hbeff);
                     gpr[4]<=pending_sp;
                     if (event_stack_active) begin
                         ss<=event_new_ss_selector; ss_base<=event_new_ss_base;
@@ -3465,7 +3685,7 @@ module intel_80286 #(
                     else memory_start(1'b1, 2, frame_source, 24'd0, 1'b0, 1'b0, 2, 0, ENTER_READ);
                 end
                 ENTER_READ: begin
-                    if (frame_sp-16'd2==16'hffff) `I286_PUSH_WRAP
+                    if (frame_sp-16'd2==16'hffff) `I286_ENTER_WRAP
                     else begin
                         frame_sp<=frame_sp-16'd2; frame_source<=frame_source-16'd2;
                         memory_start(1'b1, 2, (frame_sp-16'd2), 24'd0, 1'b1, 1'b0, 2, {16'h0,memory_result[15:0]}, ENTER_COPY);
@@ -3479,11 +3699,66 @@ module intel_80286 #(
                     else begin frame_index<=frame_index+5'd1; memory_start(1'b1, 2, frame_source, 24'd0, 1'b0, 1'b0, 2, 0, ENTER_READ); end
                 end
                 ENTER_COMMIT: begin
-                    gpr[5]<=frame_pointer; gpr[4]<=frame_sp-immediate[15:0]; state<=BOUNDARY;
-                    retire_o<=1; retire_pc_o<=instruction_pc; retire_opcode_o<=opcode;
+                    // ASSUMPTION A42: App. B ENTER raises #SS(0) "if SP were to go
+                    // outside of the stack limit within any part of the instruction",
+                    // so the allocated SP is checked against the SS limit too.
+                    if (msw[0] && (cache_access[18] ?
+                            (frame_sp-immediate[15:0])<=cache_limits[47:32] :
+                            (frame_sp-immediate[15:0])>cache_limits[47:32])) begin
+                        enter_event(12,instruction_ip,1'b0,1'b1,1'b1,16'd0);
+                        state<=EVENT_START; retire_o<=0;
+                    end else begin
+                        gpr[5]<=frame_pointer; gpr[4]<=frame_sp-immediate[15:0]; state<=BOUNDARY;
+                        retire_o<=1; retire_pc_o<=instruction_pc; retire_opcode_o<=opcode;
+                    end
                 end
                 LEAVE_DONE: begin
                     gpr[4]<=gpr[5]+16'd2; gpr[5]<=memory_result[15:0]; state<=BOUNDARY;
+                    retire_o<=1; retire_pc_o<=instruction_pc; retire_opcode_o<=opcode;
+                end
+                LOADALL_READ: begin
+                    loadall_image[loadall_index*48 +: 48]<=memory_result[47:0];
+                    if (loadall_index==5'd16) state<=LOADALL_COMMIT;
+                    else begin
+                        loadall_index<=loadall_index+5'd1;
+                        memory_start(1'b0,2'd0,16'd0,24'h000800+24'd6*{19'd0,loadall_index+5'd1},
+                                     1'b0,1'b0,3'd6,32'd0,LOADALL_READ);
+                    end
+                end
+                LOADALL_COMMIT: begin
+                    // Field offsets from 800h follow Intel's LOADALL memory-area
+                    // table; caches are base[23:0], access byte, limit[15:0], and
+                    // the access byte's present bit is the cache valid bit.
+                    // MSW.PE stays set once set (only RESET returns to real mode).
+                    msw<={msw[15:4],loadall_image[49 +: 3],loadall_image[48] | msw[0]};
+                    tr_selector<=loadall_image[176 +: 16];
+                    flags<=(loadall_image[192 +: 16] & 16'h7fd5) | 16'h0002;
+                    ip<=loadall_image[208 +: 16];
+                    ldtr_selector<=loadall_image[224 +: 16];
+                    ds<=loadall_image[240 +: 16]; ss<=loadall_image[256 +: 16];
+                    cs<=loadall_image[272 +: 16]; es<=loadall_image[288 +: 16];
+                    gpr[7]<=loadall_image[304 +: 16]; gpr[6]<=loadall_image[320 +: 16];
+                    gpr[5]<=loadall_image[336 +: 16]; gpr[4]<=loadall_image[352 +: 16];
+                    gpr[3]<=loadall_image[368 +: 16]; gpr[2]<=loadall_image[384 +: 16];
+                    gpr[1]<=loadall_image[400 +: 16]; gpr[0]<=loadall_image[416 +: 16];
+                    es_base<=loadall_image[432 +: 24]; cache_access[7:0]<=loadall_image[456 +: 8];
+                    cache_limits[15:0]<=loadall_image[464 +: 16]; cache_valid[0]<=loadall_image[463];
+                    cs_base<=loadall_image[480 +: 24]; cache_access[15:8]<=loadall_image[504 +: 8];
+                    cache_limits[31:16]<=loadall_image[512 +: 16]; cache_valid[1]<=loadall_image[511];
+                    ss_base<=loadall_image[528 +: 24]; cache_access[23:16]<=loadall_image[552 +: 8];
+                    cache_limits[47:32]<=loadall_image[560 +: 16]; cache_valid[2]<=loadall_image[559];
+                    ds_base<=loadall_image[576 +: 24]; cache_access[31:24]<=loadall_image[600 +: 8];
+                    cache_limits[63:48]<=loadall_image[608 +: 16]; cache_valid[3]<=loadall_image[607];
+                    gdt_base<=loadall_image[624 +: 24]; gdt_limit<=loadall_image[656 +: 16];
+                    ldtr_base<=loadall_image[672 +: 24]; ldtr_limit<=loadall_image[704 +: 16];
+                    ldtr_valid<=loadall_image[703];
+                    idt_base<=loadall_image[720 +: 24]; idt_limit<=loadall_image[752 +: 16];
+                    tr_base<=loadall_image[768 +: 24]; tr_limit<=loadall_image[800 +: 16];
+                    tr_valid<=loadall_image[799];
+                    // Intel allows an execute-only, execute/read or writable
+                    // data CS cache, so fetches use the trusted CS role.
+                    cs_trusted<=1'b1;
+                    state<=BOUNDARY;
                     retire_o<=1; retire_pc_o<=instruction_pc; retire_opcode_o<=opcode;
                 end
                 STRING_START: begin
@@ -3499,6 +3774,36 @@ module intel_80286 #(
                         !(msw[0] && (opcode==8'ha4 || opcode==8'ha5 || opcode==8'haa ||
                                      opcode==8'hab || opcode==8'h6e || opcode==8'h6f ||
                                      opcode==8'ha6 || opcode==8'ha7))) begin
+                        // ASSUMPTION A36: register state at a word-FFFF #13 is
+                        // taken from physical Harris-286 captures (A5/A7/AB/AD/AF):
+                        // MOVS/CMPS advance the pointers they reached (CMPS reads
+                        // ES:DI first), and REP CX drops by 1 for a source, LODS,
+                        // SCAS or CMPS-second fault and by 2 for a MOVS/STOS
+                        // destination fault. CMPS first-read faults leave CX.
+                        if (opcode==8'ha5) begin
+                            gpr[6]<=gpr[6]+string_delta;
+                            if (gpr[6]!=16'hffff) gpr[7]<=gpr[7]+string_delta;
+                            if (repeat_valid) gpr[1]<=gpr[1]-(gpr[6]==16'hffff ? 16'd1 : 16'd2);
+                        end else if (opcode==8'ha7) begin
+                            gpr[7]<=gpr[7]+string_delta;
+                            if (gpr[7]!=16'hffff) begin
+                                gpr[6]<=gpr[6]+string_delta;
+                                if (repeat_valid) gpr[1]<=gpr[1]-16'd1;
+                            end
+                        end else if (opcode==8'hab) begin
+                            gpr[7]<=gpr[7]+string_delta;
+                            if (repeat_valid) gpr[1]<=gpr[1]-16'd2;
+                        end else if (opcode==8'had) begin
+                            gpr[6]<=gpr[6]+string_delta;
+                            if (repeat_valid) gpr[1]<=gpr[1]-16'd1;
+                        end else if (opcode==8'haf) begin
+                            gpr[7]<=gpr[7]+string_delta;
+                            if (repeat_valid) gpr[1]<=gpr[1]-16'd1;
+                        end else if (opcode==8'h6f) begin
+                            // Physical 6F captures: OUTS source fault, CX-1.
+                            gpr[6]<=gpr[6]+string_delta;
+                            if (repeat_valid) gpr[1]<=gpr[1]-16'd1;
+                        end
                         enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0); state<=EVENT_START;
                     end
                     else if (opcode==8'haa || opcode==8'hab)

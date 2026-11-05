@@ -17,6 +17,7 @@ module intel_80286_native_cpu #(
     input  logic        nmi_i,
     input  logic        busy_i,
     input  logic        error_n_i,
+    input  logic        pereq_i,       // 80287 PEREQ (active high)
     input  logic [15:0] data_i,
 
     output logic [15:0] data_o,
@@ -29,6 +30,7 @@ module intel_80286_native_cpu #(
     output logic        s1_o,
     output logic        s0_o,
     output logic        status_oe_o,
+    output logic        peack_n_o,     // 80287 PEACK# (active low)
     output logic        lock_n_o,
     output logic        lock_oe_o,
     output logic        hlda_o,
@@ -78,7 +80,7 @@ module intel_80286_native_cpu #(
         .clk(clk_i), .rst_n(!cpu_reset),
         .bus_ready_i(core_ready), .bus_rdata_i(core_read_data),
         .intr_i(intr_i), .nmi_i(nmi_i),
-        .busy_i(busy_i), .error_n_i(error_n_i),
+        .busy_i(busy_i), .error_n_i(error_n_i), .pereq_i(pereq_i), .peack_n_o(peack_n_o),
         .inta_ready_i(inta_ready), .inta_vector_i(inta_vector),
         .inta_req_o(inta_request), .nmi_pending_o(), .nmi_blocked_o(),
         .bus_lock_o(core_lock),

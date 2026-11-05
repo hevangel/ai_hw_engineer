@@ -21,6 +21,33 @@
          event_packet.saved_ip==$past(event_packet.instruction_retired ? \
                                       instruction_ip : event_packet.saved_ip))))
     logic past_valid = 0;
+    // Request each code-load target expects back (mirrors CODE_LOAD_WAIT).
+    wire [15:0] f_code_expected_selector =
+        code_load_target==1 ? event_pointer[31:16] :
+        code_load_target==2 ? iret_saved_cs :
+        code_load_target==3 ? protected_call_target_selector :
+        code_load_target==6 ? {protected_call_target_selector[15:2],2'b00} :
+        code_load_target==4 ? ret_saved_cs :
+        code_load_target==5 ? task_state_image[11] :
+        opcode==8'hea ? immediate[31:16] : memory_result[31:16];
+    wire [15:0] f_code_expected_offset =
+        code_load_target==1 ? event_pointer[15:0] :
+        code_load_target==2 ? (iret_outer_active ? 16'd0 : iret_saved_ip) :
+        (code_load_target==3 || code_load_target==6) ? protected_call_target_offset :
+        code_load_target==4 ? (ret_outer_active ? 16'd0 : ret_saved_ip) :
+        code_load_target==5 ? 16'd0 :
+        opcode==8'hea ? immediate[15:0] : memory_result[15:0];
+    // Ghost: set once a LOADALL commits, cleared by reset.
+    logic f_loadall_caches = 0;
+    always_ff @(posedge clk)
+        if (!rst_n) f_loadall_caches<=0;
+        else if (state==LOADALL_COMMIT) f_loadall_caches<=1;
+    // A37: real-mode POP m whose destination check fails keeps SP+2.
+    wire i286p_ins_real_fault = state==MEMORY_CHECK && !msw[0] && !data_reference_allow &&
+        ins_precheck_active && !event_delivery_active && !protected_iret_active && !task_switch_active;
+    wire i286p_pop_memory_fault = state==MEMORY_CHECK && !msw[0] && !data_reference_allow &&
+        opcode==8'h8f && memory_return==COMMIT_MEMORY &&
+        !event_delivery_active && !protected_iret_active && !task_switch_active;
     logic protected_event_path_state;
     logic protected_call_path_state;
     logic protected_call_path_return;
@@ -142,8 +169,10 @@
             if (rst_n && $past(rst_n && state==MEMORY_CHECK && !data_reference_allow))
                 assert(!protected_ret_active && !ret_outer_active &&
                        !ret_outer_preflight_done && !ret_outer_ss_ready);
-            if (rst_n && !msw[0]) begin
+            if (rst_n && !msw[0] && !f_loadall_caches) begin
                 // ASSUMPTION A14 applies to the inherited real-mode cache only, after reset.
+                // LOADALL may load any real-mode caches (Intel LOADALL memo),
+                // so the canonical form holds only until the first LOADALL.
                 assert(seg_limits_o==64'hffffffffffffffff && seg_access_o==32'h93939393 && seg_valid_o==4'hf);
                 assert(es_base=={4'h0,es,4'h0} && ss_base=={4'h0,ss,4'h0} && ds_base=={4'h0,ds,4'h0});
                 assert(cs_base=={4'h0,cs,4'h0} || (cs==16'hf000 && cs_base==24'hff0000));
@@ -168,8 +197,10 @@
                 assert(shutdown_o);
             if (rst_n && $past(rst_n && shutdown_o) && shutdown_recovery_active)
                 assert($past(async_valid && async_vector==8'd2 && !shutdown_nmi_failed));
-            if (halted_o || fault_o)
+            // A halted CPU still serves extension operand requests (PRM App. A).
+            if ((halted_o && !pedc_transfer) || fault_o)
                 assert(!core_bus_req && !(descriptor_claim && descriptor_bus_req) && !event_bus_req);
+            if (halted_o && pedc_transfer) assert(!fault_o && !shutdown_o && !event_bus_req);
             assert(!(cpu_bus_ready && event_bus_ready));
             // The core ties the PEDC claim/request inputs of the bus owner to
             // zero, so the PEDC never owns the bus.
@@ -248,7 +279,7 @@
                 state==CODE_LOAD_WAIT || state==SEGMENT_LOAD_WAIT || state==WAIT_BUSY ||
                 // ESC register save and task entry retire after this list
                 // was first written.
-                state==ESC_REG_DONE || state==TASK_ENTRY_COMMIT)));
+                state==ESC_REG_DONE || state==TASK_ENTRY_COMMIT || state==LOADALL_COMMIT)));
             if (state == SHIFT) assert(shift_remaining != 0);
             if (state == SHIFT) assert(shift_op);
             if (rst_n && $past(rst_n &&
@@ -258,8 +289,90 @@
                 assert($stable(regs_o) && $stable(flags_o));
             end
             // Later states include WAIT_BUSY, direct task-switch paths and
-            // the ESC command phase; ESC_MEM_SEGMENT is the highest encoding.
-            assert(state <= ESC_MEM_SEGMENT);
+            // the ESC command phase, the extension data channel and the real-mode
+            // wrapped far-return frame and LOADALL; LOADALL_COMMIT is the
+            // highest encoding.
+            assert(state <= LOADALL_COMMIT);
+            // Defensive development stops proven unreachable: a completed
+            // segment load (invalid SS cache, unknown target or task segment
+            // index) and a protected IRET with NT reaching the ordinary far-return
+            // completion. The code-load request-mismatch stop still needs
+            // request/target invariants before it can be proven unreachable.
+            // A protected IRET with NT takes the task-return path at EXECUTE
+            // and never reads an ordinary return frame.
+            if (rst_n && msw[0] && opcode==8'hcf &&
+                (state==FAR_RETURN_DONE ||
+                 ((state==BUS || state==MEMORY_CHECK) && memory_return==FAR_RETURN_DONE)))
+                assert(!flags[14]);
+            // A JMP reaches the call-descriptor path only for a system
+            // (special, S=0) descriptor, so its CS reload is always the
+            // call-gate target 6, never the descriptor-direct target 0.
+            if (rst_n && code_load_done && code_load_special)
+                assert(!code_load_special_descriptor[44]);
+            if (rst_n && state==CALL_DESC_CHECK && protected_call_direct_jump)
+                assert(!protected_call_descriptor_header[7]);
+            if (rst_n && state==CALL_CODE_START && protected_call_direct_jump)
+                assert(protected_call_through_gate);
+            if (rst_n && protected_call_direct_jump &&
+                (state==CALL_DESC_TAIL || state==CALL_DESC_FINAL ||
+                 ((state==BUS || state==MEMORY_CHECK) &&
+                  (memory_return==CALL_DESC_TAIL || memory_return==CALL_DESC_FINAL))))
+                assert(0);
+            // The code-load unit echoes the request its caller made; the
+            // caller's target registers stay put while it runs.
+            if (rst_n && state==CODE_LOAD_WAIT) begin
+                assert(code_load_target<=3'd6);
+                if (code_load_busy)
+                    assert(code_load_pending_selector==f_code_expected_selector &&
+                           code_load_pending_offset==f_code_expected_offset);
+                else assert(code_load_done);
+                if (code_load_done && !code_load_busy) begin
+                    assert(code_load_request_selector==f_code_expected_selector);
+                    assert(code_load_request_offset==f_code_expected_offset);
+                    if (code_load_special_descriptor!=48'd0)
+                        assert(code_load_special || code_load_fault);
+                    if (!code_load_fault && !code_load_special) assert(code_load_cache_valid);
+                end
+            end
+            if (rst_n && $past(rst_n) && state==STOPPED) begin
+                assert(!$past(state==MEMORY_CHECK));
+                assert(!$past(state==CODE_LOAD_WAIT));
+                assert(!$past(state==SEGMENT_LOAD_WAIT));
+                assert(!$past(state==FAR_RETURN_DONE));
+            end
+            // LOADALL reads its 102-byte physical image in 17 chunks of six
+            // bytes from 000800h, only for 0F 05h outside CPL>0 (Intel note).
+            if (rst_n && (state==LOADALL_READ || state==LOADALL_COMMIT ||
+                          ((state==BUS || state==MEMORY_CHECK) && memory_return==LOADALL_READ))) begin
+                assert(opcode==8'h0f && system_opcode==8'h05 && (!msw[0] || cs[1:0]==0));
+                assert(!event_delivery_active && !task_switch_active && !retire_o);
+                assert(loadall_index<=5'd16);
+            end
+            // A35: decode already rejected 0F 05h at protected CPL>0, and CPL
+            // cannot change before it executes.
+            if (rst_n && opcode==8'h0f && system_opcode==8'h05 &&
+                (state==IMMEDIATE || state==PREPARE || state==EXECUTE))
+                assert(!msw[0] || cs[1:0]==0);
+            // LOADALL has no ModRM operand, so no operand read returns to EXECUTE.
+            if (rst_n && opcode==8'h0f && system_opcode==8'h05 &&
+                (state==BUS || state==MEMORY_CHECK))
+                assert(memory_return!=EXECUTE && memory_return!=COMMIT_MEMORY);
+            if (rst_n && (state==BUS || state==MEMORY_CHECK) && memory_return==LOADALL_READ)
+                assert(state==BUS && !memory_segmented && !memory_write && !memory_io &&
+                       memory_size==6 &&
+                       memory_address-({21'd0,memory_size}-{21'd0,memory_remaining})==
+                           24'h000800+24'd6*{19'd0,loadall_index});
+            if (rst_n && state==LOADALL_COMMIT) assert(loadall_index==5'd16);
+            // The wrapped frame path serves only real-mode IRET/RETF.
+            if (rst_n && (state==RM_FRAME_1 || state==RM_FRAME_2 || state==RM_FRAME_3 ||
+                          ((state==BUS || state==MEMORY_CHECK) &&
+                           (memory_return==RM_FRAME_1 || memory_return==RM_FRAME_2 ||
+                            memory_return==RM_FRAME_3))))
+                assert(!msw[0] && (opcode==8'hcf || opcode==8'hca || opcode==8'hcb) &&
+                       !event_delivery_active && !task_switch_active);
+            if (rst_n && (state==RM_FRAME_3 || ((state==BUS || state==MEMORY_CHECK) &&
+                                               memory_return==RM_FRAME_3)))
+                assert(opcode==8'hcf);
             // CS is untrusted only after a task-entry fault rejected the incoming
             // CS cache (Intel 210498-005 9.6.4); the fault's own delivery then
             // reloads CS. Real mode never clears it.
@@ -629,7 +742,9 @@
             if (rst_n && $past(rst_n && state==MEMORY_CHECK)) begin
                 assert($stable(segs_o) && $stable(flags_o));
                 for (integer r=0;r<8;r=r+1)
-                    if (r!=1 && r!=6 && r!=7) assert(gpr[r]==$past(gpr[r]));
+                    if (r!=1 && r!=6 && r!=7 && !(r==4 && $past(i286p_pop_memory_fault)))
+                        assert(gpr[r]==$past(gpr[r]));
+                if ($past(i286p_pop_memory_fault)) assert(gpr[4]==$past(pending_sp));
                 if ($past(msw[0] && !data_reference_allow &&
                           !event_delivery_active && !protected_iret_active)) begin
                     if ($past(ins_precheck_active)) begin
@@ -659,7 +774,12 @@
                         assert(gpr[7]==$past(gpr[7]));
                         assert(gpr[1]==($past(repeat_valid) ? $past(gpr[1])-16'd2 : $past(gpr[1])));
                     end else assert($stable(regs_o));
-                end else assert($stable(regs_o));
+                end else if ($past(i286p_ins_real_fault)) begin
+                    // A36: real-mode INS keeps the protected-mode DI/CX repair state.
+                    assert(gpr[6]==$past(gpr[6]));
+                    assert(gpr[7]==$past(gpr[7])+$past(string_delta));
+                    assert(gpr[1]==($past(repeat_valid) ? $past(gpr[1])-16'd2 : $past(gpr[1])));
+                end else if (!$past(i286p_pop_memory_fault)) assert($stable(regs_o));
                 if ($past(data_reference_allow)) begin
                     if ($past(memory_precheck_only)) begin
                         assert(state==$past(memory_return) && !memory_precheck_only);
@@ -710,7 +830,7 @@
                     assert(event_packet.saved_cs==$past(cs));
                     assert(event_packet.saved_ip==$past(instruction_ip));
                     assert(event_packet.saved_flags==$past(flags));
-                    assert(event_packet.saved_sp==$past(gpr[4]));
+                    assert(event_packet.saved_sp==$past(i286p_pop_memory_fault ? pending_sp : gpr[4]));
                     assert(event_packet.deferred_valid==!$past(ins_precheck_active &&
                         (opcode==8'h6c || opcode==8'h6d) && memory_return==STRING_FIRST));
                     assert(event_packet.deferred_flags==$past(pending_flags));
@@ -751,7 +871,11 @@
                         assert(core_bus_kind==memory_kind && core_bus_size==memory_size);
                         assert(core_bus_segment==$past(core_bus_segment));
                         assert(core_bus_offset==$past(core_bus_offset)+16'd1);
-                        assert(core_bus_addr==$past(core_bus_addr)+24'd1);
+                        // A40: a real-mode access that steps past offset FFFF
+                        // continues at offset 0000 of the same segment.
+                        if (!msw[0] && core_bus_offset==16'd0)
+                            assert(core_bus_addr==$past(core_bus_addr)+24'd1-24'h010000);
+                        else assert(core_bus_addr==$past(core_bus_addr)+24'd1);
                     end
                 end
             end
@@ -764,12 +888,13 @@
             end
             // Halt persists through idle recognition/acknowledgement, but
             // cannot own an instruction execution state or memory transfer.
-            assert(bus_halt_cycle_o==(halt_latch && !shutdown_o));
+            // An extension transfer served during HLT is not a halt cycle.
+            assert(bus_halt_cycle_o==(halt_latch && !shutdown_o && !pedc_transfer));
             assert(bus_shutdown_cycle_o==shutdown_o);
             assert(!(bus_halt_cycle_o && bus_shutdown_cycle_o));
             if (bus_halt_cycle_o) assert(!bus_req_o);
             if (halt_latch && !shutdown_o)
-                assert(state==HALTED || state==BOUNDARY || state==EVENT_POLL);
+                assert(state==HALTED || state==BOUNDARY || state==EVENT_POLL || pedc_transfer);
             if (state==HALTED) assert(halt_latch);
             if (rst_n && $past(rst_n && state==FETCH && !prefix_active &&
                 owner_cpu_grant && cpu_bus_ready && !fetch_reference_fault))
@@ -786,8 +911,12 @@
                        (state==BOUNDARY && $past(state==WAIT_BUSY && !escape_op)));
                 assert(!core_bus_req);
             end
+            // A selected event also waits while an extension operand transfer,
+            // which has higher bus priority than EU data (PRM App. A), runs.
             if (async_valid)
-                assert(async_poll || (state==BOUNDARY && $past(state==WAIT_BUSY && !escape_op)));
+                assert(async_poll || (state==BOUNDARY && $past(state==WAIT_BUSY && !escape_op)) ||
+                       (pedc_transfer && (pedc_resume==EVENT_POLL || pedc_resume==STRING_POLL ||
+                                          pedc_resume==WAIT_BUSY)));
             if (state==STRING_BOUNDARY || state==STRING_POLL) begin
                 assert(string_op && repeat_valid && gpr[1]!=0);
             end
@@ -816,7 +945,9 @@
                    memory_return == ENTER_COPY || memory_return == ENTER_COMMIT || memory_return == LEAVE_DONE ||
                     memory_return == IRET_OUTER_SS || memory_return == IRET_OUTER_NEXT ||
                     memory_return == RET_OUTER_SS || memory_return == RET_OUTER_NEXT ||
-                    memory_return == CALL_DESC_TAIL || memory_return == CALL_DESC_CHECK ||
+                    // CALL_DESC_CHECK is entered directly, never as a
+                    // memory continuation.
+                    memory_return == CALL_DESC_TAIL ||
                     memory_return == CALL_FRAME_READY || memory_return == CALL_TSS_PAIR ||
                     memory_return == CALL_STACK_WRITE_OLD_SP || memory_return == CALL_STACK_WRITE_OLD_CS ||
                     memory_return == CALL_STACK_WRITE_RETURN || memory_return == CALL_GATE_COMMIT ||
@@ -830,6 +961,10 @@
                    memory_return == ESC_REG_IP || memory_return == ESC_REG_CS ||
                    memory_return == ESC_REG_DONE ||
                    memory_return == ESC_MEM_OFFSET || memory_return == ESC_MEM_SEGMENT ||
+                   memory_return == PEDC_MEM_DONE || memory_return == PEDC_IO_DONE ||
+                   memory_return == PEDC_DONE ||
+                   memory_return == RM_FRAME_1 || memory_return == RM_FRAME_2 ||
+                   memory_return == RM_FRAME_3 || memory_return == LOADALL_READ ||
                    memory_return == TASK_GATE_TSS_TAIL || memory_return == TASK_GATE_TSS_CHECK ||
                    memory_return == TASK_LDT_VALIDATE || memory_return == TASK_ENTRY_COMMIT ||
                    memory_return == TASK_RETURN_LINK_CHECK ||
@@ -884,7 +1019,11 @@
                 assert(({1'b0,memory_index}+{1'b0,memory_remaining})<=6);
                 if (opcode==8'h0f)
                     assert(memory_return==EXECUTE || memory_return==COMMIT_MEMORY ||
-                            memory_return==SYSTEM_DONE ||
+                            memory_return==SYSTEM_DONE || memory_return==LOADALL_READ ||
+                            // Extension-channel words are served at a boundary
+                            // with the previous instruction's opcode still held.
+                            memory_return==PEDC_MEM_DONE || memory_return==PEDC_IO_DONE ||
+                            memory_return==PEDC_DONE ||
                             memory_return==SYSTEM_DESC_MORE || memory_return==SYSTEM_DESC_VALIDATE ||
                             memory_return==SYSTEM_DESC_COMMIT || memory_return==SYSTEM_QUERY_VALIDATE ||
                            memory_return==EVENT_VECTOR || memory_return==EVENT_FLAGS ||
@@ -954,7 +1093,9 @@
                 assert(escape_op && !protected_ret_active && !ret_outer_active &&
                        !protected_iret_active && !iret_outer_active &&
                        !protected_call_stack_active && !task_switch_active &&
-                       !event_delivery_active && (modrm[7:6]==2'b11 || !msw[0]));
+                       // Protected memory forms now run once their first operand
+                       // word checks pass (A32).
+                       !event_delivery_active && (modrm[7:6]==2'b11 || !msw[0] || esc_operand_ok));
             // Any ModRM encoding decode rejects never reaches a later stage.
             if (rst_n && opcode_modrm &&
                 (state==DISPLACEMENT || state==AFTER_DISP || state==IMMEDIATE ||
@@ -1007,6 +1148,27 @@
                                load_far_pointer_protected && !task_switch_active &&
                                !event_stack_active && !segment_load_fault))
                 assert(gpr[$past(modrm[5:3])]==$past(memory_result[15:0]) && retire_o);
+            // Only WAIT and ESC stall on BUSY.
+            if (rst_n && state==WAIT_BUSY) assert(opcode==8'h9b || escape_op);
+            // An extension-channel transfer resumes the boundary, string poll or
+            // BUSY wait it interrupted, and is a plain word transfer.
+            if (rst_n && (state==PEDC_START || state==PEDC_MEM_DONE || state==PEDC_IO_DONE ||
+                          state==PEDC_DONE ||
+                          ((state==BUS || state==MEMORY_CHECK) &&
+                           (memory_return==PEDC_MEM_DONE || memory_return==PEDC_IO_DONE ||
+                            memory_return==PEDC_DONE)))) begin
+                assert(pedc_resume==EVENT_POLL || pedc_resume==STRING_POLL ||
+                       pedc_resume==WAIT_BUSY);
+                if (state==BUS) assert(memory_size==2 && !memory_segmented);
+                // A string poll resumes only a live repeated string.
+                if (pedc_resume==STRING_POLL) assert(string_op && repeat_valid && gpr[1]!=0);
+                if (pedc_resume==WAIT_BUSY) assert(opcode==8'h9b || escape_op);
+                // While halted, a request is served only from the halt boundary.
+                if (halt_latch) assert(pedc_resume==EVENT_POLL);
+                // An ESC held on BUSY accepts no interrupt, before or after a transfer.
+                if (pedc_resume==WAIT_BUSY && escape_op) assert(!async_valid && !inta_req_o);
+                assert(!event_delivery_active && !task_switch_active);
+            end
             // Reset clears code_load_target and the core only assigns 0..6.
             if (rst_n) assert(code_load_target<=6);
             // Target 6 is the CS reload of a JMP through a call gate (B-54).
@@ -1162,10 +1324,27 @@
                             ((opcode==8'ha4 || opcode==8'ha5 || opcode==8'ha6 || opcode==8'ha7) &&
                              (memory_return==STRING_FIRST || memory_return==STRING_COMMIT)) ||
                             ((opcode==8'haa || opcode==8'hab) && memory_return==STRING_COMMIT) ||
-                            ((opcode==8'h6e || opcode==8'h6f) && memory_return==STRING_FIRST))))
+                            ((opcode==8'h6e || opcode==8'h6f) && memory_return==STRING_FIRST))) &&
+                    !(state==EVENT_START && $past(state==STRING_START)) &&
+                    !(state==EVENT_START && $past(i286p_ins_real_fault)) &&
+                    !(state==EVENT_START && $past(state==MEMORY_CHECK && !msw[0] &&
+                                                  opcode==8'h8f && memory_return==COMMIT_MEMORY)))
                     assert($stable(regs_o));
+                // A36: a word-FFFF string #13 changes only CX, SI and DI.
+                if (state==EVENT_START && $past(state==STRING_START))
+                    assert(gpr[0]==$past(gpr[0]) && gpr[2]==$past(gpr[2]) &&
+                           gpr[3]==$past(gpr[3]) && gpr[4]==$past(gpr[4]) &&
+                           gpr[5]==$past(gpr[5]));
+                // A37: a real-mode POP m destination #13 keeps only the SP increment.
+                if (state==EVENT_START && $past(state==MEMORY_CHECK && !msw[0] &&
+                                                opcode==8'h8f && memory_return==COMMIT_MEMORY))
+                    assert(gpr[4]==$past(pending_sp) && gpr[0]==$past(gpr[0]) &&
+                           gpr[6]==$past(gpr[6]) && gpr[7]==$past(gpr[7]));
                 assert($stable(segs_o));
-                assert($stable(flags_o));
+                // A38: AAM with a zero divisor rewrites the arithmetic flags.
+                if (!(state==EVENT_START && $past(state==MULDIV_WAIT && aam_op)))
+                    assert($stable(flags_o));
+                else assert(flags_o==$past(aam_zero_flags));
                 assert($stable(msw) && $stable(gdt_base) && $stable(gdt_limit));
                 assert($stable(idt_base) && $stable(idt_limit));
             end
@@ -1180,10 +1359,10 @@
                     assert(!(flags[8]));
                     if ($past(event_gate[43:40]==4'h6)) begin
                         assert(!(flags[9]));
-                        assert(flags==(event_packet.saved_flags&16'hfcff));
+                        assert(flags==(event_packet.saved_flags&16'hbcff));
                     end else begin
                         assert(flags[9]==event_packet.saved_flags[9]);
-                        assert(flags==(event_packet.saved_flags&16'hfeff));
+                        assert(flags==(event_packet.saved_flags&16'hbeff));
                     end
                     if ($past(event_stack_active)) begin
                         assert(ss==$past(event_new_ss_selector) &&
@@ -1198,7 +1377,7 @@
                 assert(ip==$past(iret_saved_ip) &&
                        gpr[4]==($past(iret_outer_active) ? $past(iret_outer_sp) :
                                                            $past(iret_saved_sp)));
-                assert(flags==(($past(flags)&16'h4000) |
+                assert(flags==(($past(msw[0]) ? ($past(iret_saved_flags)&16'h4000) : ($past(flags)&16'h4000)) |
                     ($past(msw[0] && cs[1:0]==0) ? ($past(iret_saved_flags)&16'h3000) :
                                                     ($past(flags)&16'h3000)) |
                     ($past(iret_saved_flags)&16'h0dd5) |
@@ -1248,9 +1427,17 @@
                 end
             end
             if (rst_n && $past(rst_n) && (!$stable(gdt_base) || !$stable(gdt_limit)))
-                assert(retire_o && $past(state==EXECUTE && opcode==8'h0f && system_opcode==1 && modrm[5:3]==2));
+                assert(retire_o && ($past(state==EXECUTE && opcode==8'h0f && system_opcode==1 && modrm[5:3]==2) ||
+                                    $past(state==LOADALL_COMMIT)));
             if (rst_n && $past(rst_n) && (!$stable(idt_base) || !$stable(idt_limit)))
-                assert(retire_o && $past(state==EXECUTE && opcode==8'h0f && system_opcode==1 && modrm[5:3]==3));
+                assert(retire_o && ($past(state==EXECUTE && opcode==8'h0f && system_opcode==1 && modrm[5:3]==3) ||
+                                    $past(state==LOADALL_COMMIT)));
+            // LOADALL loads GDTR/IDTR from 84Eh/85Ah of its image (Intel table).
+            if (rst_n && $past(rst_n && state==LOADALL_COMMIT)) begin
+                assert(gdt_base==$past(loadall_image[624 +: 24]) && gdt_limit==$past(loadall_image[656 +: 16]));
+                assert(idt_base==$past(loadall_image[720 +: 24]) && idt_limit==$past(loadall_image[752 +: 16]));
+                assert(msw[0]==$past(msw[0] | loadall_image[48]));
+            end
             if (retire_o && $past(state == EXECUTE && opcode == 8'h9e)) begin
                 assert((flags_o & 16'h00d5) == ($past(gpr[0]) >> 8 & 16'h00d5));
                 assert((flags_o & 16'hff2a) == ($past(flags_o) & 16'hff2a));

@@ -34,7 +34,7 @@ module intel_80286_at_fixture (
         .clk(clk), .rst_n(rst_n), .bus_ready_i(bus_ready_i),
         .bus_rdata_i(cpu_rdata), .intr_i(1'b0), .nmi_i(1'b0),
         .inta_ready_i(1'b0), .inta_vector_i(8'h00),
-        .busy_i(1'b0), .error_n_i(1'b1),
+        .busy_i(1'b0), .error_n_i(1'b1), .pereq_i(1'b0),
         .bus_req_o(bus_req_o), .bus_fetch_o(bus_fetch_o),
         .bus_write_o(bus_write_o), .bus_io_o(bus_io_o),
         .bus_addr_o(bus_addr_o), .bus_wdata_o(bus_wdata_o),
