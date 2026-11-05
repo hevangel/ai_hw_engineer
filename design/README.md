@@ -56,7 +56,8 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | By 1978* (exact year unknown) | AMD Am2914 | Eight-level vectored interrupt controller; pulse capture, masks, thresholds and cascade | [amd_am2914](amd_am29xx/amd_am2914//) |
 | By 1978* (exact year unknown) | AMD Am2918 | Quad D register with continuous Q and three-state Y outputs | [amd_am2918](amd_am29xx/amd_am2918//) |
 | By 1978* (public announcement; exact shipment unknown) | AMD Am9517 | Four-channel multimode DMA, memory copy/fill and cascade expansion | [amd_am9517](amd_am9517/) |
-| 1978 | Intel 8086 | 16-bit microprocessor; complete documented ISA and native digital BIU with independent physical-chip tests | [intel_8086](intel_8086_8088/intel_8086//) |
+| 1978 | Intel 8086 | 16-bit microprocessor; complete documented ISA and native digital BIU with independent physical-chip tests | [intel_8086](intel_8086_8088/intel_8086/) |
+| 1979 | Intel 8088 | 8-bit-bus 16-bit microprocessor; shared 8086 execution unit behind a four-byte byte-fetch BIU with independent physical-8088 tests | [intel_8088](intel_8086_8088/intel_8088/) |
 | 1978 | Motorola MC6809 | 8-bit microprocessor; full documented ISA (pages 1/2/3, indexed postbyte indirection, TFR/EXG, MUL, long branches, FIRQ/CWAI/SYNC) passing the hardware-validated reyco2000 functional and interrupt suites; formal bmc/prove/cover | [motorola_6809](motorola_6809/) |
 | 1979 (September announcement) | Motorola MC68000 | Work in progress: 16/32-bit processor; verification harness complete (SingleStepTests 680x0 suite, 1,000,060 single-instruction vectors) and RTL skeleton lint/synthesis clean; instruction classes land incrementally against the vectors | [motorola_68000](motorola_68000/) |
 | 1979* (family) | Intel 8237 / 8237A | Four-channel programmable DMA controller; original IBM PC BIOS integration | [intel_8237](intel_8237/) |

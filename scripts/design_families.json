@@ -31,7 +31,8 @@
       "mos_6502"
     ],
     "intel_8086_8088": [
-      "intel_8086"
+      "intel_8086",
+      "intel_8088"
     ]
   },
   "catalogs": {
