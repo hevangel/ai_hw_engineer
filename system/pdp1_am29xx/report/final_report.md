@@ -114,9 +114,11 @@ silent fall-through that only a real program exposed.
 sh system/pdp1_am29xx/scripts/build_sim.sh
 # 2. run the directed programs on the RTL
 docker run --rm -v "$PWD:/work" -w /work ai-hw-engineer:latest \
-    bash work/tools/run_tests.sh arith logic shift jumps skip index operate smoke demo
+    bash system/pdp1_am29xx/scripts/run_all.sh arith logic shift jumps skip index operate smoke demo
 # 3. run the same images on the pinned SIMH container
-docker build -f work/tools/oracle.Dockerfile -t pdp1-oracle:local work
+sh system/pdp1_am29xx/scripts/build_oracle.sh     # builds work/bin_pdp1
+mkdir -p work/oracle && cp work/bin_pdp1 system/pdp1_am29xx/scripts/oracle.Dockerfile work/oracle/
+docker build -f work/oracle/oracle.Dockerfile -t pdp1-oracle:local work/oracle
 docker run --rm -v "$PWD:/work" -w /work pdp1-oracle:local \
     bash system/pdp1_am29xx/scripts/oracle_simh.sh arith logic shift jumps skip index operate smoke demo
 # 4. compare
