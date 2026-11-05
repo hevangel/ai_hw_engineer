@@ -22,6 +22,7 @@
 namespace {
 
 uint8_t g_mem[0x10000];
+uint8_t g_mem_ref[0x10000];  // oracle's final memory image
 
 uint8_t mem_read(void*, uint16_t addr) { return g_mem[addr]; }
 void mem_write(void*, uint16_t addr, uint8_t v) { g_mem[addr] = v; }
@@ -206,23 +207,16 @@ int main(int argc, char** argv) {
     dut.rst_n = 1;
 
     bool prev = false;
-    for (int cyc = 0; cyc < 60; cyc++) {
+    for (int cyc = 0; cyc < 30; cyc++) {
       dut.clk = 0; dut.bus_ready_i = 1;
       dut.bus_rdata_i = g_mem[dut.bus_addr_o & 0xFFFF];
       dut.eval();
       dut.clk = 1; dut.eval();
       bool r = dut.retire_o;
-      if (r && !prev) {
-        z80_step(&z);
-        std::printf("retire pc=%04X A=%02X F=%02X R=%02X | oracle pc=%04X A=%02X F=%02X R=%02X\n",
-                    (uint16_t)dut.pc_o, (uint8_t)(dut.regs_o >> 56),
-                    (uint8_t)(dut.regs_o >> 48), (uint8_t)dut.r_o,
-                    z.pc, z.a,
-                    (uint8_t)((z.sf << 7) | (z.zf << 6) | (z.yf << 5) |
-                             (z.hf << 4) | (z.xf << 3) | (z.pf << 2) |
-                             (z.nf << 1) | z.cf),
-                    z.r);
-      }
+      std::printf("cyc=%2d pc=%04X req=%d wr=%d addr=%04X rd=%02X ret=%d flt=%d halt=%d\n",
+                  cyc, (uint16_t)dut.pc_o, (int)dut.bus_req_o, (int)dut.bus_write_o,
+                  (uint16_t)dut.bus_addr_o, (uint8_t)dut.bus_rdata_i, (int)r,
+                  (int)dut.fault_o, (int)dut.halt_o);
       prev = r;
     }
     return 0;
@@ -277,12 +271,13 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  int tested = 0, unimplemented = 0, mismatches = 0, runaway = 0;
+  int tested = 0, unimplemented = 0, mismatches = 0, runaway = 0, attempted = 0;
   std::vector<std::string> first_bad;
 
   auto check = [&](uint8_t op, const std::vector<uint8_t>& tail,
                    const char* page) {
     for (int variant = 0; variant < 4; variant++) {
+      attempted++;
       Prog pr = build_prog(op, tail, rng);
 
       // Oracle: same bytes and same instruction count from the reset vector.
@@ -300,30 +295,43 @@ int main(int argc, char** argv) {
       z.pc = 0x0000;
       for (int i = 0; i < pr.n_instr; i++) z80_step(&z);
       State expect = from_oracle(z);
+      std::memcpy(g_mem_ref, g_mem, sizeof(g_mem));  // oracle's memory effects
 
       State got{};
       int cycles = 0;
       bool faulted = false;
       bool ok = run_dut(dut, pr.bytes, pr.n_instr, got, cycles, faulted);
       if (!ok) { runaway++; return; }
-      if (faulted) { unimplemented++; return; }
+      if (faulted) {
+        if (variant == 0) std::printf("FAULT %s op=%02X\n", page, op);
+        unimplemented++;
+        return;
+      }
 
       tested++;
-      if (!(got == expect)) {
+      bool mem_diff = std::memcmp(g_mem, g_mem_ref, sizeof(g_mem)) != 0;
+      if (!(got == expect) || mem_diff) {
         mismatches++;
         if (first_bad.size() < 20) {
-          char buf[512];
+          // Report the first differing memory address, if any.
+          int first_addr = -1;
+          for (int a = 0; a < 0x10000; a++) {
+            if (g_mem[a] != g_mem_ref[a]) { first_addr = a; break; }
+          }
+          char buf[560];
           std::snprintf(buf, sizeof(buf),
                         "%s op=%02X tail=%02X%02X pc exp %04X got %04X "
                         "AF exp %02X%02X got %02X%02X BC exp %02X%02X got %02X%02X "
                         "DE exp %02X%02X got %02X%02X HL exp %02X%02X got %02X%02X "
-                        "SP exp %04X got %04X R exp %02X got %02X",
+                        "SP exp %04X got %04X R exp %02X got %02X mem@%04X exp %02X got %02X",
                         page, op, tail.size() > 0 ? tail[0] : 0,
                         tail.size() > 1 ? tail[1] : 0, expect.pc, got.pc,
                         expect.a, expect.f, got.a, got.f, expect.b, expect.c,
                         got.b, got.c, expect.d, expect.e, got.d, got.e,
                         expect.h, expect.l, got.h, got.l, expect.sp, got.sp,
-                        expect.r, got.r);
+                        expect.r, got.r, first_addr < 0 ? 0 : first_addr,
+                        first_addr < 0 ? 0 : g_mem_ref[first_addr],
+                        first_addr < 0 ? 0 : g_mem[first_addr]);
           first_bad.push_back(buf);
         }
       }
@@ -332,28 +340,31 @@ int main(int argc, char** argv) {
 
   // Primary page.
   for (int op = 0; op < 256; op++) {
-    std::vector<uint8_t> tail;
     uint8_t o = (uint8_t)op;
-    // Provide operand bytes for encodings that consume them.
-    if ((o & 0x07) == 0x01 && (o & 0x08) == 0x00) { tail = {(uint8_t)d8(rng), (uint8_t)d8(rng)}; }
-    else if ((o & 0x07) == 0x06) { tail = {(uint8_t)d8(rng)}; }
-    else if (o == 0x10 || o == 0x18 || (o & 0xF8) == 0x20 || (o & 0xF8) == 0x28 ||
-             (o & 0xF8) == 0x30 || (o & 0xF8) == 0x38) { tail = {0x02}; }
-    else if ((o & 0x07) == 0x02 && (o & 0xC0) == 0xC0) { tail = {(uint8_t)d8(rng), (uint8_t)d8(rng)}; }
-    else if (o == 0xC3) { tail = {(uint8_t)d8(rng), (uint8_t)d8(rng)}; }
-    else if ((o & 0x07) == 0x06 && (o & 0xC0) == 0xC0) { tail = {(uint8_t)d8(rng)}; }
+    // Operand-byte count mirrors the instruction encoding.
+    int icnt = 0;
+    if (o == 0xCD || (o & 0xC7) == 0xC4) icnt = 2;            // CALL nn / CALL cc,nn
+    else if (o == 0x22 || o == 0x2A || o == 0x32 || o == 0x3A) icnt = 2;
+    else if (o == 0xC3 || (o & 0xC7) == 0xC2) icnt = 2;       // JP nn / JP cc,nn
+    else if ((o & 0xCF) == 0x01) icnt = 2;                     // LD rr,nn
+    else if ((o & 0x07) == 0x06) icnt = 1;                     // LD r,n / ALU n / LD (HL),n
+    else if (o == 0x10 || o == 0x18 || (o & 0xE7) == 0x20) icnt = 1;  // DJNZ/JR/JR cc
+
+    std::vector<uint8_t> tail;
+    for (int i = 0; i < icnt; i++) tail.push_back((uint8_t)d8(rng));
     check(o, tail, "P0");
   }
 
-  // CB page on registers.
+  // CB page: registers plus the (HL) rotate/shift/RES/SET forms.
+  // BIT n,(HL) is intentionally unimplemented (its F3/F5 source is WZ).
   for (int cb = 0; cb < 256; cb++) {
-    if ((cb & 0x07) == 0x06) continue;  // (HL) forms are out of scope
+    if ((cb & 0x07) == 0x06 && (cb & 0xC0) == 0x40) continue;  // BIT n,(HL)
     check(0xCB, {(uint8_t)cb}, "CB");
   }
 
   for (const std::string& s : first_bad) std::printf("MISMATCH %s\n", s.c_str());
-  std::printf("instruction differential: %d compared, %d mismatches, "
+  std::printf("instruction differential: %d attempted, %d compared, %d mismatches, "
               "%d unimplemented (fault), %d runaway\n",
-              tested, mismatches, unimplemented, runaway);
+              attempted, tested, mismatches, unimplemented, runaway);
   return mismatches == 0 ? 0 : 1;
 }

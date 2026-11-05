@@ -2,26 +2,34 @@
 
 ## 1. Executive summary
 
-**Milestone 3: register-execution core implemented and differentially verified.**
-The folder contains the source-backed specification, the plans, the provenance
-record, the vendored pinned oracle, and these RTL units: `src/zilog_z80_pkg.sv`,
-`src/zilog_z80_alu.sv` and `src/zilog_z80.sv` (transaction-bus core with fetch,
-prefix handling, decode and the register-only instruction subset).
+**Milestone 4: memory and stack instructions added; core still clean against the
+oracle.** The folder contains the source-backed specification, the plans, the
+provenance record, the vendored pinned oracle, and these RTL units:
+`src/zilog_z80_pkg.sv`, `src/zilog_z80_alu.sv` and `src/zilog_z80.sv`
+(transaction-bus core with fetch, prefix handling, decode, memory cycles and
+stack sequences).
 
 Two independent gates pass against the pinned superzazu/z80 emulator:
 
 - Byte ALU: 648,328 cases, 0 mismatches; negative control rejects
   648,328/648,328 perturbed cases.
-- Instruction core: 1,612 instruction executions compared (each from a
-  randomized prologue state, comparing A/F/alternates/BC/DE/HL/SP/PC/R/IFF/IM/
-  halt), 0 mismatches; 77 encodings outside this milestone's subset fault as
-  designed.
+- Instruction core: 1,996 instruction executions compared with full-state **and
+  full 64 KiB memory-image** comparison, 0 mismatches; 5 encodings fault as
+  designed (I/O and the DD/ED/FD prefix pages).
 
-**Not implemented yet:** memory operands `(HL)`/`(BC)`/`(DE)`/`(nn)`, the stack
-(PUSH/POP/CALL/RET/RST), IX/IY and the DD/FD pages, the ED page, block
-instructions, I/O, and interrupt entry. Those encodings raise `fault_o` instead
-of executing wrongly. Formal properties, ZEXDOC/ZEXALL, historical software,
-native timing and synthesis are also outstanding and are reported as such.
+**Implemented:** NOP; LD r,r'; LD r,n; LD rr,nn; LD r,(HL); LD (HL),r;
+LD (HL),n; LD A,(BC)/(DE); LD (BC)/(DE),A; LD A,(nn); LD (nn),A; LD HL,(nn);
+LD (nn),HL; LD SP,HL; ALU A,r and A,n and A,(HL); INC/DEC r, rr and (HL);
+ADD HL,rr; DAA; CPL; SCF; CCF; RLCA/RRCA/RLA/RRA; JR/JR cc/DJNZ; JP nn/
+JP cc,nn/JP (HL); PUSH/POP incl. AF; CALL nn/CALL cc/RET/RET cc/RST;
+EX AF,AF'/EX DE,HL/EXX/EX (SP),HL; DI; EI; HALT; and the CB page on registers
+and on (HL) for rotate/shift/RES/SET.
+
+**Not implemented:** BIT n,(HL) (its undocumented F3/F5 source is the WZ
+register), the ED page, the DD/FD index pages, block instructions, I/O, and
+interrupt entry. Those raise `fault_o` instead of executing wrongly. Formal
+properties, ZEXDOC/ZEXALL, historical software, native timing and synthesis are
+also outstanding and are reported as such.
 
 ## 2. Design overview
 
@@ -40,8 +48,8 @@ native timing and synthesis are also outstanding and are reported as such.
 |---|---|---|
 | ALU differential vs pinned oracle | **PASS**, 648,328 cases, 0 mismatches | `scripts/run_alu.sh`, Verilator 5.052 in the project tool image |
 | ALU negative control | **PASS**, 648,328/648,328 rejected | `run_alu.sh --negative-control` |
-| Instruction differential | **PASS**, 1,612 compared, 0 mismatches, 77 unimplemented | `scripts/run_instr.sh` |
-| Verilator lint (core) | Clean, warnings only (unused params/signals) | `verilator --lint-only -Wall` |
+| Instruction differential | **PASS**, 1,996 compared, 0 mismatches, 5 unimplemented | `scripts/run_instr.sh` (state + full memory image) |
+| Verilator lint (core) | No errors; 19 `-Wall` warnings (unused interrupt inputs, reserved parameters) | `verilator --lint-only -Wall` |
 | Formal (bmc/prove/cover) | Not run | no properties or `.sby` exist |
 | UVM environment | Not run | not written |
 | ZEXDOC / ZEXALL / z80test | Not run | needs memory/stack instructions first |
@@ -58,12 +66,12 @@ simulation when no sources exist and have not been exercised by this design.
 
 | Item | Impact | Status |
 |---|---|---|
-| Memory-indirect, stack, CALL/RET/RST, IX/IY, DD/FD, ED, block and I/O instructions absent | the core cannot run a program yet | next milestone; they fault |
-| DAA verified in context only | standalone DAA after an arbitrary F byte is undefined hardware behavior (internal carry/half-carry latches); the harness drives a real ADD/SUB first | documented limitation |
-| SCF/CCF F3/F5 from A, no Q latch | matches the pinned oracle and the common ZEXALL expectation; hardware Q behavior is a later refinement | documented assumption |
+| BIT n,(HL) absent (WZ-sourced F3/F5) | one CB form faults | next milestone |
+| ED page, DD/FD index pages, block instructions, I/O, interrupt entry absent | these encodings fault | next milestones |
+| DAA verified in context only | standalone DAA after an arbitrary F byte is undefined hardware behavior | documented limitation |
+| SCF/CCF F3/F5 from A, no Q latch | matches the pinned oracle | documented assumption |
 | EI delay and interrupt entry not modelled | EI takes effect immediately | documented assumption |
-| Undocumented F3/F5 table not yet extracted for memory/ED forms | per-opcode contract beyond this subset | phase-0 task |
-| ZEXALL/ZEXDOC/z80test not yet obtained | no exerciser gate | needs the fuller core first |
+| ZEXALL/ZEXDOC/z80test not yet obtained | exercisers need ED/DD and BIT (HL) | next milestone |
 | `OUT (C),0` data byte (NMOS 0xFF vs CMOS 0x00) | pin-level data value | open assumption, ledger row |
 | NMOS minimum clock frequency | sub-minimum-clock behavior | open, native engine boundary |
 
@@ -71,10 +79,11 @@ simulation when no sources exist and have not been exercised by this design.
 
 - [ ] Source-backed specification and assumption ledger — **specification
       written**; assumption rows still open
-- [ ] Implementation plan and synthesizable SystemVerilog — register-execution
-      core implemented and verified; memory/stack/index/ED pages absent
-- [ ] Independent oracle and real historical software — oracle vendored and
-      driving two differential gates; exercisers and software not yet run
+- [ ] Implementation plan and synthesizable SystemVerilog — core covers the
+      primary page except I/O, plus CB on registers/(HL); ED, DD/FD, block and
+      BIT (HL) absent
+- [ ] Independent oracle and real historical software — oracle driving both
+      differential gates; exercisers and software not yet run
 - [ ] Lint, simulation, formal with reachable covers, synthesis — lint clean;
       formal and synthesis not run
 - [ ] Native timing, analog approximations and physical validation qualified —

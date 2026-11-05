@@ -28,6 +28,7 @@ package zilog_z80_pkg;
   localparam logic [2:0] REG_L  = 3'd5;
   localparam logic [2:0] REG_M  = 3'd6;  // (HL) or (IX+d)/(IY+d)
   localparam logic [2:0] REG_A  = 3'd7;
+  /* verilator lint_on UNUSEDPARAM */
 
   // 16-bit pair indices.
   localparam logic [1:0] PAIR_BC = 2'd0;
