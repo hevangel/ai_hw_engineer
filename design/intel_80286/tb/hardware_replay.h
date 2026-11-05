@@ -177,8 +177,9 @@ static void hardware_vectors(const char* path) {
                 check(b.d.halted_o && b.accepted.size()==1 && b.accepted[0]==halt_pc,
                       "physical exact HLT successor");
                 if (general_case) {
-                    // Only the port I/O opcodes may reach I/O space.
-                    const bool io_opcode=(opcode>=0xe4 && opcode<=0xe7) ||
+                    // Only port I/O and the ESC command phase (D8, ports
+                    // 00F8h-00FFh) may reach I/O space.
+                    const bool io_opcode=opcode==0xd8 || (opcode>=0xe4 && opcode<=0xe7) ||
                         (opcode>=0xec && opcode<=0xef) || (opcode>=0x6c && opcode<=0x6f);
                     check(io_opcode || std::none_of(b.data_transfers.begin(),b.data_transfers.end(),
                               [](const auto& t) { return t.io; }),"physical record issued unexpected I/O");
