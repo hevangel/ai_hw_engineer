@@ -76,7 +76,7 @@ module zilog_z80
   logic [7:0]  aux_lo, aux_hi;
   logic [15:0] saved16;
 
-  typedef enum logic [4:0] {
+  typedef enum logic [5:0] {
     MO_NONE,
     MO_LD_R,        // read -> register (aux_lo holds the index)
     MO_LD_MEM_R,    // write (source already in mem_data)
@@ -105,13 +105,30 @@ module zilog_z80
     MO_EX_HI,
     MO_EX_WLO,
     MO_EX_WHI,
+    MO_ED_LD_LO,    // read low byte of (nn) for LD rr,(nn)
+    MO_ED_LD_HI,
+    MO_IN_R,        // I/O read -> register or flags only
+    MO_IN_A,        // IN A,(n)
+    MO_RRD,
+    MO_RLD,
+    MO_BLK_LD_R,    // LDI/LDD: read source
+    MO_BLK_LD_W,    // LDI/LDD: write destination and update pointers
+    MO_BLK_CP_R,    // CPI/CPD: read and compare
+    MO_BLK_INI,     // INI/IND: port read
+    MO_BLK_INI_W,   // INI/IND: store to (HL)
+    MO_BLK_OUT_R,   // OUTI/OUTD: read (HL)
+    MO_BLK_OUT_W,   // OUTI/OUTD: port write done
     MO_WR_RET       // plain write that retires
   } mem_op_t;
 
   mem_op_t mem_op;
 
+  logic        is_ed;
+  logic [7:0]  ed_op;
+
   typedef enum logic [3:0] {
-    S_FETCH, S_PFX, S_IMM1, S_IMM2, S_EXEC, S_MRD, S_MWR, S_HALTED, S_FAULT
+    S_FETCH, S_PFX, S_IMM1, S_IMM2, S_EXEC, S_MRD, S_MWR, S_ED, S_IORD, S_IOWR,
+    S_EXEC_ED, S_HALTED, S_FAULT
   } state_t;
   state_t state;
 
@@ -186,6 +203,7 @@ module zilog_z80
     else if (op == 8'h22 || op == 8'h2A || op == 8'h32 || op == 8'h3A) supported = 1'b1;
     else if (op == 8'h36) supported = 1'b1;                               // LD (HL),n
     else if (op == 8'h34 || op == 8'h35) supported = 1'b1;                // INC/DEC (HL)
+    else if (op == 8'hD3 || op == 8'hDB) supported = 1'b1;               // OUT (n),A / IN A,(n)
     else if (op == 8'hC9 || op == 8'hCD || op == 8'hE3) supported = 1'b1;
     else if (op == 8'hC3) supported = 1'b1;
     else if (op[7:6] == 2'b00 && op[2:0] == 3'd1 && op[3] == 1'b0) supported = 1'b1;  // LD rr,nn
@@ -209,6 +227,7 @@ module zilog_z80
     else if (op[7:6] == 2'b00 && op[2:0] == 3'd1 && op[3] == 1'b0) imm_count = 2'd2;
     else if (op[7:6] == 2'b00 && op[2:0] == 3'd6) imm_count = 2'd1;
     else if (op == 8'h10 || op == 8'h18) imm_count = 2'd1;
+    else if (op == 8'hD3 || op == 8'hDB) imm_count = 2'd1;
     else if (op[7:5] == 3'b001 && op[2:0] == 3'd0) imm_count = 2'd1;
     else if (op[7:6] == 2'b11 && op[2:0] == 3'd6) imm_count = 2'd1;       // ALU A,n
     else if (op[7:6] == 2'b11 && op[2:0] == 3'd2) imm_count = 2'd2;       // JP cc,nn
@@ -308,6 +327,10 @@ module zilog_z80
       endcase
     end else if (ir == 8'h27) begin
       alu_op = ALU_DAA;
+    end else if (ir == 8'hED && (ed_op[2:0] == 3'd4) && (ed_op[7:6] == 2'b01)) begin
+      // ED 44/4C/54/... NEG
+      alu_a  = a;
+      alu_op = ALU_NEG;
     end else if (ir == 8'h2F) begin
       alu_op = ALU_CPL;
     end else if (ir == 8'h07) begin
@@ -354,7 +377,7 @@ module zilog_z80
     bus_intack_o = 1'b0;
 
     case (state)
-      S_FETCH, S_PFX, S_IMM1, S_IMM2: begin
+      S_FETCH, S_PFX, S_IMM1, S_IMM2, S_ED: begin
         bus_write_o = 1'b0;
         bus_addr_o  = pc;
       end
@@ -365,6 +388,16 @@ module zilog_z80
       S_MWR: begin
         bus_write_o = 1'b1;
         bus_addr_o  = mem_addr;
+      end
+      S_IORD: begin
+        bus_write_o = 1'b0;
+        bus_addr_o  = mem_addr;
+        bus_io_o    = 1'b1;
+      end
+      S_IOWR: begin
+        bus_write_o = 1'b1;
+        bus_addr_o  = mem_addr;
+        bus_io_o    = 1'b1;
       end
       default: bus_req_o = 1'b0;
     endcase
@@ -381,6 +414,43 @@ module zilog_z80
     rp_val   = get_rp(ir[5:4]);
     half_sum = {1'b0, hl_val[11:0]} + {1'b0, rp_val[11:0]};
     full_sum = {1'b0, hl_val} + {1'b0, rp_val};
+  end
+
+  // 16-bit ADC/SBC HL,rr used by the ED page.
+  logic [15:0] ed_rp;
+  logic [16:0] ed_add;
+  logic [13:0] ed_add_h;
+  logic [16:0] ed_sub;
+  logic [13:0] ed_sub_h;
+
+  always_comb begin
+    ed_rp    = get_rp(ed_op[5:4]);
+    ed_add   = {1'b0, hl_val} + {1'b0, ed_rp} + {16'h0000, f[FLAG_C]};
+    ed_add_h = {1'b0, hl_val[11:0]} + {1'b0, ed_rp[11:0]} + {13'h0000, f[FLAG_C]};
+    ed_sub   = {1'b0, hl_val} - {1'b0, ed_rp} - {16'h0000, f[FLAG_C]};
+    ed_sub_h = {1'b0, hl_val[11:0]} - {1'b0, ed_rp[11:0]} - {13'h0000, f[FLAG_C]};
+  end
+
+  // Nibble rotate-through-memory and block-compare temporaries.
+  logic [7:0] nib_mem;
+  logic [7:0] nib_a;
+  logic [7:0] rld_a;
+  logic [7:0] cmp_res;
+  logic [7:0] cmp_res_h;
+  logic [4:0] cmp_nib;
+  logic       cmp_h;
+  logic [7:0] blk_sum;
+
+  always_comb begin
+    // RRD: mem <- {A[3:0], mem[7:4]}, A <- {A[7:4], mem[3:0]}
+    nib_mem   = {a[3:0], bus_rdata_i[7:4]};
+    nib_a     = {a[7:4], bus_rdata_i[3:0]};
+    rld_a     = {a[7:4], bus_rdata_i[7:4]};
+    cmp_nib   = {1'b0, a[3:0]} - {1'b0, bus_rdata_i[3:0]};
+    cmp_h     = cmp_nib[4];
+    cmp_res   = a - bus_rdata_i;
+    cmp_res_h = cmp_res - {7'h00, cmp_h};
+    blk_sum   = a + bus_rdata_i;
   end
 
   always_ff @(posedge clk) begin
@@ -425,8 +495,11 @@ module zilog_z80
             r_reg <= {r_reg[7], r_reg[6:0] + 7'd1};
             imm1  <= 8'h00;
             imm2  <= 8'h00;
+            is_ed <= (bus_rdata_i == 8'hED);
             if (bus_rdata_i == 8'hCB) begin
               state <= S_PFX;
+            end else if (bus_rdata_i == 8'hED) begin
+              state <= S_ED;
             end else if (!supported(bus_rdata_i)) begin
               fault_o <= 1'b1;
               state   <= S_FAULT;
@@ -456,7 +529,12 @@ module zilog_z80
           if (bus_ready_i) begin
             imm1  <= bus_rdata_i;
             pc    <= pc + 16'd1;
-            state <= (imm_count(ir) == 2'd2) ? S_IMM2 : S_EXEC;
+            // The ED page only uses this path for its two-byte (nn) forms; a
+            // primary-page instruction's count comes from its own opcode.
+            if (is_ed ? 1'b1 : (imm_count(ir) == 2'd2))
+              state <= S_IMM2;
+            else
+              state <= S_EXEC;
           end
         end
 
@@ -464,7 +542,21 @@ module zilog_z80
           if (bus_ready_i) begin
             imm2  <= bus_rdata_i;
             pc    <= pc + 16'd1;
-            state <= S_EXEC;
+            state <= is_ed ? S_EXEC_ED : S_EXEC;
+          end
+        end
+
+        // ------------------------------------------------------- ED prefix
+        S_ED: begin
+          if (bus_ready_i) begin
+            ed_op <= bus_rdata_i;
+            pc    <= pc + 16'd1;
+            r_reg <= {r_reg[7], r_reg[6:0] + 7'd1};
+            // Only the 16-bit (nn) loads/stores take immediate bytes.
+            if ((bus_rdata_i[7:6] == 2'b01) && (bus_rdata_i[2:0] == 3'd3))
+              state <= S_IMM1;
+            else
+              state <= S_EXEC_ED;
           end
         end
 
@@ -719,6 +811,7 @@ module zilog_z80
           end else if (ir == 8'h22) begin
             mem_addr <= {imm2, imm1};
             mem_data <= l;
+            aux_hi   <= h;
             mem_op   <= MO_LD_NN_LO;
             state    <= S_MWR;
           end else if (ir[7:6] == 2'b11 && ir[2:0] == 3'd5 && ir[3] == 1'b0) begin
@@ -772,6 +865,17 @@ module zilog_z80
             sp       <= sp - 16'd1;
             mem_op   <= MO_RST_HI;
             state    <= S_MWR;
+          end else if (ir == 8'hD3) begin
+            // OUT (n),A : port number on A0-A7, A on A8-A15
+            mem_addr <= {a, imm1};
+            mem_data <= a;
+            mem_op   <= MO_WR_RET;
+            state    <= S_IOWR;
+          end else if (ir == 8'hDB) begin
+            // IN A,(n)
+            mem_addr <= {a, imm1};
+            mem_op   <= MO_IN_A;
+            state    <= S_IORD;
           end else if (ir == 8'hE3) begin
             // EX (SP),HL
             saved16  <= {h, l};
@@ -921,6 +1025,72 @@ module zilog_z80
                 mem_op   <= MO_EX_WLO;
                 state    <= S_MWR;
               end
+              MO_ED_LD_LO: begin
+                aux_lo   <= bus_rdata_i;
+                mem_addr <= mem_addr + 16'd1;
+                mem_op   <= MO_ED_LD_HI;
+              end
+              MO_ED_LD_HI: begin
+                case (ed_op[5:4])
+                  2'd0: {b, c} <= {bus_rdata_i, aux_lo};
+                  2'd1: {d, e} <= {bus_rdata_i, aux_lo};
+                  2'd2: {h, l} <= {bus_rdata_i, aux_lo};
+                  default: sp <= {bus_rdata_i, aux_lo};
+                endcase
+                retire_o <= 1'b1;
+                state    <= S_FETCH;
+              end
+              MO_RRD: begin
+                mem_data <= nib_mem;
+                a        <= nib_a;
+                f        <= {nib_a[7], (nib_a == 8'h00), nib_a[5], 1'b0, nib_a[3],
+                             ~(^nib_a), 1'b0, f[FLAG_C]};
+                mem_op   <= MO_WR_RET;
+                state    <= S_MWR;
+              end
+              MO_RLD: begin
+                // RLD: mem <- {mem[3:0], A[3:0]}, A <- {A[7:4], mem[7:4]}
+                mem_data <= {bus_rdata_i[3:0], a[3:0]};
+                a        <= rld_a;
+                f        <= {rld_a[7], (rld_a == 8'h00), rld_a[5], 1'b0, rld_a[3],
+                             ~(^rld_a), 1'b0, f[FLAG_C]};
+                mem_op   <= MO_WR_RET;
+                state    <= S_MWR;
+              end
+              MO_BLK_LD_R: begin
+                aux_lo   <= bus_rdata_i;
+                mem_data <= bus_rdata_i;
+                mem_addr <= {d, e};
+                mem_op   <= MO_BLK_LD_W;
+                state    <= S_MWR;
+              end
+              MO_BLK_OUT_R: begin
+                mem_data <= bus_rdata_i;
+                mem_addr <= {b, c};
+                mem_op   <= MO_BLK_OUT_W;
+                state    <= S_IOWR;
+              end
+              MO_BLK_CP_R: begin
+                // CPI/CPD: A - (HL), then pointer and flag updates, repeat.
+                if (ed_op[3]) begin
+                  {h, l} <= {h, l} - 16'd1;
+                end else begin
+                  {h, l} <= {h, l} + 16'd1;
+                end
+                {b, c} <= {b, c} - 16'd1;
+                f <= {cmp_res[7], (cmp_res == 8'h00), cmp_res_h[1], cmp_h,
+                      cmp_res_h[3], (({b, c} - 16'd1) != 16'h0000), 1'b1,
+                      f[FLAG_C]};
+                if (ed_op[4] && (({b, c} - 16'd1) != 16'h0000) &&
+                    (cmp_res != 8'h00)) begin
+                  pc <= pc - 16'd2;    // repeat: re-execute this instruction
+                  retire_o <= 1'b1;
+                  state    <= S_FETCH;
+                end else begin
+                  retire_o <= 1'b1;
+                  state    <= S_FETCH;
+                end
+              end
               default: begin
                 fault_o <= 1'b1;
                 state   <= S_FAULT;
@@ -939,7 +1109,7 @@ module zilog_z80
               end
               MO_LD_NN_LO: begin
                 mem_addr <= mem_addr + 16'd1;
-                mem_data <= h;               // HL is still intact here
+                mem_data <= aux_hi;          // high byte of the stored pair
                 mem_op   <= MO_WR_RET;
               end
               MO_PUSH_HI: begin
@@ -960,8 +1130,48 @@ module zilog_z80
               end
               MO_CALL_LO, MO_RST_LO: begin
                 pc <= saved16;               // sp already at its final value
-            retire_o <= 1'b1;
-            state    <= S_FETCH;
+                retire_o <= 1'b1;
+                state    <= S_FETCH;
+              end
+              MO_BLK_LD_W: begin
+                // LDI/LDD destination write done: pointers, flags, repeat.
+                if (ed_op[3]) begin
+                  {h, l} <= {h, l} - 16'd1;
+                  {d, e} <= {d, e} - 16'd1;
+                end else begin
+                  {h, l} <= {h, l} + 16'd1;
+                  {d, e} <= {d, e} + 16'd1;
+                end
+                {b, c} <= {b, c} - 16'd1;
+                f <= {f[FLAG_S], f[FLAG_Z], blk_sum[1], 1'b0, blk_sum[3],
+                      (({b, c} - 16'd1) != 16'h0000), 1'b0, f[FLAG_C]};
+                if (ed_op[4] && (({b, c} - 16'd1) != 16'h0000)) begin
+                  pc <= pc - 16'd2;          // LDIR/LDDR: next iteration
+                  retire_o <= 1'b1;
+                  state    <= S_FETCH;
+                end else begin
+                  retire_o <= 1'b1;
+                  state    <= S_FETCH;
+                end
+              end
+              MO_BLK_INI_W: begin
+                // INI/IND store done: HL +/- 1, B - 1, Z from B, N = 1.
+                if (ed_op[3]) begin
+                  {h, l} <= {h, l} - 16'd1;
+                end else begin
+                  {h, l} <= {h, l} + 16'd1;
+                end
+                b <= b - 8'h01;
+                f <= {f[FLAG_S], ((b - 8'h01) == 8'h00), f[FLAG_F5], f[FLAG_H],
+                      f[FLAG_F3], f[FLAG_PV], 1'b1, f[FLAG_C]};
+                if (ed_op[4] && ((b - 8'h01) != 8'h00)) begin
+                  pc <= pc - 16'd2;
+                  retire_o <= 1'b1;
+                  state    <= S_FETCH;
+                end else begin
+                  retire_o <= 1'b1;
+                  state    <= S_FETCH;
+                end
               end
               MO_EX_WLO: begin
                 mem_addr <= sp + 16'd1;
@@ -980,6 +1190,213 @@ module zilog_z80
               end
             endcase
           end
+        end
+
+        // ------------------------------------------------------- ED page
+        S_IORD: begin
+          if (bus_ready_i) begin
+            case (mem_op)
+              MO_IN_R: begin
+                if (ed_op == 8'h70) begin
+                  // IN F,(C): S/Z/PV from the byte, H=N=0, F3/F5 and C kept.
+                  f <= {bus_rdata_i[7], (bus_rdata_i == 8'h00), f[FLAG_F5], 1'b0,
+                        f[FLAG_F3], ~(^bus_rdata_i), 1'b0, f[FLAG_C]};
+                end else begin
+                  case (ed_op[5:3])
+                    3'd0: b <= bus_rdata_i;
+                    3'd1: c <= bus_rdata_i;
+                    3'd2: d <= bus_rdata_i;
+                    3'd3: e <= bus_rdata_i;
+                    3'd4: h <= bus_rdata_i;
+                    3'd5: l <= bus_rdata_i;
+                    default: a <= bus_rdata_i;
+                  endcase
+                  f <= {(bus_rdata_i[7]), (bus_rdata_i == 8'h00), f[FLAG_F5], 1'b0,
+                        f[FLAG_F3], ~(^bus_rdata_i), 1'b0, f[FLAG_C]};
+                end
+                retire_o <= 1'b1;
+                state    <= S_FETCH;
+              end
+              MO_BLK_INI: begin
+                mem_data <= bus_rdata_i;
+                mem_addr <= {h, l};
+                mem_op   <= MO_BLK_INI_W;
+                state    <= S_MWR;
+              end
+              MO_IN_A: begin
+                // IN A,(n): the pinned oracle (and hardware) leaves F unchanged.
+                a <= bus_rdata_i;
+                retire_o <= 1'b1;
+                state    <= S_FETCH;
+              end
+              default: begin
+                fault_o <= 1'b1;
+                state   <= S_FAULT;
+              end
+            endcase
+          end
+        end
+
+        S_IOWR: begin
+          if (bus_ready_i) begin
+            if (mem_op == MO_BLK_OUT_W) begin
+              // OUTI/OUTD done: HL +/- 1, B - 1, Z from B, N = 1.
+              if (ed_op[3]) begin
+                {h, l} <= {h, l} - 16'd1;
+              end else begin
+                {h, l} <= {h, l} + 16'd1;
+              end
+              b <= b - 8'h01;
+              f <= {f[FLAG_S], ((b - 8'h01) == 8'h00), f[FLAG_F5], f[FLAG_H],
+                    f[FLAG_F3], f[FLAG_PV], 1'b1, f[FLAG_C]};
+              if (ed_op[4] && ((b - 8'h01) != 8'h00)) begin
+                pc <= pc - 16'd2;
+                retire_o <= 1'b1;
+                state    <= S_FETCH;
+              end else begin
+                retire_o <= 1'b1;
+                state    <= S_FETCH;
+              end
+            end else begin
+              retire_o <= 1'b1;
+              state    <= S_FETCH;
+            end
+          end
+        end
+
+        S_EXEC_ED: begin
+          case (ed_op)
+            // IN r,(C) / IN F,(C)
+            8'h40, 8'h48, 8'h50, 8'h58, 8'h60, 8'h68, 8'h70, 8'h78: begin
+              mem_addr <= {b, c};
+              mem_op   <= MO_IN_R;
+              state    <= S_IORD;
+            end
+            // OUT (C),r / OUT (C),0
+            8'h41, 8'h49, 8'h51, 8'h59, 8'h61, 8'h69, 8'h71, 8'h79: begin
+              mem_addr <= {b, c};
+              mem_data <= (ed_op == 8'h71) ? 8'h00 : get_r(ed_op[5:3]);
+              mem_op   <= MO_WR_RET;
+              state    <= S_IOWR;
+            end
+            // SBC HL,rr (C from flags)
+            8'h42, 8'h52, 8'h62, 8'h72: begin
+              {h, l} <= ed_sub[15:0];
+              f <= {ed_sub[15], (ed_sub[15:0] == 16'h0000), ed_sub[13],
+                    ed_sub_h[12], ed_sub[11],
+                    ((hl_val[15] ^ ed_rp[15]) & (ed_sub[15] ^ hl_val[15])), 1'b1,
+                    ed_sub[16]};
+              retire_o <= 1'b1;
+              state    <= S_FETCH;
+            end
+            // ADC HL,rr
+            8'h4A, 8'h5A, 8'h6A, 8'h7A: begin
+              {h, l} <= ed_add[15:0];
+              f <= {ed_add[15], (ed_add[15:0] == 16'h0000), ed_add[13],
+                    ed_add_h[12], ed_add[11],
+                    (~(hl_val[15] ^ ed_rp[15]) & (ed_add[15] ^ hl_val[15])), 1'b0,
+                    ed_add[16]};
+              retire_o <= 1'b1;
+              state    <= S_FETCH;
+            end
+            // LD (nn),rr
+            8'h43, 8'h53, 8'h63, 8'h73: begin
+              aux_hi   <= (ed_op[5:4] == 2'd3) ? sp[15:8] : get_rp_hi(ed_op[5:4]);
+              mem_addr <= {imm2, imm1};
+              mem_data <= (ed_op[5:4] == 2'd3) ? sp[7:0] : get_rp_lo(ed_op[5:4]);
+              mem_op   <= MO_LD_NN_LO;
+              state    <= S_MWR;
+            end
+            // LD rr,(nn)
+            8'h4B, 8'h5B, 8'h6B, 8'h7B: begin
+              mem_addr <= {imm2, imm1};
+              mem_op   <= MO_ED_LD_LO;
+              state    <= S_MRD;
+            end
+            // NEG (all duplicate encodings) - via the ALU
+            8'h44, 8'h4C, 8'h54, 8'h5C, 8'h64, 8'h6C, 8'h74, 8'h7C: begin
+              a <= alu_y;
+              f <= alu_f;
+              retire_o <= 1'b1;
+              state    <= S_FETCH;
+            end
+            // RETN / RETI
+            8'h45, 8'h4D, 8'h55, 8'h5D, 8'h65, 8'h6D, 8'h75, 8'h7D: begin
+              mem_addr <= sp;
+              mem_op   <= MO_RET_LO;
+              state    <= S_MRD;
+            end
+            // IM 0 / 1 / 2 (duplicate encodings)
+            8'h46, 8'h4E, 8'h56, 8'h5E, 8'h66, 8'h6E, 8'h76, 8'h7E: begin
+              case (ed_op[5:3])
+                3'd0, 3'd1, 3'd4, 3'd5: im <= 2'd0;
+                3'd2, 3'd6:            im <= 2'd1;
+                default:               im <= 2'd2;
+              endcase
+              retire_o <= 1'b1;
+              state    <= S_FETCH;
+            end
+            // LD I,A / LD R,A
+            8'h47: begin
+              i_reg <= a;
+              retire_o <= 1'b1;
+              state    <= S_FETCH;
+            end
+            8'h4F: begin
+              r_reg <= a;
+              retire_o <= 1'b1;
+              state    <= S_FETCH;
+            end
+            // LD A,I / LD A,R : S,Z,F5,F3 from the value, P/V = IFF2, N = H = 0
+            8'h57: begin
+              a <= i_reg;
+              f <= {i_reg[7], (i_reg == 8'h00), f[FLAG_F5], 1'b0, f[FLAG_F3], iff2,
+                    1'b0, f[FLAG_C]};
+              retire_o <= 1'b1;
+              state    <= S_FETCH;
+            end
+            8'h5F: begin
+              a <= r_reg;
+              f <= {r_reg[7], (r_reg == 8'h00), f[FLAG_F5], 1'b0, f[FLAG_F3], iff2,
+                    1'b0, f[FLAG_C]};
+              retire_o <= 1'b1;
+              state    <= S_FETCH;
+            end
+            // RRD / RLD
+            8'h67, 8'h6F: begin
+              mem_addr <= {h, l};
+              mem_op   <= (ed_op == 8'h67) ? MO_RRD : MO_RLD;
+              state    <= S_MRD;
+            end
+            // Block I/O: INI/IND/INIR/INDR
+            8'hA2, 8'hAA, 8'hB2, 8'hBA: begin
+              mem_addr <= {b, c};
+              mem_op   <= MO_BLK_INI;
+              state    <= S_IORD;
+            end
+            // Block I/O: OUTI/OUTD/OTIR/OTDR
+            8'hA3, 8'hAB, 8'hB3, 8'hBB: begin
+              mem_addr <= {h, l};
+              mem_op   <= MO_BLK_OUT_R;
+              state    <= S_MRD;
+            end
+            // Block transfer / search
+            8'hA0, 8'hA8, 8'hB0, 8'hB8: begin   // LDI / LDD / LDIR / LDDR
+              mem_addr <= {h, l};
+              mem_op   <= MO_BLK_LD_R;
+              state    <= S_MRD;
+            end
+            8'hA1, 8'hA9, 8'hB1, 8'hB9: begin   // CPI / CPD / CPIR / CPDR
+              mem_addr <= {h, l};
+              mem_op   <= MO_BLK_CP_R;
+              state    <= S_MRD;
+            end
+            default: begin
+              // Undefined ED encodings execute as a two-byte NOP.
+              retire_o <= 1'b1;
+              state    <= S_FETCH;
+            end
+          endcase
         end
 
         S_HALTED: retire_o <= 1'b0;

@@ -90,11 +90,15 @@ bool run_dut(Vzilog_z80& dut, const std::vector<uint8_t>& prog, int n_instr,
 
     dut.clk = 0;
     dut.bus_ready_i = 1;
-    dut.bus_rdata_i = g_mem[dut.bus_addr_o & 0xFFFF];
+    // I/O cycles read the fixed port value the oracle returns (0xFF); memory
+    // cycles read the image. Writes only touch memory when the cycle is not I/O.
+    if (dut.bus_io_o)
+      dut.bus_rdata_i = 0xFF;
+    else
+      dut.bus_rdata_i = g_mem[dut.bus_addr_o & 0xFFFF];
     dut.eval();
 
-    // No writes are expected from the implemented subset; record if any.
-    if (dut.bus_write_o) {
+    if (dut.bus_write_o && !dut.bus_io_o) {
       g_mem[dut.bus_addr_o & 0xFFFF] = (uint8_t)dut.bus_wdata_o;
     }
 
@@ -360,6 +364,17 @@ int main(int argc, char** argv) {
   for (int cb = 0; cb < 256; cb++) {
     if ((cb & 0x07) == 0x06 && (cb & 0xC0) == 0x40) continue;  // BIT n,(HL)
     check(0xCB, {(uint8_t)cb}, "CB");
+  }
+
+  // ED page: every second byte, with operand bytes for the (nn) forms.
+  for (int ed = 0; ed < 256; ed++) {
+    std::vector<uint8_t> tail;
+    tail.push_back((uint8_t)ed);
+    if ((ed & 0xC7) == 0x43) {  // LD (nn),rr and LD rr,(nn)
+      tail.push_back((uint8_t)d8(rng));
+      tail.push_back((uint8_t)d8(rng));
+    }
+    check(0xED, tail, "ED");
   }
 
   for (const std::string& s : first_bad) std::printf("MISMATCH %s\n", s.c_str());

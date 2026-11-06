@@ -25,15 +25,14 @@ JP cc,nn/JP (HL); PUSH/POP incl. AF; CALL nn/CALL cc/RET/RET cc/RST;
 EX AF,AF'/EX DE,HL/EXX/EX (SP),HL; DI; EI; HALT; and the CB page on registers
 and on (HL) for rotate/shift/RES/SET.
 
-**Not implemented:** BIT n,(HL) (its undocumented F3/F5 source is the WZ
-register), the ED page, the DD/FD index pages, block instructions, I/O, and
-interrupt entry. Those raise `fault_o` instead of executing wrongly.
+**Not implemented:** `BIT n,(HL)` (its undocumented F3/F5 source is the WZ
+register), the DD/FD index pages and their DD-CB forms, and interrupt entry.
+Those raise `fault_o` instead of executing wrongly.
 
-**Formal and synthesis gates now pass for the implemented subset:** SBY bmc
-(depth 40) PASS, cover (depth 60) PASS with all six cover points reached, and
-prove PASS by k-induction; Yosys 0.69 synthesizes the core to 16,179 generic
-cells. ZEXDOC/ZEXALL and real historical software remain open because they need
-the ED and index pages.
+**Formal and synthesis gates pass for the implemented subset:** SBY bmc/cover/
+prove and Yosys generic synthesis are re-run on every change; see the table
+below. ZEXDOC/ZEXALL and real historical software remain open because they need
+the index pages.
 
 ## 2. Design overview
 
@@ -52,7 +51,7 @@ the ED and index pages.
 |---|---|---|
 | ALU differential vs pinned oracle | **PASS**, 648,328 cases, 0 mismatches | `scripts/run_alu.sh`, Verilator 5.052 in the project tool image |
 | ALU negative control | **PASS**, 648,328/648,328 rejected | `run_alu.sh --negative-control` |
-| Instruction differential | **PASS**, 1,996 compared, 0 mismatches, 5 unimplemented | `scripts/run_instr.sh` (state + full memory image) |
+| Instruction differential | **PASS**, 3,032 compared, 0 mismatches, 2 unimplemented | `scripts/run_instr.sh` (state + full memory image) |
 | Verilator lint (core) | No errors; 18 `-Wall` warnings (unused interrupt inputs, reserved parameters) | `verilator --lint-only -Wall` |
 | Formal bmc | **PASS**, depth 40 | `sby -f formal/zilog_z80.sby bmc` |
 | Formal cover | **PASS**, all 6 cover points reached | `sby -f formal/zilog_z80.sby cover` |
@@ -74,12 +73,13 @@ simulation when no sources exist and have not been exercised by this design.
 
 | Item | Impact | Status |
 |---|---|---|
+| DD/FD index pages absent (with DD-CB/FD-CB) | those encodings fault | next milestone |
 | BIT n,(HL) absent (WZ-sourced F3/F5) | one CB form faults | next milestone |
-| ED page, DD/FD index pages, block instructions, I/O, interrupt entry absent | these encodings fault | next milestones |
+| Interrupt entry not modelled | EI/DI and IM are stored but INT/NMI are not accepted | next milestone |
 | DAA verified in context only | standalone DAA after an arbitrary F byte is undefined hardware behavior | documented limitation |
 | SCF/CCF F3/F5 from A, no Q latch | matches the pinned oracle | documented assumption |
-| EI delay and interrupt entry not modelled | EI takes effect immediately | documented assumption |
-| ZEXALL/ZEXDOC/z80test not yet obtained | exercisers need ED/DD and BIT (HL) | next milestone |
+| IN A,(n) leaves F unchanged | matches the pinned oracle | documented, differs from some published tables |
+| ZEXALL/ZEXDOC/z80test not yet obtained | exercisers need the index pages | next milestone |
 | `OUT (C),0` data byte (NMOS 0xFF vs CMOS 0x00) | pin-level data value | open assumption, ledger row |
 | NMOS minimum clock frequency | sub-minimum-clock behavior | open, native engine boundary |
 
