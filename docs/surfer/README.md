@@ -16,3 +16,9 @@ Surfer is a modern, open-source waveform viewer built in Rust using the egui fra
 - Web App: https://app.surfer-project.org (try in browser)
 - Repository: https://gitlab.com/surfer-project/surfer
 - License: EUPL-1.2
+
+## Qualified baseline
+
+Surfer 0.7.0, Surver token authentication and the web viewer are qualified; large-waveform measurements are in the baseline record.
+
+Pins, license, compatibility with the other pinned tools, and supported/unsupported behavior are recorded in [EDA tool baseline](../eda-tool-baseline.md) and the probe results in [EDA tool qualification](../eda-tool-qualification.md).

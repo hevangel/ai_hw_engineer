@@ -13,3 +13,9 @@ The [reference manifest](../../design/amd_am29xx/amd_am2901/references/README.md
 ## Validated image
 
 The 2026-10-25 full image build resolved OpenJDK runtime/compiler `25.0.4.1` from the pinned Ubuntu snapshot (`default-jdk-headless` `2:1.25-77`; `openjdk-25-jdk-headless` `25.0.4.1+1-1~26.04.4`). Both version smoke checks and the complete Am2901 independent-oracle flow passed. The verified local `ai-hw-engineer:latest` image identity and regression counts are recorded in [the migration validation report](../family-layout-migration.md).
+
+## Qualified baseline
+
+The JDK comes from the same pinned Ubuntu snapshot as the other packages.
+
+Pins, license, compatibility with the other pinned tools, and supported/unsupported behavior are recorded in [EDA tool baseline](../eda-tool-baseline.md) and the probe results in [EDA tool qualification](../eda-tool-qualification.md).

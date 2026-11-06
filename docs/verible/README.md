@@ -9,3 +9,9 @@ Verible is a suite of SystemVerilog developer tools from the CHIPS Alliance, inc
 - [Command Reference](command-reference.md) — Quick reference for all Verible tools
 
 Source: [github.com/chipsalliance/verible](https://github.com/chipsalliance/verible)
+
+## Qualified baseline
+
+Verible is qualified for version, format, lint and syntax-error rejection; the language server is not exercised.
+
+Pins, license, compatibility with the other pinned tools, and supported/unsupported behavior are recorded in [EDA tool baseline](../eda-tool-baseline.md) and the probe results in [EDA tool qualification](../eda-tool-qualification.md).

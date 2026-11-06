@@ -50,3 +50,9 @@ The fetcher derives netlist_sim_initialized.c from the unchanged, hash-checked o
 ## Confirmed source-level diagnosis
 
 The [root-cause investigation](vpi-prefix-map-root-cause.md) traced the malformed flag to Debian’s `filter-out_iverilog-vpi_flags.patch`, inherited by Ubuntu. Its greedy expression consumes across argument boundaries into a later debug-map path. A hash-pinned source experiment proves that upstream helper generation works, Debian’s patch breaks both C/C++ builds, and a token-based make filter repairs both while preserving other flags. A corrected source patch and reproducible six-case experiment are included; the pinned binary-image cleanup remains the production workaround.
+
+## Qualified baseline
+
+Icarus is qualified only in the Apple II overlay (four-state run, packaged C/C++ VPI helper, `$fatal` exit).
+
+Pins, license, compatibility with the other pinned tools, and supported/unsupported behavior are recorded in [EDA tool baseline](../eda-tool-baseline.md) and the probe results in [EDA tool qualification](../eda-tool-qualification.md).

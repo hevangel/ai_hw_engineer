@@ -15,3 +15,9 @@ Xezim is an open-source, AI-native SystemVerilog simulator written in Rust. It f
 
 - Repository: https://github.com/aionhw/xezim
 - License: Apache License 2.0
+
+## Qualified baseline
+
+Xezim is qualified natively for simulation, `--error-exit`, VCD output and UVM, and compared against Verilator on SystemVerilog semantics cases.
+
+Pins, license, compatibility with the other pinned tools, and supported/unsupported behavior are recorded in [EDA tool baseline](../eda-tool-baseline.md) and the probe results in [EDA tool qualification](../eda-tool-qualification.md).

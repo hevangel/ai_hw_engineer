@@ -1,0 +1,139 @@
+{
+  "recordedAt": "2026-11-06T15:54:28.663360+00:00",
+  "checks": [
+    {
+      "tool": "iverilog",
+      "check": "version",
+      "command": [
+        "iverilog",
+        "-V"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "iverilog-version.log"
+    },
+    {
+      "tool": "iverilog",
+      "check": "compile",
+      "command": [
+        "iverilog",
+        "-g2012",
+        "-s",
+        "four_state",
+        "-o",
+        "/work/scratchpad/eda-icarus-final/four_state.vvp",
+        "/work/scratchpad/eda-icarus-final/four_state.sv"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "iverilog-compile.log"
+    },
+    {
+      "tool": "iverilog",
+      "check": "packaged-vpi-helper",
+      "command": [
+        "iverilog-vpi",
+        "/work/scratchpad/eda-icarus-final/audit_vpi.c"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "iverilog-packaged-vpi-helper.log"
+    },
+    {
+      "tool": "iverilog",
+      "check": "documented-vpi-build",
+      "command": [
+        "cc",
+        "-std=c11",
+        "-shared",
+        "-fPIC",
+        "-O2",
+        "-I/usr/include/iverilog",
+        "-o",
+        "/work/scratchpad/eda-icarus-final/audit_vpi.vpi",
+        "/work/scratchpad/eda-icarus-final/audit_vpi.c"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "iverilog-documented-vpi-build.log"
+    },
+    {
+      "tool": "iverilog",
+      "check": "four-state-vpi",
+      "command": [
+        "vvp",
+        "-M",
+        "/work/scratchpad/eda-icarus-final",
+        "-m",
+        "audit_vpi",
+        "/work/scratchpad/eda-icarus-final/four_state.vvp"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "iverilog-four-state-vpi.log"
+    },
+    {
+      "tool": "iverilog",
+      "check": "packaged-vpi-cxx-helper",
+      "command": [
+        "iverilog-vpi",
+        "/work/scratchpad/eda-icarus-final/audit_vpi_cpp.cpp"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "iverilog-packaged-vpi-cxx-helper.log"
+    },
+    {
+      "tool": "iverilog",
+      "check": "cxx-vpi-load",
+      "command": [
+        "vvp",
+        "-M",
+        "/work/scratchpad/eda-icarus-final",
+        "-m",
+        "audit_vpi_cpp",
+        "/work/scratchpad/eda-icarus-final/four_state.vvp"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "iverilog-cxx-vpi-load.log"
+    },
+    {
+      "tool": "iverilog",
+      "check": "negative-compile",
+      "command": [
+        "iverilog",
+        "-g2012",
+        "-s",
+        "negative",
+        "-o",
+        "/work/scratchpad/eda-icarus-final/negative.vvp",
+        "/work/scratchpad/eda-icarus-final/negative.sv"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "iverilog-negative-compile.log"
+    },
+    {
+      "tool": "iverilog",
+      "check": "fatal-exit",
+      "command": [
+        "vvp",
+        "/work/scratchpad/eda-icarus-final/negative.vvp"
+      ],
+      "returncode": 1,
+      "expectedFailure": true,
+      "passed": true,
+      "log": "iverilog-fatal-exit.log"
+    }
+  ],
+  "passed": true
+}

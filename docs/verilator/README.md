@@ -19,3 +19,9 @@ Verilator is an open-source SystemVerilog simulator and lint system. It compiles
 - Repository: https://github.com/verilator/verilator
 - User Guide: https://veripool.org/guide/latest/
 - License: LGPL-3.0 or Artistic-2.0
+
+## Qualified baseline
+
+Verilator is qualified for lint, `--binary --timing` simulation, FST trace, coverage and syntax-error rejection; it is not used for UVM.
+
+Pins, license, compatibility with the other pinned tools, and supported/unsupported behavior are recorded in [EDA tool baseline](../eda-tool-baseline.md) and the probe results in [EDA tool qualification](../eda-tool-qualification.md).

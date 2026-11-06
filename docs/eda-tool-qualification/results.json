@@ -1,0 +1,544 @@
+{
+  "recordedAt": "2026-11-06T15:52:41.308378+00:00",
+  "checks": [
+    {
+      "tool": "xezim",
+      "check": "version",
+      "command": [
+        "xezim",
+        "-V"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "xezim-version.log"
+    },
+    {
+      "tool": "xezim",
+      "check": "simulate",
+      "command": [
+        "xezim",
+        "--simulate",
+        "--sv2017",
+        "--error-exit",
+        "--wave",
+        "-s",
+        "tb",
+        "/work/scratchpad/eda-final/good/audit_and.sv",
+        "/work/scratchpad/eda-final/tb.sv"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "xezim-simulate.log"
+    },
+    {
+      "tool": "xezim",
+      "check": "fatal-exit",
+      "command": [
+        "xezim",
+        "--simulate",
+        "--error-exit",
+        "-s",
+        "negative",
+        "/work/scratchpad/eda-final/negative.sv"
+      ],
+      "returncode": 1,
+      "expectedFailure": true,
+      "passed": true,
+      "log": "xezim-fatal-exit.log"
+    },
+    {
+      "tool": "uvm",
+      "check": "positive",
+      "command": [
+        "xezim",
+        "--simulate",
+        "--sv2017",
+        "--error-exit",
+        "-I",
+        "/opt/uvm/1800.2-2017/src",
+        "-D",
+        "UVM_NO_DPI",
+        "-D",
+        "UVM_REPORT_DISABLE_FILE_LINE",
+        "-s",
+        "uvm_top",
+        "/opt/uvm/1800.2-2017/src/uvm_pkg.sv",
+        "/work/scratchpad/eda-final/uvm_positive.sv"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "uvm-positive.log"
+    },
+    {
+      "tool": "uvm",
+      "check": "negative",
+      "command": [
+        "xezim",
+        "--simulate",
+        "--sv2017",
+        "--error-exit",
+        "-I",
+        "/opt/uvm/1800.2-2017/src",
+        "-D",
+        "UVM_NO_DPI",
+        "-D",
+        "UVM_REPORT_DISABLE_FILE_LINE",
+        "-s",
+        "uvm_top",
+        "/opt/uvm/1800.2-2017/src/uvm_pkg.sv",
+        "/work/scratchpad/eda-final/uvm_negative.sv"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "uvm-negative.log"
+    },
+    {
+      "tool": "verilator",
+      "check": "version",
+      "command": [
+        "verilator",
+        "--version"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "verilator-version.log"
+    },
+    {
+      "tool": "verilator",
+      "check": "compile",
+      "command": [
+        "verilator",
+        "--binary",
+        "--timing",
+        "--assert",
+        "-Wall",
+        "--top-module",
+        "tb",
+        "--Mdir",
+        "/work/scratchpad/eda-final/obj",
+        "/work/scratchpad/eda-final/good/audit_and.sv",
+        "/work/scratchpad/eda-final/tb.sv"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "verilator-compile.log"
+    },
+    {
+      "tool": "verilator",
+      "check": "simulate",
+      "command": [
+        "/work/scratchpad/eda-final/obj/Vtb"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "verilator-simulate.log"
+    },
+    {
+      "tool": "verilator",
+      "check": "bad-syntax",
+      "command": [
+        "verilator",
+        "--lint-only",
+        "/work/scratchpad/eda-final/broken.sv"
+      ],
+      "returncode": 1,
+      "expectedFailure": true,
+      "passed": true,
+      "log": "verilator-bad-syntax.log"
+    },
+    {
+      "tool": "yosys",
+      "check": "version",
+      "command": [
+        "yosys",
+        "--version"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "yosys-version.log"
+    },
+    {
+      "tool": "yosys",
+      "check": "synthesis",
+      "command": [
+        "yosys",
+        "-Q",
+        "-p",
+        "read_verilog -sv /work/scratchpad/eda-final/good/audit_and.sv; hierarchy -check -top audit_and; synth -top audit_and; check -assert; write_json /work/scratchpad/eda-final/synth.json"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "yosys-synthesis.log"
+    },
+    {
+      "tool": "yosys",
+      "check": "missing-cell",
+      "command": [
+        "yosys",
+        "-Q",
+        "-p",
+        "read_verilog /work/scratchpad/eda-final/missing.v; hierarchy -check -top missing"
+      ],
+      "returncode": 1,
+      "expectedFailure": true,
+      "passed": true,
+      "log": "yosys-missing-cell.log"
+    },
+    {
+      "tool": "eqy",
+      "check": "equivalent",
+      "command": [
+        "eqy",
+        "-f",
+        "-d",
+        "/work/scratchpad/eda-final/eqy-equivalent",
+        "/work/scratchpad/eda-final/equivalent.eqy"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "eqy-equivalent.log"
+    },
+    {
+      "tool": "eqy",
+      "check": "inequivalent",
+      "command": [
+        "eqy",
+        "-f",
+        "-d",
+        "/work/scratchpad/eda-final/eqy-inequivalent",
+        "/work/scratchpad/eda-final/inequivalent.eqy"
+      ],
+      "returncode": 2,
+      "expectedFailure": true,
+      "passed": true,
+      "log": "eqy-inequivalent.log"
+    },
+    {
+      "tool": "sby",
+      "check": "bmc-prove-cover",
+      "command": [
+        "sby",
+        "-f",
+        "/work/scratchpad/eda-final/counter.sby"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "sby-bmc-prove-cover.log"
+    },
+    {
+      "tool": "sby",
+      "check": "counterexample",
+      "command": [
+        "sby",
+        "-f",
+        "/work/scratchpad/eda-final/counter_bad.sby"
+      ],
+      "returncode": 2,
+      "expectedFailure": true,
+      "passed": true,
+      "log": "sby-counterexample.log"
+    },
+    {
+      "tool": "verible",
+      "check": "version",
+      "command": [
+        "verible-verilog-lint",
+        "--version"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "verible-version.log"
+    },
+    {
+      "tool": "verible",
+      "check": "format",
+      "command": [
+        "verible-verilog-format",
+        "--inplace",
+        "/work/scratchpad/eda-final/good/audit_and.sv"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "verible-format.log"
+    },
+    {
+      "tool": "verible",
+      "check": "lint",
+      "command": [
+        "verible-verilog-lint",
+        "/work/scratchpad/eda-final/good/audit_and.sv"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "verible-lint.log"
+    },
+    {
+      "tool": "verible",
+      "check": "bad-syntax",
+      "command": [
+        "verible-verilog-syntax",
+        "/work/scratchpad/eda-final/parse_error.sv"
+      ],
+      "returncode": 1,
+      "expectedFailure": true,
+      "passed": true,
+      "log": "verible-bad-syntax.log"
+    },
+    {
+      "tool": "compat",
+      "check": "yosys-version-and-eqy-plugin-abi",
+      "command": [
+        "yosys",
+        "-m",
+        "/opt/eqy/share/yosys/plugins/eqy_combine.so",
+        "-p",
+        "help eqy_combine"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "compat-yosys-version-and-eqy-plugin-abi.log"
+    },
+    {
+      "tool": "compat",
+      "check": "sby-smtbmc-z3",
+      "command": [
+        "sby",
+        "-f",
+        "/work/scratchpad/eda-final/compat/z3.sby"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "compat-sby-smtbmc-z3.log"
+    },
+    {
+      "tool": "compat",
+      "check": "sby-smtbmc-yices",
+      "command": [
+        "sby",
+        "-f",
+        "/work/scratchpad/eda-final/compat/yices.sby"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "compat-sby-smtbmc-yices.log"
+    },
+    {
+      "tool": "compat",
+      "check": "sby-abc-pdr",
+      "command": [
+        "sby",
+        "-f",
+        "/work/scratchpad/eda-final/compat/pdr.sby"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "compat-sby-abc-pdr.log"
+    },
+    {
+      "tool": "compat",
+      "check": "solver-versions",
+      "command": [
+        "bash",
+        "-c",
+        "z3 --version && yices-smt2 --version"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "compat-solver-versions.log"
+    },
+    {
+      "tool": "compat",
+      "check": "sby-boolector-unsupported",
+      "command": [
+        "sby",
+        "-f",
+        "/work/scratchpad/eda-final/compat/boolector.sby"
+      ],
+      "returncode": 16,
+      "expectedFailure": true,
+      "passed": true,
+      "log": "compat-sby-boolector-unsupported.log"
+    },
+    {
+      "tool": "compat",
+      "check": "yosys-slang-plugin-unsupported",
+      "command": [
+        "yosys",
+        "-m",
+        "slang",
+        "-p",
+        "help"
+      ],
+      "returncode": 1,
+      "expectedFailure": true,
+      "passed": true,
+      "log": "compat-yosys-slang-plugin-unsupported.log"
+    },
+    {
+      "tool": "verilator-trace",
+      "check": "fst-and-coverage",
+      "command": [
+        "bash",
+        "-c",
+        "verilator --binary --timing --trace-fst --coverage -Wall --top-module tb --Mdir /work/scratchpad/eda-final/obj-trace /work/scratchpad/eda-final/good/audit_and.sv /work/scratchpad/eda-final/tb.sv && cd /work/scratchpad/eda-final && ./obj-trace/Vtb && test -s audit.vcd && test -s coverage.dat"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "verilator-trace-fst-and-coverage.log"
+    },
+    {
+      "tool": "surfer",
+      "check": "version",
+      "command": [
+        "surfer",
+        "--version"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "surfer-version.log"
+    },
+    {
+      "tool": "surfer",
+      "check": "webapp-and-server-files",
+      "command": [
+        "bash",
+        "-c",
+        "test -s /opt/surfer/webapp/index.html && test -x /opt/surfer/serve_web.sh && surver --version"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "surfer-webapp-and-server-files.log"
+    },
+    {
+      "tool": "surfer",
+      "check": "surver-serves-vcd",
+      "command": [
+        "bash",
+        "-c",
+        "cd /work/scratchpad/eda-final/surfer && (surver --port 18089 --token audit-token-1 audit.vcd > surver.log 2>&1 & echo $! > surver.pid) && sleep 3 && ok=$(curl -s -m 5 -w \"|%{http_code}\" http://127.0.0.1:18089/audit-token-1/get_status) && bad=$(curl -s -m 5 -o /dev/null -w \"%{http_code}\" http://127.0.0.1:18089/wrong-token-12/get_status); kill $(cat surver.pid) 2>/dev/null; echo \"authorized=$ok rejected=$bad\"; case \"$ok\" in *audit.vcd*\"|200\") test \"$bad\" = 404;; *) false;; esac"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "surfer-surver-serves-vcd.log"
+    },
+    {
+      "tool": "surfer",
+      "check": "surver-short-token-rejected",
+      "command": [
+        "surver",
+        "--port",
+        "18090",
+        "--token",
+        "short",
+        "/work/scratchpad/eda-final/surfer/audit.vcd"
+      ],
+      "returncode": 1,
+      "expectedFailure": true,
+      "passed": true,
+      "log": "surfer-surver-short-token-rejected.log"
+    },
+    {
+      "tool": "uvm-versions",
+      "check": "1.2",
+      "command": [
+        "xezim",
+        "--simulate",
+        "--sv2017",
+        "--error-exit",
+        "-I",
+        "/opt/uvm/1.2/src",
+        "-D",
+        "UVM_NO_DPI",
+        "-s",
+        "version_top",
+        "/opt/uvm/1.2/src/uvm_pkg.sv",
+        "/work/scratchpad/eda-final/uvm_1.2.sv"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "uvm-versions-1.2.log"
+    },
+    {
+      "tool": "uvm-versions",
+      "check": "1800.2-2017",
+      "command": [
+        "xezim",
+        "--simulate",
+        "--sv2017",
+        "--error-exit",
+        "-I",
+        "/opt/uvm/1800.2-2017/src",
+        "-D",
+        "UVM_NO_DPI",
+        "-s",
+        "version_top",
+        "/opt/uvm/1800.2-2017/src/uvm_pkg.sv",
+        "/work/scratchpad/eda-final/uvm_1800.2-2017.sv"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "uvm-versions-1800.2-2017.log"
+    },
+    {
+      "tool": "uvm-versions",
+      "check": "1800.2-2020",
+      "command": [
+        "xezim",
+        "--simulate",
+        "--sv2017",
+        "--error-exit",
+        "-I",
+        "/opt/uvm/1800.2-2020/src",
+        "-D",
+        "UVM_NO_DPI",
+        "-s",
+        "version_top",
+        "/opt/uvm/1800.2-2020/src/uvm_pkg.sv",
+        "/work/scratchpad/eda-final/uvm_1800.2-2020.sv"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "uvm-versions-1800.2-2020.log"
+    },
+    {
+      "tool": "java",
+      "check": "javac-and-java",
+      "command": [
+        "bash",
+        "-c",
+        "cd /work/scratchpad/eda-final/java && javac Audit.java && java -cp . Audit"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "java-javac-and-java.log"
+    }
+  ],
+  "passed": true
+}

@@ -1,0 +1,113 @@
+{
+  "recordedAt": "2026-11-06T15:53:49.384006+00:00",
+  "oracle": "Verilator",
+  "cases": [
+    {
+      "case": "signed_arithmetic",
+      "passed": true,
+      "xezimExit": 0,
+      "verilatorBuilt": true,
+      "verilatorExit": 0,
+      "lines": 9
+    },
+    {
+      "case": "bit_operations",
+      "passed": true,
+      "xezimExit": 0,
+      "verilatorBuilt": true,
+      "verilatorExit": 0,
+      "lines": 7
+    },
+    {
+      "case": "struct_enum_typedef",
+      "passed": true,
+      "xezimExit": 0,
+      "verilatorBuilt": true,
+      "verilatorExit": 0,
+      "lines": 4
+    },
+    {
+      "case": "functions_tasks",
+      "passed": true,
+      "xezimExit": 0,
+      "verilatorBuilt": true,
+      "verilatorExit": 0,
+      "lines": 3
+    },
+    {
+      "case": "sequential_logic",
+      "passed": true,
+      "xezimExit": 0,
+      "verilatorBuilt": true,
+      "verilatorExit": 0,
+      "lines": 1
+    },
+    {
+      "case": "nba_ordering",
+      "passed": true,
+      "xezimExit": 0,
+      "verilatorBuilt": true,
+      "verilatorExit": 0,
+      "lines": 2
+    },
+    {
+      "case": "generate_parameters",
+      "passed": true,
+      "xezimExit": 0,
+      "verilatorBuilt": true,
+      "verilatorExit": 0,
+      "lines": 2
+    },
+    {
+      "case": "arrays_queues",
+      "passed": true,
+      "xezimExit": 0,
+      "verilatorBuilt": true,
+      "verilatorExit": 0,
+      "lines": 4
+    },
+    {
+      "case": "strings_formatting",
+      "passed": true,
+      "xezimExit": 0,
+      "verilatorBuilt": true,
+      "verilatorExit": 0,
+      "lines": 5
+    },
+    {
+      "case": "classes_polymorphism",
+      "passed": true,
+      "xezimExit": 0,
+      "verilatorBuilt": true,
+      "verilatorExit": 0,
+      "lines": 2
+    },
+    {
+      "case": "case_inside_loops",
+      "passed": true,
+      "xezimExit": 0,
+      "verilatorBuilt": true,
+      "verilatorExit": 0,
+      "lines": 4
+    },
+    {
+      "case": "real_math",
+      "passed": true,
+      "xezimExit": 0,
+      "verilatorBuilt": true,
+      "verilatorExit": 0,
+      "lines": 5
+    },
+    {
+      "case": "assertion_fatal_exit",
+      "passed": true,
+      "xezimExit": 1,
+      "verilatorBuilt": true,
+      "verilatorExit": 1,
+      "lines": 1
+    }
+  ],
+  "passed": true,
+  "matched": 13,
+  "total": 13
+}
