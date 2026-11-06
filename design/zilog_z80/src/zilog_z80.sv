@@ -1,3 +1,5 @@
+`include "zilog_z80_defs.svh"
+
 // Zilog Z80 functional core.
 //
 // Transaction-bus engine: one implementation step per rising edge, one bus
@@ -23,7 +25,6 @@
 // ASSUMPTION: interrupt entry, the EI one-instruction delay and the Q-latch
 // effect on SCF/CCF are not implemented in this milestone.
 module zilog_z80
-  import zilog_z80_pkg::*;
 (
     input  logic        clk,
     input  logic        rst_n,
@@ -117,120 +118,101 @@ module zilog_z80
   // ------------------------------------------------------------- register IO
   function automatic logic [7:0] get_r(input logic [2:0] idx);
     case (idx)
-      3'd0: return b;
-      3'd1: return c;
-      3'd2: return d;
-      3'd3: return e;
-      3'd4: return h;
-      3'd5: return l;
-      3'd7: return a;
-      default: return 8'h00;
+      3'd0: get_r = b;
+      3'd1: get_r = c;
+      3'd2: get_r = d;
+      3'd3: get_r = e;
+      3'd4: get_r = h;
+      3'd5: get_r = l;
+      3'd7: get_r = a;
+      default: get_r = 8'h00;
     endcase
   endfunction
 
   function automatic logic [15:0] get_rp(input logic [1:0] idx);
     case (idx)
-      2'd0: return {b, c};
-      2'd1: return {d, e};
-      2'd2: return {h, l};
-      default: return sp;
+      2'd0: get_rp = {b, c};
+      2'd1: get_rp = {d, e};
+      2'd2: get_rp = {h, l};
+      default: get_rp = sp;
     endcase
   endfunction
 
   function automatic logic [7:0] get_rp_hi(input logic [1:0] idx);
     case (idx)
-      2'd0: return b;
-      2'd1: return d;
-      2'd2: return h;
-      default: return 8'h00;  // AF is handled separately
+      2'd0: get_rp_hi = b;
+      2'd1: get_rp_hi = d;
+      2'd2: get_rp_hi = h;
+      default: get_rp_hi = 8'h00;  // AF is handled separately
     endcase
   endfunction
 
   function automatic logic [7:0] get_rp_lo(input logic [1:0] idx);
     case (idx)
-      2'd0: return c;
-      2'd1: return e;
-      2'd2: return l;
-      default: return 8'h00;
+      2'd0: get_rp_lo = c;
+      2'd1: get_rp_lo = e;
+      2'd2: get_rp_lo = l;
+      default: get_rp_lo = 8'h00;
     endcase
   endfunction
 
   function automatic logic cond_true(input logic [2:0] cc, input logic [7:0] ff);
     case (cc)
-      CC_NZ:   return ~ff[FLAG_Z];
-      CC_Z:    return ff[FLAG_Z];
-      CC_NC:   return ~ff[FLAG_C];
-      CC_C:    return ff[FLAG_C];
-      CC_PO:   return ~ff[FLAG_PV];
-      CC_PE:   return ff[FLAG_PV];
-      CC_P:    return ~ff[FLAG_S];
-      default: return ff[FLAG_S];
+      CC_NZ:   cond_true = ~ff[FLAG_Z];
+      CC_Z:    cond_true = ff[FLAG_Z];
+      CC_NC:   cond_true = ~ff[FLAG_C];
+      CC_C:    cond_true = ff[FLAG_C];
+      CC_PO:   cond_true = ~ff[FLAG_PV];
+      CC_PE:   cond_true = ff[FLAG_PV];
+      CC_P:    cond_true = ~ff[FLAG_S];
+      default: cond_true = ff[FLAG_S];
     endcase
   endfunction
 
   // --------------------------------------------------------------- support set
+  // DD/ED/FD are prefix bytes; their pages are not implemented yet, so they
+  // must fault rather than be mistaken for a like-numbered instruction.
   function automatic logic supported(input logic [7:0] op);
-    // DD/ED/FD are prefix bytes; their pages are not implemented yet, so they
-    // must fault rather than be mistaken for a like-numbered instruction.
-    if (op == 8'hDD || op == 8'hED || op == 8'hFD) return 1'b0;
-    if (op == 8'h00 || op == 8'h76) return 1'b1;                     // NOP / HALT
-    if (op == 8'h08 || op == 8'hEB || op == 8'hD9) return 1'b1;      // EX/EXX
-    if (op == 8'h07 || op == 8'h0F || op == 8'h17 || op == 8'h1F) return 1'b1;
-    if (op == 8'h27 || op == 8'h2F || op == 8'h37 || op == 8'h3F) return 1'b1;
-    if (op == 8'hF3 || op == 8'hFB || op == 8'hE9 || op == 8'hF9) return 1'b1;
-    if (op == 8'h10 || op == 8'h18) return 1'b1;                     // DJNZ / JR
-    if (op[7:5] == 3'b001 && op[2:0] == 3'd0) return 1'b1;         // JR cc
-    if (op == 8'h0A || op == 8'h1A || op == 8'h02 || op == 8'h12) return 1'b1;
-    if (op == 8'h22 || op == 8'h2A || op == 8'h32 || op == 8'h3A) return 1'b1;
-    if (op == 8'h36) return 1'b1;                                    // LD (HL),n
-    if (op == 8'h34 || op == 8'h35) return 1'b1;                     // INC/DEC (HL)
-    if (op == 8'hC9 || op == 8'hCD || op == 8'hE3) return 1'b1;      // RET/CALL/EX (SP),HL
-    if (op == 8'hC3) return 1'b1;
-    // LD rr,nn (low page only)
-    if (op[7:6] == 2'b00 && op[2:0] == 3'd1 && op[3] == 1'b0) return 1'b1;
-    // INC/DEC rr
-    if (op[2:0] == 3'd3 && op[7:6] == 2'b00) return 1'b1;
-    // ADD HL,rr
-    if (op[7:6] == 2'b00 && op[2:0] == 3'd1 && op[3] == 1'b1) return 1'b1;
-    // LD r,r' / LD r,(HL) / LD (HL),r
-    if (op >= 8'h40 && op <= 8'h7F) return 1'b1;
-    // ALU A,r and ALU A,(HL)
-    if (op >= 8'h80 && op <= 8'hBF) return 1'b1;
-    // LD r,n / INC r / DEC r on the low page
-    if (op[7:6] == 2'b00 && op[2:0] == 3'd6 && op[5:3] != 3'd6) return 1'b1;
-    if (op[7:6] == 2'b00 && (op[2:0] == 3'd4 || op[2:0] == 3'd5) &&
-        op[5:3] != 3'd6) return 1'b1;
-    // High page: ALU n, JP cc, RET cc, PUSH/POP, CALL cc, RST
-    if (op[7:6] == 2'b11) begin
-      if (op[2:0] == 3'd6) return 1'b1;                    // ALU A,n
-      if (op[2:0] == 3'd2) return 1'b1;                    // JP cc,nn
-      if (op[2:0] == 3'd0) return 1'b1;                    // RET cc
-      if (op[2:0] == 3'd1) return 1'b1;                    // POP rr
-      if (op[2:0] == 3'd5) return 1'b1;                    // PUSH rr
-      if (op[2:0] == 3'd4) return 1'b1;                    // CALL cc,nn
-      if (op[2:0] == 3'd7) return 1'b1;                    // RST
-    end
-    return 1'b0;
+    supported = 1'b0;
+    if (op == 8'hDD || op == 8'hED || op == 8'hFD) supported = 1'b0;
+    else if (op == 8'h00 || op == 8'h76) supported = 1'b1;                // NOP / HALT
+    else if (op == 8'h08 || op == 8'hEB || op == 8'hD9) supported = 1'b1; // EX/EXX
+    else if (op == 8'h07 || op == 8'h0F || op == 8'h17 || op == 8'h1F) supported = 1'b1;
+    else if (op == 8'h27 || op == 8'h2F || op == 8'h37 || op == 8'h3F) supported = 1'b1;
+    else if (op == 8'hF3 || op == 8'hFB || op == 8'hE9 || op == 8'hF9) supported = 1'b1;
+    else if (op == 8'h10 || op == 8'h18) supported = 1'b1;                // DJNZ / JR
+    else if (op[7:5] == 3'b001 && op[2:0] == 3'd0) supported = 1'b1;      // JR cc
+    else if (op == 8'h0A || op == 8'h1A || op == 8'h02 || op == 8'h12) supported = 1'b1;
+    else if (op == 8'h22 || op == 8'h2A || op == 8'h32 || op == 8'h3A) supported = 1'b1;
+    else if (op == 8'h36) supported = 1'b1;                               // LD (HL),n
+    else if (op == 8'h34 || op == 8'h35) supported = 1'b1;                // INC/DEC (HL)
+    else if (op == 8'hC9 || op == 8'hCD || op == 8'hE3) supported = 1'b1;
+    else if (op == 8'hC3) supported = 1'b1;
+    else if (op[7:6] == 2'b00 && op[2:0] == 3'd1 && op[3] == 1'b0) supported = 1'b1;  // LD rr,nn
+    else if (op[2:0] == 3'd3 && op[7:6] == 2'b00) supported = 1'b1;       // INC/DEC rr
+    else if (op[7:6] == 2'b00 && op[2:0] == 3'd1 && op[3] == 1'b1) supported = 1'b1;  // ADD HL,rr
+    else if (op >= 8'h40 && op <= 8'h7F) supported = 1'b1;                // LD r,r' / (HL)
+    else if (op >= 8'h80 && op <= 8'hBF) supported = 1'b1;                // ALU A,r / (HL)
+    else if (op[7:6] == 2'b00 && op[2:0] == 3'd6 && op[5:3] != 3'd6) supported = 1'b1;
+    else if (op[7:6] == 2'b00 && (op[2:0] == 3'd4 || op[2:0] == 3'd5) &&
+             op[5:3] != 3'd6) supported = 1'b1;
+    else if (op[7:6] == 2'b11 && (op[2:0] == 3'd6 || op[2:0] == 3'd2 ||
+             op[2:0] == 3'd0 || op[2:0] == 3'd1 || op[2:0] == 3'd5 ||
+             op[2:0] == 3'd4 || op[2:0] == 3'd7)) supported = 1'b1;
   endfunction
 
   function automatic logic [1:0] imm_count(input logic [7:0] op);
-    if (op == 8'h22 || op == 8'h2A || op == 8'h32 || op == 8'h3A) return 2'd2;
-    if (op == 8'hCD) return 2'd2;
-    if (op[7:6] == 2'b11 && op[2:0] == 3'd4) return 2'd2;   // CALL cc,nn
-    if (op[7:6] == 2'b00) begin
-      if (op[2:0] == 3'd1 && op[3] == 1'b0) return 2'd2;    // LD rr,nn
-      if (op[2:0] == 3'd6) return 2'd1;                     // LD r,n / LD (HL),n
-      if (op == 8'h10 || op == 8'h18) return 2'd1;
-      if (op[7:5] == 3'b001 && op[2:0] == 3'd0) return 2'd1;
-      return 2'd0;
-    end
-    if (op[7:6] == 2'b11) begin
-      if (op[2:0] == 3'd6) return 2'd1;                     // ALU A,n
-      if (op[2:0] == 3'd2) return 2'd2;                     // JP cc,nn
-      if (op == 8'hC3) return 2'd2;
-      return 2'd0;
-    end
-    return 2'd0;
+    imm_count = 2'd0;
+    if (op == 8'h22 || op == 8'h2A || op == 8'h32 || op == 8'h3A) imm_count = 2'd2;
+    else if (op == 8'hCD) imm_count = 2'd2;
+    else if (op[7:6] == 2'b11 && op[2:0] == 3'd4) imm_count = 2'd2;       // CALL cc,nn
+    else if (op[7:6] == 2'b00 && op[2:0] == 3'd1 && op[3] == 1'b0) imm_count = 2'd2;
+    else if (op[7:6] == 2'b00 && op[2:0] == 3'd6) imm_count = 2'd1;
+    else if (op == 8'h10 || op == 8'h18) imm_count = 2'd1;
+    else if (op[7:5] == 3'b001 && op[2:0] == 3'd0) imm_count = 2'd1;
+    else if (op[7:6] == 2'b11 && op[2:0] == 3'd6) imm_count = 2'd1;       // ALU A,n
+    else if (op[7:6] == 2'b11 && op[2:0] == 3'd2) imm_count = 2'd2;       // JP cc,nn
+    else if (op == 8'hC3) imm_count = 2'd2;
   endfunction
 
   // ----------------------------------------------------------------- ALU wiring
@@ -1020,5 +1002,54 @@ module zilog_z80
   assign im_o   = im;
   assign regs_o = {a, f, b, c, d, e, h, l};
   assign alt_o  = {a_alt, f_alt, b_alt, c_alt, d_alt, e_alt, h_alt, l_alt};
+
+`ifdef FORMAL
+  // ------------------------------------------------------------- formal checks
+  // Proven with `sby -f formal/zilog_z80.sby <task>`; see plans/formal_plan.md.
+  logic       f_past_valid = 1'b0;
+  logic [3:0] f_reset_cnt  = 4'd0;
+
+  always_ff @(posedge clk) begin
+    f_past_valid <= 1'b1;
+    if (!rst_n && f_reset_cnt != 4'hF) f_reset_cnt <= f_reset_cnt + 4'd1;
+    // The environment must present a real reset: without it, registers such as
+    // `halted` are unconstrained at time zero and no property is meaningful.
+    if (f_reset_cnt != 4'hF) assume (!rst_n);
+  end
+
+  always_ff @(posedge clk) begin
+    if (rst_n && f_past_valid) begin
+      // Structural invariants that make the history-dependent properties
+      // inductive: HALT and fault are only entered through their own state.
+      if (halted) assert (state == S_HALTED);
+      if (fault_o) assert (state == S_FAULT);
+
+      // A retiring instruction is never a faulted one.
+      if (retire_o) assert (!fault_o);
+
+      // The fault flag is sticky until reset (so ignore a reset edge).
+      if ($past(fault_o) && $past(rst_n)) assert (fault_o);
+
+      // HALT freezes the program counter (ignoring a fresh reset edge).
+      if ($past(halted) && $past(rst_n)) assert (pc == $past(pc));
+
+      // A stalled transfer keeps address, direction, data and space stable.
+      if ($past(bus_req_o) && !$past(bus_ready_i) && $past(rst_n))
+        assert (bus_addr_o == $past(bus_addr_o) &&
+                bus_write_o == $past(bus_write_o) &&
+                bus_wdata_o == $past(bus_wdata_o) &&
+                bus_io_o == $past(bus_io_o));
+    end
+
+    if (rst_n) begin
+      cover (retire_o);                        // instructions complete
+      cover (bus_req_o && bus_write_o);        // a store happens
+      cover (bus_req_o && !bus_write_o);       // a fetch or read happens
+      cover (halted);                          // HALT is reached
+      cover (fault_o);                         // the fault path is reachable
+      cover (sp != 16'h0000);                  // stack traffic changes SP
+    end
+  end
+`endif
 
 endmodule

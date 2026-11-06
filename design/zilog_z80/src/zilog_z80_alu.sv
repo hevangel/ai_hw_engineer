@@ -1,3 +1,5 @@
+`include "zilog_z80_defs.svh"
+
 // Zilog Z80 byte ALU.
 //
 // Combinational; computes the result and the full flag byte including the two
@@ -12,7 +14,6 @@
 // CPL preserves C and P/V, DAA consumes H/N/C) read them from f_in; the caller
 // merges the returned byte with the preserved bits it needs.
 module zilog_z80_alu
-  import zilog_z80_pkg::*;
 (
     input  alu_op_t    op,
     input  logic [7:0] a,
@@ -32,7 +33,7 @@ module zilog_z80_alu
 
   // Even-parity of the byte: P/V is set when the number of one bits is even.
   function automatic logic parity8(input logic [7:0] v);
-    return ~^v;
+    parity8 = ~(^v);
   endfunction
 
   always_comb begin

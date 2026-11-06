@@ -15,7 +15,8 @@ mkdir -p $WORK_DIR
 
 echo "=== Running synthesis: $CHIP_NAME (target: $TARGET) ==="
 
-# Collect source files
+# Collect source files; the shared types live in src/zilog_z80_defs.svh and are
+# pulled in with -I so each read sees them.
 SRC_FILES=$(find $DESIGN_DIR/src -name "*.sv" -o -name "*.v" | sort)
 
 # Generate Yosys script
@@ -29,7 +30,7 @@ cat > $SYNTH_SCRIPT << EOF
 EOF
 
 for f in $SRC_FILES; do
-    echo "read_verilog -sv $f" >> $SYNTH_SCRIPT
+    echo "read_verilog -sv -I$DESIGN_DIR/src $f" >> $SYNTH_SCRIPT
 done
 
 cat >> $SYNTH_SCRIPT << EOF

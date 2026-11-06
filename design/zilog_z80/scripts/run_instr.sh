@@ -27,8 +27,8 @@ VERILATOR=${VERILATOR:-verilator}
     --cc --exe --build -j 0 -O2 \
     --top-module zilog_z80 \
     --Mdir "$OBJ_DIR" \
+    -I"$DESIGN_DIR/src" \
     -CFLAGS "-O2 -I$REF_DIR" \
-    "$DESIGN_DIR/src/zilog_z80_pkg.sv" \
     "$DESIGN_DIR/src/zilog_z80_alu.sv" \
     "$DESIGN_DIR/src/zilog_z80.sv" \
     "$DESIGN_DIR/tb/instr_harness.cpp" \

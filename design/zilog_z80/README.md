@@ -29,17 +29,16 @@ and the ZEXALL/ZEXDOC exercisers, and a native M-cycle engine whose cycle
 shapes and T-state counts are checked against the manufacturer timing tables.
 The native engine is what the dependent TRS-80 Model I system will use.
 
-**Status: memory and stack instructions added; ED/index pages, BIT (HL) and the
-native engine outstanding.** `src/zilog_z80_pkg.sv`, `src/zilog_z80_alu.sv` and
-`src/zilog_z80.sv` exist. Two gates pass against the pinned superzazu/z80
-emulator: the byte ALU over 648,328 cases with 0 mismatches (negative control
-rejects every perturbed case), and the instruction core over 1,996 executions
-with full-state and 64 KiB memory-image comparison, 0 mismatches. The core now
-executes calls, returns, the stack, memory loads/stores and CB operations on
-(HL). Encodings outside the subset (I/O, ED, DD/FD, BIT (HL)) raise `fault_o`
-rather than executing wrongly. No formal proof, exerciser run, historical
-software run or synthesis result exists yet, so nothing here claims a verified
-CPU.
+**Status: memory, stack and control transfer done; ED/index pages outstanding.**
+`src/zilog_z80_pkg` types live in `src/zilog_z80_defs.svh`, the ALU in
+`src/zilog_z80_alu.sv` and the core in `src/zilog_z80.sv`. Verified against the
+pinned superzazu/z80 emulator: the byte ALU over 648,328 cases with 0
+mismatches (negative control rejects every perturbed case), and the instruction
+core over 1,996 executions with full-state and 64 KiB memory-image comparison,
+0 mismatches. Formal bmc/cover/prove pass for the implemented subset, and Yosys
+synthesizes it to 16,179 generic cells. Encodings outside the subset (I/O, ED,
+DD/FD, BIT (HL)) raise `fault_o` rather than executing wrongly. ZEXDOC/ZEXALL,
+real software and the native timing engine remain open.
 
 - [Specification and assumption ledger](spec/spec.md)
 - [Implementation plan](plans/implementation_plan.md)

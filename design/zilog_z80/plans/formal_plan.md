@@ -109,6 +109,28 @@ all properties sit inside `` `ifdef FORMAL ``.
 - ALU equations trace to the external oracle and the pinned flag table, never to
   a reading of our own RTL.
 
+## Results so far
+
+Run with `sby -f formal/zilog_z80.sby <task>` in the project tool image
+(Yosys 0.69, SBY 15, smtbmc/z3):
+
+| Task | Result | Notes |
+|---|---|---|
+| `bmc` (depth 40) | PASS | contract properties, 62 s |
+| `cover` (depth 60) | PASS | all six cover points reached at steps 16-18 |
+| `prove` | PASS | k-induction, with the HALT/fault state invariants |
+
+Properties currently proven: no retire while faulted; fault is sticky across
+non-reset edges; HALT freezes PC; a stalled transfer keeps address, direction,
+data and space stable; reset clears PC, IFF1, fault and halt; plus the
+structural invariants `halted -> state == S_HALTED` and
+`fault -> state == S_FAULT` that make the history properties inductive.
+
+Not yet formal: ALU equivalence against oracle-derived equations
+(property set A1-A3 in this plan) and decoder totality over every opcode byte.
+Those are the next formal milestones, once the ED and index pages exist so the
+statement is not "every unimplemented byte faults".
+
 ## Review checklist
 
 - [ ] Properties state contract behavior, not implementation detail

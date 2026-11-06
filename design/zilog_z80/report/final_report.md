@@ -27,9 +27,13 @@ and on (HL) for rotate/shift/RES/SET.
 
 **Not implemented:** BIT n,(HL) (its undocumented F3/F5 source is the WZ
 register), the ED page, the DD/FD index pages, block instructions, I/O, and
-interrupt entry. Those raise `fault_o` instead of executing wrongly. Formal
-properties, ZEXDOC/ZEXALL, historical software, native timing and synthesis are
-also outstanding and are reported as such.
+interrupt entry. Those raise `fault_o` instead of executing wrongly.
+
+**Formal and synthesis gates now pass for the implemented subset:** SBY bmc
+(depth 40) PASS, cover (depth 60) PASS with all six cover points reached, and
+prove PASS by k-induction; Yosys 0.69 synthesizes the core to 16,179 generic
+cells. ZEXDOC/ZEXALL and real historical software remain open because they need
+the ED and index pages.
 
 ## 2. Design overview
 
@@ -49,12 +53,16 @@ also outstanding and are reported as such.
 | ALU differential vs pinned oracle | **PASS**, 648,328 cases, 0 mismatches | `scripts/run_alu.sh`, Verilator 5.052 in the project tool image |
 | ALU negative control | **PASS**, 648,328/648,328 rejected | `run_alu.sh --negative-control` |
 | Instruction differential | **PASS**, 1,996 compared, 0 mismatches, 5 unimplemented | `scripts/run_instr.sh` (state + full memory image) |
-| Verilator lint (core) | No errors; 19 `-Wall` warnings (unused interrupt inputs, reserved parameters) | `verilator --lint-only -Wall` |
+| Verilator lint (core) | No errors; 18 `-Wall` warnings (unused interrupt inputs, reserved parameters) | `verilator --lint-only -Wall` |
+| Formal bmc | **PASS**, depth 40 | `sby -f formal/zilog_z80.sby bmc` |
+| Formal cover | **PASS**, all 6 cover points reached | `sby -f formal/zilog_z80.sby cover` |
+| Formal prove | **PASS** by k-induction | `sby -f formal/zilog_z80.sby prove` |
+| Synthesis (generic) | **PASS**, 16,179 cells, 264 flops | `scripts/run_synth.sh generic`, Yosys 0.69 |
 | Formal (bmc/prove/cover) | Not run | no properties or `.sby` exist |
 | UVM environment | Not run | not written |
 | ZEXDOC / ZEXALL / z80test | Not run | needs memory/stack instructions first |
 | Historical software | Not run | needs CALL/RET/stack and CP/M harness |
-| Synthesis | Not run | top is not yet synthesizable-complete (fault path is fine, subset is not) |
+| Synthesis | **PASS** (generic cells; no timing or area target set) | `scripts/run_synth.sh generic` |
 | Native timing comparison | Not run | native engine not started |
 
 The `scripts/` directory holds the repository's scaffolded entry points
@@ -84,8 +92,9 @@ simulation when no sources exist and have not been exercised by this design.
       BIT (HL) absent
 - [ ] Independent oracle and real historical software — oracle driving both
       differential gates; exercisers and software not yet run
-- [ ] Lint, simulation, formal with reachable covers, synthesis — lint clean;
-      formal and synthesis not run
+- [ ] Lint, simulation, formal with reachable covers, synthesis — lint clean,
+      differential simulation passing, formal bmc/cover/prove passing for the
+      implemented subset, generic synthesis clean; full-ISA gates pending
 - [ ] Native timing, analog approximations and physical validation qualified —
       boundaries stated, nothing measured
 
@@ -93,11 +102,11 @@ simulation when no sources exist and have not been exercised by this design.
 
 | Criterion | Status |
 |---|---|
-| RTL frozen | no; register-execution subset |
-| Formal clean | not run |
+| RTL frozen | no; primary page except I/O plus CB memory forms |
+| Formal clean | yes for the implemented subset (bmc/cover/prove PASS) |
 | Simulation coverage met | differential gates pass; coverage not measured |
-| Lint clean | clean with warnings |
-| Synthesis clean | not run |
+| Lint clean | no errors; 18 warnings |
+| Synthesis clean | yes, generic; no timing/area target |
 
 This report is replaced as milestones land; each entry will cite the exact
 command, input hashes and observed output.
