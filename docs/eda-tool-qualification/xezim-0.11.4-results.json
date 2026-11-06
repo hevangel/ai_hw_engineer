@@ -1,0 +1,167 @@
+{
+  "recordedAt": "2026-11-06T15:53:06.391995+00:00",
+  "checks": [
+    {
+      "tool": "xezim",
+      "check": "version",
+      "command": [
+        "xezim",
+        "-V"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "xezim-version.log"
+    },
+    {
+      "tool": "xezim",
+      "check": "simulate",
+      "command": [
+        "xezim",
+        "--simulate",
+        "--sv2017",
+        "--error-exit",
+        "--wave",
+        "-s",
+        "tb",
+        "/work/scratchpad/eda-x114/good/audit_and.sv",
+        "/work/scratchpad/eda-x114/tb.sv"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "xezim-simulate.log"
+    },
+    {
+      "tool": "xezim",
+      "check": "fatal-exit",
+      "command": [
+        "xezim",
+        "--simulate",
+        "--error-exit",
+        "-s",
+        "negative",
+        "/work/scratchpad/eda-x114/negative.sv"
+      ],
+      "returncode": 1,
+      "expectedFailure": true,
+      "passed": true,
+      "log": "xezim-fatal-exit.log"
+    },
+    {
+      "tool": "uvm",
+      "check": "positive",
+      "command": [
+        "xezim",
+        "--simulate",
+        "--sv2017",
+        "--error-exit",
+        "-I",
+        "/opt/uvm/1800.2-2017/src",
+        "-D",
+        "UVM_NO_DPI",
+        "-D",
+        "UVM_REPORT_DISABLE_FILE_LINE",
+        "-s",
+        "uvm_top",
+        "/opt/uvm/1800.2-2017/src/uvm_pkg.sv",
+        "/work/scratchpad/eda-x114/uvm_positive.sv"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "uvm-positive.log"
+    },
+    {
+      "tool": "uvm",
+      "check": "negative",
+      "command": [
+        "xezim",
+        "--simulate",
+        "--sv2017",
+        "--error-exit",
+        "-I",
+        "/opt/uvm/1800.2-2017/src",
+        "-D",
+        "UVM_NO_DPI",
+        "-D",
+        "UVM_REPORT_DISABLE_FILE_LINE",
+        "-s",
+        "uvm_top",
+        "/opt/uvm/1800.2-2017/src/uvm_pkg.sv",
+        "/work/scratchpad/eda-x114/uvm_negative.sv"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "uvm-negative.log"
+    },
+    {
+      "tool": "uvm-versions",
+      "check": "1.2",
+      "command": [
+        "xezim",
+        "--simulate",
+        "--sv2017",
+        "--error-exit",
+        "-I",
+        "/opt/uvm/1.2/src",
+        "-D",
+        "UVM_NO_DPI",
+        "-s",
+        "version_top",
+        "/opt/uvm/1.2/src/uvm_pkg.sv",
+        "/work/scratchpad/eda-x114/uvm_1.2.sv"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "uvm-versions-1.2.log"
+    },
+    {
+      "tool": "uvm-versions",
+      "check": "1800.2-2017",
+      "command": [
+        "xezim",
+        "--simulate",
+        "--sv2017",
+        "--error-exit",
+        "-I",
+        "/opt/uvm/1800.2-2017/src",
+        "-D",
+        "UVM_NO_DPI",
+        "-s",
+        "version_top",
+        "/opt/uvm/1800.2-2017/src/uvm_pkg.sv",
+        "/work/scratchpad/eda-x114/uvm_1800.2-2017.sv"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "uvm-versions-1800.2-2017.log"
+    },
+    {
+      "tool": "uvm-versions",
+      "check": "1800.2-2020",
+      "command": [
+        "xezim",
+        "--simulate",
+        "--sv2017",
+        "--error-exit",
+        "-I",
+        "/opt/uvm/1800.2-2020/src",
+        "-D",
+        "UVM_NO_DPI",
+        "-s",
+        "version_top",
+        "/opt/uvm/1800.2-2020/src/uvm_pkg.sv",
+        "/work/scratchpad/eda-x114/uvm_1800.2-2020.sv"
+      ],
+      "returncode": 0,
+      "expectedFailure": false,
+      "passed": true,
+      "log": "uvm-versions-1800.2-2020.log"
+    }
+  ],
+  "passed": true
+}

@@ -52,3 +52,9 @@ SBY uses to validate abc-engine counterexamples).
 The image builds EQY against Yosys 0.69 using the upstream revision recorded
 in [toolchain release pins](../toolchain-releases.md). EQY has no standalone
 published GitHub release; its compatibility tags are not release versions.
+
+## Qualified baseline
+
+EQY is qualified for `use sat` equivalence and a deliberate inequivalence failure with the pinned Yosys plugin ABI.
+
+Pins, license, compatibility with the other pinned tools, and supported/unsupported behavior are recorded in [EDA tool baseline](../eda-tool-baseline.md) and the probe results in [EDA tool qualification](../eda-tool-qualification.md).

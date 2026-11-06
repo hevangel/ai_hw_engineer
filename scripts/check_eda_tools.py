@@ -15,7 +15,7 @@ import sys
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--work-dir', default='scratchpad/eda-audit')
-parser.add_argument('--tools', default='xezim,uvm,verilator,yosys,eqy,sby,verible')
+parser.add_argument('--tools', default='xezim,uvm,verilator,yosys,eqy,sby,verible,compat,verilator-trace,surfer,uvm-versions,java')
 args = parser.parse_args()
 work = Path(args.work_dir).resolve()
 work.mkdir(parents=True, exist_ok=True)
@@ -167,6 +167,60 @@ void (*vlog_startup_routines[])(void)={register_audit,0};
     check('iverilog','cxx-vpi-load',['vvp','-M',str(work),'-m','audit_vpi_cpp',str(work/'four_state.vvp')],marker='VPI CXX AUDIT PASS')
     check('iverilog','negative-compile',['iverilog','-g2012','-s','negative','-o',str(work/'negative.vvp'),fatal])
     check('iverilog','fatal-exit',['vvp',str(work/'negative.vvp')],fail=True,marker='EXPECTED AUDIT FAILURE')
+if 'compat' in selected:
+    # Version, plugin and solver boundaries between the pinned tools. Each
+    # supported combination has a positive probe; each documented unsupported
+    # combination has a probe that must fail with its recorded diagnostic.
+    counter=write('compat/counter.sv','''module counter(input clk);
+  reg [3:0] count = 0;
+  reg past_valid = 0;
+  always @(posedge clk) begin
+    past_valid <= 1;
+    count <= count + 1'b1;
+    if (past_valid) assert(count == $past(count) + 4'd1);
+    cover(count == 3);
+  end
+endmodule
+''')
+    def sby_config(name, tasks, engine):
+        body='[tasks]\n'+'\n'.join(tasks)+'\n[options]\n'+'\n'.join(t+': mode '+t for t in tasks)+'\ndepth 10\n[engines]\n'+engine+f'\n[script]\nread -formal {counter}\nprep -top counter\n[files]\n{counter}\n'
+        return write('compat/'+name+'.sby',body)
+    check('compat','yosys-version-and-eqy-plugin-abi',['yosys','-m','/opt/eqy/share/yosys/plugins/eqy_combine.so','-p','help eqy_combine'],marker='eqy_combine')
+    check('compat','sby-smtbmc-z3',['sby','-f',sby_config('z3',['bmc','prove'],'smtbmc z3')],marker='PASS')
+    check('compat','sby-smtbmc-yices',['sby','-f',sby_config('yices',['bmc','prove'],'smtbmc yices')],marker='PASS')
+    check('compat','sby-abc-pdr',['sby','-f',sby_config('pdr',['prove'],'abc pdr')],marker='PASS')
+    check('compat','solver-versions',['bash','-c','z3 --version && yices-smt2 --version'],marker='Yices 2.7.0')
+    check('compat','sby-boolector-unsupported',['sby','-f',sby_config('boolector',['bmc'],'smtbmc boolector')],fail=True,marker='did not return a status')
+    check('compat','yosys-slang-plugin-unsupported',['yosys','-m','slang','-p','help'],fail=True,marker="Can't load module")
+if 'verilator-trace' in selected:
+    check('verilator-trace','fst-and-coverage',['bash','-c',f'verilator --binary --timing --trace-fst --coverage -Wall --top-module tb --Mdir {work}/obj-trace {good} {tb} && cd {work} && ./obj-trace/Vtb && test -s audit.vcd && test -s coverage.dat'],marker='AUDIT PASS')
+if 'surfer' in selected:
+    vcd=write('surfer/audit.vcd','$timescale 1ps $end\n$scope module tb $end\n$var wire 1 ! a_i $end\n$var wire 1 " y_o $end\n$upscope $end\n$enddefinitions $end\n#0\n0!\n0"\n#1000\n1!\n1"\n#2000\n0!\n0"\n')
+    check('surfer','version',['surfer','--version'],marker='surfer 0.7.0')
+    check('surfer','webapp-and-server-files',['bash','-c','test -s /opt/surfer/webapp/index.html && test -x /opt/surfer/serve_web.sh && surver --version'])
+    # The Surver token is the first URL path segment; a wrong token must be rejected.
+    check('surfer','surver-serves-vcd',['bash','-c',f'cd {work}/surfer && (surver --port 18089 --token audit-token-1 audit.vcd > surver.log 2>&1 & echo $! > surver.pid) && sleep 3 && ok=$(curl -s -m 5 -w "|%{{http_code}}" http://127.0.0.1:18089/audit-token-1/get_status) && bad=$(curl -s -m 5 -o /dev/null -w "%{{http_code}}" http://127.0.0.1:18089/wrong-token-12/get_status); kill $(cat surver.pid) 2>/dev/null; echo "authorized=$ok rejected=$bad"; case "$ok" in *audit.vcd*"|200") test "$bad" = 404;; *) false;; esac'],marker='surfer_version')
+    check('surfer','surver-short-token-rejected',["surver","--port","18090","--token","short",vcd],fail=True,marker='too short')
+if 'uvm-versions' in selected:
+    for version in ('1.2','1800.2-2017','1800.2-2020'):
+        src=f'/opt/uvm/{version}/src'
+        probe=write('uvm_'+version+'.sv','''`include "uvm_macros.svh"
+import uvm_pkg::*;
+class version_test extends uvm_test;
+  `uvm_component_utils(version_test)
+  function new(string name, uvm_component parent); super.new(name,parent); endfunction
+  task run_phase(uvm_phase phase);
+    phase.raise_objection(this);
+    `uvm_info("VERSION","UVM VERSION PASS",UVM_LOW)
+    #1; phase.drop_objection(this);
+  endtask
+endclass
+module version_top; initial run_test("version_test"); endmodule
+''')
+        check('uvm-versions',version,['xezim','--simulate','--sv2017','--error-exit','-I',src,'-D','UVM_NO_DPI','-s','version_top',src+'/uvm_pkg.sv',probe],marker='UVM VERSION PASS')
+if 'java' in selected:
+    java=write('java/Audit.java','public class Audit { public static void main(String[] a) { System.out.println("JAVA AUDIT PASS"); } }\n')
+    check('java','javac-and-java',['bash','-c',f'cd {work}/java && javac Audit.java && java -cp . Audit'],marker='JAVA AUDIT PASS')
 summary=dict(recordedAt=datetime.now(timezone.utc).isoformat(),checks=results,
              passed=all(item['passed'] for item in results))
 (work/'results.json').write_text(json.dumps(summary,indent=2)+'\n',encoding='utf-8')

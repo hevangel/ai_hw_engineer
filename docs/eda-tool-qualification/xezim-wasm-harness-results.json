@@ -1,0 +1,67 @@
+{
+  "passed": true,
+  "counter": {
+    "status": "completed",
+    "finished": true,
+    "stdout": "COUNT=4"
+  },
+  "project": {
+    "status": "completed",
+    "waveform": {
+      "format": "vcd",
+      "sizeBytes": 699,
+      "complete": true,
+      "timescale": "1ps"
+    },
+    "transitionCount": 3,
+    "stdout": "FILE=ROM=f0\n\nNBA_PRE=1\nNBA_POST=2\nROM=f0 COUNT=3"
+  },
+  "invalidSource": {
+    "status": "failed",
+    "errorCount": 1
+  },
+  "recovery": {
+    "status": "completed",
+    "finished": true,
+    "stdout": "COUNT=4"
+  },
+  "invalidDpi": {
+    "id": "940d1b43-696c-4c3e-85d5-5b74b67ea4e9",
+    "ok": false,
+    "error": {
+      "code": "DPI_COMPILATION_FAILED",
+      "message": "xezim_dpi_0.c:1:17: error: expected parameter declarator\n    1 | int not_closed( {\n      |                 ^\nxezim_dpi_0.c:1:17: error: expected ')'\nxezim_dpi_0.c:1:15: note: to match this '('\n    1 | int not_closed( {\n      |               ^\nxezim_dpi_0.c:1:18: error: expected function body after function declarator\n    1 | int not_closed( {\n      |                  ^\n3 errors generated."
+    }
+  },
+  "compiledDpi": {
+    "ok": true,
+    "modules": [
+      "dpi/add.c",
+      "dpi/add_cpp.cpp"
+    ],
+    "output": ""
+  },
+  "directDpi": [
+    {
+      "path": "dpi/add.c",
+      "exportNames": [
+        "__wasm_call_ctors",
+        "add_ints"
+      ],
+      "value": 30
+    },
+    {
+      "path": "dpi/add_cpp.cpp",
+      "exportNames": [
+        "__wasm_call_ctors",
+        "add_ints_cpp"
+      ],
+      "value": 42
+    }
+  ],
+  "dpiResult": {
+    "status": "completed",
+    "finished": true,
+    "stdout": "DPI_C=30\nDPI_CPP=42"
+  }
+}

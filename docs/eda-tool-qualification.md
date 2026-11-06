@@ -51,3 +51,7 @@ The local viewer ran on loopback port 19180. In the built-in browser it loaded `
 This does not establish every simulator language feature, every UVM version/DPI mode, Verible LSP behavior, native Surfer desktop GUI behavior or arbitrary large-waveform performance. HDL Workbench's separate WASM Worker/adapter integration remains owned by its existing application tracker. Hardware functional/silicon verification is not inferred from these tool probes. The unrelated 8086 synthesis time bound and network-dependent firmware sign-off limits in the previous migration report remain unchanged.
 
 Recorded CLI probe counts: xezim 3, uvm 2, verilator 4, yosys 3, eqy 2, sby 2, verible 4, iverilog 9; total 29. Surfer browser steps are recorded separately above.
+
+## Update 2026-11-06
+
+The image was rebuilt from the current Dockerfile (JDK included) and the probe set was extended and re-run: 36 of 36 probes pass. Pins, licenses, compatibility, unsupported behavior, the Xezim 0.11.4 upgrade result, Surfer provenance and large-waveform limits, and the Am2901 Java-oracle run are recorded in [EDA tool baseline](eda-tool-baseline.md); result files are in [eda-tool-qualification/](eda-tool-qualification/).

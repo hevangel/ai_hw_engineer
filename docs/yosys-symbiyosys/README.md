@@ -23,3 +23,9 @@ This folder covers both Yosys (open-source synthesis framework) and SymbiYosys (
 - SymbiYosys: https://github.com/YosysHQ/sby
 - SBY Docs: https://yosyshq.readthedocs.io/projects/sby/en/latest/
 - License: ISC License (Yosys), ISC License (SymbiYosys)
+
+## Qualified baseline
+
+Yosys, SymbiYosys (`smtbmc z3`, `smtbmc yices`, `abc pdr`) and their failure diagnostics are qualified; Boolector and AIGER engines and the slang plugin are not installed.
+
+Pins, license, compatibility with the other pinned tools, and supported/unsupported behavior are recorded in [EDA tool baseline](../eda-tool-baseline.md) and the probe results in [EDA tool qualification](../eda-tool-qualification.md).

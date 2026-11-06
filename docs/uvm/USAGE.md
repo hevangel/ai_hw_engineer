@@ -62,3 +62,9 @@ GettingVerilatorStartedWithUVM example for a working flow.
 - Use `-D UVM_NO_DPI` with xezim (it handles UVM reporting/cmdline natively)
 - For UVM-1.2 testbenches on 1800.2 library: add `-D UVM_ENABLE_DEPRECATED_API`
 - Source: https://github.com/nitronis/UVM
+
+## Qualified baseline
+
+UVM 1.2, 1800.2-2017 and 1800.2-2020 are smoke-tested with Xezim and `UVM_NO_DPI`.
+
+Pins, license, compatibility with the other pinned tools, and supported/unsupported behavior are recorded in [EDA tool baseline](../eda-tool-baseline.md) and the probe results in [EDA tool qualification](../eda-tool-qualification.md).

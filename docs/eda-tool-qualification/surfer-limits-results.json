@@ -1,0 +1,49 @@
+{
+  "recordedAt": "2026-11-06T15:32:41.604547+00:00",
+  "tool": "surver",
+  "measurements": [
+    {
+      "sizeMb": 10,
+      "fileBytes": 10487710,
+      "signals": 64,
+      "loaded": true,
+      "loadSeconds": 0.53,
+      "peakRssMb": 15.1,
+      "reportedBytes": 10485894,
+      "reportedBytesLoaded": 10489834,
+      "logTail": [
+        " INFO surver::server: Loaded body of /work/scratchpad/surfer-limits/limits_10mb.vcd in 42.839184ms",
+        " INFO surver::server: File modification time of /work/scratchpad/surfer-limits/limits_10mb.vcd set to 2026-11-06 15:32:05 UTC"
+      ]
+    },
+    {
+      "sizeMb": 100,
+      "fileBytes": 104859463,
+      "signals": 64,
+      "loaded": true,
+      "loadSeconds": 0.51,
+      "peakRssMb": 130.3,
+      "reportedBytes": 104857647,
+      "reportedBytesLoaded": 104861569,
+      "logTail": [
+        " INFO surver::server: Loaded body of /work/scratchpad/surfer-limits/limits_100mb.vcd in 411.350219ms",
+        " INFO surver::server: File modification time of /work/scratchpad/surfer-limits/limits_100mb.vcd set to 2026-11-06 15:32:11 UTC"
+      ]
+    },
+    {
+      "sizeMb": 400,
+      "fileBytes": 419432497,
+      "signals": 64,
+      "loaded": true,
+      "loadSeconds": 2.01,
+      "peakRssMb": 503.0,
+      "reportedBytes": 419430681,
+      "reportedBytesLoaded": 419435043,
+      "logTail": [
+        " INFO surver::server:    The correct command may be: ssh -L 18095:localhost:18095 root@0bd69a3dddd7 ",
+        " INFO surver::server: 2. Start Surfer: surfer http://127.0.0.1:18095/limits-token-1"
+      ]
+    }
+  ],
+  "passed": true
+}
