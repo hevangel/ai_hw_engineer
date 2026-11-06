@@ -1,0 +1,26 @@
+[tasks]
+bmc
+cover
+
+[options]
+bmc: mode bmc
+bmc: depth 1
+bmc: multiclock off
+cover: mode cover
+cover: depth 1
+cover: multiclock off
+
+[engines]
+bmc: smtbmc z3
+cover: smtbmc z3
+
+[script]
+bmc: read -formal -D FORMAL ../src/ibm_s360_alu.sv ibm_s360_alu_props.sv
+bmc: prep -top ibm_s360_alu_props
+cover: read -formal -D FORMAL ../src/ibm_s360_alu.sv ibm_s360_alu_props.sv
+cover: prep -top ibm_s360_alu_props
+
+[files]
+../src/ibm_s360_defs.svh
+../src/ibm_s360_alu.sv
+ibm_s360_alu_props.sv

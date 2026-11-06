@@ -1,0 +1,30 @@
+[tasks]
+bmc
+prove
+cover
+
+[options]
+bmc: mode bmc
+bmc: depth 8
+prove: mode prove
+prove: depth 8
+cover: mode cover
+cover: depth 12
+
+[engines]
+bmc: smtbmc z3
+prove: smtbmc z3
+cover: smtbmc z3
+
+[script]
+bmc: read -formal -D FORMAL ../src/ibm_s360_psw.sv ibm_s360_psw_props.sv
+bmc: prep -top ibm_s360_psw_props
+prove: read -formal -D FORMAL ../src/ibm_s360_psw.sv ibm_s360_psw_props.sv
+prove: prep -top ibm_s360_psw_props
+cover: read -formal -D FORMAL ../src/ibm_s360_psw.sv ibm_s360_psw_props.sv
+cover: prep -top ibm_s360_psw_props
+
+[files]
+../src/ibm_s360_defs.svh
+../src/ibm_s360_psw.sv
+ibm_s360_psw_props.sv
