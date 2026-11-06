@@ -54,9 +54,9 @@ the index pages.
 | Instruction differential | **PASS**, 3,032 compared, 0 mismatches, 2 unimplemented | `scripts/run_instr.sh` (state + full memory image) |
 | Verilator lint (core) | No errors; 18 `-Wall` warnings (unused interrupt inputs, reserved parameters) | `verilator --lint-only -Wall` |
 | Formal bmc | **PASS**, depth 40 | `sby -f formal/zilog_z80.sby bmc` |
-| Formal cover | **PASS**, all 6 cover points reached | `sby -f formal/zilog_z80.sby cover` |
+| Formal cover | **PASS**, all cover points reached | `sby -f formal/zilog_z80.sby cover` |
 | Formal prove | **PASS** by k-induction | `sby -f formal/zilog_z80.sby prove` |
-| Synthesis (generic) | **PASS**, 16,179 cells, 264 flops | `scripts/run_synth.sh generic`, Yosys 0.69 |
+| Synthesis (generic) | **PASS**, 23,011 cells, 290 flops | `scripts/run_synth.sh generic`, Yosys 0.69 |
 | Formal (bmc/prove/cover) | Not run | no properties or `.sby` exist |
 | UVM environment | Not run | not written |
 | ZEXDOC / ZEXALL / z80test | Not run | needs memory/stack instructions first |
