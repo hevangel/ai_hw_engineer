@@ -59,3 +59,7 @@ system/**/scripts/*.sh text eol=lf
 
 # Source patches are consumed by Linux patch in reproducible tool tests.
 scripts/patches/*.patch text eol=lf
+
+# Overlay sources and probes run inside Linux containers from Windows checkouts.
+eda_extended/** text eol=lf
+scripts/check_extended_eda.py text eol=lf
