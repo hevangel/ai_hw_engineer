@@ -1,0 +1,26 @@
+[tasks]
+bmc
+cover
+
+[options]
+bmc: mode bmc
+bmc: depth 1
+bmc: multiclock off
+cover: mode cover
+cover: depth 1
+cover: multiclock off
+
+[engines]
+bmc: smtbmc z3
+cover: smtbmc z3
+
+[script]
+bmc: read -formal -D FORMAL ibm_s360_addr_props.sv ../src/ibm_s360_addr.sv
+bmc: prep -top ibm_s360_addr_props
+cover: read -formal -D FORMAL ibm_s360_addr_props.sv ../src/ibm_s360_addr.sv
+cover: prep -top ibm_s360_addr_props
+
+[files]
+../src/ibm_s360_defs.svh
+../src/ibm_s360_addr.sv
+ibm_s360_addr_props.sv

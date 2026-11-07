@@ -1,0 +1,27 @@
+[tasks]
+bmc
+cover
+
+[options]
+bmc: mode bmc
+bmc: depth 12
+cover: mode cover
+cover: depth 14
+
+[engines]
+bmc: smtbmc yices
+cover: smtbmc yices
+
+[script]
+bmc: read -formal -D FORMAL ../src/ibm_s360_alu.sv ../src/ibm_s360_addr.sv ../src/ibm_s360_psw.sv ../src/ibm_s360_cpu.sv ibm_s360_cpu_props.sv
+bmc: prep -top ibm_s360_cpu
+cover: read -formal -D FORMAL ../src/ibm_s360_alu.sv ../src/ibm_s360_addr.sv ../src/ibm_s360_psw.sv ../src/ibm_s360_cpu.sv ibm_s360_cpu_props.sv
+cover: prep -top ibm_s360_cpu
+
+[files]
+../src/ibm_s360_defs.svh
+../src/ibm_s360_alu.sv
+../src/ibm_s360_addr.sv
+../src/ibm_s360_psw.sv
+../src/ibm_s360_cpu.sv
+ibm_s360_cpu_props.sv
