@@ -6,9 +6,13 @@ WORK_DIR=${INTEL_80286_WORK_DIR:-$DESIGN_DIR/work}
 python3 -m unittest discover -s "$SCRIPT_DIR" -p 'test_*hardware*.py'
 python3 "$SCRIPT_DIR/prepare_hardware_tests.py"
 python3 "$SCRIPT_DIR/prepare_protection_hardware.py"
+python3 "$SCRIPT_DIR/prepare_string_hardware.py"
+python3 "$SCRIPT_DIR/prepare_general_hardware.py" ${INTEL_80286_GENERAL_PER_FILE:+--per-file "$INTEL_80286_GENERAL_PER_FILE"}
 sh "$SCRIPT_DIR/build_runner.sh"
 HARDWARE_RUNNER="$WORK_DIR/sim/Vintel_80286"
 "$HARDWARE_RUNNER" --hardware "$WORK_DIR/hardware/vectors.txt"
 "$HARDWARE_RUNNER" --hardware "$WORK_DIR/hardware/protection_vectors.txt"
+"$HARDWARE_RUNNER" --hardware "$WORK_DIR/hardware/string_vectors.txt"
+"$HARDWARE_RUNNER" --hardware "$WORK_DIR/hardware/general_vectors.txt"
 python3 "$SCRIPT_DIR/test_hardware_replay.py"
 python3 "$SCRIPT_DIR/test_protection_hardware_replay.py"

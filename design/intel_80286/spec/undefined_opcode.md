@@ -15,13 +15,17 @@ encodings already detected by the core, and real-mode-invalid ARPL, SLDT/STR,
 LLDT/LTR, VERR/VERW, LAR/LSL. Do not infer invalidity merely from an unimplemented
 instruction: WAIT and ESC are valid encodings, not #UD. The current 80287
 slice implements WAIT's active-high BUSY, active-low ERROR# and TS behavior,
-plus ESC's EM/TS and prior ERROR# exception gates. A normal ESC still stops
-with a development diagnostic because the successful 80287 command and
-operand-transfer protocol is not implemented. Native LOCK arbitration and
+plus ESC's EM/TS and prior ERROR# exception gates. A normal ESC runs the
+CPU-side command phase ([report](../report/2026-11-03-esc-command-phase.md));
+operand transfers through the extension data channel and protected-mode
+memory forms remain unimplemented. Native LOCK arbitration and
 protected execution remain separate development boundaries. ARPL has a protected-mode execution slice; it
-remains #UD only in real mode. Undocumented shift `/6`, other unspecified
-aliases, unsupported REP combinations and overlength/segment-boundary
-priorities remain explicit gaps.
+remains #UD only in real mode. Undocumented shift `/6` executes as SHL, 82h as
+80h and D6h sets AL from CF (assumption A34 in [spec.md](spec.md)). F1h is a
+no-function prefix counted toward the ten-byte limit; 65h-67h and 0F 07h-FFh
+raise #UD; 0F 04h/05h raise #GP(0) at protected CPL>0. At real mode or CPL 0,
+0F 05h executes LOADALL and 0F 04h stops (assumptions A35/A41). Unsupported REP combinations and overlength/segment-
+boundary priorities remain explicit gaps.
 
 The F6/F7 `/1` example in Intel's #UD entry is contradicted by the pinned
 physical Harris-286 captures: none of the 10,000 records raises vector 6;

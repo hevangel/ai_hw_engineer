@@ -58,3 +58,146 @@ problems; connected-core BMC depth 24 PASS (1:03:41); preflight and
 About 6 hours of wall-clock time (20:04 to about 02:25 UTC), dominated by
 connected-core BMC runs of 63 to 116 minutes. Active model time is not
 exposed.
+
+
+## Continuation: 2026-11-02 to 2026-11-04 (same conversation chain)
+
+**Capture timestamp:** 2026-11-04T02:40:00Z
+
+Driven by repeated auto-nudges ("keep working on the 80286 until the chip
+runs bug free").
+
+### Completed work
+
+- **Delivery faults:** replaced 14 event-delivery development stops with
+  Intel exceptions (`1d72320`).
+- **Task-gate NMI:** fixed task-gate NMI shutdown recovery, with a
+  post-mortem.
+- **Stale flags:** hardened stale transfer and task flags (`3038c9f`,
+  `5e74f4d`, `bda574a`).
+- **Protected POP Sreg and LES/LDS** (`b4a5d41`):
+  - These instructions now load the segment through the Intel checks instead
+    of stopping the core.
+  - Fixed a latent bug: a stale ModRM byte drove the stack-segment checks for
+    task-switch DS/ES loads. Post-mortem
+    `failure_notes/2026-11-03-intel80286-task-switch-stale-modrm-stack-check.md`.
+- **Stack wraparound and real-mode shutdown** (`f1b8e4a`):
+  - Behavior follows the 1985 iAPX 286 PRM (App. A, Table 5-2, App. B).
+  - Added assumption A29.
+- **ESC command phase:** ESC D8h-DFh now runs it (`ec74f75`). The contract
+  comes from a survey of the physical D8 captures. Added assumption A30.
+- **Development stops:** 27 reduced to 13.
+- **k-induction closed:**
+  - Connected-core prove runs 50-94 decoded each counterexample trace and
+    added invariants or corrected stale properties.
+  - Run 94 passes the base case and induction for 390 assertions (`676293a`).
+  - Invariant commits: `f473579`, `8172563`, `3f62765`, `d7b5e01`, `676293a`.
+- **Progress comments:** posted on PR #105 and issue #80 (2026-11-03).
+
+### Validation
+
+- `run_sim.sh`: 225 PASS, exit 0 (simrev66, final RTL).
+- Connected-core prove: PASS (k-induction, depth 12, run 94).
+- Connected-core BMC depth 24: PASS on `ec74f75` and on the final tree.
+- Cover: restarted on the final tree. The old-RTL run was stopped at 45 of 89
+  covers after 42 hours.
+
+### Model-call evidence
+
+- Main thread: Claude Opus. Kiro does not expose the exact model id or the
+  call count.
+- One `kirocrew-lite` Sonnet 5.5 sub-agent: 0.19 credits. It had no tools and
+  did no work.
+- Exact token counts are not exposed.
+
+### Duration
+
+About 36 hours of wall-clock time across auto-nudge cycles. The prove runs,
+about 20 minutes each, dominated it.
+
+
+## Continuation: 2026-11-04 (PEDC branch, same conversation chain)
+
+**Capture timestamp:** 2026-11-04T17:20:00Z
+**Branch:** `design/intel-80286-pedc` ([PR #111](https://github.com/hevangel/ai_hw_engineer/pull/111))
+
+### Completed work
+
+- **Processor-extension channel and earlier PEDC fixes:**
+  - `98c0602`, `2d1d02e`: PEDC data channel and invariants.
+  - `ce8d7f2`: real-mode wrapped IRET/RETF frames.
+  - `7e53073`: A34 undocumented aliases.
+- **A35** (`bf42369`): F1h prefix, #UD for 65h-67h and 0F 07h-FFh, and #GP(0) for 0F 04h/05h at CPL>0. Source: Intel's undocumented-opcode note.
+- **A36** (`35334fa`): replay of the 50,000 physical string captures.
+  - REP LODS and F2 before non-compare strings now execute.
+  - Word-FFFFh #13 register state now matches the captures.
+- **A29 and A37-A40** (`6cd2fbe`): replay of 1,368,994 physical records from 301 opcode files. Fixed:
+  - ENTER wrap;
+  - POP m fault SP;
+  - AAM 0 flags;
+  - the IDIV division model;
+  - the real-mode 4-byte operand wrap.
+- **Documentation:**
+  - Post-mortems in `failure_notes/2026-11-04-intel80286-string-fault-state-and-rep-forms.md` and `failure_notes/2026-11-04-intel80286-general-capture-replay-defects.md`.
+  - Report: `design/intel_80286/report/2026-11-04-physical-capture-replay.md`.
+  - Progress comment posted on PR #111.
+
+### Validation
+
+All runs on `6cd2fbe` unless noted:
+- Connected-core prove: PASS, 408 assertions.
+- Muldiv BMC, prove and cover: PASS.
+- `run_sim.sh`: 227 PASS.
+- Full `run_hardware.sh`: PASS. That covers 68,510 + 52 + 50,000 + 1,368,994 physical records in both READY modes.
+- Connected-core BMC: started and not yet finished at capture time. The last completed BMC PASS was on `2d1d02e`.
+
+### Model-call evidence
+
+- Main thread: Claude Opus. Kiro does not expose the exact model id or call count.
+- No sub-agents in this continuation.
+- Exact token counts are not exposed.
+
+### Duration
+
+About 3.5 hours of wall-clock time for this continuation, judging by the log timestamps from about 13:50 to 17:20 UTC. Prove runs (about 20 minutes each) and full replays (about 20 minutes each) dominated it.
+
+
+## Continuation: 2026-11-04 to 2026-11-05 (PEDC branch, auto-nudge cycles 70-77)
+
+**Capture timestamp:** 2026-11-05T01:30:00Z
+
+### Completed work
+
+- **LOADALL (0F 05h)** (`365bc9e`): implemented from Intel's LOADALL memory-area table, with assumption A41 and a `--loadall` test.
+- **Development stops proven unreachable by k-induction:**
+  - segment-load completion and the NT far-return stops (`b8ebd69`);
+  - the code-load mismatch (`bd9cf2d`);
+  - the memory-check escalation (`f4d97ab`).
+- **JMP to an all-zero descriptor** (`bd9cf2d`): it stopped the core and now raises #GP(selector). Found while proving the code-load stop unreachable.
+- **NT flag** (`f4d97ab`, `42e53c3`):
+  - POPF and IRET load NT in protected mode.
+  - Interrupt and trap gates clear NT.
+  - Task switches follow Table 8-2.
+  - NT IRET with an invalid TSS raises #TS(back link).
+  - Post-mortem: `failure_notes/2026-11-04-intel80286-nt-flag-handling.md`.
+- **Physical replay:**
+  - Port I/O captures (48,000 records). Fixed the real-mode INS/OUTS fault state at offset FFFFh (`7e46383`).
+  - ESC/WAIT captures (10,000 records) (`fdab3a3`).
+- **PR #111:** summary comment posted.
+
+### Validation
+
+- Prove: PASS, 437 assertions.
+- `run_sim.sh`: 229 PASS.
+- Full `run_hardware.sh` on `7e46383`: PASS. The ESC/WAIT files passed in a separate replay run.
+- BMC: PASS on `6cd2fbe` and `365bc9e`. The run on `42e53c3` was still in progress at capture time.
+
+### Model-call evidence
+
+- Main thread: Claude Opus. Kiro does not expose the exact model id or call count.
+- No sub-agents were used.
+- Token counts are not exposed.
+
+### Duration
+
+About 8 hours of wall-clock time (17:20 to about 01:30 UTC). About 20 prove runs of roughly 22 minutes each dominated it.

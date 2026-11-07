@@ -1,8 +1,14 @@
 # Protected segment-load transaction engine
 
-Status: standalone engine verified and integrated for protected MOV-to-DS/ES/SS.
-The core commits the visible selector and hidden cache only after successful
-completion. Protected exception delivery remains pending. This engine wraps
+Status: standalone engine verified and integrated for protected MOV-to-DS/ES/SS,
+POP ES/SS/DS and LES/LDS. The core commits the visible selector and hidden
+cache only after successful completion. POP commits SP+2, and LES/LDS commit
+the offset register, in the same step. A selector fault enters the Intel
+exception at the instruction with SP and the offset register unchanged
+(210498-005 App. B POP and LDS/LES list the MOV Sreg selector faults). The
+stack-segment checks apply only to MOV SS and POP SS that the instruction
+itself starts; a task switch's incoming DS/ES load never inherits them from a
+stale ModRM byte (Table 8-2). This engine wraps
 [ordinary DS/ES/SS validation](segment_load_check.md) and still reports a
 completion packet for its parent to consume.
 

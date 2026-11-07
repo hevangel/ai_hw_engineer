@@ -101,8 +101,162 @@ Software `INT n`, `INTO`, `INT3` and other exceptions leave EXT clear. Sources:
 Intel 210498-005 section 9.4 (printed page 9-5), Appendix B (pages B-8 and
 B-50) and Table 9-5. `intel_80286_segment_check` and `intel_80286_code_check`
 return EXT-free codes; the core ORs EXT in once, when it records the fault in
-its event packet. Delivery faults that the core still reports as a
-development stop instead of an exception are not covered by this rule yet.
+its event packet, and the handler-invocation faults below add it from the
+event being delivered.
+
+### Faults while invoking a protected-mode handler
+
+A protection check that fails while the core invokes the handler for an event
+(IDT entry, gate, handler CS, inner stack from the TSS, frame room, or the
+task-gate TSS) raises an exception instead of stopping. Intel 210498-005
+section 9.6.2 (page 9-10): if the event being delivered is #DE, #TS, #NP, #SS
+or #GP the second fault becomes #DF with a null error code; a fault while
+delivering #DF enters shutdown; for every other event (vectors 1-7, 9, 16,
+INTR, NMI, `INT n`) the new fault is delivered with the error code from
+Appendix B pages B-49/B-50, plus EXT when the event was external. A fault on
+a software interrupt points at the `INT` instruction; other events keep their
+saved return address. Task-gate TSS checks follow Table 8-1 order (not
+present #NP, busy #GP, limit below 43 #TS), with any other non-available-TSS
+type #GP per page B-50.
+
+ASSUMPTION A28: when an inner-privilege event needs the SS:SP pair for the new
+CPL from the current TSS and the TSS limit does not cover it, the core raises
+#TS(TR selector). The 286 text gives no rule for this case; validate against
+independent 286 evidence before sign-off.
+
+### Stack wraparound and real-mode shutdown
+
+The 1985 iAPX 286 Programmer's Reference Manual (Appendix A "Shutdown",
+Table 5-2, Appendix B POP/PUSH/PUSHA/INT/IRET/RET) defines these cases,
+which the core implements instead of development stops:
+
+- Real mode, a word at offset FFFF (POP/POPA/POPF/LEAVE/IRET/RETF reads,
+  ENTER level reads, PUSHA with SP=7..15, an instruction running past FFFF):
+  segment overrun exception 13, no error code, restartable.
+- Real mode, a CALL, INT or PUSH that wraps the stack with odd SP (PUSH/CALL
+  with SP=1, far CALL with SP=1/3, PUSHA or any event frame with SP=1/3/5):
+  shutdown.
+- Real mode, exception 8, or exception 13 (a fault, not `INT 0Dh`), whose
+  vector lies outside the IDT limit: shutdown. Other vectors raise 8.
+- Protected mode, any stack word or frame past offset FFFF exceeds every SS
+  limit: #SS(0).
+- A real-mode NMI leaves shutdown when its IVT frame commits. A real-mode
+  delivery that fails during recovery (odd SP below 6, vector 2 or 8 outside
+  the limit) needs RESET.
+
+Even-SP stack wraps are legal (SP=0 pushes to FFFE). A real-mode IRET with
+SP=FFFC/FFFE or RETF with SP=FFFE reads its aligned frame word by word,
+wrapping from offset FFFE to 0000.
+
+ASSUMPTION A29: Intel lists no real-mode ENTER exception, but physical
+Harris-286 C8 captures with odd SP=000Fh raise exception 13 when a push would
+wrap, with SP unchanged and the frame at the original SP. ENTER therefore
+raises 13 on a wrapping push and shuts down only when that frame itself would
+wrap (SP<6, by analogy with PUSHA on B-84; no capture covers it). The manual's
+NMI exit condition "IDT limit at least 000FH and SP greater than 0005H" is
+treated as a consequence of these rules, so an NMI with even SP below 6 is
+delivered. Validate both against independent 286 evidence before sign-off.
+
+ASSUMPTION A40: in real mode a 4-byte memory operand (LES, LDS, BOUND, far
+CALL/JMP through memory) is checked one word at a time. Offset FFFDh (second
+word at FFFFh) raises 13, and offset FFFEh reads its second word from offset
+0000h of the same segment. Physical Harris-286 62, C4, C5, FF.3 and FF.5
+captures show both. Protected mode keeps Intel's whole-operand limit check.
+
+ASSUMPTION A39: IDIV divides the operand magnitudes one quotient bit per step
+with an operand-width partial remainder, dropping the bit shifted out, and
+has no high-half overflow pre-check; only the final signed quotient range
+check raises exception 0. This model reproduces all 5,000 F6.7 and 4,967 F7.7
+physical Harris-286 records (`scripts/analyze_idiv_captures.py`),
+including four byte divisions whose true quotient is below -128 yet return
+80h without a fault. Intel documents only the range check.
+
+ASSUMPTION A37: a real-mode POP r/m whose memory destination raises
+exception 13 keeps its SP increment; the frame is pushed below the new SP and
+the saved IP still names the POP. Physical Harris-286 8F captures (SI=FFFFh
+destinations) show this. Protected-mode POP r/m faults are not captured and
+stay restartable with SP unchanged.
+
+ASSUMPTION A38: AAM with a zero immediate raises exception 0 after clearing
+OF, SF, AF and CF and setting ZF and PF from AL shifted right by one, as all
+eleven zero-divisor records in the physical Harris-286 D4 captures show.
+Intel leaves these flags undefined.
+
+ASSUMPTION A36: string behavior that Intel does not state is taken from the
+pinned physical Harris-286 string captures (A4-A7, AA-AF; 50,000 records,
+`scripts/prepare_string_hardware.py`). F2h before MOVS, STOS or LODS acts as
+REP, and REP LODS repeats. A repeat prefix before a non-string opcode is
+covered by A43. At a word access to offset FFFFh, #13 leaves the
+pointers and CX advanced for the accesses reached; the table is in
+[the failure note](../../failure_notes/2026-11-04-intel80286-string-fault-state-and-rep-forms.md).
+Protected-mode MOVS, CMPS and STOS limit faults keep the restartability memo
+values, which differ from these captures for CMPS. The port I/O captures
+(E4-E7, EC-EF, 6C-6F; every IN reads FFh) add the same rule for INS/OUTS
+at a word-FFFFh operand. INS advances DI and reduces REP CX by 2. OUTS
+advances SI and reduces REP CX by 1; the memo says 2 for OUTS.
+
+ASSUMPTION A35: the same Intel note lists the only exclusions from "any
+undefined opcode causes exception 6". F1h is a prefix with no function that
+counts toward the ten-byte limit. 0F 04h and 0F 05h raise exception 13 with
+error code 0 in protected mode at CPL>0. Every other undefined opcode,
+including 65h-67h and 0F 07h-FFh, raises exception 6. The exception note
+swaps the two encodings (it names LOADALL 0F04h, then says 0F05h "stops
+normal execution"). The same document's LOADALL section (pp. 1-4,
+[PCjs copy](https://www.pcjs.org/documents/manuals/intel/80286/loadall/))
+encodes LOADALL as 0F 05h. So 0F 05h executes LOADALL in real mode and at
+CPL 0, and 0F 04h in real mode or at CPL 0 remains a stop (`fault_code_o=1`).
+No physical captures exist for these opcodes in the pinned SingleStepTests
+revision.
+
+LOADALL reads the 102-byte image at physical 000800h-000865h in ascending
+order and loads every register from Intel's field table. That includes the
+ES/CS/SS/DS, LDT and TSS descriptor caches and the GDTR and IDTR. Each
+cache's access-byte present bit becomes its valid bit, and MSW.PE stays set
+once set. ASSUMPTION A43: a REP, REPE or REPNE prefix before a non-string opcode is
+ignored: the instruction executes once and CX is unchanged. Intel App. B says
+REP "cannot be applied to anything other than string operations" and does not
+define the result. The 8086 ignores such prefixes, and later x86 processors do
+too for compatibility. The pinned physical 286 captures contain no such
+record, so this is unconfirmed on the 286. The 8086's sign inversion of
+REP-prefixed multiply and divide is microcode-specific and is not modeled.
+
+ASSUMPTION A42: protected-mode ENTER raises restartable #SS(0) when the
+allocated SP (frame SP minus the first operand) falls outside the SS limit.
+For expand-up SS that means above the limit, including a 16-bit wrap; for
+expand-down SS it means at or below the limit. This reads App. B's "if SP were
+to go outside of the stack limit within any part of the instruction
+execution" as covering the final allocation as well as the pushes. No
+protected-mode capture confirms it.
+
+ASSUMPTION A41: the core keeps using the CS selector RPL as CPL,
+whereas Intel defines CPL as the CS cache DPL after LOADALL. The two differ
+only for an image whose CS selector RPL differs from its CS cache DPL. The
+core also uses the trusted-CS fetch rule, so an execute-only, execute/read
+or writable-data CS cache can all fetch. The TSS and LDT cache access bytes
+supply only their valid bits.
+
+ASSUMPTION A34: undocumented opcodes follow Intel's "Undocumented iAPX 286
+Test Instruction" note (pp. 13-14, [PCjs copy](https://www.pcjs.org/documents/manuals/intel/80286/exceptions/)):
+shift `/6` is SHL, 82h is 80h, and D6h sets AL to FFh if CF=1 else 00h without
+changing flags. All non-revoked physical Harris register captures agree:
+1,248-1,249 per C0/C1/D0-D3 `/6` file, 1,255-1,256 per 82h `/n` file and 1,000
+D6h records (`scripts/analyze_alias_captures.py`). Memory forms are not yet
+replayed against captures.
+
+ASSUMPTION A32: processor-extension operand requests (PEREQ) are served at
+instruction boundaries, during HLT and while WAIT/ESC wait on BUSY. A
+protected-mode memory ESC checks only its first operand word before the
+command phase. ASSUMPTION A33: interrupt 9 saves the boundary at which the
+overrun is detected. See the
+[processor-extension channel spec](processor_extension_channel.md).
+
+ASSUMPTION A31: an invalid outer-level return SS raises #SS(selector) per
+Table 7-4, although Appendix B lists #GP/#NP. See
+[the privilege-transition spec](protected_privilege_transition.md).
+
+ASSUMPTION A30: ESC D9h-DFh use the D8h command protocol captured on a physical
+286 (command word, IP, CS, then operand offset and segment at FCh), with their
+own opcode byte. See [the ESC report](../report/2026-11-03-esc-command-phase.md).
 
 NMI is edge-triggered (210760-002 page 3-12) and not recognized during reset
 (page 3-67). The event controller samples the NMI level through reset, so a

@@ -11,26 +11,15 @@ WORK = WORK_ROOT / 'protection_mutations'
 SOURCE = 'intel_80286.sv'
 MUTATIONS = (
     (
+        # Real-mode word/far-pointer operand past offset FFFF (App. B #13).
         'wordspan_wrong_vector',
-        "if (rm_memory && opcode != 8'h8d && ((wide && ea_offset == 16'hffff) ||\n"
-        "                        (system_table && ea_offset>16'hfffa) ||\n"
-        "                        ((opcode == 8'hc4 || opcode == 8'hc5 || opcode == 8'h62 || far_memory_pointer) && ea_offset > 16'hfffc))) begin\n"
-        "                        enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0); state<=EVENT_START;",
-        "if (rm_memory && opcode != 8'h8d && ((wide && ea_offset == 16'hffff) ||\n"
-        "                        (system_table && ea_offset>16'hfffa) ||\n"
-        "                        ((opcode == 8'hc4 || opcode == 8'hc5 || opcode == 8'h62 || far_memory_pointer) && ea_offset > 16'hfffc))) begin\n"
-        "                        enter_event(6,instruction_ip,1'b0,1'b1,1'b1,16'd0); state<=EVENT_START;",
+        "                                    8'd12 : 8'd13,instruction_ip,1'b0,1'b1,1'b1,16'd0);",
+        "                                    8'd12 : 8'd6,instruction_ip,1'b0,1'b1,1'b1,16'd0);",
     ),
     (
         'wordspan_wrong_saved_ip',
-        "if (rm_memory && opcode != 8'h8d && ((wide && ea_offset == 16'hffff) ||\n"
-        "                        (system_table && ea_offset>16'hfffa) ||\n"
-        "                        ((opcode == 8'hc4 || opcode == 8'hc5 || opcode == 8'h62 || far_memory_pointer) && ea_offset > 16'hfffc))) begin\n"
-        "                        enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0); state<=EVENT_START;",
-        "if (rm_memory && opcode != 8'h8d && ((wide && ea_offset == 16'hffff) ||\n"
-        "                        (system_table && ea_offset>16'hfffa) ||\n"
-        "                        ((opcode == 8'hc4 || opcode == 8'hc5 || opcode == 8'h62 || far_memory_pointer) && ea_offset > 16'hfffc))) begin\n"
-        "                        enter_event(13,ip,1'b0,1'b1,1'b1,16'd0); state<=EVENT_START;",
+        "                                    8'd12 : 8'd13,instruction_ip,1'b0,1'b1,1'b1,16'd0);",
+        "                                    8'd12 : 8'd13,ip,1'b0,1'b1,1'b1,16'd0);",
     ),
     (
         'overlength_wrong_vector',

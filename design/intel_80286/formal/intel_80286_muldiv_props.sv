@@ -16,7 +16,10 @@
                 assert(md_saved_operation[1] && md_saved_wide==wide);
                 assert(ax_o==md_saved_ax && dx_o==md_saved_dx && flags_o==md_saved_flags);
                 assert(bits_left>=1 && bits_left<=32);
-                assert(denominator!=0 && remainder<denominator);
+                assert(denominator!=0);
+                // A39: an IDIV overflow can start with remainder >= divisor.
+                if (!signed_divide) assert(remainder<denominator);
+                else assert(wide || remainder[15:8]==0);
                 if (!wide) assert(bits_left<=16);
             end
             if (rst_n && $past(rst_n && busy)) begin

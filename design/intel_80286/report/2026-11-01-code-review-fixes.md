@@ -65,6 +65,96 @@ All runs used the `ai-hw-engineer:latest` image (Verilator 5.052, Yosys
 | `test_audit_formal.py` | 17 tests OK |
 
 The connected-core BMC failed on unmodified `main` (stale state bound at
-step 10); it passes here only after the bookkeeping fixes above. The
-connected-core `prove`/`cover` tasks and the PDR run were not run, so this is
-bounded evidence, not a proof.
+step 10); it passes here only after the bookkeeping fixes above.
+
+## Connected-core k-induction (follow-up, 2026-11-02)
+
+The `prove` task (`smtbmc yices`, depth 12) was run 42 times. The base case
+passed every time, so no assertion fails within 12 cycles of reset. Each
+induction failure was decoded from its trace and fixed either by stating a
+missing invariant or by hardening the RTL; none was left by weakening an
+assertion without an RTL or Intel reason.
+
+RTL changes found this way (all re-simulated: `run_sim.sh` 218 PASS, exit 0):
+
+- A task-gate NMI handler now clears shutdown recovery at `TASK_ENTRY_COMMIT`
+  (Intel 210498-005 9.6.2). Before, any later fault in the NMI task put the
+  CPU back into shutdown.
+- `enter_event` clears abandoned CALL-gate, RETF and IRET transfer flags and
+  their helpers, and task-switch flags; `EVENT_START` and shutdown entry clear
+  the CALL/JMP task-switch kind. Stale flags could steer a later delivery's
+  stack load or misroute a task-gate event as a direct switch.
+- The inner-stack segment load in `CALL_STACK_SELECT`/`EVENT_STACK_SELECT`
+  starts only with the CPU bus grant, matching the state's own advance.
+- NMI cannot exit shutdown after a failed NMI recovery (9.6.2: RESET only).
+
+About 35 invariants were added (opcode ownership of far-transfer states,
+descriptor engines tied to their wait states, task-switch and delivery
+exclusivity, PE stickiness, shutdown precedence, `cs_trusted`), and several
+stale properties were corrected (NMI exit from shutdown, #DF IDT-limit
+shutdown, task-entry fault context, IRET #SS(0)). Property count: 340.
+
+## Event-delivery development stops replaced (2026-11-02)
+
+Fourteen protected-mode handler-invocation checks that stopped the core (`STOPPED`, `fault_code_o=3`) now raise the Intel-specified exception: a fault while delivering #DE/#TS/#NP/#SS/#GP becomes #DF, a fault while delivering #DF shuts down, and other events take #GP/#NP/#TS/#SS with App. B error codes plus EXT (210498-005 9.6.2, App. B B-49/B-50, Table 8-1). ASSUMPTION A28 covers a current TSS too short for the inner SS:SP pair. New directed tests: `protected_event_delivery_faults` (10 runs), the empty-IDT #UD to #GP to #DF to shutdown decode case, and `protected_shutdown_nmi_task_gate_recovery` (fails with the task-gate NMI fix reverted). Both shutdown-NMI tests now run in the default list. `run_sim.sh` 221 PASS, exit 0; AT BIOS native and timer runs pass against Unicorn.
+
+Status: induction is not yet closed; run 42 still fails on an unstated fact
+(the `0F` continuation list). The `cover` task (depth 64) has reached 45 of 89
+covers after 22 hours at step 33. This remains bounded evidence, not a proof.
+
+
+## Development stops replaced and k-induction closed (2026-11-03)
+
+RTL changes, each with directed tests that fail on the old RTL or that check
+the Intel-specified result:
+
+- `b4a5d41`: protected POP ES/SS/DS and LES/LDS load through the
+  segment-load engine with MOV Sreg checks. They commit SP or the offset
+  register with the segment, and a fault restarts the instruction (App. B).
+  The segment-load stack rules were driven by a stale ModRM byte, so a task
+  gate after `MOV SS` rejected a legal read-only incoming DS or ES. See
+  `failure_notes/2026-11-03-intel80286-task-switch-stale-modrm-stack-check.md`.
+- `f1b8e4a`: stack wraparound and real-mode shutdown now follow the 1985
+  iAPX 286 PRM (App. A "Shutdown", Table 5-2, App. B). Assumption A29 covers
+  ENTER. Test `stack_wrap_contracts` has 20 cases.
+- `ec74f75`: ESC D8h-DFh runs the CPU-side 80287 command phase. Its contract
+  matches 4,967 physical Harris D8 captures, and assumption A30 covers
+  D9h-DFh (see `2026-11-03-esc-command-phase.md`).
+
+Development stops in the core went from 27 to 13. The remaining stops are:
+- ESC memory forms in protected mode, which need the processor extension
+  data channel.
+- Real-mode aligned IRET/RETF frames that wrap past FFFF.
+- NT IRET when the current-TSS descriptor is invalid.
+- Decode fallbacks.
+
+Connected-core k-induction is closed. Prove run 94 (`smtbmc yices`, depth 12)
+passes the base case and induction for all 390 core assertions:
+"successful proof by k-induction". Runs 50-93 added invariants. They tie the
+far-transfer, task-switch, event-stack and ESC states to their opcodes, ModRM
+forms and owning flags, and require decode-valid ModRM in every post-decode
+stage.
+
+Several stale properties were also corrected:
+- An outer-level IRET requests CS offset 0.
+- A task JMP also clears the busy bit in `TASK_RETURN_CLEAR_BUSY`.
+- The #DF handler must be a task gate (9.6.2).
+- Real-mode exception 8 or 13 outside the IDT limit shuts down.
+- A real-mode NMI may recover from shutdown.
+
+The cover run on the earlier RTL was stopped at 45 of 89 covers after 42
+hours. It has been restarted on the final tree.
+
+
+### JMP through a call gate (2026-11-04)
+
+An audit of App. B page B-54 found that every protected-mode JMP through a
+call gate raised #GP(gate selector). A gate JMP now reloads CS through
+code-load target 6:
+- A nonconforming target needs DPL=CPL; a conforming target needs DPL<=CPL.
+- The target selector's RPL is not checked.
+- The CS RPL becomes CPL, with no stack or frame change.
+
+Post-mortem: `failure_notes/2026-11-04-intel80286-call-gate-jmp-rejected.md`.
+New test `protected_call_gate_jump` runs 6 cases. `run_sim.sh` passes 226
+tests, exit 0.

@@ -25,8 +25,8 @@ including after reset. Prefix bytes belong to the retiring instruction's PC.
 Extend existing ALU/MOV/TEST/XCHG/unary/shift operations to memory operands.
 Store-only instructions perform no preliminary data read. Add C6/C7 immediate
 MOV, A0..A3 moffs MOV, LEA and LES/LDS. Word operands at FFFF and dword pointers
-above FFFC stop with diagnostic code 2 before any operand transaction. The
-final architecture still requires real #GP/#SS exception delivery there.
+above FFFC raise exception 13 before any operand transaction; stack words past
+FFFF follow the stack-wraparound rules in [spec.md](spec.md).
 
 ## I/O and stack
 

@@ -26,6 +26,20 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-11-04 - 80286 JMP through a call gate raised #GP instead of transferring](2026-11-04-intel80286-call-gate-jmp-rejected.md)
+  An audit against Intel App. B B-54 found every call-gate JMP faulting, with a
+  latent privilege-escalating CS-load path behind it; no test covered gate JMPs.
+
+- [2026-11-03 - 80286 task-switch DS/ES load inherited a stale ModRM stack check](2026-11-03-intel80286-task-switch-stale-modrm-stack-check.md)
+  RTL review found that the segment-load stack rules followed ModRM bits, so a
+  task gate after `MOV SS` rejected a legal read-only incoming DS/ES; tests
+  only used writable incoming data segments.
+
+- [2026-11-02 - 80286 NMI shutdown recovery through a task gate](2026-11-02-intel80286-task-gate-nmi-shutdown-recovery.md)
+  K-induction exposed that a task-gate NMI handler never cleared shutdown
+  recovery, so the next ordinary fault re-entered shutdown; tests only used
+  an interrupt gate and were not in the default regression list.
+
 - [2026-11-01 - 80286 review: 82288 MRDC#, missing EXT, reset-time NMI](2026-11-01-intel80286-review-bus-strobes-ext.md)
   An external code review found MRDC# asserted on I/O reads, error codes
   without EXT, a spurious NMI after reset, an X power-up RESET and a silent

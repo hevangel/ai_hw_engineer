@@ -2,7 +2,9 @@
 #include "protected_mode_fixture.h"
 #include "verilated.h"
 #include <cstdint>
+#include <cstdlib>
 #include <fstream>
+#include <map>
 #include <iostream>
 #include <iterator>
 #include <limits>
@@ -23,6 +25,8 @@ struct Bench {
     std::unordered_map<uint32_t, uint8_t> memory;
     std::vector<uint32_t> accepted;
     std::unordered_map<uint16_t,uint8_t> ports;
+    // Value of an unwritten port; the physical captures read FFh.
+    uint8_t port_default=0;
     struct Transfer {
         uint32_t address; uint8_t value; bool write,io;
         bool segmented=false; unsigned role=0,kind=0,offset=0,size=0;
@@ -54,7 +58,10 @@ struct Bench {
         if (shift>8 && word<2) value|=uint64_t(d.seg_bases_o[word+1])<<32;
         return uint32_t(value>>shift)&0xffffff;
     }
+    // LOADALL may load non-canonical real-mode caches (Intel LOADALL memo).
+    bool canonical_real_caches=true;
     void check_real_caches() const {
+        if (!canonical_real_caches) return;
         check(!(d.msw_o&1),"cache prelude unexpectedly enabled PE");
         check(d.seg_limits_o==0xffffffffffffffffULL && d.seg_access_o==0x93939393 && d.seg_valid_o==15,
               "real-cache limits/usability/A14 attributes");
@@ -112,7 +119,10 @@ struct Bench {
             } else {
                 if (d.bus_io_o) {
                     if (d.bus_write_o) ports[uint16_t(address)]=d.bus_wdata_o;
-                    else d.bus_rdata_i=ports[uint16_t(address)];
+                    else {
+                        const auto port=ports.find(uint16_t(address));
+                        d.bus_rdata_i=port!=ports.end() ? port->second : port_default;
+                    }
                 } else {
                     if (d.bus_write_o) memory[address]=d.bus_wdata_o;
                     else d.bus_rdata_i=memory[address];
@@ -230,10 +240,11 @@ struct Bench {
         check(retired == before && !d.bus_req_o, "diagnostic stop persistence");
     }
     void processor_fault(unsigned vector, uint16_t saved_ip, bool wait=true,
-                         uint32_t vector_base=0, unsigned accepted_acks=0) {
+                         uint32_t vector_base=0, unsigned accepted_acks=0,
+                         const uint16_t* expected_regs=nullptr) {
         const auto saved_flags=uint16_t(d.flags_o),saved_cs=cs(),saved_sp=reg(4);
         uint16_t saved_regs[8];
-        for (unsigned r=0;r<8;++r) saved_regs[r]=reg(r);
+        for (unsigned r=0;r<8;++r) saved_regs[r]=expected_regs ? expected_regs[r] : reg(r);
         const auto saved_segments=uint64_t(d.segs_o);
         const auto before=retired,acks=acknowledgements;
         const auto stack=cache_base(2);
@@ -277,6 +288,75 @@ struct Bench {
 #include "hardware_replay.h"
 #include "undefined_opcode_cases.h"
 #include "protection_fault_cases.h"
+
+// LOADALL (0F 05h): Intel "Undocumented iAPX 286 Test Instruction" pp. 1-4
+// define the 102-byte image at physical 000800h and its field offsets. The
+// expected state below is written from that table, not from the RTL.
+static void loadall_contract() {
+    unsigned runs=0;
+    for (bool wait:{false,true}) {
+        Bench b; b.canonical_real_caches=false;
+        b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+        b.put(0xf0100,{0x0f,0x05});
+        // At the loaded CS:IP F000:0110 (CS cache base 0F0000h):
+        b.put(0xf0110,{0x26,0xa0,0x10,0x00,       // MOV AL,ES:[0010]
+                       0x0f,0x01,0x0e,0x00,0x09,  // SIDT [0900]
+                       0x0f,0x01,0x06,0x08,0x09,  // SGDT [0908]
+                       0xf4});
+        std::vector<uint8_t> image(102,0);
+        auto word=[&](unsigned address,uint16_t value) {
+            image[address-0x800]=uint8_t(value); image[address-0x7ff]=uint8_t(value>>8);
+        };
+        auto cache=[&](unsigned address,uint32_t base,uint8_t access,uint16_t limit) {
+            for (unsigned i=0;i<3;++i) image[address-0x800+i]=uint8_t(base>>(8*i));
+            image[address-0x800+3]=access; word(address+4,limit);
+        };
+        word(0x806,0xfff0); word(0x816,0x0028); word(0x818,0x0893); word(0x81a,0x0110);
+        word(0x81c,0x0030); word(0x81e,0x0000); word(0x820,0x0050); word(0x822,0xf000);
+        word(0x824,0x1234); word(0x826,0x7777); word(0x828,0x6666); word(0x82a,0x5555);
+        word(0x82c,0x8000); word(0x82e,0x3333); word(0x830,0x2222); word(0x832,0x1111);
+        word(0x834,0x0000);
+        cache(0x836,0x123450,0x93,0xffff);   // ES above 1 MB (HIMEM-style)
+        cache(0x83c,0x0f0000,0x9b,0xffff);   // CS
+        cache(0x842,0x000500,0x93,0xffff);   // SS
+        cache(0x848,0x000000,0x93,0xffff);   // DS
+        cache(0x84e,0x012340,0x00,0x0047);   // GDTR
+        cache(0x854,0x005000,0x82,0x0fff);   // LDT
+        cache(0x85a,0x002000,0x00,0x01ff);   // IDTR
+        cache(0x860,0x006000,0x81,0x002b);   // TSS
+        for (unsigned i=0;i<image.size();++i) b.memory[0x800+i]=image[i];
+        b.memory[0x123460]=0xa5;
+        b.reset(); b.step(0xfffff0,0xea,0xf000,0x0100,wait);
+        b.data_transfers.clear();
+        b.step(0xf0100,0x0f,0xf000,0x0110,wait);
+        check(b.data_transfers.size()==102,"LOADALL did not read exactly 102 bytes");
+        for (unsigned i=0;i<102;++i)
+            check(b.data_transfers[i].address==0x800+i && !b.data_transfers[i].write &&
+                  !b.data_transfers[i].io,"LOADALL read outside its ascending 800h-865h image");
+        const uint16_t want_regs[8]={0x0000,0x1111,0x2222,0x3333,0x8000,0x5555,0x6666,0x7777};
+        for (unsigned r=0;r<8;++r) check(b.reg(r)==want_regs[r],"LOADALL general register");
+        check(b.d.segs_o==(0x1234ULL|(0xf000ULL<<16)|(0x0050ULL<<32)),"LOADALL selectors");
+        check(b.cache_base(0)==0x123450 && b.cache_base(1)==0x0f0000 &&
+              b.cache_base(2)==0x000500 && b.cache_base(3)==0,"LOADALL descriptor-cache bases");
+        check(b.d.seg_limits_o==0xffffffffffffffffULL && b.d.seg_access_o==0x93939b93 &&
+              b.d.seg_valid_o==15,"LOADALL descriptor-cache limits/access");
+        check(b.d.flags_o==0x0893 && b.d.msw_o==0xfff0 && b.d.ip_o==0x0110 &&
+              b.d.cs_base_o==0x0f0000,"LOADALL FLAGS/MSW/IP");
+        b.data_transfers.clear();
+        b.step(0xf0110,0xa0,0xf000,0x0114,wait);
+        check((b.reg(0)&0xff)==0xa5 && b.data_transfers.size()==1 &&
+              b.data_transfers[0].address==0x123460,"LOADALL ES cache base not used above 1 MB");
+        b.step(0xf0114,0x0f,0xf000,0x0119,wait);
+        b.step(0xf0119,0x0f,0xf000,0x011e,wait);
+        const uint8_t idtr[]={0xff,0x01,0x00,0x20,0x00},gdtr[]={0x47,0x00,0x40,0x23,0x01};
+        for (unsigned i=0;i<5;++i)
+            check(b.memory[0x900+i]==idtr[i] && b.memory[0x908+i]==gdtr[i],"LOADALL IDTR/GDTR");
+        b.step(0xf011e,0xf4,0xf000,0x011f,wait);
+        ++runs;
+    }
+    check(runs==2,"LOADALL contract missed a READY mode");
+    std::cout<<"PASS: LOADALL loads the Intel 800h image (registers, selectors, caches, GDTR/IDTR) and an above-1MB ES cache in both READY modes\n";
+}
 
 static void directed(bool wait) {
     Bench b;
@@ -355,7 +435,8 @@ static void boundaries() {
     Bench limit;
     limit.put(0xfffff0,{0xea,0xfe,0xff,0x00,0xf0});
     limit.put(0xffffe,{0xb8}); limit.reset();
-    limit.step(0xfffff0,0xea,0xf000,0xfffe); limit.stop(2,0xfffe);
+    // An instruction running past FFFF is real-mode segment overrun 13.
+    limit.step(0xfffff0,0xea,0xf000,0xfffe); limit.processor_fault(13,0xfffe);
     check(limit.accepted.size()==6, "cross-limit operands must not be fetched");
 
     Bench stalled;
@@ -386,16 +467,43 @@ static void rejection_and_reset() {
         b.put(0xf0100,{0xb8,0x34,0x12,0xf9,opcode,modrm});
         b.reset(); b.step(0xfffff0,0xea,0xf000,0x100);
         b.step(0xf0100,0xb8,0xf000,0x103); b.step(0xf0103,0xf9,0xf000,0x104);
-        const bool undocumented_shift=(opcode==0xc0 || opcode==0xc1 || (opcode>=0xd0 && opcode<=0xd3));
-        if (undocumented_shift) b.stop(1,0x104);
-        else b.ud_fault(0x104);
+        b.ud_fault(0x104);
         check(b.reg(0)==0x1234 && b.d.flags_o==3,"rejected encoding changed input state");
         for (unsigned r=1;r<8;++r) if(r!=4) check(b.reg(r)==0,"rejected encoding changed other register");
         check(b.accepted.size()==11,"rejected encoding fetched an operand");
         ++rejected;
     };
-    for (auto op : {0xc0,0xc1,0xd0,0xd1,0xd2,0xd3})
-        for (unsigned r=0;r<8;++r) reject(uint8_t(op),uint8_t(0xf0|r)); // undocumented /6
+    // Undocumented aliases (A34): shift /6 is SHL, 82h is 80h, D6h sets AL
+    // from CF. Expected values come from the physical Harris captures'
+    // behavior summarized in scripts/analyze_alias_captures.py.
+    unsigned aliases=0;
+    for (bool wait:{false,true}) {
+        struct Alias { std::vector<uint8_t> code; uint16_t ax; uint16_t flags; };
+        // AX=8421, CF=1 from STC before each case.
+        const Alias cases[]={
+            {{0xd0,0xf0},0x8442,0x0006},        // SHL AL,1 alias: 21->42, CF=0, PF=1
+            {{0xd1,0xf0},0x0842,0x0807},        // SHL AX,1: 8421->0842, CF=1 OF=1
+            {{0xc0,0xf0,0x04},0x8410,0x0002},   // SHL AL,4: 21->10, CF=0
+            {{0x82,0xc0,0x10},0x8431,0x0002},   // ADD AL,10 via 82
+            {{0x82,0xf8,0x21},0x8421,0x0046},   // CMP AL,21 via 82: ZF
+            {{0xd6},0x84ff,0x0003},             // SALC with CF=1
+        };
+        for (const auto& a:cases) {
+            Bench b;
+            std::vector<uint8_t> program={0xb8,0x21,0x84,0xf9};
+            program.insert(program.end(),a.code.begin(),a.code.end());
+            program.push_back(0xf4);
+            b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+            for (std::size_t i=0;i<program.size();++i) b.memory[0xf0100+uint32_t(i)]=program[i];
+            b.reset(); b.step(0xfffff0,0xea,0xf000,0x100,wait);
+            b.step(0xf0100,0xb8,0xf000,0x103,wait); b.step(0xf0103,0xf9,0xf000,0x104,wait);
+            b.step(0xf0104,a.code[0],0xf000,uint16_t(0x104+a.code.size()),wait);
+            if (!(b.reg(0)==a.ax && (b.d.flags_o&0x08d5)==(a.flags&0x08d5)))
+                throw std::runtime_error("undocumented alias result: opcode "+std::to_string(a.code[0])+
+                    " AX="+std::to_string(b.reg(0))+" FLAGS="+std::to_string(b.d.flags_o));
+            ++aliases;
+        }
+    }
     for (auto op : {0xfe,0xff,0xf6,0xf7})
         for (unsigned extension=0;extension<8;++extension) {
             const bool supported = op==0xff ? extension<=2 || extension==4 || extension==6 :
@@ -427,9 +535,9 @@ static void rejection_and_reset() {
     Bench limit;
     limit.put(0xfffff0,{0xea,0xfd,0xff,0x00,0xf0});
     limit.put(0xffffd,{0x81,0xc0}); limit.reset();
-    limit.step(0xfffff0,0xea,0xf000,0xfffd); limit.stop(2,0xfffd);
+    limit.step(0xfffff0,0xea,0xf000,0xfffd); limit.processor_fault(13,0xfffd);
     check(limit.accepted.size()==7,"ModR/M immediate crossed segment boundary");
-    std::cout<<"PASS: "<<rejected<<" rejected ModR/M encodings, 100 reset cut points and immediate limit\n";
+    std::cout<<"PASS: "<<rejected<<" rejected ModR/M encodings, "<<aliases<<" undocumented alias executions (shift /6, 82h, D6h), 100 reset cut points and immediate limit\n";
 }
 
 static void intel_shift_carry() {
@@ -648,7 +756,12 @@ static void string_contracts() {
     }
     check(elements==1 && partial.reg(1)==1 && partial.reg(6)==0xffff && partial.reg(7)==0x2002,"REP lost completed-element progress");
     check(partial.data_transfers.size()==4 && partial.memory[0x2000]==0x34 && partial.memory[0x2001]==0x12 && partial.memory[0x2002]==0xcc,"REP limit accessed an incomplete element");
-    partial.processor_fault(13,0x109);
+    // A36: physical captures (A5.MOO) leave SI advanced and REP CX reduced by
+    // one when the MOVSW source word at FFFF raises #13; DI is unchanged.
+    uint16_t source_fault_regs[8];
+    for (unsigned r=0;r<8;++r) source_fault_regs[r]=partial.reg(r);
+    source_fault_regs[1]=0; source_fault_regs[6]=0x0001;
+    partial.processor_fault(13,0x109,true,0,0,source_fault_regs);
     for(unsigned cut=0;cut<=12;++cut) {
         Bench b; b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
         b.put(0xf0100,{0xb9,3,0,0xbe,0,0x10,0xbf,0,0x20,0xf3,0xa5,0x43,0xf4});
@@ -664,7 +777,13 @@ static void string_contracts() {
     Bench ins; ins.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
     ins.put(0xf0100,{0xb9,1,0,0xbf,0xff,0xff,0xf3,0x6d}); ins.reset();
     ins.step(0xfffff0,0xea,0xf000,0x100); ins.step(0xf0100,0xb9,0xf000,0x103);
-    ins.step(0xf0103,0xbf,0xf000,0x106); ins.processor_fault(13,0x106);
+    ins.step(0xf0103,0xbf,0xf000,0x106);
+    // A36 (physical 6D captures): REP INSW at DI=FFFF raises 13 with DI
+    // advanced and CX reduced by two.
+    uint16_t ins_fault_regs[8];
+    for (unsigned r=0;r<8;++r) ins_fault_regs[r]=ins.reg(r);
+    ins_fault_regs[1]=0xffff; ins_fault_regs[7]=0x0001;
+    ins.processor_fault(13,0x106,true,0,0,ins_fault_regs);
 
     Bench ins_ok; ins_ok.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
     ins_ok.put(0xf0100,{0xba,0x20,0x00,0xbf,0xfe,0xff,0x6d,0xf4});
@@ -974,6 +1093,220 @@ static void debug_trap_contracts() {
     std::cout<<"PASS: instruction-start TF, POPF/IRET timing, HLT wake, SS inhibition, INT suppression, NMI priority and REP debug restart\n";
 }
 
+// Stack-wrap and real-mode shutdown contracts from the 1985 iAPX 286 PRM:
+// App. A "Shutdown" (real mode shuts down when a CALL, INT or PUSH wraps the
+// stack with odd SP, or exception 8/13 lies outside the IDT limit; NMI exits
+// when the IDT covers vector 2 and SP>5), Table 5-2 (segment overrun 13 for
+// a word at offset FFFF), B-84 PUSHA (SP=1/3/5 shut down, SP=7..15 raise 13)
+// and B-81 POP. Protected stack words past FFFF exceed every SS limit: #SS(0).
+static void protected_mode_boot(Bench& b, bool wait);
+static void place_selector_fixture(Bench& b, const uint8_t* program, std::size_t program_size);
+static void stack_wrap_contracts() {
+    auto real_bench=[](Bench& b,std::initializer_list<uint8_t> program) {
+        b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+        b.put(0xf0100,program);
+        b.reset();
+        b.step(0xfffff0,0xea,0xf000,0x0100);
+    };
+    auto expect_shutdown=[](Bench& b,const char* what) {
+        const unsigned before=b.retired;
+        b.data_transfers.clear();
+        for (unsigned n=0;n<4000 && !b.d.shutdown_o && !b.d.fault_o;++n) b.tick();
+        check(b.d.shutdown_o && b.d.halted_o && !b.d.fault_o && b.retired==before,what);
+        check(std::none_of(b.data_transfers.begin(),b.data_transfers.end(),
+                           [](const auto& t){ return t.write; }),
+              "real-mode stack-wrap shutdown wrote memory");
+        for (unsigned n=0;n<32;++n) b.tick();
+        check(b.d.shutdown_o && !b.d.bus_req_o && b.retired==before,"shutdown did not persist");
+    };
+    unsigned cases=0;
+    {   // PUSH with SP=1 shuts down; NMI cannot leave because SP<=5.
+        Bench b; real_bench(b,{0xbc,0x01,0x00, 0x50});
+        b.step(0xf0100,0xbc,0xf000,0x0103);
+        expect_shutdown(b,"real-mode PUSH with SP=1 did not shut down");
+        check(b.reg(4)==1,"shutdown PUSH changed SP");
+        b.d.nmi_i=1;
+        for (unsigned n=0;n<4000;++n) b.tick();
+        b.d.nmi_i=0;
+        for (unsigned n=0;n<64;++n) b.tick();
+        check(b.d.shutdown_o && b.d.halted_o && !b.d.fault_o && b.reg(4)==1,
+              "NMI left real-mode shutdown with SP=1");
+        ++cases;
+    }
+    for (uint8_t sp : {uint8_t(1),uint8_t(3),uint8_t(5)}) {   // INT n
+        Bench b; real_bench(b,{0xbc,sp,0x00, 0xcd,0x21});
+        b.step(0xf0100,0xbc,0xf000,0x0103);
+        expect_shutdown(b,"real-mode INT with SP=1/3/5 did not shut down");
+        ++cases;
+    }
+    {   // Near CALL with SP=1 wraps its return-address push.
+        Bench b; real_bench(b,{0xbc,0x01,0x00, 0xe8,0x00,0x00});
+        b.step(0xf0100,0xbc,0xf000,0x0103);
+        expect_shutdown(b,"real-mode CALL with SP=1 did not shut down");
+        ++cases;
+    }
+    for (uint8_t sp : {uint8_t(1),uint8_t(3),uint8_t(5)}) {   // PUSHA SP=1/3/5
+        Bench b; real_bench(b,{0xbc,sp,0x00, 0x60});
+        b.step(0xf0100,0xbc,0xf000,0x0103);
+        expect_shutdown(b,"real-mode PUSHA with SP=1/3/5 did not shut down");
+        ++cases;
+    }
+    for (uint8_t sp : {uint8_t(7),uint8_t(9),uint8_t(15)}) {  // PUSHA SP=7..15
+        Bench b; real_bench(b,{0xbc,sp,0x00, 0x60});
+        b.step(0xf0100,0xbc,0xf000,0x0103);
+        b.processor_fault(13,0x0103);
+        check(b.reg(4)==uint16_t(sp-6),"PUSHA segment overrun used the wrong frame SP");
+        ++cases;
+    }
+    {   // POP with SP=FFFF reads a word at FFFF: segment overrun 13.
+        Bench b; real_bench(b,{0xbc,0xff,0xff, 0x58});
+        b.step(0xf0100,0xbc,0xf000,0x0103);
+        b.processor_fault(13,0x0103);
+        check(b.reg(4)==0xfff9,"POP segment overrun frame SP");
+        ++cases;
+    }
+    {   // Exception 13 outside the IDT limit shuts down; NMI then recovers.
+        Bench b;
+        b.put(0x0040,{0x33,0x00,0x00,0x00,0x00,0x00});   // IDT limit covers vectors 0..12
+        b.put(0x0008,{0x00,0x01,0x00,0x20});             // NMI handler 2000:0100
+        b.put(0x20100,{0xf4});
+        real_bench(b,{0x0f,0x01,0x1e,0x40,0x00, 0xbc,0xff,0xff, 0x58});
+        b.step(0xf0100,0x0f,0xf000,0x0105);
+        b.step(0xf0105,0xbc,0xf000,0x0108);
+        expect_shutdown(b,"exception 13 outside the real-mode IDT limit did not shut down");
+        b.data_transfers.clear();
+        b.d.nmi_i=1;
+        for (unsigned n=0;n<4000 && !b.d.event_o;++n) b.tick();
+        b.d.nmi_i=0;
+        check(b.d.event_o && !b.d.shutdown_o && !b.d.halted_o && b.d.event_vector_o==2 &&
+              b.cs()==0x2000 && b.d.ip_o==0x0100 && b.reg(4)==0xfff9 &&
+              b.d.event_packet_saved_ip_o==0x0108,
+              "NMI did not leave real-mode shutdown through its IVT handler");
+        check(b.data_transfers.size()==10,"real-mode NMI recovery IVT/frame traffic");
+        b.step(0x20100,0xf4,0x2000,0x0101);
+        check(b.d.halted_o && !b.d.shutdown_o,"recovered NMI handler did not reach its HLT");
+        ++cases;
+    }
+    {   // INT 0Dh outside the limit is not exception 13: it raises 8.
+        Bench b;
+        b.put(0x0040,{0x33,0x00,0x00,0x00,0x00,0x00});
+        real_bench(b,{0x0f,0x01,0x1e,0x40,0x00, 0xcd,0x0d});
+        b.step(0xf0100,0x0f,0xf000,0x0105);
+        b.processor_fault(8,0x0105);
+        ++cases;
+    }
+    // Protected mode: a 64K expand-up SS (GDT 0048) and POP at SP=FFFF.
+    for (bool wait:{false,true}) {
+        using namespace protected_mode_fixture;
+        const uint8_t program[]={
+            0xb8,0x48,0x00, 0x8e,0xd0,   // 0200 MOV SS,0048
+            0xbc,0xff,0xff,              // 0205 MOV SP,FFFF
+            0x58,                        // 0208 POP AX -> #SS(0)
+            0xf4
+        };
+        Bench b;
+        place_selector_fixture(b,program,sizeof(program));
+        b.put(kGdtBase+0x48,{0xff,0xff,0x00,0x00,0x06,0x92,0x00,0x00});
+        b.put(kIdtBase+12*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        for (unsigned n=0;n<30000 && !b.d.event_o && !b.d.fault_o;++n) b.tick(wait);
+        check(b.d.event_o && !b.d.fault_o && b.d.event_vector_o==12 &&
+              b.d.event_packet_error_valid_o && b.d.event_packet_error_code_o==0 &&
+              b.d.event_packet_saved_ip_o==0x0208 && b.d.event_packet_saved_sp_o==0xffff &&
+              b.cs()==kHandlerSelector && b.reg(4)==0xfff7,
+              "protected POP at SP=FFFF did not raise #SS(0) with the original SP");
+        ++cases;
+    }
+    // A BP-based word at FFFF is an SS operand: #SS(0), not #GP(0) (App. B).
+    for (bool wait:{false,true}) {
+        using namespace protected_mode_fixture;
+        const uint8_t program[]={
+            0xb8,0x48,0x00, 0x8e,0xd0,   // 0200 MOV SS,0048
+            0xbc,0x00,0x01,              // 0205 MOV SP,0100
+            0xbd,0xff,0xff,              // 0208 MOV BP,FFFF
+            0x8b,0x46,0x00,              // 020B MOV AX,[BP+0] -> #SS(0)
+            0xf4
+        };
+        Bench b;
+        place_selector_fixture(b,program,sizeof(program));
+        b.put(kGdtBase+0x48,{0xff,0xff,0x00,0x00,0x06,0x92,0x00,0x00});
+        b.put(kIdtBase+12*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xbd,kCodeSelector,0x020b,wait);
+        for (unsigned n=0;n<30000 && !b.d.event_o && !b.d.fault_o;++n) b.tick(wait);
+        if (!(b.d.event_o && !b.d.fault_o && b.d.event_vector_o==12 &&
+              b.d.event_packet_error_code_o==0 && b.d.event_packet_saved_ip_o==0x020b &&
+              b.reg(4)==0x00f8))
+            throw std::runtime_error("protected SS word operand at FFFF did not raise #SS(0); event="+
+                std::to_string(b.d.event_o)+" fault="+std::to_string(b.d.fault_o)+
+                " code="+std::to_string(b.d.fault_code_o)+" vector="+std::to_string(b.d.event_vector_o)+
+                " error="+std::to_string(b.d.event_packet_error_code_o)+" ip="+
+                std::to_string(b.d.event_packet_saved_ip_o)+" sp="+std::to_string(b.reg(4)));
+        ++cases;
+    }
+    // Protected PUSH at SP=1: #SS(0), whose same-stack frame cannot be
+    // pushed either, so #DF and then shutdown (210498-005 9.6.2).
+    for (bool wait:{false,true}) {
+        using namespace protected_mode_fixture;
+        const uint8_t program[]={
+            0xb8,0x48,0x00, 0x8e,0xd0,   // 0200 MOV SS,0048
+            0xbc,0x01,0x00,              // 0205 MOV SP,0001
+            0x50,                        // 0208 PUSH AX -> #SS(0) -> #DF -> shutdown
+            0xf4
+        };
+        Bench b;
+        place_selector_fixture(b,program,sizeof(program));
+        b.put(kGdtBase+0x48,{0xff,0xff,0x00,0x00,0x06,0x92,0x00,0x00});
+        b.put(kIdtBase+12*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+        b.put(kIdtBase+8*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+        b.memory[0x46]=0x6f;
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.data_transfers.clear();
+        for (unsigned n=0;n<30000 && !b.d.shutdown_o && !b.d.fault_o;++n) b.tick(wait);
+        check(b.d.shutdown_o && !b.d.fault_o && b.reg(4)==1 &&
+              std::none_of(b.data_transfers.begin(),b.data_transfers.end(),
+                           [](const auto& t){ return t.write && t.segmented; }),
+              "protected PUSH at SP=1 did not escalate #SS(0) through #DF to shutdown");
+        ++cases;
+    }
+    // Real mode, even SP: an aligned IRET/RETF frame wraps from FFFE to 0000.
+    for (bool wait:{false,true}) {
+        struct Wrap { uint8_t op; uint16_t sp; uint16_t sp_after; };
+        for (const Wrap w : {Wrap{0xcf,0xfffc,0x0002},Wrap{0xcf,0xfffe,0x0004},
+                             Wrap{0xcb,0xfffe,0x0002},Wrap{0xca,0xfffe,0x0012}}) {
+            Bench b;
+            std::vector<uint8_t> program={0xbc,uint8_t(w.sp),uint8_t(w.sp>>8),w.op};
+            if (w.op==0xca) program.insert(program.end(),{0x10,0x00});
+            b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+            for (std::size_t i=0;i<program.size();++i) b.memory[0xf0100+uint32_t(i)]=program[i];
+            const uint16_t words[]={0x0200,0x2000,0x08d7};
+            for (unsigned i=0;i<3;++i) {
+                const uint16_t off=uint16_t(w.sp+2*i);
+                b.memory[off]=uint8_t(words[i]); b.memory[uint16_t(off+1)]=uint8_t(words[i]>>8);
+            }
+            b.put(0x20200,{0xf4});
+            b.reset();
+            b.step(0xfffff0,0xea,0xf000,0x0100,wait);
+            b.step(0xf0100,0xbc,0xf000,0x0103,wait);
+            b.step(0xf0103,w.op,0x2000,0x0200,wait);
+            check(b.reg(4)==w.sp_after && (w.op!=0xcf || b.d.flags_o==0x08d7),
+                  "real-mode far return did not wrap its aligned frame past FFFF");
+            b.step(0x20200,0xf4,0x2000,0x0201,wait);
+            ++cases;
+        }
+    }
+    std::cout<<"PASS: "<<cases<<" stack-wrap cases: real-mode odd-SP PUSH/CALL/INT/PUSHA shutdown, PUSHA/POP segment overrun 13, exception-13 IDT-limit shutdown with NMI recovery, INT 0Dh limit to vector 8, aligned IRET/RETF frames wrapping past FFFF, and protected #SS(0) and #DF shutdown\n";
+}
+
 static void procedure_reset_contracts() {
     for(unsigned cut=0;cut<64;++cut) {
         Bench b; b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
@@ -1055,6 +1388,14 @@ static void bounds_translation_contracts() {
         b.put(0xf0100,{0x62,0x06,uint8_t(offset),uint8_t(offset>>8),0xf4});
         b.put(offset,{0,0,0xff,0x7f}); b.reset(); b.step(0xfffff0,0xea,0xf000,0x100);
         if(offset==0xfffc) {b.step(0xf0100,0x62,0xf000,0x104); check(b.data_transfers.size()==4,"BOUND endpoint bytes");}
+        else if(offset==0xfffe) {
+            // A40 (physical 62/C4/C5 captures): the upper bound word wraps to
+            // offset 0000 of DS instead of raising 13.
+            b.put(0,{0xff,0x7f}); b.step(0xf0100,0x62,0xf000,0x104);
+            check(b.data_transfers.size()==4 && b.data_transfers[0].address==0xfffe &&
+                  b.data_transfers[1].address==0xffff && b.data_transfers[2].address==0 &&
+                  b.data_transfers[3].address==1,"BOUND upper word wraps to offset 0000");
+        }
         else b.processor_fault(13,0x100);
     }
     Bench x; x.put(0xfffff0,{0xbb,0xff,0xff,0xb0,0x02,0x2e,0xd7,0xf4});
@@ -1525,6 +1866,35 @@ static void system_register_contracts() {
             b.step(0xf010a,0x90,0xf000,0x10b); b.step(0xf010b,0xf4,0xf000,0x10c); }
         else { b.processor_fault(13,0x100); check(b.accepted.size()==10,"overlong instruction fetched extension"); } ++cases;
     }
+    // A43: REP/REPNE before a non-string opcode is ignored; the instruction
+    // runs once and CX is unchanged.
+    for (bool wait:{false,true}) {
+        Bench b; b.put(0xfffff0,{0xea,0,1,0,0xf0});
+        b.put(0xf0100,{0xb9,0x05,0x00, 0xf3,0x40, 0xf2,0xbb,0x34,0x12, 0xf3,0xf2,0x43, 0xf4});
+        b.reset(); b.step(0xfffff0,0xea,0xf000,0x100,wait);
+        b.step(0xf0100,0xb9,0xf000,0x103,wait);
+        const uint16_t ax=b.reg(0);
+        b.step(0xf0103,0x40,0xf000,0x105,wait);
+        b.step(0xf0105,0xbb,0xf000,0x109,wait);
+        b.step(0xf0109,0x43,0xf000,0x10c,wait);
+        check(b.reg(0)==uint16_t(ax+1) && b.reg(3)==0x1235 && b.reg(1)==5,
+              "REP before a non-string opcode was not ignored");
+        b.step(0xf010c,0xf4,0xf000,0x10d,wait);
+        ++cases;
+    }
+    // A35: Intel's undocumented-opcode note makes F1h a prefix with no
+    // function that counts toward the ten-byte limit like any other prefix.
+    for (unsigned prefixes: {1u,8u,9u,10u}) {
+        Bench b; b.put(0xfffff0,{0xea,0,1,0,0xf0});
+        for (unsigned i=0;i<prefixes;++i) b.memory[0xf0100+i]=(i&1)?0x3e:0xf1;
+        b.put(0xf0100+prefixes,{0xb0,0x5a,0xf4}); b.reset(); b.step(0xfffff0,0xea,0xf000,0x100); b.accepted.clear();
+        if (prefixes<=8) {
+            b.step(0xf0100,0xb0,0xf000,uint16_t(0x102+prefixes));
+            check(b.accepted.size()==prefixes+2 && (b.reg(0)&0xff)==0x5a,"F1 prefix executes as no-op");
+            b.step(0xf0102+prefixes,0xf4,0xf000,uint16_t(0x103+prefixes));
+        } else { b.processor_fault(13,0x100); check(prefixes==9 || b.accepted.size()==10,"F1 counted toward ten-byte limit"); }
+        ++cases;
+    }
     for (bool invalid_limit: {false,true}) {
         Bench b; b.put(0xfffff0,{0xea,0,1,0,0xf0});
         b.put(0xf0100,{0xbc,0,0x80,0x0f,1,0x1e,0,0x20,0xcd,0x20,0x43,0xf4});
@@ -1582,7 +1952,7 @@ static void system_register_contracts() {
         b.put(0xf0000,{0x90,0xf4}); b.reset(); b.step(0xfffff0,0xea,0xf000,offset); b.accepted.clear();
         if (offset==0xfffe) { b.step(0xffffe,0x0f,0xf000,0); check(b.accepted.size()==2,"legal extension wrap fetch count");
             b.step(0xf0000,0x90,0xf000,1); b.step(0xf0001,0xf4,0xf000,2); }
-        else { b.stop(2,0xffff); check(b.accepted.size()==1,"extension fetched beyond code limit"); } ++cases;
+        else { b.processor_fault(13,0xffff); check(b.accepted.size()==1,"extension fetched beyond code limit"); } ++cases;
     }
     for (bool invalid_limit: {false,true}) {
         Bench b; b.put(0xfffff0,{0xea,0,1,0,0xf0});
@@ -2330,15 +2700,28 @@ static void protected_selector_opcode_decode() {
             b.accepted.clear();
             b.data_transfers.clear();
             const unsigned retired_before=b.retired;
-            for (unsigned cycle=0;cycle<10000 && !b.d.fault_o;++cycle) b.tick(wait);
-            check(b.d.fault_o && b.d.fault_code_o==3 && b.d.ip_o==0x0200 && !b.d.retire_o,
-                  "selector opcode did not stop visibly at its first byte");
-            check(b.retired==retired_before && b.data_transfers.size()==8,
-                  "selector opcode retired or did not read exactly its invalid protected #UD gate");
-            for (unsigned i=0;i<8;++i)
+            // The IDT is empty. Intel 210498-005 App. B page B-49: the null
+            // #UD gate is #GP(6*8+2); #UD is not contributory, so #GP is
+            // delivered (9.6.2). Its null gate is a second fault while
+            // delivering #GP, so #DF follows; the null #DF gate shuts down.
+            for (unsigned cycle=0;cycle<10000 && !b.d.shutdown_o && !b.d.fault_o;++cycle)
+                b.tick(wait);
+            check(b.d.shutdown_o && !b.d.fault_o && !b.d.retire_o,
+                  "selector opcode with an empty IDT did not shut down via #GP and #DF");
+            check(b.retired==retired_before,
+                  "selector opcode retired before its #UD delivery");
+            if (b.data_transfers.size()!=24) {
+                std::cerr<<"transfers="<<b.data_transfers.size()<<":";
+                for (const auto& t:b.data_transfers) std::cerr<<' '<<std::hex<<t.address<<std::dec;
+                std::cerr<<'\n';
+            }
+            check(b.data_transfers.size()==24,
+                  "empty-IDT #UD did not read exactly the #UD, #GP and #DF gates");
+            const uint32_t gate_order[3]={6,13,8};
+            for (unsigned i=0;i<24 && i<b.data_transfers.size();++i)
                 check(!b.data_transfers[i].write &&
-                      b.data_transfers[i].address==kIdtBase+6*8+i,
-                      "invalid protected #UD delivery accessed an operand or another descriptor");
+                      b.data_transfers[i].address==kIdtBase+gate_order[i/8]*8+(i%8),
+                      "empty-IDT #UD delivery accessed an operand or another descriptor");
             check(b.accepted.size()==test.bytes.size(),
                   "selector opcode did not fetch its complete ModR/M/displacement encoding");
             for (std::size_t i=0;i<test.bytes.size();++i)
@@ -2346,8 +2729,9 @@ static void protected_selector_opcode_decode() {
                       "selector opcode fetched an unexpected byte/address");
             if (test.invalid_group) {
                 check(b.d.event_packet_valid_o && b.d.event_packet_protected_o &&
-                      b.d.event_vector_o==6,
-                      "invalid SLDT group did not enter the protected #UD diagnostic path");
+                      b.d.event_vector_o==8 && b.d.event_packet_error_code_o==0 &&
+                      b.d.event_packet_saved_ip_o==0x0200,
+                      "invalid SLDT group did not escalate #UD -> #GP -> #DF at its first byte");
             } else {
                 check(!b.d.event_packet_valid_o,
                       "valid unimplemented selector instruction was misclassified as #UD");
@@ -2357,7 +2741,7 @@ static void protected_selector_opcode_decode() {
             throw std::runtime_error(std::string("80286 protected selector decode ")+test.label+": "+error.what());
         }
     }
-    std::cout<<"PASS: "<<runs<<" invalid protected selector-group encodings raise #UD\n";
+    std::cout<<"PASS: "<<runs<<" invalid protected selector-group encodings raise #UD and, with an empty IDT, escalate through #GP and #DF to shutdown\n";
 }
 
 static void protected_mode_boot(Bench& b, bool wait) {
@@ -3163,6 +3547,195 @@ static void protected_call_gate_same_level() {
     }
     check(executions==2,"same-level call gate did not cover both READY modes");
     std::cout<<"PASS: protected same-level CALL gate resolves the target, pushes the exact link and reaches its gate offset in both READY modes\n";
+}
+
+// JMP through a call gate (Intel 210498-005 App. B page B-54, JUMP TO CALL
+// GATE): the gate offset is used, the target must be nonconforming with
+// DPL=CPL or conforming with DPL<=CPL, CS RPL becomes CPL, and no stack or
+// link frame changes. A more-privileged nonconforming target is #GP(CS).
+// NT flag contracts (Intel 210498-005): POPF pops the whole flag word (App. B
+// POPF); an interrupt or trap gate clears NT after pushing the old flags and
+// IRET reloads it from the frame (chapter 8/9 text and App. B IRET); IRET with
+// NT and an invalid current TSS raises #TS(back link) (App. B SWITCH_TASKS).
+static void protected_nt_flag_contracts() {
+    using namespace protected_mode_fixture;
+    unsigned runs=0;
+    for (bool wait:{false,true}) {
+        const uint8_t program[]={
+            0xb8,0x28,0x00, 0x8e,0xd0,  // 0200 MOV SS,0028
+            0xbc,0x80,0x00,             // 0205 MOV SP,0080
+            0xb8,0x02,0x40,             // 0208 MOV AX,4002 (NT=1)
+            0x50, 0x9d,                 // 020B PUSH AX / POPF
+            0xcd,0x20,                  // 020D INT 20h (interrupt gate)
+            0xf4                        // 020F HLT
+        };
+        Bench b;
+        place_selector_fixture(b,program,sizeof(program));
+        b.memory[0x46]=0xff; b.memory[0x47]=0x07;
+        b.put(kIdtBase+0x20*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+        b.put(kHandlerBase+kHandlerIp,{0xcf});              // IRET
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+        b.step(kCodeBase+0x020b,0x50,kCodeSelector,0x020c,wait);
+        b.step(kCodeBase+0x020c,0x9d,kCodeSelector,0x020d,wait);
+        check(b.d.flags_o==0x4002,"protected POPF did not load NT");
+        b.step(kCodeBase+0x020d,0xcd,kHandlerSelector,kHandlerIp,wait);
+        check(!(b.d.flags_o&0x4000),"interrupt gate did not clear NT");
+        const uint32_t frame=kStackBase+b.reg(4);
+        check(b.memory[frame+4]==0x02 && b.memory[frame+5]==0x40,
+              "interrupt gate did not push the old NT");
+        b.step(kHandlerBase+kHandlerIp,0xcf,kCodeSelector,0x020f,wait);
+        check(b.d.flags_o==0x4002 && b.reg(4)==0x0080,
+              "IRET did not reload NT from its frame");
+        b.step(kCodeBase+0x020f,0xf4,kCodeSelector,0x0210,wait);
+        ++runs;
+
+        const uint8_t nested[]={
+            0xb8,0x28,0x00, 0x8e,0xd0,  // 0200 MOV SS,0028
+            0xbc,0x80,0x00,             // 0205 MOV SP,0080
+            0xb8,0x02,0x40,             // 0208 MOV AX,4002 (NT=1)
+            0x50, 0x9d,                 // 020B PUSH AX / POPF
+            0xcf, 0xf4                  // 020D IRET with no TR loaded
+        };
+        Bench t;
+        place_selector_fixture(t,nested,sizeof(nested));
+        t.memory[0x46]=0xff; t.memory[0x47]=0x07;
+        t.memory[0x40]=0x77; t.memory[0x41]=0x00;
+        t.put(kIdtBase+10*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+        t.put(kHandlerBase+kHandlerIp,{0xf4});
+        t.put(0x000000,{0x58,0x00});      // back link read through the null TR cache
+        protected_mode_boot(t,wait);
+        t.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        t.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        t.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        t.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+        t.step(kCodeBase+0x020b,0x50,kCodeSelector,0x020c,wait);
+        t.step(kCodeBase+0x020c,0x9d,kCodeSelector,0x020d,wait);
+        bool entered=false;
+        for (unsigned n=0;n<60000 && !t.d.fault_o;++n) {
+            t.tick(wait);
+            if (t.d.event_o && t.cs()==kHandlerSelector && t.d.ip_o==kHandlerIp) { entered=true; break; }
+        }
+        check(entered && !t.d.fault_o && t.d.event_vector_o==10 &&
+              t.d.event_packet_error_code_o==0x0058 &&
+              t.d.event_packet_saved_ip_o==0x020d,
+              "NT IRET with an invalid current TSS did not raise #TS(back link)");
+        ++runs;
+    }
+    check(runs==4,"NT contracts missed a READY mode");
+    std::cout<<"PASS: protected POPF loads NT, gates clear it, IRET restores it, and NT IRET without a valid TSS raises #TS(back link) in both READY modes\n";
+}
+
+// A42: App. B ENTER raises #SS(0) if SP would leave the stack limit during
+// any part of the instruction, including the final allocation. The fixture's
+// SS (0028h) is expand-up with limit 00FFh.
+static void protected_enter_stack_limit() {
+    using namespace protected_mode_fixture;
+    unsigned runs=0;
+    for (bool wait:{false,true}) for (bool overflow:{false,true}) {
+        const uint8_t program[]={
+            0xb8,0x28,0x00, 0x8e,0xd0,  // 0200 MOV SS,0028
+            0xbc,0x80,0x00,             // 0205 MOV SP,0080
+            0xbd,0x34,0x12,             // 0208 MOV BP,1234
+            0xc8,uint8_t(overflow ? 0x00 : 0x10),uint8_t(overflow ? 0x01 : 0x00),0x00, // 020B ENTER n,0
+            0xf4                        // 020F HLT
+        };
+        Bench b;
+        place_selector_fixture(b,program,sizeof(program));
+        b.put(kIdtBase+12*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+        b.put(kHandlerBase+kHandlerIp,{0xf4});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xbd,kCodeSelector,0x020b,wait);
+        if (!overflow) {
+            b.step(kCodeBase+0x020b,0xc8,kCodeSelector,0x020f,wait);
+            check(b.reg(4)==0x006e && b.reg(5)==0x007e,"in-limit protected ENTER frame");
+        } else {
+            bool entered=false;
+            for (unsigned n=0;n<60000 && !b.d.fault_o;++n) {
+                b.tick(wait);
+                if (b.d.event_o && b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp) { entered=true; break; }
+            }
+            check(entered && b.d.event_vector_o==12 && b.d.event_packet_error_code_o==0 &&
+                  b.d.event_packet_saved_ip_o==0x020b && b.d.event_packet_saved_sp_o==0x0080 &&
+                  b.reg(5)==0x1234,
+                  "ENTER allocating below the SS limit did not raise restartable #SS(0)");
+        }
+        ++runs;
+    }
+    check(runs==4,"ENTER stack-limit cases incomplete");
+    std::cout<<"PASS: protected ENTER allocates within the SS limit and raises restartable #SS(0) when the frame would leave it, in both READY modes\n";
+}
+
+static void protected_call_gate_jump() {
+    using namespace protected_mode_fixture;
+    const uint8_t ring0_program[]={
+        0xb8,0x28,0x00, 0x8e,0xd0,  // 0200 MOV SS,0028
+        0xbc,0x80,0x00,             // 0205 MOV SP,0080
+        0xb8,0x50,0x00, 0x0f,0x00,0xd8, // 0208 LTR 0050 (ring-0 stack for #GP)
+        0xcf,                       // 020E IRET to CPL3 0x3b:0400
+        0xf4
+    };
+    struct Case { uint16_t gate; bool fault; uint16_t cs; };
+    const Case cases[]={
+        {0x006b,false,0x003b},      // DPL3 nonconforming target, same level
+        {0x0063,false,0x004b},      // DPL0 conforming target, CPL stays 3
+        {0x005b,true,0x0008},       // DPL0 nonconforming target: #GP(0008)
+        {0x0073,true,0x0070},       // all-zero (type 0) descriptor: #GP(0070), B-54
+    };
+    unsigned executions=0;
+    for (bool wait:{false,true}) for (const auto& test:cases) {
+        Bench b;
+        place_selector_fixture(b,ring0_program,sizeof(ring0_program));
+        b.memory[0x41]=0x00; b.memory[0x40]=0x77;
+        b.put(kGdtBase+0x70,{0,0,0,0,0,0,0,0});                          // empty slot
+        b.put(kGdtBase+0x38,{0xff,0x0f,0x00,0x00,0x06,0xfa,0x00,0x00}); // ring-3 code
+        b.put(kGdtBase+0x40,{0xff,0x00,0x00,0x00,0x07,0xf2,0x00,0x00}); // ring-3 stack
+        b.put(kGdtBase+0x48,{0xff,0x0f,0x00,0x00,0x06,0x9e,0x00,0x00}); // DPL0 conforming
+        b.put(kGdtBase+0x58,{0x00,0x03,0x08,0x00,0x00,0xe4,0x00,0x00}); // gate -> 0008:0300
+        b.put(kGdtBase+0x60,{0x00,0x05,0x48,0x00,0x00,0xe4,0x00,0x00}); // gate -> 0048:0500
+        b.put(kGdtBase+0x68,{0x00,0x05,0x3b,0x00,0x00,0xe4,0x00,0x00}); // gate -> 003b:0500
+        b.put(0x00000742,{0x00,0x01,0x28,0x00});                        // TSS SP0:SS0
+        b.put(0x00060400,{0xea,0x34,0x12,uint8_t(test.gate),uint8_t(test.gate>>8)});
+        b.put(0x00060500,{0x90});
+        b.put(kStackBase+0x0080,{0x00,0x04,0x3b,0x00,0x02,0x02,0x00,0x01,0x43,0x00});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+        b.step(kCodeBase+0x020b,0x0f,kCodeSelector,0x020e,wait);
+        b.step(kCodeBase+0x020e,0xcf,0x003b,0x0400,wait);
+        check(b.reg(4)==0x0100 && uint16_t(b.d.segs_o>>32)==0x0043,
+              "gate JMP fixture did not reach CPL3 with its outer stack");
+        b.data_transfers.clear();
+        if (!test.fault) {
+            b.step(0x00060400,0xea,test.cs,0x0500,wait);
+            check(b.reg(4)==0x0100 && uint16_t(b.d.segs_o>>32)==0x0043 &&
+                  std::none_of(b.data_transfers.begin(),b.data_transfers.end(),
+                               [](const auto& t){ return t.write && !(t.address>=kGdtBase && t.address<kGdtBase+0x70); }),
+                  "call-gate JMP changed the stack or wrote a link frame");
+            b.step(0x00060500,0x90,test.cs,0x0501,wait);
+        } else {
+            for (unsigned n=0;n<60000 && !b.d.event_o && !b.d.fault_o;++n) b.tick(wait);
+            if (!(b.d.event_o && !b.d.fault_o && b.d.event_vector_o==13 &&
+                  b.d.event_packet_error_code_o==test.cs &&
+                  b.d.event_packet_saved_cs_o==0x003b && b.d.event_packet_saved_ip_o==0x0400 &&
+                  b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp))
+                throw std::runtime_error("JMP through a call gate to more-privileged code did not raise #GP(CS); event="+
+                    std::to_string(b.d.event_o)+" fault="+std::to_string(b.d.fault_o)+
+                    " code="+std::to_string(b.d.fault_code_o)+" vector="+std::to_string(b.d.event_vector_o)+
+                    " error="+std::to_string(b.d.event_packet_error_code_o)+" cs="+std::to_string(b.cs()));
+        }
+        ++executions;
+    }
+    std::cout<<"PASS: "<<executions
+             <<" CPL3 call-gate JMPs reach same-level and conforming targets without stack changes and raise #GP(CS) for a more-privileged target in both READY modes\n";
 }
 
 static void protected_call_gate_access_faults() {
@@ -5321,6 +5894,216 @@ static void protected_selector_descriptor_faults() {
              <<" selector #GP/#NP cases deliver exact error-code frames, recover through IRET and resume at the exact successor in both READY modes\n";
 }
 
+// Protected POP ES/SS/DS and LES/LDS load the selector through the MOV Sreg
+// descriptor checks (Intel 210498-005 App. B POP, LDS/LES, MOV). SP and the
+// offset register commit only with the segment, so a selector fault is a
+// restartable fault at the instruction with the pre-instruction SP.
+static void protected_segment_pop_and_far_pointer_loads() {
+    using namespace protected_mode_fixture;
+    auto put_descriptor=[](Bench& b,uint32_t address,uint16_t limit,
+                           uint32_t base,uint8_t access) {
+        b.put(address,{uint8_t(limit),uint8_t(limit>>8),uint8_t(base),
+                       uint8_t(base>>8),uint8_t(base>>16),access,0,0});
+    };
+    // GDT 0048: present-bit-clear writable data, for #NP/#SS.
+    auto prepare=[&](Bench& b,const uint8_t* program,std::size_t size) {
+        place_selector_fixture(b,program,size);
+        put_descriptor(b,kGdtBase+0x48,0x00ff,0x060000,0x12);
+        const uint8_t gate[]={0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00};
+        for (std::size_t i=0;i<sizeof(gate);++i) b.memory[kIdtBase+12*8+uint32_t(i)]=gate[i];
+    };
+    unsigned executions=0;
+    for (bool wait:{false,true}) {
+        const uint8_t program[]={
+            0xb8,0x10,0x00, 0x8e,0xd8,        // 0200 MOV DS,0010 (base 020000)
+            0xb8,0x28,0x00, 0x8e,0xd0,        // 0205 MOV SS,0028
+            0xbc,0x80,0x00,                   // 020A MOV SP,0080
+            0x6a,0x20,                        // 020D PUSH 0020
+            0x1f,                             // 020F POP DS
+            0xa1,0x06,0x00,                   // 0210 MOV AX,[0006]
+            0xc5,0x1e,0x10,0x00,              // 0213 LDS BX,[0010]
+            0xc4,0x3e,0x20,0x00,              // 0217 LES DI,[0020]
+            0x6a,0x28,                        // 021B PUSH 0028
+            0x17,                             // 021D POP SS
+            0x6a,0x00,                        // 021E PUSH 0000
+            0x07,                             // 0220 POP ES (null)
+            0xf4                              // 0221 HLT
+        };
+        Bench b;
+        prepare(b,program,sizeof(program));
+        b.put(kEsDataBase+0x06,{0x21,0x43});
+        b.put(kEsDataBase+0x10,{0x34,0x12,0x10,0x00});
+        b.put(kWideDataBase+0x20,{0x78,0x56,0x18,0x00});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xb8,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0x8e,kCodeSelector,0x020a,wait);
+        b.step(kCodeBase+0x020a,0xbc,kCodeSelector,0x020d,wait);
+        b.step(kCodeBase+0x020d,0x6a,kCodeSelector,0x020f,wait);
+        check(b.reg(4)==0x007e,"PUSH imm8 did not prepare the POP DS selector");
+        b.step(kCodeBase+0x020f,0x1f,kCodeSelector,0x0210,wait);
+        check(uint16_t(b.d.segs_o>>48)==kEsSelector && b.cache_base(3)==kEsDataBase &&
+              (b.d.seg_valid_o&8) && b.reg(4)==0x0080 &&
+              b.memory[kGdtBase+kEsSelector+5]==0x93,
+              "protected POP DS did not load the validated descriptor and SP");
+        b.step(kCodeBase+0x0210,0xa1,kCodeSelector,0x0213,wait);
+        check(b.reg(0)==0x4321,"DS read after POP DS used the wrong base");
+        b.step(kCodeBase+0x0213,0xc5,kCodeSelector,0x0217,wait);
+        check(b.reg(3)==0x1234 && uint16_t(b.d.segs_o>>48)==kWideDataSelector &&
+              b.cache_base(3)==kWideDataBase && (b.d.seg_valid_o&8),
+              "protected LDS did not load BX with the validated DS descriptor");
+        b.step(kCodeBase+0x0217,0xc4,kCodeSelector,0x021b,wait);
+        check(b.reg(7)==0x5678 && uint16_t(b.d.segs_o)==kNarrowDsSelector &&
+              b.cache_base(0)==kNarrowDataBase && (b.d.seg_valid_o&1),
+              "protected LES did not load DI with the validated ES descriptor");
+        b.step(kCodeBase+0x021b,0x6a,kCodeSelector,0x021d,wait);
+        b.step(kCodeBase+0x021d,0x17,kCodeSelector,0x021e,wait);
+        check(uint16_t(b.d.segs_o>>32)==kSsSelector && b.cache_base(2)==kStackBase &&
+              b.reg(4)==0x0080,"protected POP SS did not reload SS and SP");
+        b.step(kCodeBase+0x021e,0x6a,kCodeSelector,0x0220,wait);
+        b.step(kCodeBase+0x0220,0x07,kCodeSelector,0x0221,wait);
+        check(uint16_t(b.d.segs_o)==0 && !(b.d.seg_valid_o&1) && b.reg(4)==0x0080,
+              "protected POP ES did not accept a null selector as unusable");
+        b.step(kCodeBase+0x0221,0xf4,kCodeSelector,0x0222,wait);
+        check(b.d.halted_o && !b.d.fault_o,"protected segment-load program missed its HLT");
+        ++executions;
+    }
+    struct FaultCase {
+        const char* name;
+        uint8_t opcode;   // 07/17/1F POP, C4/C5 far-pointer load
+        uint16_t selector;
+        uint8_t vector;
+        uint16_t error;
+    };
+    const FaultCase cases[]={
+        {"POP DS TSS",0x1f,0x0040,13,0x0040},
+        {"POP ES absent",0x07,0x0048,11,0x0048},
+        {"POP SS null",0x17,0x0000,13,0x0000},
+        {"POP SS code",0x17,0x0008,13,0x0008},
+        {"POP SS RPL",0x17,0x0013,13,0x0010},
+        {"POP SS absent",0x17,0x0048,12,0x0048},
+        {"LDS TSS",0xc5,0x0040,13,0x0040},
+        {"LES absent",0xc4,0x0048,11,0x0048},
+    };
+    for (bool wait:{false,true}) for (const auto& test:cases) {
+        const bool pointer=test.opcode==0xc4 || test.opcode==0xc5;
+        std::vector<uint8_t> program={
+            0xb8,0x10,0x00, 0x8e,0xd8,
+            0xb8,0x28,0x00, 0x8e,0xd0,
+            0xbc,0x80,0x00,
+            0xb8,uint8_t(test.selector),uint8_t(test.selector>>8), // 020D
+            0x50                                                    // 0210
+        };
+        if (pointer) program.insert(program.end(),{test.opcode,uint8_t(test.opcode==0xc5 ? 0x1e : 0x3e),0x30,0x00});
+        else program.push_back(test.opcode);                       // 0211
+        program.push_back(0xf4);
+        Bench b;
+        prepare(b,program.data(),program.size());
+        b.put(kWideDataBase+0x30,{0x34,0x12,uint8_t(test.selector),uint8_t(test.selector>>8)});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xb8,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0x8e,kCodeSelector,0x020a,wait);
+        b.step(kCodeBase+0x020a,0xbc,kCodeSelector,0x020d,wait);
+        b.step(kCodeBase+0x020d,0xb8,kCodeSelector,0x0210,wait);
+        b.step(kCodeBase+0x0210,0x50,kCodeSelector,0x0211,wait);
+        const uint64_t segs_before=b.d.segs_o;
+        const uint16_t bx_before=b.reg(3),di_before=b.reg(7),flags_before=b.d.flags_o;
+        const unsigned retired_before=b.retired;
+        for (unsigned cycle=0;cycle<30000 && !b.d.event_o && !b.d.fault_o;++cycle) b.tick(wait);
+        if (!(b.d.event_o && !b.d.fault_o && b.d.event_packet_protected_o &&
+              b.d.event_packet_error_valid_o && b.d.event_packet_restartable_o &&
+              b.d.event_vector_o==test.vector && b.d.event_packet_error_code_o==test.error &&
+              b.d.event_packet_saved_cs_o==kCodeSelector && b.d.event_packet_saved_ip_o==0x0211 &&
+              b.d.event_packet_saved_flags_o==flags_before &&
+              b.d.event_packet_saved_sp_o==0x007e && b.retired==retired_before &&
+              b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp && b.reg(4)==0x0076))
+            throw std::runtime_error(std::string(test.name)+
+                ": selector fault did not deliver the exact restartable packet; vector="+
+                std::to_string(b.d.event_vector_o)+" error="+
+                std::to_string(b.d.event_packet_error_code_o)+" fault="+
+                std::to_string(b.d.fault_o)+" sp="+std::to_string(b.reg(4)));
+        check(uint16_t(b.d.segs_o)==uint16_t(segs_before) &&
+              uint16_t(b.d.segs_o>>48)==uint16_t(segs_before>>48) &&
+              b.reg(3)==bx_before && b.reg(7)==di_before,
+              (std::string(test.name)+": faulting load changed a segment or offset register").c_str());
+        ++executions;
+    }
+    std::cout<<"PASS: "<<executions
+             <<" protected POP ES/SS/DS and LES/LDS executions commit validated descriptors with SP/offset and raise restartable #GP/#NP/#SS(selector) with the pre-instruction SP in both READY modes\n";
+}
+
+// A task switch's incoming DS/ES load must not inherit the stack-segment
+// checks from the interrupted instruction's ModRM: after MOV SS,AX (ModRM
+// D0), a task gate must still accept a read-only incoming ES (Intel 210498-005
+// Table 8-2 requires only a data or readable code segment for DS/ES).
+static void protected_task_switch_stale_modrm() {
+    using namespace protected_mode_fixture;
+    const uint8_t program[]={
+        0xb8,0x28,0x00, 0x8e,0xd0,        // 0200 MOV SS,0028
+        0xbc,0x80,0x00,                   // 0205 MOV SP,0080
+        0xb8,0x68,0x00, 0x0f,0x00,0xd8,   // 0208 LTR 0068
+        0xb8,0x28,0x00, 0x8e,0xd0,        // 020E MOV SS,0028 (ModRM reg field 2)
+        0xcd,0x0d,                        // 0213 INT 0D through a DPL-0 task gate
+        0xf4
+    };
+    constexpr uint16_t current_tss_selector=0x0068;
+    constexpr uint16_t read_only_selector=0x0070;
+    constexpr uint16_t task_gate_tss_selector=0x0078;
+    constexpr uint32_t current_tss_base=0x00000700;
+    constexpr uint32_t task_gate_tss_base=0x000a0000;
+    const uint16_t task_words[]={
+        0x0500,0x0002,0x0201,0x0202,0x0203,0x0204,0x0080,
+        0x0205,0x0206,0x0207,read_only_selector,0x0030,0x0028,read_only_selector,0x0000
+    };
+    auto put_descriptor=[](Bench& b,uint32_t address,uint16_t limit,
+                           uint32_t base,uint8_t access) {
+        b.put(address,{uint8_t(limit),uint8_t(limit>>8),uint8_t(base),
+                       uint8_t(base>>8),uint8_t(base>>16),access,0,0});
+    };
+    unsigned executions=0;
+    for (bool wait:{false,true}) {
+        Bench b;
+        place_selector_fixture(b,program,sizeof(program));
+        b.memory[0x40]=0x7f;
+        put_descriptor(b,kGdtBase+current_tss_selector,0x002b,current_tss_base,0x81);
+        put_descriptor(b,kGdtBase+read_only_selector,0x00ff,0x090000,0x90);
+        put_descriptor(b,kGdtBase+task_gate_tss_selector,0x002b,task_gate_tss_base,0x81);
+        b.put(kIdtBase+13*8,{0x00,0x00,uint8_t(task_gate_tss_selector),
+                             uint8_t(task_gate_tss_selector>>8),0x00,0x85,0x00,0x00});
+        b.memory[kHandlerBase+0x0500]=0xf4;
+        for (unsigned index=0;index<15;++index) {
+            b.memory[task_gate_tss_base+0x000e + 2*index]=uint8_t(task_words[index]);
+            b.memory[task_gate_tss_base+0x000f + 2*index]=uint8_t(task_words[index]>>8);
+        }
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+        b.step(kCodeBase+0x020b,0x0f,kCodeSelector,0x020e,wait);
+        b.step(kCodeBase+0x020e,0xb8,kCodeSelector,0x0211,wait);
+        b.step(kCodeBase+0x0211,0x8e,kCodeSelector,0x0213,wait);
+        for (unsigned cycle=0;cycle<100000 && !b.d.fault_o &&
+             !(b.cs()==kHandlerSelector && b.d.ip_o==0x0500);++cycle) b.tick(wait);
+        if (!(b.cs()==kHandlerSelector && b.d.ip_o==0x0500 && !b.d.fault_o &&
+              uint16_t(b.d.segs_o)==read_only_selector &&
+              uint16_t(b.d.segs_o>>48)==read_only_selector &&
+              b.cache_base(0)==0x090000 && b.cache_base(3)==0x090000 &&
+              (b.d.seg_valid_o&9)==9 && b.memory[kGdtBase+task_gate_tss_selector+5]==0x83))
+            throw std::runtime_error("task gate after MOV SS rejected a read-only incoming ES/DS; vector="+
+                std::to_string(b.d.event_vector_o)+" error="+
+                std::to_string(b.d.event_packet_error_code_o)+" cs="+std::to_string(b.cs()));
+        b.step(kHandlerBase+0x0500,0xf4,kHandlerSelector,0x0501,wait);
+        check(b.d.halted_o,"task-gate handler did not reach its exact HLT");
+        ++executions;
+    }
+    std::cout<<"PASS: "<<executions
+             <<" task-gate switches after MOV SS load read-only incoming DS/ES without stale stack checks in both READY modes\n";
+}
+
 static void protected_selector_privilege_faults() {
     using namespace protected_mode_fixture;
     struct FaultCase {
@@ -6240,6 +7023,135 @@ static void protected_event_ring12_async_delivery(bool nmi_mode) {
              <<" cases ignore DPL-0 gate restrictions, switch through TSS, write exact no-error outer frames and IRET to the exact successor in both READY modes\n";
 }
 
+// Faults found while invoking a protected handler. Expected vectors, error
+// codes and saved addresses come from Intel 210498-005 App. B pages B-49/B-50
+// (INT pseudo-code, EXT note) and 9.6.2 (page 9-10), not from the RTL.
+static void protected_event_delivery_faults() {
+    using namespace protected_mode_fixture;
+    struct Case {
+        const char* name;
+        bool software;          // INT 4 at 0208 instead of INTR after NOP
+        uint8_t intr_vector;
+        std::vector<uint8_t> gate;  // descriptor for the first vector
+        uint16_t sp;
+        bool shutdown;
+        uint8_t handler_vector;
+        uint16_t error;
+        uint16_t saved_ip;
+        std::vector<uint32_t> gate_reads;  // IDT vectors read, 8 bytes each
+    };
+    const std::vector<Case> cases={
+        // External INTR, not-present gate: #NP(vector*8+2+EXT).
+        {"INTR not-present gate",false,4,{0x00,0x03,0x30,0x00,0x00,0x06,0x00,0x00},
+         0x0080,false,11,0x0023,0x0208,{4,11}},
+        // INT n, gate type 0: #GP(vector*8+2), EXT=0, saved IP at the INT.
+        {"INT n invalid gate type",true,4,{0x00,0x03,0x30,0x00,0x00,0x80,0x00,0x00},
+         0x0080,false,13,0x0022,0x0208,{4,13}},
+        // External INTR beyond the IDT limit (6Fh): #GP(vector*8+2+EXT).
+        {"INTR beyond IDT limit",false,0x40,{},0x0080,false,13,0x0203,0x0208,{13}},
+        // Gate CS 0068 is outside the GDT limit (67h): #GP(selector+EXT).
+        {"INTR handler CS beyond GDT",false,4,{0x00,0x03,0x68,0x00,0x00,0x86,0x00,0x00},
+         0x0080,false,13,0x0069,0x0208,{4,13}},
+        // Same-level frame cannot fit (SP=4): #SS(0) while delivering INTR;
+        // the #SS frame cannot fit either, which is a second fault while
+        // delivering #SS, so #DF; the empty #DF gate shuts down.
+        {"INTR same-level stack too small",false,4,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00},
+         0x0004,true,8,0x0000,0x0208,{4,12,8}},
+    };
+    unsigned executions=0;
+    for (bool wait:{false,true}) for (const auto& test:cases) {
+        Bench b;
+        const uint8_t program[]={
+            0xb8,0x28,0x00, 0x8e,0xd0,                     // 0200 MOV SS,0028
+            0xbc,uint8_t(test.sp),uint8_t(test.sp>>8),     // 0205 MOV SP,sp
+            uint8_t(test.software ? 0xcd : 0x90),
+            uint8_t(test.software ? 0x04 : 0x90),          // 0208 INT 4 / NOP NOP
+            0xf4
+        };
+        place_selector_fixture(b,program,sizeof(program));
+        // Vector 12 gets a valid same-level gate so the stack case reaches it.
+        b.put(kIdtBase+12*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+        if (!test.gate.empty()) {
+            for (unsigned i=0;i<8;++i)
+                b.memory[kIdtBase+test.intr_vector*8+i]=test.gate[i];
+        }
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        const uint16_t flags_before=b.d.flags_o;
+        const unsigned retired_before=b.retired;
+        b.data_transfers.clear();
+        if (!test.software) {
+            b.d.intr_i=1; b.acknowledge=true; b.interrupt_vector=test.intr_vector;
+        }
+        for (unsigned cycle=0;cycle<50000 && !b.d.fault_o && !b.d.shutdown_o &&
+             !(b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp);++cycle)
+            b.tick(wait);
+        b.d.intr_i=0; b.acknowledge=false;
+        const std::string name=std::string(test.name)+(wait ? " (wait)" : "");
+        if (b.d.fault_o)
+            throw std::runtime_error(name+": core reached a development stop, code "+
+                                     std::to_string(unsigned(b.d.fault_code_o)));
+        if (b.d.event_vector_o!=test.handler_vector ||
+            b.d.event_packet_error_code_o!=test.error ||
+            b.d.event_packet_saved_ip_o!=test.saved_ip || test.shutdown!=bool(b.d.shutdown_o))
+            std::cerr<<name<<": vector="<<unsigned(b.d.event_vector_o)<<std::hex
+                     <<" error="<<b.d.event_packet_error_code_o
+                     <<" saved="<<b.d.event_packet_saved_cs_o<<":"<<b.d.event_packet_saved_ip_o
+                     <<" CS:IP="<<b.cs()<<":"<<b.d.ip_o<<std::dec
+                     <<" shutdown="<<unsigned(b.d.shutdown_o)
+                     <<" retired="<<(b.retired-retired_before)<<'\n';
+        check(test.shutdown==bool(b.d.shutdown_o),
+              (name+": shutdown outcome differs from 9.6.2").c_str());
+        check(b.d.event_packet_valid_o && b.d.event_packet_protected_o &&
+              b.d.event_vector_o==test.handler_vector &&
+              b.d.event_packet_error_valid_o &&
+              b.d.event_packet_error_code_o==test.error &&
+              b.d.event_packet_saved_cs_o==kCodeSelector &&
+              b.d.event_packet_saved_ip_o==test.saved_ip,
+              (name+": wrong exception vector, error code or saved CS:IP").c_str());
+        // INTR is sampled at the boundary after MOV SP, before the NOP.
+        check(b.retired==retired_before,
+              (name+": wrong number of instructions retired before delivery").c_str());
+        // Gate reads: each named vector is read as one 8-byte descriptor, in
+        // order, before any frame write.
+        std::vector<uint32_t> reads;
+        for (const auto& t:b.data_transfers)
+            if (!t.write && t.address>=kIdtBase && t.address<kIdtBase+0x70) reads.push_back(t.address);
+        check(reads.size()==test.gate_reads.size()*8,
+              (name+": unexpected IDT descriptor reads").c_str());
+        for (unsigned i=0;i<reads.size() && i/8<test.gate_reads.size();++i)
+            check(reads[i]==kIdtBase+test.gate_reads[i/8]*8+(i%8),
+                  (name+": IDT descriptors read in the wrong order").c_str());
+        if (test.shutdown) {
+            // Only descriptor accessed-bit updates may be written; no frame
+            // word may reach the stack.
+            for (const auto& t:b.data_transfers)
+                if (t.write && !(t.address>=kGdtBase && t.address<kGdtBase+0x68))
+                    std::cerr<<name<<": write 0x"<<std::hex<<t.address<<std::dec<<'\n';
+            check(std::none_of(b.data_transfers.begin(),b.data_transfers.end(),
+                               [](const auto& t){
+                                   return t.write && !(t.address>=kGdtBase && t.address<kGdtBase+0x68);
+                               }),
+                  (name+": shutdown path wrote a stack frame").c_str());
+        } else {
+            // Same-level interrupt-gate frame: error, IP, CS, FLAGS.
+            check(b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp && b.reg(4)==test.sp-8,
+                  (name+": handler not entered with an error-code frame").c_str());
+            const uint32_t frame=kStackBase+test.sp-8;
+            auto word=[&](uint32_t a){ return uint16_t(b.memory[a]|(b.memory[a+1]<<8)); };
+            check(word(frame)==test.error && word(frame+2)==test.saved_ip &&
+                  word(frame+4)==kCodeSelector && word(frame+6)==flags_before,
+                  (name+": stacked error/IP/CS/FLAGS differ").c_str());
+        }
+        ++executions;
+    }
+    check(executions==10,"delivery-fault matrix did not run every case in both READY modes");
+    std::cout<<"PASS: 10 protected handler-invocation faults raise App. B #GP/#NP/#SS codes with EXT, "
+               "point INT faults at the INT, and escalate #SS to #DF and shutdown per 9.6.2\n";
+}
+
 static void protected_event_task_gate_delivery() {
     using namespace protected_mode_fixture;
     const uint8_t ring0_program[]={
@@ -6266,7 +7178,8 @@ static void protected_event_task_gate_delivery() {
     constexpr uint32_t current_tss_base=0x00000700;
     constexpr uint32_t task_gate_tss_base=0x000a0000;
     const uint16_t task_words[]={
-        0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+        // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
         0x0205,0x0206,0x0207,0x0010,0x0030,0x0028,0x0010,0x0000
     };
     enum class EventSource { external_intr, software_int, nmi };
@@ -7328,6 +8241,81 @@ static void protected_shutdown_nmi_recovery() {
     std::cout<<"PASS: protected shutdown ignores INTR, exits through a valid NMI gate, and re-enters shutdown on NMI delivery faults in both READY modes\n";
 }
 
+// Intel 210498-005 9.6.2: NMI leaves shutdown if no error occurs while it is
+// processed. Through a task gate the handler is entered at the task-switch
+// commit; after that, ordinary faults must be delivered, not re-enter shutdown.
+static void protected_shutdown_nmi_task_gate_recovery() {
+    using namespace protected_mode_fixture;
+    const uint8_t program[]={
+        0xb8,0x28,0x00, 0x8e,0xd0,   // 0200 MOV SS,0028
+        0xbc,0x80,0x00,               // 0205 MOV SP,0080
+        0xb8,0x68,0x00, 0x0f,0x00,0xd8, // 0208 LTR 0068
+        0x31,0xc0,                    // 020E XOR AX,AX
+        0xf7,0xf0                     // 0210 DIV AX: #DE, #DF, shutdown
+    };
+    const uint8_t nmi_task[]={0xb8,0x0c,0x00, 0x8e,0xd8, 0xf4}; // MOV DS,000C => #GP
+    constexpr uint16_t current_tss_selector=0x0068;
+    constexpr uint16_t nmi_tss_selector=0x0078;
+    constexpr uint32_t current_tss_base=0x00000700;
+    constexpr uint32_t nmi_tss_base=0x000a0000;
+    const uint16_t task_words[]={
+        0x0500,0x0002,0,0,0,0,0x0080,0,0,0,0x0010,0x0030,0x0028,0x0010,0x0000
+    };
+    unsigned executions=0;
+    for (bool wait:{false,true}) {
+        Bench b;
+        place_selector_fixture(b,program,sizeof(program));
+        b.memory[0x40]=0x7f;
+        b.put(kGdtBase+current_tss_selector,{0x2b,0x00,uint8_t(current_tss_base),
+              uint8_t(current_tss_base>>8),uint8_t(current_tss_base>>16),0x81,0,0});
+        b.put(kGdtBase+nmi_tss_selector,{0x2b,0x00,uint8_t(nmi_tss_base),
+              uint8_t(nmi_tss_base>>8),uint8_t(nmi_tss_base>>16),0x81,0,0});
+        b.put(kIdtBase+2*8,{0x00,0x00,uint8_t(nmi_tss_selector),
+              uint8_t(nmi_tss_selector>>8),0x00,0x85,0x00,0x00});
+        for (unsigned i=0;i<15;++i) {
+            b.memory[nmi_tss_base + 0x0e + 2*i]=uint8_t(task_words[i]);
+            b.memory[nmi_tss_base + 0x0f + 2*i]=uint8_t(task_words[i]>>8);
+        }
+        for (std::size_t i=0;i<sizeof(nmi_task);++i)
+            b.memory[kHandlerBase+0x0500+uint32_t(i)]=nmi_task[i];
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+        b.step(kCodeBase+0x020b,0x0f,kCodeSelector,0x020e,wait);
+        b.step(kCodeBase+0x020e,0x31,kCodeSelector,0x0210,wait);
+        for (unsigned cycle=0;cycle<50000 && !b.d.shutdown_o && !b.d.fault_o;++cycle)
+            b.tick(wait);
+        const std::string name=wait ? "wait" : "no-wait";
+        check(b.d.shutdown_o && !b.d.fault_o && b.d.event_vector_o==8,
+              ("task-gate NMI fixture did not reach #DF shutdown ("+name+")").c_str());
+        b.d.nmi_i=1;
+        bool entered=false;
+        for (unsigned cycle=0;cycle<80000 && !b.d.fault_o;++cycle) {
+            b.tick(wait);
+            if (b.d.event_o && b.cs()==0x0030 && b.d.ip_o==0x0500) { entered=true; break; }
+        }
+        b.d.nmi_i=0;
+        check(entered && !b.d.shutdown_o && !b.d.halted_o && !b.d.fault_o &&
+              b.d.event_vector_o==2 && uint16_t(b.d.segs_o>>32)==0x0028 && b.reg(4)==0x0080,
+              ("NMI through a task gate did not leave shutdown into the NMI task ("+name+")").c_str());
+        b.step(kHandlerBase+0x0500,0xb8,0x0030,0x0503,wait);
+        bool gp_entered=false;
+        for (unsigned cycle=0;cycle<50000 && !b.d.fault_o && !b.d.shutdown_o;++cycle) {
+            b.tick(wait);
+            if (b.d.event_o && b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp) { gp_entered=true; break; }
+        }
+        check(gp_entered && !b.d.shutdown_o && !b.d.fault_o &&
+              b.d.event_vector_o==13 && b.d.event_packet_error_code_o==0x000c &&
+              b.d.event_packet_saved_cs_o==0x0030 && b.d.event_packet_saved_ip_o==0x0503,
+              ("a fault after task-gate NMI recovery re-entered shutdown instead of #GP ("+name+")").c_str());
+        ++executions;
+    }
+    check(executions==2,"task-gate shutdown NMI recovery missed a READY mode");
+    std::cout<<"PASS: NMI through a task gate leaves shutdown in both READY modes, and a later fault in the NMI task is delivered as #GP rather than re-entering shutdown\n";
+}
+
 static void protected_iopl_controls() {
     using namespace protected_mode_fixture;
     struct Level { uint16_t cs,ss; uint32_t code_base,stack_base; };
@@ -7475,6 +8463,36 @@ static void protected_iopl_controls() {
         ++matrix_cases;
     }
     check(matrix_cases==256,"direct I/O privilege matrix missed an opcode/CPL/IOPL/READY case");
+
+    // A35: Intel's undocumented-opcode note gives 0F 04h/05h exception 13 in
+    // protected mode when CPL is not 0. At CPL 0, 0F 04h stays a stop
+    // boundary; 0F 05h is LOADALL and has its own contract test.
+    unsigned loadall_cases=0;
+    for (bool wait:{false,true}) for (uint8_t second:{uint8_t(0x04),uint8_t(0x05)})
+      for (unsigned cpl=0;cpl<4;++cpl) {
+        if (cpl==0 && second==0x05) continue;
+        Bench b;
+        const Context context=prepare(b,wait,cpl,0,{0x0f,second,0xf4});
+        b.data_transfers.clear();
+        const unsigned retired_before=b.retired;
+        bool event_seen=false,handler_entered=false;
+        for (unsigned cycle=0;cycle<50000 && !b.d.fault_o;++cycle) {
+            b.tick(wait);
+            event_seen=event_seen||b.d.event_o;
+            if (event_seen && b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp) {
+                handler_entered=true; break;
+            }
+        }
+        if (cpl==0) check(b.d.fault_o && b.d.fault_code_o==1 && !event_seen && b.retired==retired_before,
+                          "CPL0 0F 04 did not stop at the development boundary");
+        else check(handler_entered && b.d.event_vector_o==13 && b.d.event_packet_error_valid_o &&
+                   b.d.event_packet_error_code_o==0 &&
+                   b.d.event_packet_saved_cs_o==(context.level.cs|uint16_t(cpl)) &&
+                   b.d.event_packet_saved_ip_o==0x0400 && b.retired==retired_before,
+                   "CPL>0 0F 04/05 did not raise #GP(0)");
+        ++loadall_cases;
+    }
+    check(loadall_cases==14,"0F 04/05 privilege matrix incomplete");
 
     struct StringCase { uint8_t opcode; bool input,word; };
     const StringCase string_cases[]={
@@ -8464,7 +9482,8 @@ static void protected_iopl_controls() {
     unsigned incoming_ldtr_double_fault_task_cases=0;
     constexpr uint32_t incoming_df_tss_base=0x000a0000;
     const uint16_t incoming_df_task_words[]={
-        0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+        // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
         0x0205,0x0206,0x0207,0x0010,0x0030,0x0028,0x0010,0x0000
     };
     for (bool wait:{false,true}) for (const auto& test:incoming_ldtr_faults) {
@@ -9164,7 +10183,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t ss_fault_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0020,0x0030,0x0028,0x0020,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -9295,7 +10315,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t ss_type_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0020,0x0030,0x0028,0x0020,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -9419,7 +10440,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t ss_privilege_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0020,0x0030,0x0028,0x0020,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -9543,7 +10565,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t ss_privilege_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0020,0x0030,0x0028,0x0020,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -9667,7 +10690,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t ss_null_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0020,0x0030,0x0028,0x0020,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -9912,7 +10936,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t es_fault_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0010,0x0030,0x0028,0x0010,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -10038,7 +11063,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t ds_fault_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0020,0x0030,0x0028,0x0020,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -10164,7 +11190,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t es_readability_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0010,0x0030,0x0028,0x0010,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -10291,7 +11318,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t ds_readability_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0010,0x0030,0x0028,0x0010,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -10416,7 +11444,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t es_type_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0010,0x0030,0x0028,0x0010,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -10541,7 +11570,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t ds_type_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0010,0x0030,0x0028,0x0010,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -10666,7 +11696,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t ds_ldtr_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0010,0x0030,0x0028,0x0010,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -10926,7 +11957,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t ds_privilege_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0010,0x0030,0x0028,0x0010,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -11051,7 +12083,8 @@ static void protected_iopl_controls() {
         b.put(kIdtBase+8*8,{0x00,0x00,0x70,0x00,0x00,0x85,0x00,0x00});
         b.put(kHandlerBase+0x0500,{0xf4});
         const uint16_t es_privilege_df_task_words[]={
-            0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+            // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
             0x0205,0x0206,0x0207,0x0010,0x0030,0x0028,0x0010,0x0000
         };
         for (unsigned i=0;i<15;++i)
@@ -11317,7 +12350,8 @@ static void protected_iopl_controls() {
     constexpr uint16_t current_task_tss_selector=0x0058;
     const uint8_t direct_task_tss_descriptor[]={0x2b,0x00,0x00,0x00,0x0a,0x81,0x00,0x00};
     const uint16_t direct_task_words[]={
-        0x0500,0x0202,0x0201,0x0202,0x0203,0x0204,0x0080,
+        // FLAGS 4202h: the image's NT=1 must be cleared by JMP (Table 8-2).
+        0x0500,0x4202,0x0201,0x0202,0x0203,0x0204,0x0080,
         0x0205,0x0206,0x0207,0x0010,0x0030,0x0028,0x0010,0x0000
     };
     unsigned direct_task_switch_cases=0;
@@ -11377,6 +12411,12 @@ static void protected_iopl_controls() {
               uint16_t(b.memory[0x00070024] |
                        (uint16_t(b.memory[0x00070025])<<8))==context.level.cs,
               "direct TSS CALL/JMP did not save the exact outgoing instruction successor and state");
+        // Table 8-2: JMP clears the incoming NT; IRET leaves the returning
+        // caller's NT unchanged and clears NT in the abandoned task's image.
+        check(!(b.d.flags_o & 0x4000),"direct TSS CALL/JMP left NT set in the resumed task");
+        if (nested_call)
+            check(!(b.memory[direct_task_tss_base+0x11] & 0x40),
+                  "IRET task return did not clear NT in the outgoing TSS image");
         check(std::any_of(b.data_transfers.begin(),b.data_transfers.end(),[&](const auto& t) {
                   return !t.write && !t.io &&
                       t.address==kGdtBase+(through_task_gate ? direct_task_gate_selector :
@@ -13053,26 +14093,330 @@ static void processor_extension_contract() {
         esc.step(0xf0103,0xf4,0xf000,0x0104,wait);
     }
 
-    // A non-trapping memory ESC is recognized but cannot read its operand
-    // until PEREQ/PEACK command transfers are implemented.
-    Bench unsupported_escape;
-    unsupported_escape.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
-    unsupported_escape.put(0xf0100,{0xd8,0x06,0x00,0x02});
-    unsupported_escape.reset();
-    unsupported_escape.step(0xfffff0,0xea,0xf000,0x0100,false);
-    unsupported_escape.data_transfers.clear();
-    unsupported_escape.stop(3,0x0100);
-    check(unsupported_escape.data_transfers.empty(),
-          "unsupported ESC touched its memory operand before the extension transfer path");
+    // Real-mode ESC D8h-DFh command phase (report 2026-11-03, from 4,967
+    // physical Harris D8 captures; A30 for D9h-DFh): command word, IP and
+    // CS, then for memory forms the operand offset and selected segment at
+    // FCh, with no operand traffic; an operand at offset FFFF raises 13.
+    struct MemForm { std::vector<uint8_t> bytes; uint16_t offset; unsigned segment; };
+    // BX=1234 SI=0010 BP=2000 DS=3000 ES=4000 SS=5000 before the ESC.
+    const MemForm forms[]={
+        {{0x40,0x05},0x1249,3},                 // [BX+SI+05]
+        {{0x86,0x34,0x12},0x3234,2},            // [BP+1234] -> SS
+        {{0x06,0x78,0x56},0x5678,3},            // [5678]
+        {{0x26,0x07},0x1234,0},                 // ES: [BX] (prefix first)
+        {{0x00},0x1244,3},                      // [BX+SI]
+    };
+    unsigned esc_cases=0;
+    for (bool wait : {false,true}) for (unsigned op=0xd8;op<=0xdf;++op)
+      for (unsigned modrm_reg=0;modrm_reg<8;modrm_reg+=3) for (const auto& form : forms) {
+        std::vector<uint8_t> program={0xbb,0x34,0x12, 0xbe,0x10,0x00, 0xbd,0x00,0x20,
+            0xb8,0x00,0x30, 0x8e,0xd8, 0xb8,0x00,0x40, 0x8e,0xc0, 0xb8,0x00,0x50, 0x8e,0xd0};
+        const uint16_t esc_ip=uint16_t(0x0100+program.size());
+        const bool prefixed=form.bytes[0]==0x26;
+        if (prefixed) program.push_back(0x26);
+        program.push_back(uint8_t(op));
+        const uint8_t modrm=uint8_t((prefixed ? form.bytes[1] : form.bytes[0]) | (modrm_reg<<3));
+        program.push_back(modrm);
+        for (std::size_t i=prefixed ? 2 : 1;i<form.bytes.size();++i) program.push_back(form.bytes[i]);
+        const uint16_t next_ip=uint16_t(0x0100+program.size());
+        program.push_back(0xf4);
+        Bench esc;
+        esc.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+        for (std::size_t i=0;i<program.size();++i) esc.memory[0xf0100+uint32_t(i)]=program[i];
+        esc.reset();
+        esc.step(0xfffff0,0xea,0xf000,0x0100,wait);
+        uint16_t setup_ip=0x0100;
+        for (unsigned length : {3u,3u,3u,3u,2u,3u,2u,3u,2u}) {
+            esc.step(0xf0000+setup_ip,program[setup_ip-0x0100],0xf000,uint16_t(setup_ip+length),wait);
+            setup_ip=uint16_t(setup_ip+length);
+        }
+        check(esc.d.ip_o==esc_ip,"ESC fixture setup did not reach the ESC");
+        esc.data_transfers.clear();
+        esc.step(0xf0000+esc_ip,uint8_t(op),0xf000,next_ip,wait);
+        const uint16_t segment_values[]={0x4000,0xf000,0x5000,0x3000};
+        const uint16_t words[]={uint16_t((modrm<<8)|op),esc_ip,0xf000,form.offset,
+                                segment_values[form.segment]};
+        const uint32_t ports[]={0xf8,0xfc,0xfc,0xfc,0xfc};
+        check(esc.data_transfers.size()==10,"memory ESC command transfer count");
+        for (unsigned i=0;i<10;++i) {
+            const auto& t=esc.data_transfers[i];
+            check(t.io && t.write && t.address==ports[i/2]+(i&1) &&
+                  t.value==uint8_t(words[i/2]>>(8*(i&1))),
+                  "memory ESC command/pointer/operand-address transfer mismatch");
+        }
+        esc.step(0xf0000+next_ip,0xf4,0xf000,uint16_t(next_ip+1),wait);
+        ++esc_cases;
+    }
+    for (unsigned op=0xd8;op<=0xdf;++op) {
+        Bench esc;
+        esc.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+        esc.put(0xf0100,{uint8_t(op),0x06,0xff,0xff});
+        esc.reset();
+        esc.step(0xfffff0,0xea,0xf000,0x0100,false);
+        esc.processor_fault(13,0x0100,false);
+        ++esc_cases;
+    }
+    std::cout<<"PASS: "<<esc_cases<<" real-mode D8h-DFh memory ESC command phases and offset-FFFF segment overruns\n";
 
     std::cout << "PASS: 80286 WAIT interruption/BUSY/ERROR#, ESC fault gates and D8 register commands\n";
+}
+
+// Processor-extension data channel (1985 PRM App. A; Intel 210760-002 ch. 6):
+// after a memory ESC the CPU accepts PEREQ and moves one operand word per
+// request, memory then port FAh for loads and FAh then memory for stores,
+// with PEACK# low on the first operation. A word outside the operand segment
+// raises interrupt 9 (9.6.3). A small 80287 stand-in drives BUSY and PEREQ.
+static void processor_extension_data_channel() {
+    struct Npx {
+        unsigned words=0, served=0;
+        bool store=false, started=false, low_cycle=false;
+        std::vector<uint16_t> load_words;      // words the CPU wrote to FAh
+        std::vector<uint16_t> store_words;     // words supplied at FAh
+        std::vector<bool> peack_first;         // PEACK# low on each word's first byte
+        std::size_t seen=0;
+    };
+    auto run=[](Bench& b,Npx& npx,bool wait,unsigned cycles) {
+        for (unsigned n=0;n<cycles && !b.d.event_o && !b.d.halted_o && !b.d.fault_o;++n) {
+            const std::size_t before=b.data_transfers.size();
+            const bool peack=!b.d.peack_n_o;
+            b.tick(wait);
+            for (std::size_t i=before;i<b.data_transfers.size();++i) {
+                const auto& t=b.data_transfers[i];
+                if (t.io && t.write && t.address==0xf8) { npx.started=true; b.d.busy_i=1; }
+                if (npx.started && npx.served<npx.words && !t.io && i==b.data_transfers.size()-1) {}
+                if (t.io && t.address==0xfb && npx.served<npx.words) {
+                    const uint16_t lo=b.data_transfers[i-1].value;
+                    if (!npx.store) npx.load_words.push_back(uint16_t(lo|(t.value<<8)));
+                    ++npx.served; npx.low_cycle=true;
+                }
+            }
+            if (npx.started && b.data_transfers.size()>before) {
+                const auto& t=b.data_transfers[before];
+                const bool first=npx.store ? (t.io && t.address==0xfa) :
+                                             (!t.io && t.address!=0xfc && t.address!=0xfd &&
+                                              t.address!=0xf8 && t.address!=0xf9);
+                if (first && npx.peack_first.size()==npx.served) npx.peack_first.push_back(peack);
+            }
+            if (npx.started && npx.store && npx.served<npx.words) {
+                b.ports[0xfa]=uint8_t(npx.store_words[npx.served]);
+                b.ports[0xfb]=uint8_t(npx.store_words[npx.served]>>8);
+            }
+            // Command and pointer words first, then one request per word with
+            // an intervening low sample (A26); BUSY falls after the last word.
+            const bool command_done=npx.started && std::count_if(b.data_transfers.begin(),
+                b.data_transfers.end(),[](const auto& t){ return t.io && t.write && t.address==0xfd; })>=4;
+            if (npx.low_cycle) { b.d.pereq_i=0; npx.low_cycle=false; }
+            else b.d.pereq_i=command_done && npx.served<npx.words;
+            if (command_done && npx.served==npx.words && npx.words!=0) b.d.busy_i=0;
+        }
+    };
+    unsigned cases=0;
+    for (bool wait:{false,true}) {
+        // FLD qword [BX]: four loads, then WAIT and HLT.
+        Bench b;
+        b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+        b.put(0xf0100,{0xbb,0x00,0x02, 0xdd,0x07, 0x9b, 0xf4});
+        b.put(0x0200,{0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88});
+        b.reset();
+        b.step(0xfffff0,0xea,0xf000,0x0100,wait);
+        b.step(0xf0100,0xbb,0xf000,0x0103,wait);
+        Npx npx; npx.words=4;
+        b.data_transfers.clear();
+        run(b,npx,wait,20000);
+        if (!(b.d.halted_o && !b.d.fault_o && !b.d.event_o)) {
+            std::ostringstream o;
+            o<<"FLD qword channel did not reach HLT: ip="<<std::hex<<b.d.ip_o<<" fault="<<unsigned(b.d.fault_o)
+             <<" event="<<unsigned(b.d.event_o)<<" vec="<<unsigned(b.d.event_vector_o)<<" busy="<<unsigned(b.d.busy_i)
+             <<" pereq="<<unsigned(b.d.pereq_i)<<" served="<<std::dec<<npx.served<<" transfers:";
+            for (const auto& t:b.data_transfers) o<<' '<<std::hex<<t.address<<(t.io?"i":"m")<<(t.write?"w":"r")<<"="<<unsigned(t.value);
+            throw std::runtime_error(o.str());
+        }
+        const uint16_t want[]={0x2211,0x4433,0x6655,0x8877};
+        check(npx.load_words.size()==4 && std::equal(npx.load_words.begin(),npx.load_words.end(),want),
+              "load channel did not deliver the operand words to port FAh in order");
+        // Each word: memory read of the two bytes, then the FAh/FBh write.
+        std::vector<Bench::Transfer> words;
+        for (const auto& t:b.data_transfers)
+            if ((!t.io && t.address>=0x200 && t.address<0x208) || (t.io && (t.address==0xfa||t.address==0xfb)))
+                words.push_back(t);
+        check(words.size()==16,"load channel transfer count");
+        for (unsigned w=0;w<4;++w) {
+            check(!words[4*w].io && !words[4*w].write && words[4*w].address==0x200+2*w &&
+                  !words[4*w+1].io && words[4*w+1].address==0x201+2*w &&
+                  words[4*w+2].io && words[4*w+2].write && words[4*w+2].address==0xfa &&
+                  words[4*w+3].io && words[4*w+3].address==0xfb,
+                  "load channel did not read memory before writing port FAh");
+        }
+        check(npx.peack_first.size()==4 &&
+              std::all_of(npx.peack_first.begin(),npx.peack_first.end(),[](bool v){ return v; }),
+              "PEACK# was not low on each word's first operation");
+        ++cases;
+    }
+    for (bool wait:{false,true}) {
+        // FSTP tbyte [BX]: five stores from port FAh to memory.
+        Bench b;
+        b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+        b.put(0xf0100,{0xbb,0x01,0x03, 0xdb,0x3f, 0x9b, 0xf4});
+        b.reset();
+        b.step(0xfffff0,0xea,0xf000,0x0100,wait);
+        b.step(0xf0100,0xbb,0xf000,0x0103,wait);
+        Npx npx; npx.words=5; npx.store=true;
+        npx.store_words={0xa1b2,0xc3d4,0xe5f6,0x0718,0x293a};
+        b.data_transfers.clear();
+        run(b,npx,wait,20000);
+        check(b.d.halted_o && !b.d.fault_o,"FSTP tbyte channel did not reach HLT");
+        for (unsigned w=0;w<5;++w)
+            check(b.memory[0x301+2*w]==uint8_t(npx.store_words[w]) &&
+                  b.memory[0x302+2*w]==uint8_t(npx.store_words[w]>>8),
+                  "store channel did not write the extension words at the odd operand address");
+        std::vector<Bench::Transfer> seq;
+        for (const auto& t:b.data_transfers)
+            if ((!t.io && t.address>=0x301 && t.address<0x30b) || (t.io && (t.address==0xfa||t.address==0xfb)))
+                seq.push_back(t);
+        check(seq.size()==20 && seq[0].io && !seq[0].write && seq[2].address==0x301 && seq[2].write,
+              "store channel did not read port FAh before writing memory");
+        ++cases;
+    }
+    for (bool wait:{false,true}) {
+        // FLD qword then HLT: the halted CPU still serves PEREQ (App. A).
+        Bench b;
+        b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+        b.put(0xf0100,{0xbb,0x00,0x02, 0xdd,0x07, 0xf4});
+        b.put(0x0200,{0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88});
+        b.reset();
+        b.step(0xfffff0,0xea,0xf000,0x0100,wait);
+        b.step(0xf0100,0xbb,0xf000,0x0103,wait);
+        Npx npx; npx.words=4;
+        b.data_transfers.clear();
+        b.step(0xf0103,0xdd,0xf000,0x0105,wait);
+        b.step(0xf0105,0xf4,0xf000,0x0106,wait);
+        for (unsigned n=0;n<20000 && npx.served<4;++n) {
+            const std::size_t before=b.data_transfers.size();
+            b.tick(wait);
+            for (std::size_t i=before;i<b.data_transfers.size();++i)
+                if (b.data_transfers[i].io && b.data_transfers[i].address==0xfb) {
+                    npx.load_words.push_back(uint16_t(b.data_transfers[i-1].value|(b.data_transfers[i].value<<8)));
+                    ++npx.served; npx.low_cycle=true;
+                }
+            if (npx.low_cycle) { b.d.pereq_i=0; npx.low_cycle=false; }
+            else b.d.pereq_i=npx.served<4;
+            b.d.busy_i=npx.served<4;
+            if (b.d.bus_req_o) check(!b.d.bus_halt_cycle_o,"channel transfer during HLT was marked a halt cycle");
+        }
+        const uint16_t want[]={0x2211,0x4433,0x6655,0x8877};
+        check(npx.served==4 && std::equal(npx.load_words.begin(),npx.load_words.end(),want) &&
+              b.d.halted_o && b.retired==3+1,
+              "halted CPU did not serve the extension's operand requests");
+        ++cases;
+    }
+    for (bool wait:{false,true}) {
+        // FLD tbyte [BX] at FFFBh: the third word straddles FFFFh, which
+        // raises interrupt 9 while WAIT holds on BUSY (9.6.3).
+        Bench b;
+        b.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+        b.put(0xf0100,{0xbb,0xfb,0xff, 0xdb,0x2f, 0x9b, 0xf4});
+        b.put(0x0024,{0x00,0x01,0x00,0x20});
+        b.put(0x20100,{0xf4});
+        for (uint32_t a=0xfffb;a<=0xffff;++a) b.memory[a]=uint8_t(a);
+        b.reset();
+        b.step(0xfffff0,0xea,0xf000,0x0100,wait);
+        b.step(0xf0100,0xbb,0xf000,0x0103,wait);
+        Npx npx; npx.words=5;
+        b.data_transfers.clear();
+        run(b,npx,wait,20000);
+        check(b.d.event_o && b.d.event_vector_o==9 && !b.d.event_packet_error_valid_o &&
+              b.cs()==0x2000 && b.d.ip_o==0x0100 && npx.load_words.size()==2,
+              "operand word past FFFFh did not raise interrupt 9 after the two words that fit");
+        check(std::none_of(b.data_transfers.begin(),b.data_transfers.end(),[](const auto& t){
+                  return !t.io && !t.write && (t.address==0xffff || t.address==0x10000); }),
+              "overrunning word touched memory");
+        ++cases;
+    }
+    // Protected mode: a memory ESC in a usable DS runs its command phase and
+    // channel through the descriptor base; a null DS or an SS word past the
+    // limit faults #GP(0)/#SS(0) before the command phase (A32).
+    for (bool wait:{false,true}) {
+        using namespace protected_mode_fixture;
+        const uint8_t ok_program[]={
+            0xb8,0x10,0x00, 0x8e,0xd8,  // 0200 MOV DS,0010 (base 020000, limit FF)
+            0xbb,0x20,0x00,             // 0205 MOV BX,0020
+            0xdd,0x07,                  // 0208 FLD qword [BX]
+            0xf4                        // 020A HLT
+        };
+        Bench b;
+        place_selector_fixture(b,ok_program,sizeof(ok_program));
+        b.put(kWideDataBase+0x20,{0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbb,kCodeSelector,0x0208,wait);
+        b.data_transfers.clear();
+        b.step(kCodeBase+0x0208,0xdd,kCodeSelector,0x020a,wait);
+        check(b.data_transfers.size()==10 && b.data_transfers[6].address==0xfc &&
+              b.data_transfers[6].value==0x20 && b.data_transfers[8].value==0x10,
+              "protected memory ESC did not send its offset and DS selector");
+        b.step(kCodeBase+0x020a,0xf4,kCodeSelector,0x020b,wait);
+        Npx npx;
+        for (unsigned n=0;n<20000 && npx.served<4;++n) {
+            const std::size_t before=b.data_transfers.size();
+            b.tick(wait);
+            for (std::size_t i=before;i<b.data_transfers.size();++i) {
+                const auto& t=b.data_transfers[i];
+                if (!t.io && !t.write) check(t.address>=kWideDataBase+0x20 && t.address<kWideDataBase+0x28,
+                                             "protected channel read outside the descriptor-based operand");
+                if (t.io && t.address==0xfb) {
+                    npx.load_words.push_back(uint16_t(b.data_transfers[i-1].value|(t.value<<8)));
+                    ++npx.served; npx.low_cycle=true;
+                }
+            }
+            if (npx.low_cycle) { b.d.pereq_i=0; npx.low_cycle=false; }
+            else b.d.pereq_i=npx.served<4;
+            b.d.busy_i=npx.served<4;
+        }
+        check(npx.served==4 && npx.load_words[0]==0x0201 && npx.load_words[3]==0x0807,
+              "protected channel did not load the operand through the DS descriptor base");
+        ++cases;
+        const struct { const char* name; std::vector<uint8_t> setup; uint8_t vector; } faults[]={
+            {"null DS",{0xb8,0x28,0x00,0x8e,0xd0, 0xbc,0x80,0x00, 0xb8,0x00,0x00,0x8e,0xd8, 0xbb,0x20,0x00},13},
+            {"SS past limit",{0xb8,0x28,0x00,0x8e,0xd0, 0xbc,0x80,0x00, 0xbd,0xff,0x00},12},
+        };
+        for (const auto& f:faults) {
+            std::vector<uint8_t> program=f.setup;
+            if (f.vector==13) program.insert(program.end(),{0xdd,0x07});      // FLD [BX]
+            else program.insert(program.end(),{0xdd,0x46,0x00});              // FLD [BP+0]
+            program.push_back(0xf4);
+            Bench c;
+            place_selector_fixture(c,program.data(),program.size());
+            c.put(kIdtBase+12*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+            protected_mode_boot(c,wait);
+            c.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+            c.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+            uint16_t esc_ip=0x020b;
+            c.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+            if (f.vector==13) {
+                c.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+                c.step(kCodeBase+0x020b,0x8e,kCodeSelector,0x020d,wait);
+                c.step(kCodeBase+0x020d,0xbb,kCodeSelector,0x0210,wait);
+                esc_ip=0x0210;
+            } else c.step(kCodeBase+0x0208,0xbd,kCodeSelector,0x020b,wait);
+            c.data_transfers.clear();
+            for (unsigned n=0;n<30000 && !c.d.event_o && !c.d.fault_o;++n) c.tick(wait);
+            check(c.d.event_o && !c.d.fault_o && c.d.event_vector_o==f.vector &&
+                  c.d.event_packet_error_code_o==0 && c.d.event_packet_saved_ip_o==esc_ip &&
+                  std::none_of(c.data_transfers.begin(),c.data_transfers.end(),
+                               [](const auto& t){ return t.io; }),
+                  (std::string("protected memory ESC with ")+f.name+" did not fault before its command phase").c_str());
+            ++cases;
+        }
+    }
+    std::cout<<"PASS: "<<cases<<" processor-extension channel runs: FLD qword loads memory-then-FAh, FSTP tbyte stores FAh-then-memory at an odd address, PEACK# on each first operation, transfers while halted, and interrupt 9 for a word past FFFFh, in both READY modes\n";
 }
 
 int main(int argc, char** argv) {
     Verilated::commandArgs(argc,argv);
     try {
         if (argc==3 && std::string(argv[1])=="--hardware") hardware_vectors(argv[2]);
-        else if (argc==2 && std::string(argv[1])=="--ud") undefined_opcode_contracts();
+        else if (argc==2 && std::string(argv[1])=="--ud") undefined_opcode_contracts(); else if (argc==2 && std::string(argv[1])=="--loadall") loadall_contract(); else if (argc==2 && std::string(argv[1])=="--nt") protected_nt_flag_contracts(); else if (argc==2 && std::string(argv[1])=="--enter-limit") protected_enter_stack_limit();
         else if (argc==2 && std::string(argv[1])=="--protection") protection_fault_contracts();
         else if (argc==2 && std::string(argv[1])=="--references") reference_routing_contracts();
         else if (argc==2 && std::string(argv[1])=="--caches") cache_state_contracts();
@@ -13084,6 +14428,11 @@ int main(int argc, char** argv) {
             protected_selector_query_execution(); protected_selector_query_ring3_execution();
             protected_selector_query_ring12_matrix();
         }
+        else if (argc==2 && std::string(argv[1])=="--stack-wrap") stack_wrap_contracts();
+        else if (argc==2 && std::string(argv[1])=="--gate-jump") protected_call_gate_jump();
+        else if (argc==2 && std::string(argv[1])=="--pedc") processor_extension_data_channel();
+        else if (argc==2 && std::string(argv[1])=="--segment-pops")
+            { protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); }
         else if (argc==2 && std::string(argv[1])=="--protected-event-outer")
             protected_event_outer_delivery();
         else if (argc==2 && std::string(argv[1])=="--protected-event-ring12")
@@ -13092,6 +14441,8 @@ int main(int argc, char** argv) {
             protected_event_ring12_exception_delivery();
         else if (argc==2 && std::string(argv[1])=="--protected-event-ring12-external")
             protected_event_ring12_async_delivery(false);
+        else if (argc==2 && std::string(argv[1])=="--protected-event-delivery-faults")
+            protected_event_delivery_faults();
         else if (argc==2 && std::string(argv[1])=="--protected-event-task-gate")
             { protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); }
         else if (argc==2 && std::string(argv[1])=="--protected-event-ring12-nmi")
@@ -13115,7 +14466,9 @@ int main(int argc, char** argv) {
         else if (argc==2 && std::string(argv[1])=="--call-gate-retf-faults") protected_call_gate_outer_return_faults();
         else if (argc==2 && std::string(argv[1])=="--call-gate-ldt") protected_call_gate_ldt();
         else if (argc==2 && std::string(argv[1])=="--iopl-controls") protected_iopl_controls();
-        else if (argc==2 && std::string(argv[1])=="--shutdown-nmi") protected_shutdown_nmi_recovery();
+        else if (argc==2 && std::string(argv[1])=="--shutdown-nmi") {
+            protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery();
+        }
         else if (argc==2 && std::string(argv[1])=="--protected-segments") {
             protected_mode_segment_integration(); protected_arpl_contracts();
             protected_arpl_reachable_privilege_matrix();
@@ -13133,7 +14486,7 @@ int main(int argc, char** argv) {
         else if (argc==3 && std::string(argv[1])=="--bios-decimal") vectors(argv[2],false,true);
         else if (argc==2 && std::string(argv[1])=="--processor-extension") processor_extension_contract();
         else {
-            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix();
+            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); loadall_contract(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); stack_wrap_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); processor_extension_data_channel(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_delivery_faults(); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_jump(); protected_nt_flag_contracts(); protected_enter_stack_limit(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix();
             std::cout << "PASS: 80286 bootstrap reset, register aliases, flags, exact branches, stalls and diagnostic boundaries\n";
         }
     } catch (const std::exception& error) {
