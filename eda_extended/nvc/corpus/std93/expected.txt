@@ -1,0 +1,4 @@
+nand 00=1
+nand 10=1
+nand 01=1
+nand 11=0

@@ -1,0 +1,8 @@
+len=12
+slice=extended
+image=-42
+pos=65
+bool=true
+tostr=1024
+time_ps=12500
+upper=12
