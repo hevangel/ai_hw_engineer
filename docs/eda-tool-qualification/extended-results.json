@@ -1,0 +1,843 @@
+{
+  "recordedAt": "2026-11-06T16:25:46.646249+00:00",
+  "checks": [
+    {
+      "tool": "versions",
+      "check": "nvc",
+      "command": [
+        "nvc",
+        "--version"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/versions-nvc.log"
+    },
+    {
+      "tool": "versions",
+      "check": "nvc-llvm",
+      "command": [
+        "nvc",
+        "--version"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/versions-nvc-llvm.log"
+    },
+    {
+      "tool": "versions",
+      "check": "systemc-library",
+      "command": [
+        "bash",
+        "-c",
+        "test -f /opt/systemc/lib/libsystemc.a && test -f /opt/systemc/include/systemc && echo SYSTEMC LIBRARY PRESENT"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/versions-systemc-library.log"
+    },
+    {
+      "tool": "versions",
+      "check": "compiler",
+      "command": [
+        "g++",
+        "--version"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/versions-compiler.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "adder_exhaustive-analyse",
+      "command": [
+        "nvc",
+        "--std=08",
+        "-a",
+        "/work/eda_extended/nvc/corpus/adder_exhaustive/01_adder.vhd",
+        "/work/eda_extended/nvc/corpus/adder_exhaustive/02_tb_adder.vhd"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-adder_exhaustive-analyse.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "adder_exhaustive-elaborate",
+      "command": [
+        "nvc",
+        "--std=08",
+        "-e",
+        "tb_adder"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-adder_exhaustive-elaborate.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "adder_exhaustive-simulate",
+      "command": [
+        "nvc",
+        "--std=08",
+        "-r",
+        "tb_adder"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-adder_exhaustive-simulate.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "counter-analyse",
+      "command": [
+        "nvc",
+        "--std=08",
+        "-a",
+        "/work/eda_extended/nvc/corpus/counter/01_counter.vhd",
+        "/work/eda_extended/nvc/corpus/counter/02_tb_counter.vhd"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-counter-analyse.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "counter-elaborate",
+      "command": [
+        "nvc",
+        "--std=08",
+        "-e",
+        "tb_counter"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-counter-elaborate.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "counter-simulate",
+      "command": [
+        "nvc",
+        "--std=08",
+        "-r",
+        "tb_counter",
+        "--wave=counter.fst"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-counter-simulate.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "counter-waveform-written",
+      "command": [
+        "bash",
+        "-c",
+        "test -s counter.fst && echo WAVEFORM WRITTEN"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-counter-waveform-written.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "counter-vcd-format",
+      "command": [
+        "nvc",
+        "--std=08",
+        "-r",
+        "tb_counter",
+        "--format=vcd",
+        "--wave=counter.vcd"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-counter-vcd-format.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "counter-vcd-written",
+      "command": [
+        "bash",
+        "-c",
+        "grep -q \"\\$var\" counter.vcd && echo VCD WRITTEN"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-counter-vcd-written.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "crc8-analyse",
+      "command": [
+        "nvc",
+        "--std=08",
+        "-a",
+        "/work/eda_extended/nvc/corpus/crc8/01_crc8.vhd",
+        "/work/eda_extended/nvc/corpus/crc8/02_tb_crc8.vhd"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-crc8-analyse.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "crc8-elaborate",
+      "command": [
+        "nvc",
+        "--std=08",
+        "-e",
+        "tb_crc8"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-crc8-elaborate.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "crc8-simulate",
+      "command": [
+        "nvc",
+        "--std=08",
+        "-r",
+        "tb_crc8"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-crc8-simulate.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "records_generics-analyse",
+      "command": [
+        "nvc",
+        "--std=08",
+        "-a",
+        "/work/eda_extended/nvc/corpus/records_generics/01_pkg.vhd",
+        "/work/eda_extended/nvc/corpus/records_generics/02_chain.vhd",
+        "/work/eda_extended/nvc/corpus/records_generics/03_tb.vhd"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-records_generics-analyse.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "records_generics-elaborate",
+      "command": [
+        "nvc",
+        "--std=08",
+        "-e",
+        "tb_records"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-records_generics-elaborate.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "records_generics-simulate",
+      "command": [
+        "nvc",
+        "--std=08",
+        "-r",
+        "tb_records"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-records_generics-simulate.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "std93-analyse",
+      "command": [
+        "nvc",
+        "--std=93",
+        "-a",
+        "/work/eda_extended/nvc/corpus/std93/01_gate.vhd"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-std93-analyse.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "std93-elaborate",
+      "command": [
+        "nvc",
+        "--std=93",
+        "-e",
+        "tb_gate93"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-std93-elaborate.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "std93-simulate",
+      "command": [
+        "nvc",
+        "--std=93",
+        "-r",
+        "tb_gate93"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-std93-simulate.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "textio_strings-analyse",
+      "command": [
+        "nvc",
+        "--std=08",
+        "-a",
+        "/work/eda_extended/nvc/corpus/textio_strings/01_tb.vhd"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-textio_strings-analyse.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "textio_strings-elaborate",
+      "command": [
+        "nvc",
+        "--std=08",
+        "-e",
+        "tb_strings"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-textio_strings-elaborate.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "textio_strings-simulate",
+      "command": [
+        "nvc",
+        "--std=08",
+        "-r",
+        "tb_strings"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-textio_strings-simulate.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "syntax-error-rejected",
+      "command": [
+        "nvc",
+        "--std=08",
+        "-a",
+        "/work/eda_extended/nvc/negative/syntax_error.vhd"
+      ],
+      "returncode": 1,
+      "expectedExit": "nonzero",
+      "passed": true,
+      "log": "logs/nvc-syntax-error-rejected.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "missing-entity-fails-elaboration",
+      "command": [
+        "bash",
+        "-c",
+        "nvc --std=08 -a /work/eda_extended/nvc/negative/missing_entity.vhd && nvc --std=08 -e top_missing"
+      ],
+      "returncode": 1,
+      "expectedExit": "nonzero",
+      "passed": true,
+      "log": "logs/nvc-missing-entity-fails-elaboration.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "failure-severity-nonzero-exit",
+      "command": [
+        "bash",
+        "-c",
+        "nvc --std=08 -a /work/eda_extended/nvc/negative/assert_failure.vhd && nvc --std=08 -e assert_failure && nvc --std=08 -r assert_failure"
+      ],
+      "returncode": 1,
+      "expectedExit": "nonzero",
+      "passed": true,
+      "log": "logs/nvc-failure-severity-nonzero-exit.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "error-severity-continues-but-exits-nonzero",
+      "command": [
+        "bash",
+        "-c",
+        "nvc --std=08 -a /work/eda_extended/nvc/negative/assert_error.vhd && nvc --std=08 -e assert_error && nvc --std=08 -r assert_error"
+      ],
+      "returncode": 1,
+      "expectedExit": "nonzero",
+      "passed": true,
+      "log": "logs/nvc-error-severity-continues-but-exits-nonzero.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "exit-severity-error-stops-immediately",
+      "command": [
+        "bash",
+        "-c",
+        "nvc --std=08 -a /work/eda_extended/nvc/negative/assert_error.vhd && nvc --std=08 -e assert_error && nvc --std=08 -r assert_error --exit-severity=error"
+      ],
+      "returncode": 1,
+      "expectedExit": "nonzero",
+      "passed": true,
+      "log": "logs/nvc-exit-severity-error-stops-immediately.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "exit-severity-failure-ignores-error",
+      "command": [
+        "bash",
+        "-c",
+        "nvc --std=08 -a /work/eda_extended/nvc/negative/assert_error.vhd && nvc --std=08 -e assert_error && nvc --std=08 -r assert_error --exit-severity=failure"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-exit-severity-failure-ignores-error.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "vhdl2008-construct-rejected-under-std93",
+      "command": [
+        "nvc",
+        "--std=93",
+        "-a",
+        "/work/eda_extended/nvc/negative/std2008_only.vhd"
+      ],
+      "returncode": 1,
+      "expectedExit": "nonzero",
+      "passed": true,
+      "log": "logs/nvc-vhdl2008-construct-rejected-under-std93.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "vhdl2008-construct-accepted-under-std08",
+      "command": [
+        "nvc",
+        "--std=08",
+        "-a",
+        "/work/eda_extended/nvc/negative/std2008_only.vhd"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-vhdl2008-construct-accepted-under-std08.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "vhpi-plugin-builds",
+      "command": [
+        "gcc",
+        "-shared",
+        "-fPIC",
+        "-I/opt/nvc/include",
+        "-o",
+        "hello_vhpi.so",
+        "/work/eda_extended/nvc/vhpi/hello_vhpi.c"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-vhpi-plugin-builds.log"
+    },
+    {
+      "tool": "nvc",
+      "check": "vhpi-plugin-loads",
+      "command": [
+        "bash",
+        "-c",
+        "nvc --std=08 -a /work/eda_extended/nvc/corpus/counter/01_counter.vhd /work/eda_extended/nvc/corpus/counter/02_tb_counter.vhd && nvc --std=08 -e tb_counter && nvc --std=08 -r tb_counter --load=./hello_vhpi.so"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/nvc-vhpi-plugin-loads.log"
+    },
+    {
+      "tool": "systemc",
+      "check": "counter-compile",
+      "command": [
+        "g++",
+        "-std=c++17",
+        "-O1",
+        "-Wall",
+        "-I/opt/systemc/include",
+        "/work/eda_extended/systemc/corpus/counter/counter.cpp",
+        "-L/opt/systemc/lib",
+        "-lsystemc",
+        "-pthread",
+        "-o",
+        "counter"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/systemc-counter-compile.log"
+    },
+    {
+      "tool": "systemc",
+      "check": "counter-simulate",
+      "command": [
+        "./counter"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/systemc-counter-simulate.log"
+    },
+    {
+      "tool": "systemc",
+      "check": "delta_events-compile",
+      "command": [
+        "g++",
+        "-std=c++17",
+        "-O1",
+        "-Wall",
+        "-I/opt/systemc/include",
+        "/work/eda_extended/systemc/corpus/delta_events/delta_events.cpp",
+        "-L/opt/systemc/lib",
+        "-lsystemc",
+        "-pthread",
+        "-o",
+        "delta_events"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/systemc-delta_events-compile.log"
+    },
+    {
+      "tool": "systemc",
+      "check": "delta_events-simulate",
+      "command": [
+        "./delta_events"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/systemc-delta_events-simulate.log"
+    },
+    {
+      "tool": "systemc",
+      "check": "fifo-compile",
+      "command": [
+        "g++",
+        "-std=c++17",
+        "-O1",
+        "-Wall",
+        "-I/opt/systemc/include",
+        "/work/eda_extended/systemc/corpus/fifo/fifo.cpp",
+        "-L/opt/systemc/lib",
+        "-lsystemc",
+        "-pthread",
+        "-o",
+        "fifo"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/systemc-fifo-compile.log"
+    },
+    {
+      "tool": "systemc",
+      "check": "fifo-simulate",
+      "command": [
+        "./fifo"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/systemc-fifo-simulate.log"
+    },
+    {
+      "tool": "systemc",
+      "check": "reset_thread-compile",
+      "command": [
+        "g++",
+        "-std=c++17",
+        "-O1",
+        "-Wall",
+        "-I/opt/systemc/include",
+        "/work/eda_extended/systemc/corpus/reset_thread/reset_thread.cpp",
+        "-L/opt/systemc/lib",
+        "-lsystemc",
+        "-pthread",
+        "-o",
+        "reset_thread"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/systemc-reset_thread-compile.log"
+    },
+    {
+      "tool": "systemc",
+      "check": "reset_thread-simulate",
+      "command": [
+        "./reset_thread"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/systemc-reset_thread-simulate.log"
+    },
+    {
+      "tool": "systemc",
+      "check": "counter-vcd-written",
+      "command": [
+        "bash",
+        "-c",
+        "test -s counter.vcd && grep -q \"\\$var\" counter.vcd && echo VCD WRITTEN"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/systemc-counter-vcd-written.log"
+    },
+    {
+      "tool": "systemc",
+      "check": "banner-version",
+      "command": [
+        "./delta_events"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/systemc-banner-version.log"
+    },
+    {
+      "tool": "systemc",
+      "check": "fatal-compile",
+      "command": [
+        "g++",
+        "-std=c++17",
+        "-O1",
+        "-Wall",
+        "-I/opt/systemc/include",
+        "/work/eda_extended/systemc/negative/fatal.cpp",
+        "-L/opt/systemc/lib",
+        "-lsystemc",
+        "-pthread",
+        "-o",
+        "fatal"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/systemc-fatal-compile.log"
+    },
+    {
+      "tool": "systemc",
+      "check": "fatal-reports-failure",
+      "command": [
+        "./fatal"
+      ],
+      "returncode": -6,
+      "expectedExit": "nonzero",
+      "passed": true,
+      "log": "logs/systemc-fatal-reports-failure.log"
+    },
+    {
+      "tool": "systemc",
+      "check": "assert_fail-compile",
+      "command": [
+        "g++",
+        "-std=c++17",
+        "-O1",
+        "-Wall",
+        "-I/opt/systemc/include",
+        "/work/eda_extended/systemc/negative/assert_fail.cpp",
+        "-L/opt/systemc/lib",
+        "-lsystemc",
+        "-pthread",
+        "-o",
+        "assert_fail"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/systemc-assert_fail-compile.log"
+    },
+    {
+      "tool": "systemc",
+      "check": "assert_fail-reports-failure",
+      "command": [
+        "./assert_fail"
+      ],
+      "returncode": -6,
+      "expectedExit": "nonzero",
+      "passed": true,
+      "log": "logs/systemc-assert_fail-reports-failure.log"
+    },
+    {
+      "tool": "systemc",
+      "check": "error_throw-compile",
+      "command": [
+        "g++",
+        "-std=c++17",
+        "-O1",
+        "-Wall",
+        "-I/opt/systemc/include",
+        "/work/eda_extended/systemc/negative/error_throw.cpp",
+        "-L/opt/systemc/lib",
+        "-lsystemc",
+        "-pthread",
+        "-o",
+        "error_throw"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/systemc-error_throw-compile.log"
+    },
+    {
+      "tool": "systemc",
+      "check": "error_throw-reports-failure",
+      "command": [
+        "./error_throw"
+      ],
+      "returncode": 1,
+      "expectedExit": "nonzero",
+      "passed": true,
+      "log": "logs/systemc-error_throw-reports-failure.log"
+    },
+    {
+      "tool": "systemc",
+      "check": "exit_code-compile",
+      "command": [
+        "g++",
+        "-std=c++17",
+        "-O1",
+        "-Wall",
+        "-I/opt/systemc/include",
+        "/work/eda_extended/systemc/negative/exit_code.cpp",
+        "-L/opt/systemc/lib",
+        "-lsystemc",
+        "-pthread",
+        "-o",
+        "exit_code"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/systemc-exit_code-compile.log"
+    },
+    {
+      "tool": "systemc",
+      "check": "exit_code-reports-failure",
+      "command": [
+        "./exit_code"
+      ],
+      "returncode": 3,
+      "expectedExit": 3,
+      "passed": true,
+      "log": "logs/systemc-exit_code-reports-failure.log"
+    },
+    {
+      "tool": "systemc",
+      "check": "unbound_port-compile",
+      "command": [
+        "g++",
+        "-std=c++17",
+        "-O1",
+        "-Wall",
+        "-I/opt/systemc/include",
+        "/work/eda_extended/systemc/negative/unbound_port.cpp",
+        "-L/opt/systemc/lib",
+        "-lsystemc",
+        "-pthread",
+        "-o",
+        "unbound_port"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/systemc-unbound_port-compile.log"
+    },
+    {
+      "tool": "systemc",
+      "check": "unbound_port-reports-failure",
+      "command": [
+        "./unbound_port"
+      ],
+      "returncode": 1,
+      "expectedExit": "nonzero",
+      "passed": true,
+      "log": "logs/systemc-unbound_port-reports-failure.log"
+    },
+    {
+      "tool": "interop",
+      "check": "surver-loads-nvc-fst",
+      "command": [
+        "bash",
+        "-c",
+        "cd /work/scratchpad/eda-extended/nvc/counter && (surver --port 18101 --token interop-token-18101 counter.fst > surver-nvc-fst.log 2>&1 & echo $! > surver-nvc-fst.pid) && sleep 3 && body=$(curl -s -m 5 http://127.0.0.1:18101/interop-token-18101/get_status); kill $(cat surver-nvc-fst.pid) 2>/dev/null; echo \"$body\""
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/interop-surver-loads-nvc-fst.log"
+    },
+    {
+      "tool": "interop",
+      "check": "surver-loads-nvc-vcd",
+      "command": [
+        "bash",
+        "-c",
+        "cd /work/scratchpad/eda-extended/nvc/counter && (surver --port 18103 --token interop-token-18103 counter.vcd > surver-nvc-vcd.log 2>&1 & echo $! > surver-nvc-vcd.pid) && sleep 3 && body=$(curl -s -m 5 http://127.0.0.1:18103/interop-token-18103/get_status); kill $(cat surver-nvc-vcd.pid) 2>/dev/null; echo \"$body\""
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/interop-surver-loads-nvc-vcd.log"
+    },
+    {
+      "tool": "interop",
+      "check": "surver-loads-systemc-vcd",
+      "command": [
+        "bash",
+        "-c",
+        "cd /work/scratchpad/eda-extended/systemc && (surver --port 18102 --token interop-token-18102 counter.vcd > surver-systemc-vcd.log 2>&1 & echo $! > surver-systemc-vcd.pid) && sleep 3 && body=$(curl -s -m 5 http://127.0.0.1:18102/interop-token-18102/get_status); kill $(cat surver-systemc-vcd.pid) 2>/dev/null; echo \"$body\""
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/interop-surver-loads-systemc-vcd.log"
+    }
+  ],
+  "passed": true
+}

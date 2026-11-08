@@ -1,0 +1,10 @@
+START t=0
+n=1 t=5
+n=2 t=15
+n=3 t=25
+n=4 t=35
+START t=45
+n=1 t=55
+n=2 t=65
+n=3 t=75
+RESET DONE

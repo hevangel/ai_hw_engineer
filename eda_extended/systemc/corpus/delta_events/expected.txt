@@ -1,0 +1,7 @@
+A s=0
+B s=1
+C delta_since_B=1 t=0
+D t=5
+E t=15
+F t=17
+DELTA DONE

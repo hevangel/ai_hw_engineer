@@ -16,6 +16,7 @@ ai_hw_engineer/
 │   ├── verilator/
 │   ├── yosys-symbiyosys/
 │   └── surfer/
+├── eda_extended/           — Overlay image adding NVC and SystemC, plus their reference corpus
 ├── libs/uvm/               — UVM reference library (git submodule)
 ├── libs/cdc_primitives/    — Verified CDC primitive library (git submodule)
 ├── design/                 — Chip designs

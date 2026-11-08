@@ -1,0 +1,17 @@
+t=0 wrote=0
+t=0 wrote=1
+t=0 wrote=2
+t=0 wrote=3
+t=20 read=0
+t=20 wrote=4
+t=30 read=1
+t=30 wrote=5
+t=40 read=2
+t=40 wrote=6
+t=50 read=3
+t=50 wrote=7
+t=60 read=4
+t=70 read=5
+t=80 read=6
+t=90 read=7
+FIFO DONE
