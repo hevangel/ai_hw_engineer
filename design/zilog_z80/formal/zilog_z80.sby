@@ -1,0 +1,26 @@
+[tasks]
+bmc
+cover
+prove
+
+[options]
+bmc: mode bmc
+bmc: depth 40
+cover: mode cover
+cover: depth 60
+prove: mode prove
+prove: depth 20
+
+[engines]
+bmc: smtbmc z3
+cover: smtbmc z3
+prove: smtbmc z3
+
+[script]
+read -formal -sv -I ../src ../src/zilog_z80_alu.sv ../src/zilog_z80.sv
+prep -top zilog_z80
+
+[files]
+../src/zilog_z80_defs.svh
+../src/zilog_z80_alu.sv
+../src/zilog_z80.sv
