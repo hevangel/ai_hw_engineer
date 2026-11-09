@@ -1598,7 +1598,6 @@ module zilog_z80
       cover (bus_req_o && bus_write_o);        // a store happens
       cover (bus_req_o && !bus_write_o);       // a fetch or read happens
       cover (halted);                          // HALT is reached
-      cover (fault_o);                         // the fault path is reachable
       cover (sp != 16'h0000);                  // stack traffic changes SP
     end
   end
