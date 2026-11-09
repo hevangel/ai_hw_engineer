@@ -127,9 +127,13 @@ module zilog_z80
   logic        is_ed;
   logic [7:0]  ed_op;
 
-  typedef enum logic [3:0] {
+  // Index-prefix state: 0 = HL, 1 = IX (DD), 2 = IY (FD).
+  logic [1:0]  pfx;
+  logic [7:0]  disp;
+
+  typedef enum logic [4:0] {
     S_FETCH, S_PFX, S_IMM1, S_IMM2, S_EXEC, S_MRD, S_MWR, S_ED, S_IORD, S_IOWR,
-    S_EXEC_ED, S_HALTED, S_FAULT
+    S_EXEC_ED, S_IDX, S_IDX_D, S_DCB_D, S_DCB_OP, S_HALTED, S_FAULT
   } state_t;
   state_t state;
 
@@ -151,7 +155,7 @@ module zilog_z80
     case (idx)
       2'd0: get_rp = {b, c};
       2'd1: get_rp = {d, e};
-      2'd2: get_rp = {h, l};
+      2'd2: get_rp = xhl;
       default: get_rp = sp;
     endcase
   endfunction
@@ -160,7 +164,7 @@ module zilog_z80
     case (idx)
       2'd0: get_rp_hi = b;
       2'd1: get_rp_hi = d;
-      2'd2: get_rp_hi = h;
+      2'd2: get_rp_hi = xh;
       default: get_rp_hi = 8'h00;  // AF is handled separately
     endcase
   endfunction
@@ -169,7 +173,7 @@ module zilog_z80
     case (idx)
       2'd0: get_rp_lo = c;
       2'd1: get_rp_lo = e;
-      2'd2: get_rp_lo = l;
+      2'd2: get_rp_lo = xl;
       default: get_rp_lo = 8'h00;
     endcase
   endfunction
@@ -220,6 +224,15 @@ module zilog_z80
              op[2:0] == 3'd4 || op[2:0] == 3'd7)) supported = 1'b1;
   endfunction
 
+  // Opcodes whose (HL) operand becomes (IX+d)/(IY+d) and therefore consume a
+  // displacement byte under a DD/FD prefix.
+  function automatic logic needs_disp(input logic [7:0] op);
+    needs_disp = (op == 8'h34) || (op == 8'h35) || (op == 8'h36) ||
+                 (op >= 8'h70 && op <= 8'h77 && op != 8'h76) ||
+                 ((op[2:0] == 3'd6) && (op != 8'h76) &&
+                  ((op[7:6] == 2'b01) || (op[7:6] == 2'b10)));
+  endfunction
+
   function automatic logic [1:0] imm_count(input logic [7:0] op);
     imm_count = 2'd0;
     if (op == 8'h22 || op == 8'h2A || op == 8'h32 || op == 8'h3A) imm_count = 2'd2;
@@ -234,6 +247,41 @@ module zilog_z80
     else if (op[7:6] == 2'b11 && op[2:0] == 3'd2) imm_count = 2'd2;       // JP cc,nn
     else if (op == 8'hC3) imm_count = 2'd2;
   endfunction
+
+  /* verilator lint_off MULTIDRIVEN */
+  // Write the effective HL pair: IX under DD, IY under FD, HL otherwise.
+  // Declared before the sequencer; used with non-blocking assignments.
+  task automatic wr_hl(input logic [15:0] v);
+    if (pfx == 2'd1)
+      ix <= v;
+    else if (pfx == 2'd2)
+      iy <= v;
+    else
+      {h, l} <= v;
+  endtask
+
+  // Write an 8-bit register; H/L become IXH/IXL when alias is set and a DD/FD
+  // prefix is active (the undocumented aliases).
+  task automatic wr_r(input logic [2:0] idx, input logic [7:0] v, input logic en_alias);
+    case (idx)
+      3'd0: b <= v;
+      3'd1: c <= v;
+      3'd2: d <= v;
+      3'd3: e <= v;
+      3'd4: if (en_alias && (pfx != 2'd0)) begin
+              if (pfx == 2'd1) ix[15:8] <= v;
+              else iy[15:8] <= v;
+            end else h <= v;
+      3'd5: if (en_alias && (pfx != 2'd0)) begin
+              if (pfx == 2'd1) ix[7:0] <= v;
+              else iy[7:0] <= v;
+            end else l <= v;
+      3'd7: a <= v;
+      default: ;
+    endcase
+  endtask
+
+  /* verilator lint_on MULTIDRIVEN */
 
   // ----------------------------------------------------------------- ALU wiring
   logic [7:0]  alu_a, alu_b, alu_y, alu_f;
@@ -309,7 +357,7 @@ module zilog_z80
         alu_op = ALU_BIT;
       end
     end else if (ir >= 8'h80 && ir <= 8'hBF && ir[2:0] != 3'd6) begin
-      alu_b = get_r(ir[2:0]);
+      alu_b = r8(ir[2:0]);
       case (ir[5:3])
         3'd0: alu_op = ALU_ADD;
         3'd1: alu_op = ALU_ADC;
@@ -349,11 +397,11 @@ module zilog_z80
     end else if (ir == 8'h1F) begin
       alu_op = ALU_RR;
     end else if (ir[2:0] == 3'd4 && ir[7:6] == 2'b00 && ir[5:3] != 3'd6) begin
-      alu_a  = get_r(ir[5:3]);
+      alu_a  = r8(ir[5:3]);
       alu_b  = 8'h01;
       alu_op = ALU_INC;
     end else if (ir[2:0] == 3'd5 && ir[7:6] == 2'b00 && ir[5:3] != 3'd6) begin
-      alu_a  = get_r(ir[5:3]);
+      alu_a  = r8(ir[5:3]);
       alu_b  = 8'h01;
       alu_op = ALU_DEC;
     end
@@ -384,7 +432,7 @@ module zilog_z80
     bus_intack_o = 1'b0;
 
     case (state)
-      S_FETCH, S_PFX, S_IMM1, S_IMM2, S_ED: begin
+      S_FETCH, S_PFX, S_IMM1, S_IMM2, S_ED, S_IDX, S_IDX_D, S_DCB_D, S_DCB_OP: begin
         bus_write_o = 1'b0;
         bus_addr_o  = pc;
       end
@@ -417,11 +465,53 @@ module zilog_z80
   logic [15:0] rp_val;
 
   always_comb begin
-    hl_val   = {h, l};
+    hl_val   = xhl;
     rp_val   = get_rp(ir[5:4]);
     half_sum = {1'b0, hl_val[11:0]} + {1'b0, rp_val[11:0]};
     full_sum = {1'b0, hl_val} + {1'b0, rp_val};
   end
+
+  // ---------------------------------------------------- index-register view
+  logic [15:0] xhl;
+  logic [7:0]  xh, xl;
+  logic [15:0] mem_base;
+
+  always_comb begin
+    case (pfx)
+      2'd1: begin xhl = ix; xh = ix[15:8]; xl = ix[7:0]; end
+      2'd2: begin xhl = iy; xh = iy[15:8]; xl = iy[7:0]; end
+      default: begin xhl = {h, l}; xh = h; xl = l; end
+    endcase
+    // (HL) becomes (IX+d)/(IY+d) under a prefix.
+    mem_base = (pfx == 2'd0) ? xhl : (xhl + {{8{disp[7]}}, disp});
+  end
+
+  // Register read with the undocumented IXH/IXL aliases active under a prefix.
+  function automatic logic [7:0] r8(input logic [2:0] idx);
+    case (idx)
+      3'd0: r8 = b;
+      3'd1: r8 = c;
+      3'd2: r8 = d;
+      3'd3: r8 = e;
+      3'd4: r8 = xh;
+      3'd5: r8 = xl;
+      3'd7: r8 = a;
+      default: r8 = 8'h00;
+    endcase
+  endfunction
+
+  // Register read without the aliases: the (HL)/(IX+d) forms keep H/L as H/L.
+  function automatic logic [7:0] r8p(input logic [2:0] idx);    case (idx)
+      3'd0: r8p = b;
+      3'd1: r8p = c;
+      3'd2: r8p = d;
+      3'd3: r8p = e;
+      3'd4: r8p = h;
+      3'd5: r8p = l;
+      3'd7: r8p = a;
+      default: r8p = 8'h00;
+    endcase
+  endfunction
 
   // 16-bit ADC/SBC HL,rr used by the ED page.
   logic [15:0] ed_rp;
@@ -460,6 +550,9 @@ module zilog_z80
     blk_sum   = a + bus_rdata_i;
   end
 
+  // The sequencer is the only caller of wr_hl/wr_r, so their writes belong to
+  // this process even though Verilator reports them separately.
+  /* verilator lint_off MULTIDRIVEN */
   always_ff @(posedge clk) begin
     if (!rst_n) begin
       state    <= S_FETCH;
@@ -503,10 +596,17 @@ module zilog_z80
             imm1  <= 8'h00;
             imm2  <= 8'h00;
             is_ed <= (bus_rdata_i == 8'hED);
+            pfx   <= 2'd0;
             if (bus_rdata_i == 8'hCB) begin
               state <= S_PFX;
             end else if (bus_rdata_i == 8'hED) begin
               state <= S_ED;
+            end else if (bus_rdata_i == 8'hDD) begin
+              pfx   <= 2'd1;
+              state <= S_IDX;
+            end else if (bus_rdata_i == 8'hFD) begin
+              pfx   <= 2'd2;
+              state <= S_IDX;
             end else if (!supported(bus_rdata_i)) begin
               fault_o <= 1'b1;
               state   <= S_FAULT;
@@ -548,6 +648,63 @@ module zilog_z80
           end
         end
 
+        // ------------------------------------------------------ DD/FD prefix
+        S_IDX: begin
+          if (bus_ready_i) begin
+            ir    <= bus_rdata_i;
+            pc    <= pc + 16'd1;
+            r_reg <= {r_reg[7], r_reg[6:0] + 7'd1};
+            imm1  <= 8'h00;
+            imm2  <= 8'h00;
+            if (bus_rdata_i == 8'hDD) begin
+              pfx <= 2'd1;                 // last prefix wins
+            end else if (bus_rdata_i == 8'hFD) begin
+              pfx <= 2'd2;
+            end else if (bus_rdata_i == 8'hED) begin
+              pfx   <= 2'd0;               // DD ED: the DD is ignored
+              is_ed <= 1'b1;
+              state <= S_ED;
+            end else if (bus_rdata_i == 8'hCB) begin
+              state <= S_DCB_D;
+            end else if (!supported(bus_rdata_i)) begin
+              fault_o <= 1'b1;
+              state   <= S_FAULT;
+            end else if (needs_disp(bus_rdata_i)) begin
+              state <= S_IDX_D;
+            end else if (imm_count(bus_rdata_i) == 2'd0) begin
+              state <= S_EXEC;
+            end else begin
+              state <= S_IMM1;
+            end
+          end
+        end
+
+        S_IDX_D: begin
+          if (bus_ready_i) begin
+            disp  <= bus_rdata_i;
+            pc    <= pc + 16'd1;
+            // LD (IX+d),n still needs its immediate byte after the displacement.
+            state <= (ir == 8'h36) ? S_IMM1 : S_EXEC;
+          end
+        end
+
+        S_DCB_D: begin
+          if (bus_ready_i) begin
+            disp  <= bus_rdata_i;
+            pc    <= pc + 16'd1;
+            state <= S_DCB_OP;
+          end
+        end
+
+        S_DCB_OP: begin
+          if (bus_ready_i) begin
+            cb_op <= bus_rdata_i;
+            pc    <= pc + 16'd1;
+            // The opcode byte of DD CB d op is not an M1 fetch: R is unchanged.
+            state <= S_EXEC;
+          end
+        end
+
         // ------------------------------------------------------- ED prefix
         S_ED: begin
           if (bus_ready_i) begin
@@ -565,7 +722,7 @@ module zilog_z80
         // --------------------------------------------------------- execute
         S_EXEC: begin
           if (ir == 8'hCB) begin
-            if (cb_op[2:0] != 3'd6) begin
+            if (cb_op[2:0] != 3'd6 && (pfx == 2'd0)) begin
               // Register forms (verified earlier).
               case (cb_op[7:6])
                 2'b00: begin
@@ -608,7 +765,9 @@ module zilog_z80
             state    <= S_FETCH;
             end else begin
               // (HL) forms: read first; BIT has no write-back.
-              mem_addr <= {h, l};
+              mem_addr <= mem_base;
+              if (pfx != 2'd0)
+                wz <= mem_base;   // DD-CB: WZ is the effective address
               if (cb_op[7:6] == 2'b00) begin
                 mem_op <= MO_CB_ROT;
               end else if (cb_op[7:6] == 2'b01) begin
@@ -649,11 +808,11 @@ module zilog_z80
             retire_o <= 1'b1;
             state    <= S_FETCH;
           end else if (ir == 8'hE9) begin
-            pc <= {h, l};
+            pc <= xhl;
             retire_o <= 1'b1;
             state    <= S_FETCH;
           end else if (ir == 8'hF9) begin
-            sp <= {h, l};
+            sp <= xhl;
             retire_o <= 1'b1;
             state    <= S_FETCH;
           end else if (ir == 8'h10) begin
@@ -693,7 +852,7 @@ module zilog_z80
             case (ir[5:4])
               2'd0: {b, c} <= {b, c} + 16'd1;
               2'd1: {d, e} <= {d, e} + 16'd1;
-              2'd2: {h, l} <= {h, l} + 16'd1;
+              2'd2: wr_hl(xhl + 16'd1);
               default: sp <= sp + 16'd1;
             endcase
             retire_o <= 1'b1;
@@ -702,13 +861,13 @@ module zilog_z80
             case (ir[5:4])
               2'd0: {b, c} <= {b, c} - 16'd1;
               2'd1: {d, e} <= {d, e} - 16'd1;
-              2'd2: {h, l} <= {h, l} - 16'd1;
+              2'd2: wr_hl(xhl - 16'd1);
               default: sp <= sp - 16'd1;
             endcase
             retire_o <= 1'b1;
             state    <= S_FETCH;
           end else if (ir[2:0] == 3'd1 && ir[3] == 1'b1 && ir[7:6] == 2'b00) begin
-            {h, l} <= full_sum[15:0];
+            wr_hl(full_sum[15:0]);
             f <= {f[FLAG_S], f[FLAG_Z], full_sum[13], half_sum[12], full_sum[11],
                   f[FLAG_PV], 1'b0, full_sum[16]};
             retire_o <= 1'b1;
@@ -717,7 +876,7 @@ module zilog_z80
             case (ir[5:4])
               2'd0: {b, c} <= {imm2, imm1};
               2'd1: {d, e} <= {imm2, imm1};
-              2'd2: {h, l} <= {imm2, imm1};
+              2'd2: wr_hl({imm2, imm1});
               default: sp <= {imm2, imm1};
             endcase
             retire_o <= 1'b1;
@@ -742,7 +901,7 @@ module zilog_z80
           end else if (ir >= 8'h80 && ir <= 8'hBF) begin
             if (ir[2:0] == 3'd6) begin
               // ALU A,(HL)
-              mem_addr <= {h, l};
+              mem_addr <= mem_base;
               mem_op   <= MO_ALU;
               state    <= S_MRD;
             end else if (ir[5:3] == 3'd7) begin
@@ -758,36 +917,28 @@ module zilog_z80
           end else if (ir >= 8'h40 && ir <= 8'h7F) begin
             if (ir[2:0] == 3'd6) begin
               // LD r,(HL)
-              mem_addr <= {h, l};
+              mem_addr <= mem_base;
               aux_lo   <= {5'b00000, ir[5:3]};
               mem_op   <= MO_LD_R;
               state    <= S_MRD;
             end else if (ir[5:3] == 3'd6) begin
               // LD (HL),r
-              mem_addr <= {h, l};
-              mem_data <= get_r(ir[2:0]);
+              mem_addr <= mem_base;
+              mem_data <= r8p(ir[2:0]);
               mem_op   <= MO_WR_RET;
               state    <= S_MWR;
             end else begin
-              case (ir[5:3])
-                3'd0: b <= get_r(ir[2:0]);
-                3'd1: c <= get_r(ir[2:0]);
-                3'd2: d <= get_r(ir[2:0]);
-                3'd3: e <= get_r(ir[2:0]);
-                3'd4: h <= get_r(ir[2:0]);
-                3'd5: l <= get_r(ir[2:0]);
-                default: a <= get_r(ir[2:0]);
-              endcase
+              wr_r(ir[5:3], r8(ir[2:0]), 1'b1);
             retire_o <= 1'b1;
             state    <= S_FETCH;
             end
           end else if (ir == 8'h36) begin
-            mem_addr <= {h, l};
+            mem_addr <= mem_base;
             mem_data <= imm1;
             mem_op   <= MO_WR_RET;
             state    <= S_MWR;
           end else if (ir == 8'h34 || ir == 8'h35) begin
-            mem_addr <= {h, l};
+            mem_addr <= mem_base;
             mem_op   <= (ir == 8'h34) ? MO_INC_MEM : MO_DEC_MEM;
             state    <= S_MRD;
           end else if (ir == 8'h0A || ir == 8'h1A) begin
@@ -814,8 +965,8 @@ module zilog_z80
             state    <= S_MRD;
           end else if (ir == 8'h22) begin
             mem_addr <= {imm2, imm1};
-            mem_data <= l;
-            aux_hi   <= h;
+            mem_data <= xl;
+            aux_hi   <= xh;
             mem_op   <= MO_LD_NN_LO;
             state    <= S_MWR;
           end else if (ir[7:6] == 2'b11 && ir[2:0] == 3'd5 && ir[3] == 1'b0) begin
@@ -882,49 +1033,25 @@ module zilog_z80
             state    <= S_IORD;
           end else if (ir == 8'hE3) begin
             // EX (SP),HL
-            saved16  <= {h, l};
+            saved16  <= xhl;
             mem_addr <= sp;
             mem_op   <= MO_EX_LO;
             state    <= S_MRD;
           end else if (ir[2:0] == 3'd4 && ir[7:6] == 2'b00 && ir[5:3] != 3'd6) begin
             // INC r
-            case (ir[5:3])
-              3'd0: b <= alu_y;
-              3'd1: c <= alu_y;
-              3'd2: d <= alu_y;
-              3'd3: e <= alu_y;
-              3'd4: h <= alu_y;
-              3'd5: l <= alu_y;
-              default: a <= alu_y;
-            endcase
+            wr_r(ir[5:3], alu_y, 1'b1);
             f <= alu_f;
             retire_o <= 1'b1;
             state    <= S_FETCH;
           end else if (ir[2:0] == 3'd5 && ir[7:6] == 2'b00 && ir[5:3] != 3'd6) begin
             // DEC r
-            case (ir[5:3])
-              3'd0: b <= alu_y;
-              3'd1: c <= alu_y;
-              3'd2: d <= alu_y;
-              3'd3: e <= alu_y;
-              3'd4: h <= alu_y;
-              3'd5: l <= alu_y;
-              default: a <= alu_y;
-            endcase
+            wr_r(ir[5:3], alu_y, 1'b1);
             f <= alu_f;
             retire_o <= 1'b1;
             state    <= S_FETCH;
           end else if (ir[2:0] == 3'd6 && ir[7:6] == 2'b00 && ir[5:3] != 3'd6) begin
             // LD r,n
-            case (ir[5:3])
-              3'd0: b <= imm1;
-              3'd1: c <= imm1;
-              3'd2: d <= imm1;
-              3'd3: e <= imm1;
-              3'd4: h <= imm1;
-              3'd5: l <= imm1;
-              default: a <= imm1;
-            endcase
+            wr_r(ir[5:3], imm1, 1'b1);
             retire_o <= 1'b1;
             state    <= S_FETCH;
           end else begin
@@ -938,17 +1065,10 @@ module zilog_z80
           if (bus_ready_i) begin
             case (mem_op)
               MO_LD_R: begin
-                case (aux_lo[2:0])
-                  3'd0: b <= bus_rdata_i;
-                  3'd1: c <= bus_rdata_i;
-                  3'd2: d <= bus_rdata_i;
-                  3'd3: e <= bus_rdata_i;
-                  3'd4: h <= bus_rdata_i;
-                  3'd5: l <= bus_rdata_i;
-                  default: a <= bus_rdata_i;
-                endcase
-            retire_o <= 1'b1;
-            state    <= S_FETCH;
+                // LD r,(HL)/(IX+d): the register side keeps H/L as H/L.
+                wr_r(aux_lo[2:0], bus_rdata_i, 1'b0);
+                retire_o <= 1'b1;
+                state    <= S_FETCH;
               end
               MO_ALU: begin
                 a <= alu_y;
@@ -959,6 +1079,10 @@ module zilog_z80
               MO_INC_MEM, MO_DEC_MEM, MO_CB_ROT: begin
                 f        <= alu_f;
                 mem_data <= alu_y;
+                // DD-CB/FD-CB also copy the result into the register named by the
+                // low three bits (undocumented autocopy).
+                if ((ir == 8'hCB) && (pfx != 2'd0) && (cb_op[2:0] != 3'd6))
+                  wr_r(cb_op[2:0], alu_y, 1'b0);
                 mem_op   <= MO_WR_RET;
                 state    <= S_MWR;
               end
@@ -971,6 +1095,10 @@ module zilog_z80
                 mem_data <= (cb_op[7:6] == 2'b10)
                                 ? (bus_rdata_i & ~(8'h01 << cb_op[5:3]))
                                 : (bus_rdata_i | (8'h01 << cb_op[5:3]));
+                if ((pfx != 2'd0) && (cb_op[2:0] != 3'd6))
+                  wr_r(cb_op[2:0], (cb_op[7:6] == 2'b10)
+                                        ? (bus_rdata_i & ~(8'h01 << cb_op[5:3]))
+                                        : (bus_rdata_i | (8'h01 << cb_op[5:3])), 1'b0);
                 mem_op   <= MO_WR_RET;
                 state    <= S_MWR;
               end
@@ -985,8 +1113,7 @@ module zilog_z80
                 mem_op   <= MO_LD_HL_HI;
               end
               MO_LD_HL_HI: begin
-                h <= bus_rdata_i;
-                l <= aux_lo;
+                wr_hl({bus_rdata_i, aux_lo});
             retire_o <= 1'b1;
             state    <= S_FETCH;
               end
@@ -1001,7 +1128,7 @@ module zilog_z80
                 case (ir[5:4])
                   2'd0: {b, c} <= {bus_rdata_i, aux_lo};
                   2'd1: {d, e} <= {bus_rdata_i, aux_lo};
-                  2'd2: {h, l} <= {bus_rdata_i, aux_lo};
+                  2'd2: wr_hl({bus_rdata_i, aux_lo});
                   default: begin
                     a <= bus_rdata_i;
                     f <= aux_lo;
@@ -1043,7 +1170,7 @@ module zilog_z80
                 case (ed_op[5:4])
                   2'd0: {b, c} <= {bus_rdata_i, aux_lo};
                   2'd1: {d, e} <= {bus_rdata_i, aux_lo};
-                  2'd2: {h, l} <= {bus_rdata_i, aux_lo};
+                  2'd2: wr_hl({bus_rdata_i, aux_lo});
                   default: sp <= {bus_rdata_i, aux_lo};
                 endcase
                 retire_o <= 1'b1;
@@ -1188,8 +1315,7 @@ module zilog_z80
                 mem_op   <= MO_EX_WHI;
               end
               MO_EX_WHI: begin
-                h <= aux_hi;
-                l <= aux_lo;
+                wr_hl({aux_hi, aux_lo});
             retire_o <= 1'b1;
             state    <= S_FETCH;
               end
@@ -1228,7 +1354,7 @@ module zilog_z80
               end
               MO_BLK_INI: begin
                 mem_data <= bus_rdata_i;
-                mem_addr <= {h, l};
+                mem_addr <= mem_base;
                 mem_op   <= MO_BLK_INI_W;
                 state    <= S_MWR;
               end
@@ -1290,7 +1416,7 @@ module zilog_z80
             end
             // SBC HL,rr (C from flags)
             8'h42, 8'h52, 8'h62, 8'h72: begin
-              {h, l} <= ed_sub[15:0];
+              wr_hl(ed_sub[15:0]);
               f <= {ed_sub[15], (ed_sub[15:0] == 16'h0000), ed_sub[13],
                     ed_sub_h[12], ed_sub[11],
                     ((hl_val[15] ^ ed_rp[15]) & (ed_sub[15] ^ hl_val[15])), 1'b1,
@@ -1300,7 +1426,7 @@ module zilog_z80
             end
             // ADC HL,rr
             8'h4A, 8'h5A, 8'h6A, 8'h7A: begin
-              {h, l} <= ed_add[15:0];
+              wr_hl(ed_add[15:0]);
               f <= {ed_add[15], (ed_add[15:0] == 16'h0000), ed_add[13],
                     ed_add_h[12], ed_add[11],
                     (~(hl_val[15] ^ ed_rp[15]) & (ed_add[15] ^ hl_val[15])), 1'b0,
@@ -1373,7 +1499,7 @@ module zilog_z80
             end
             // RRD / RLD
             8'h67, 8'h6F: begin
-              mem_addr <= {h, l};
+              mem_addr <= mem_base;
               mem_op   <= (ed_op == 8'h67) ? MO_RRD : MO_RLD;
               state    <= S_MRD;
             end
@@ -1385,18 +1511,18 @@ module zilog_z80
             end
             // Block I/O: OUTI/OUTD/OTIR/OTDR
             8'hA3, 8'hAB, 8'hB3, 8'hBB: begin
-              mem_addr <= {h, l};
+              mem_addr <= mem_base;
               mem_op   <= MO_BLK_OUT_R;
               state    <= S_MRD;
             end
             // Block transfer / search
             8'hA0, 8'hA8, 8'hB0, 8'hB8: begin   // LDI / LDD / LDIR / LDDR
-              mem_addr <= {h, l};
+              mem_addr <= mem_base;
               mem_op   <= MO_BLK_LD_R;
               state    <= S_MRD;
             end
             8'hA1, 8'hA9, 8'hB1, 8'hB9: begin   // CPI / CPD / CPIR / CPDR
-              mem_addr <= {h, l};
+              mem_addr <= mem_base;
               mem_op   <= MO_BLK_CP_R;
               state    <= S_MRD;
             end
@@ -1477,5 +1603,7 @@ module zilog_z80
     end
   end
 `endif
+
+  /* verilator lint_on MULTIDRIVEN */
 
 endmodule

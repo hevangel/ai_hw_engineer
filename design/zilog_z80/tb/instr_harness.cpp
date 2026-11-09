@@ -375,6 +375,26 @@ int main(int argc, char** argv) {
     check(0xED, tail, "ED");
   }
 
+  // DD/FD index pages: prefix + opcode + operand bytes.
+  for (int op = 0; op < 256; op++) {
+    std::vector<uint8_t> tail;
+    tail.push_back((uint8_t)op);
+    tail.push_back((uint8_t)d8(rng));
+    tail.push_back((uint8_t)d8(rng));
+    check(0xDD, tail, "DD");
+    check(0xFD, tail, "FD");
+  }
+
+  // DD-CB / FD-CB composites: prefix, CB, displacement, opcode.
+  for (int cb = 0; cb < 256; cb++) {
+    std::vector<uint8_t> tail;
+    tail.push_back(0xCB);
+    tail.push_back((uint8_t)d8(rng));
+    tail.push_back((uint8_t)cb);
+    check(0xDD, tail, "DDCB");
+    check(0xFD, tail, "FDCB");
+  }
+
   for (const std::string& s : first_bad) std::printf("MISMATCH %s\n", s.c_str());
   std::printf("instruction differential: %d attempted, %d compared, %d mismatches, "
               "%d unimplemented (fault), %d runaway\n",
