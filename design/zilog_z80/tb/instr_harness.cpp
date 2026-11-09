@@ -359,10 +359,8 @@ int main(int argc, char** argv) {
     check(o, tail, "P0");
   }
 
-  // CB page: registers plus the (HL) rotate/shift/RES/SET forms.
-  // BIT n,(HL) is intentionally unimplemented (its F3/F5 source is WZ).
+  // CB page: registers plus the (HL) rotate/shift/BIT/RES/SET forms.
   for (int cb = 0; cb < 256; cb++) {
-    if ((cb & 0x07) == 0x06 && (cb & 0xC0) == 0x40) continue;  // BIT n,(HL)
     check(0xCB, {(uint8_t)cb}, "CB");
   }
 

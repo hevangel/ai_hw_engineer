@@ -85,6 +85,7 @@ module zilog_z80
     MO_DEC_MEM,
     MO_CB_ROT,
     MO_CB_MOD,
+    MO_CB_BIT,      // BIT n,(HL): flags only, no write-back
     MO_LD_A_IND,    // read -> A
     MO_LD_IND_A,    // write A
     MO_LD_HL_LO,
@@ -252,16 +253,22 @@ module zilog_z80
         alu_a      = bus_rdata_i;
         alu_b      = bus_rdata_i;
         alu_bitnum = cb_op[5:3];
-        case (cb_op[5:3])
-          3'd0: alu_op = ALU_RLC;
-          3'd1: alu_op = ALU_RRC;
-          3'd2: alu_op = ALU_RL;
-          3'd3: alu_op = ALU_RR;
-          3'd4: alu_op = ALU_SLA;
-          3'd5: alu_op = ALU_SRA;
-          3'd6: alu_op = ALU_SLL;
-          default: alu_op = ALU_SRL;
-        endcase
+        if (cb_op[7:6] == 2'b01) begin
+          // BIT n,(HL)/(IX+d): F3/F5 come from the WZ high byte.
+          alu_op = ALU_BIT;
+          alu_b  = wz[15:8];
+        end else begin
+          case (cb_op[5:3])
+            3'd0: alu_op = ALU_RLC;
+            3'd1: alu_op = ALU_RRC;
+            3'd2: alu_op = ALU_RL;
+            3'd3: alu_op = ALU_RR;
+            3'd4: alu_op = ALU_SLA;
+            3'd5: alu_op = ALU_SRA;
+            3'd6: alu_op = ALU_SLL;
+            default: alu_op = ALU_SRL;
+          endcase
+        end
       end else if (ir == 8'h34) begin
         alu_a  = bus_rdata_i;
         alu_b  = 8'h01;
@@ -516,12 +523,7 @@ module zilog_z80
             cb_op <= bus_rdata_i;
             pc    <= pc + 16'd1;
             r_reg <= {r_reg[7], r_reg[6:0] + 7'd1};
-            if (bus_rdata_i[7:6] == 2'b01 && bus_rdata_i[2:0] == 3'd6) begin
-              fault_o <= 1'b1;   // BIT n,(HL): WZ-sourced F3/F5 is a later step
-              state   <= S_FAULT;
-            end else begin
-              state <= S_EXEC;
-            end
+            state <= S_EXEC;
           end
         end
 
@@ -605,10 +607,12 @@ module zilog_z80
             retire_o <= 1'b1;
             state    <= S_FETCH;
             end else begin
-              // (HL) forms: read first.
+              // (HL) forms: read first; BIT has no write-back.
               mem_addr <= {h, l};
               if (cb_op[7:6] == 2'b00) begin
                 mem_op <= MO_CB_ROT;
+              end else if (cb_op[7:6] == 2'b01) begin
+                mem_op <= MO_CB_BIT;
               end else begin
                 mem_op <= MO_CB_MOD;
               end
@@ -957,6 +961,11 @@ module zilog_z80
                 mem_data <= alu_y;
                 mem_op   <= MO_WR_RET;
                 state    <= S_MWR;
+              end
+              MO_CB_BIT: begin
+                f <= alu_f;              // C preserved, F3/F5 from the WZ byte
+                retire_o <= 1'b1;
+                state    <= S_FETCH;
               end
               MO_CB_MOD: begin
                 mem_data <= (cb_op[7:6] == 2'b10)
