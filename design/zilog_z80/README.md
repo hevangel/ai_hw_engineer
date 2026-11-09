@@ -29,7 +29,7 @@ and the ZEXALL/ZEXDOC exercisers, and a native M-cycle engine whose cycle
 shapes and T-state counts are checked against the manufacturer timing tables.
 The native engine is what the dependent TRS-80 Model I system will use.
 
-**Status: instruction set complete; interrupts, exercisers and native timing outstanding.**
+**Status: instruction set and interrupt entry complete; exercisers and native timing outstanding.**
 `src/zilog_z80_pkg` types live in `src/zilog_z80_defs.svh`, the ALU in
 `src/zilog_z80_alu.sv` and the core in `src/zilog_z80.sv`. Verified against the
 pinned superzazu/z80 emulator: the byte ALU over 648,328 cases with 0

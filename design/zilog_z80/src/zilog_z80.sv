@@ -119,6 +119,11 @@ module zilog_z80
     MO_BLK_INI_W,   // INI/IND: store to (HL)
     MO_BLK_OUT_R,   // OUTI/OUTD: read (HL)
     MO_BLK_OUT_W,   // OUTI/OUTD: port write done
+    MO_IPUSH_HI,    // interrupt: push PC high
+    MO_IPUSH_LO,    // interrupt: push PC low, then vector
+    MO_IACK,        // interrupt acknowledge byte
+    MO_IVEC_LO,     // IM 2: handler address low
+    MO_IVEC_HI,     // IM 2: handler address high
     MO_WR_RET       // plain write that retires
   } mem_op_t;
 
@@ -127,13 +132,22 @@ module zilog_z80
   logic        is_ed;
   logic [7:0]  ed_op;
 
+  // Interrupt bookkeeping.
+  logic [1:0]  ei_block;    // blocks INT acceptance for one instruction after EI
+  logic        nmi_prev;    // NMI edge detection
+  logic        int_nmi;     // current sequence is an NMI
+  logic        nmi_pending; // latched NMI edge
+  logic [7:0]  iack_byte;
+  logic [15:0] int_vec;
+
   // Index-prefix state: 0 = HL, 1 = IX (DD), 2 = IY (FD).
   logic [1:0]  pfx;
   logic [7:0]  disp;
 
   typedef enum logic [4:0] {
     S_FETCH, S_PFX, S_IMM1, S_IMM2, S_EXEC, S_MRD, S_MWR, S_ED, S_IORD, S_IOWR,
-    S_EXEC_ED, S_IDX, S_IDX_D, S_DCB_D, S_DCB_OP, S_HALTED, S_FAULT
+    S_EXEC_ED, S_IDX, S_IDX_D, S_DCB_D, S_DCB_OP, S_IACK, S_IPUSH_HI,
+    S_IPUSH_LO, S_IVEC_LO, S_IVEC_HI, S_HALTED, S_FAULT
   } state_t;
   state_t state;
 
@@ -440,9 +454,19 @@ module zilog_z80
         bus_write_o = 1'b0;
         bus_addr_o  = mem_addr;
       end
-      S_MWR: begin
+      S_MWR, S_IPUSH_HI, S_IPUSH_LO: begin
         bus_write_o = 1'b1;
         bus_addr_o  = mem_addr;
+      end
+      S_IVEC_LO, S_IVEC_HI: begin
+        bus_write_o = 1'b0;
+        bus_addr_o  = mem_addr;
+      end
+      S_IACK: begin
+        bus_write_o  = 1'b0;
+        bus_addr_o   = 16'h0000;   // the device supplies the byte on the data bus
+        bus_io_o     = 1'b1;
+        bus_intack_o = 1'b1;
       end
       S_IORD: begin
         bus_write_o = 1'b0;
@@ -569,6 +593,10 @@ module zilog_z80
       halted   <= 1'b0;
       fault_o  <= 1'b0;
       retire_o <= 1'b0;
+      ei_block <= 2'd0;
+      nmi_prev <= 1'b0;
+      nmi_pending <= 1'b0;
+      int_nmi  <= 1'b0;
       ir       <= 8'h00;
       cb_op    <= 8'h00;
       imm1     <= 8'h00;
@@ -585,11 +613,48 @@ module zilog_z80
       d_alt <= 8'h00; e_alt <= 8'h00; h_alt <= 8'h00; l_alt <= 8'h00;
     end else begin
       retire_o <= 1'b0;
+      if (nmi_i && !nmi_prev) nmi_pending <= 1'b1;   // edge-triggered and latched
+      nmi_prev <= nmi_i;
 
       case (state)
         // ------------------------------------------------------------ fetch
         S_FETCH: begin
-          if (bus_ready_i) begin
+          // EI defers recognition by exactly one instruction.
+          if (ei_block != 2'd0) ei_block <= ei_block - 2'd1;
+          // Interrupt acceptance happens at an instruction boundary, before the
+          // next opcode fetch. NMI wins over INT.
+          if (nmi_pending && bus_ready_i) begin
+            nmi_pending <= 1'b0;
+            int_nmi  <= 1'b1;
+            saved16  <= 16'h0066;
+            mem_addr <= sp - 16'd1;
+            mem_data <= pc[15:8];
+            aux_lo   <= pc[7:0];
+            sp       <= sp - 16'd1;
+            iff2     <= iff1;
+            iff1     <= 1'b0;
+            halted   <= 1'b0;
+            mem_op   <= MO_IPUSH_HI;
+            state    <= S_IPUSH_HI;
+          end else if (int_i && iff1 && (ei_block == 2'd0) && bus_ready_i) begin
+            iff1 <= 1'b0;
+            iff2 <= 1'b0;
+            halted <= 1'b0;
+            int_nmi <= 1'b0;
+            if (im == 2'd1) begin
+              saved16  <= 16'h0038;
+              mem_addr <= sp - 16'd1;
+              mem_data <= pc[15:8];
+              aux_lo   <= pc[7:0];
+              sp       <= sp - 16'd1;
+              mem_op   <= MO_IPUSH_HI;
+              state    <= S_IPUSH_HI;
+            end else begin
+              // IM 0 and IM 2 both read a byte from the interrupting device.
+              mem_op <= MO_IACK;
+              state  <= S_IACK;
+            end
+          end else if (bus_ready_i) begin
             ir    <= bus_rdata_i;
             pc    <= pc + 16'd1;
             r_reg <= {r_reg[7], r_reg[6:0] + 7'd1};
@@ -804,7 +869,7 @@ module zilog_z80
             retire_o <= 1'b1;
             state    <= S_FETCH;
           end else if (ir == 8'hFB) begin
-            iff1 <= 1'b1; iff2 <= 1'b1;
+            iff1 <= 1'b1; iff2 <= 1'b1; ei_block <= 2'd1;
             retire_o <= 1'b1;
             state    <= S_FETCH;
           end else if (ir == 8'hE9) begin
@@ -1146,6 +1211,7 @@ module zilog_z80
               MO_RET_HI: begin
                 sp <= sp + 16'd1;
                 pc <= {bus_rdata_i, aux_lo};
+                if (ir == 8'hED) iff1 <= iff2;   // RETN/RETI restore IFF1
             retire_o <= 1'b1;
             state    <= S_FETCH;
               end
@@ -1534,7 +1600,76 @@ module zilog_z80
           endcase
         end
 
-        S_HALTED: retire_o <= 1'b0;
+        // ------------------------------------------------------ interrupt entry
+        S_IACK: begin
+          if (bus_ready_i) begin
+            iack_byte <= bus_rdata_i;
+            if (im == 2'd0) begin
+              // IM 0 executes the supplied byte; RST forms are modelled, other
+              // opcodes are treated as a no-op (documented limitation).
+              saved16  <= ((bus_rdata_i & 8'hC7) == 8'hC7)
+                              ? {8'h00, (bus_rdata_i & 8'h38)} : pc;
+              mem_addr <= sp - 16'd1;
+              mem_data <= pc[15:8];
+              aux_lo   <= pc[7:0];
+              sp       <= sp - 16'd1;
+              mem_op   <= MO_IPUSH_HI;
+              state    <= S_IPUSH_HI;
+            end else begin
+              int_vec  <= {i_reg, bus_rdata_i};
+              mem_addr <= {i_reg, bus_rdata_i};
+              mem_op   <= MO_IVEC_LO;
+              state    <= S_IVEC_LO;
+            end
+          end
+        end
+
+        S_IVEC_LO: begin
+          if (bus_ready_i) begin
+            aux_lo   <= bus_rdata_i;
+            mem_addr <= int_vec + 16'd1;
+            mem_op   <= MO_IVEC_HI;
+            state    <= S_IVEC_HI;
+          end
+        end
+
+        S_IVEC_HI: begin
+          if (bus_ready_i) begin
+            saved16  <= {bus_rdata_i, aux_lo};
+            mem_addr <= sp - 16'd1;
+            mem_data <= pc[15:8];
+            aux_lo   <= pc[7:0];
+            sp       <= sp - 16'd1;
+            mem_op   <= MO_IPUSH_HI;
+            state    <= S_IPUSH_HI;
+          end
+        end
+
+        S_IPUSH_HI: begin
+          if (bus_ready_i) begin
+            mem_addr <= sp - 16'd1;
+            mem_data <= aux_lo;
+            sp       <= sp - 16'd1;
+            mem_op   <= MO_IPUSH_LO;
+            state    <= S_IPUSH_LO;
+          end
+        end
+
+        S_IPUSH_LO: begin
+          if (bus_ready_i) begin
+            pc    <= saved16;
+            state <= S_FETCH;
+          end
+        end
+
+        S_HALTED: begin
+          retire_o <= 1'b0;
+          // HALT is left by any accepted interrupt.
+          if (nmi_i || (int_i && iff1)) begin
+            halted <= 1'b0;
+            state  <= S_FETCH;
+          end
+        end
         S_FAULT:  retire_o <= 1'b0;
         default:  state <= S_FETCH;
       endcase
@@ -1582,8 +1717,9 @@ module zilog_z80
       // The fault flag is sticky until reset (so ignore a reset edge).
       if ($past(fault_o) && $past(rst_n)) assert (fault_o);
 
-      // HALT freezes the program counter (ignoring a fresh reset edge).
-      if ($past(halted) && $past(rst_n)) assert (pc == $past(pc));
+      // HALT freezes the program counter until an interrupt is requested.
+      if ($past(halted) && $past(rst_n) && !$past(int_i) && !$past(nmi_i))
+        assert (pc == $past(pc));
 
       // A stalled transfer keeps address, direction, data and space stable.
       if ($past(bus_req_o) && !$past(bus_ready_i) && $past(rst_n))
