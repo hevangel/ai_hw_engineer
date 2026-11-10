@@ -1,10 +1,11 @@
-// Formal properties for the S/360 program status word register.
+// Formal properties for the S/360 program status word register (M2).
 //
 // The checks pin the field-isolation contract that the rest of the core relies
-// on: a condition-code write must not disturb the instruction address or the
-// instruction length code, an address write must not disturb the code, and a
-// whole-word load replaces every bit. Field positions follow A22-6821-7
-// Figure 14 (p. 15).
+// on: a condition-code write must not disturb the instruction address, the
+// ILC, the program mask or the system mask; a program-mask or system-mask write
+// must not disturb the others; and a whole-word load replaces every bit except
+// the interruption code and ILC, which A22-6821-7 p. 73 says are not retained.
+// Field positions follow Figure 14 (p. 15).
 `timescale 1ns/1ps
 
 module ibm_s360_psw_props;
@@ -22,10 +23,17 @@ module ibm_s360_psw_props;
   logic [1:0]  ilc_in;
   logic        set_cc;
   logic [1:0]  cc_in;
+  logic        set_pmask;
+  logic [3:0]  pmask_in;
+  logic        set_sysmask;
+  logic [7:0]  sysmask_in;
   logic [63:0] psw;
   logic [23:0] ia;
   logic [1:0]  ilc;
   logic [1:0]  cc;
+  logic [3:0]  pmask;
+  logic        problem;
+  logic        wait_state;
 
   ibm_s360_psw dut (
       .clk      (clk),
@@ -39,10 +47,17 @@ module ibm_s360_psw_props;
       .ilc_in   (ilc_in),
       .set_cc   (set_cc),
       .cc_in    (cc_in),
+      .set_pmask(set_pmask),
+      .pmask_in (pmask_in),
+      .set_sysmask(set_sysmask),
+      .sysmask_in(sysmask_in),
       .psw      (psw),
       .ia       (ia),
       .ilc      (ilc),
-      .cc       (cc)
+      .cc       (cc),
+      .pmask    (pmask),
+      .problem  (problem),
+      .wait_state(wait_state)
   );
 
   // Reset is assumed in the first cycle so the register has a defined initial
@@ -53,12 +68,14 @@ module ibm_s360_psw_props;
     end
   end
 
-  // Free-running formal clock.
   always_ff @(posedge clk) begin
     if (rst_n) begin
       assert (ia == psw[PSW_IA_MSB:PSW_IA_LSB]);
       assert (ilc == psw[PSW_ILC_MSB -: 2]);
       assert (cc == psw[PSW_CC_MSB -: 2]);
+      assert (pmask == psw[PSW_PMASK_MSB -: 4]);
+      assert (problem == psw[PSW_PROBLEM_BIT]);
+      assert (wait_state == psw[PSW_WAIT_BIT]);
     end
   end
 
@@ -67,12 +84,14 @@ module ibm_s360_psw_props;
     if (rst_n && !$past(rst_n)) begin
       assert (psw[63:24] == 40'd0);
     end
-    // Isolation is stated only for cycles whose previous cycle was not a
-    // reset cycle, so the reset's dominance cannot be confused with a field
-    // update.
     if (rst_n && $past(rst_n)) begin
       if ($past(load)) begin
-        assert (psw == $past(load_data));
+        // Interruption code and ILC are not retained across a load.
+        assert (psw[PSW_SYSMASK_MSB -: 16] == $past(load_data[PSW_SYSMASK_MSB -: 16]));
+        assert (psw[PSW_INTCODE_MSB -: 16] == 16'd0);
+        assert (psw[PSW_ILC_MSB -: 2] == 2'd0);
+        assert (psw[PSW_CC_MSB -: 6] == $past(load_data[PSW_CC_MSB -: 6]));
+        assert (psw[PSW_IA_MSB:PSW_IA_LSB] == $past(load_data[PSW_IA_MSB:PSW_IA_LSB]));
       end else begin
         if ($past(set_ia)) begin
           assert (ia == $past(ia_in));
@@ -89,17 +108,30 @@ module ibm_s360_psw_props;
         end else begin
           assert (cc == $past(psw[PSW_CC_MSB -: 2]));
         end
-        // No field strobe touches the key, system mask, ASCII, machine-check,
-        // wait, problem-state or interruption-code bits.
-        assert (psw[63:32] == $past(psw[63:32]));
+        if ($past(set_pmask)) begin
+          assert (pmask == $past(pmask_in));
+        end else begin
+          assert (pmask == $past(psw[PSW_PMASK_MSB -: 4]));
+        end
+        if ($past(set_sysmask)) begin
+          assert (psw[PSW_SYSMASK_MSB -: 8] == $past(sysmask_in));
+        end else begin
+          assert (psw[PSW_SYSMASK_MSB -: 8] == $past(psw[PSW_SYSMASK_MSB -: 8]));
+        end
+        // No field strobe touches the key, ASCII, machine-check, wait or
+        // problem-state bits (the system mask has its own strobe above).
+        assert (psw[55:48] == $past(psw[55:48]));
+        assert (psw[PSW_INTCODE_MSB -: 16] == $past(psw[PSW_INTCODE_MSB -: 16]));
       end
     end
   end
 
   always_ff @(posedge clk) begin
     if (rst_n) begin
-      cover (set_ia && set_ilc && set_cc);
+      cover (set_ia && set_ilc && set_cc && set_pmask && set_sysmask);
       cover (load && (load_data != 64'd0));
+      cover (pmask == 4'hF);
+      cover (problem && wait_state);
       cover (psw[PSW_CC_MSB -: 2] == 2'd3);
     end
   end

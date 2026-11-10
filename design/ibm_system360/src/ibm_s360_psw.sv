@@ -16,16 +16,19 @@
 // In this 64-bit vector bit 63 is the manual's bit 0, so the instruction
 // address occupies psw[23:0] and the condition code occupies psw[29:28].
 //
-// Only the fields the M1 core changes are writable here: instruction address,
-// ILC and condition code. A whole-word load path is provided for LOAD PSW and
-// for interruption entry in later milestones; it replaces every bit, including
-// the fields this core never writes individually.
-
-`timescale 1ns/1ps
-
+// Writable fields: instruction address, ILC, CC, program mask and system mask.
+// The whole-word load path is used by LOAD PSW and by interruption entry.
+// A22-6821-7 p. 73 states that the interruption code and the ILC are not
+// retained when a PSW is loaded, so the load clears bits 16-33; they are
+// rewritten when the PSW is next stored as an old PSW.
 `ifndef IBM_S360_PSW_SV
 `define IBM_S360_PSW_SV
 
+`timescale 1ns/1ps
+
+// The interruption-code (bits 16-31) and ILC (bits 32-33) fields of a loaded
+// PSW are intentionally discarded, so part of load_data is not read.
+/* verilator lint_off UNUSEDSIGNAL */
 module ibm_s360_psw (
     input  logic        clk,
     input  logic        rst_n,
@@ -40,10 +43,17 @@ module ibm_s360_psw (
     input  logic [1:0]  ilc_in,
     input  logic        set_cc,
     input  logic [1:0]  cc_in,
+    input  logic        set_pmask,
+    input  logic [3:0]  pmask_in,
+    input  logic        set_sysmask,
+    input  logic [7:0]  sysmask_in,
     output logic [63:0] psw,
     output logic [23:0] ia,
     output logic [1:0]  ilc,
-    output logic [1:0]  cc
+    output logic [1:0]  cc,
+    output logic [3:0]  pmask,
+    output logic        problem,
+    output logic        wait_state
 );
 
   logic [63:0] psw_q;
@@ -54,7 +64,8 @@ module ibm_s360_psw (
     if (!rst_n) begin
       psw_q <= {40'd0, reset_ia};
     end else if (load) begin
-      psw_q <= load_data;
+      // Interruption code (bits 16-31) and ILC (bits 32-33) are not retained.
+      psw_q <= {load_data[63:48], 16'd0, 2'd0, load_data[29:0]};
     end else begin
       if (set_ia) begin
         psw_q[PSW_IA_MSB:PSW_IA_LSB] <= ia_in;
@@ -65,14 +76,25 @@ module ibm_s360_psw (
       if (set_cc) begin
         psw_q[PSW_CC_MSB -: 2] <= cc_in;
       end
+      if (set_pmask) begin
+        psw_q[PSW_PMASK_MSB -: 4] <= pmask_in;
+      end
+      if (set_sysmask) begin
+        psw_q[PSW_SYSMASK_MSB -: 8] <= sysmask_in;
+      end
     end
   end
 
-  assign psw = psw_q;
-  assign ia  = psw_q[PSW_IA_MSB:PSW_IA_LSB];
-  assign ilc = psw_q[PSW_ILC_MSB -: 2];
-  assign cc  = psw_q[PSW_CC_MSB -: 2];
+  assign psw        = psw_q;
+  assign ia         = psw_q[PSW_IA_MSB:PSW_IA_LSB];
+  assign ilc        = psw_q[PSW_ILC_MSB -: 2];
+  assign cc         = psw_q[PSW_CC_MSB -: 2];
+  assign pmask      = psw_q[PSW_PMASK_MSB -: 4];
+  assign problem    = psw_q[PSW_PROBLEM_BIT];
+  assign wait_state = psw_q[PSW_WAIT_BIT];
 
 endmodule
+
+/* verilator lint_on UNUSEDSIGNAL */
 
 `endif
