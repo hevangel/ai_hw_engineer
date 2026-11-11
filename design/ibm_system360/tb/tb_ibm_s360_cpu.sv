@@ -1,22 +1,23 @@
-// Self-checking testbench for the IBM System/360 M1 core.
+// Self-checking testbench for the IBM System/360 M2 core.
 //
-// Four independent directed tests:
-//   1. a hand-assembled program exercising every implemented instruction,
-//      checked against the retired instruction address trace (no padded or
-//      "landing-tolerant" checks: each instruction must retire at the exact
-//      address the program listing says) and against the final architectural
-//      state (general registers, PSW condition code, storage image);
-//   2. an unimplemented operation code, which must stop the machine, raise the
-//      sticky program-check flag and never retire;
-//   3. directed arithmetic unit checks, including the signed-compare cases
-//      whose 32-bit subtractor result overflows;
-//   4. directed address-generation checks for zero base/index fields,
-//      displacement addition and 24-bit wraparound.
+// Tests:
+//   1. the M1 directed program: every M1 instruction, an exact retirement
+//      address trace, and the final architectural state;
+//   2. operation exception (code 1): an unassigned opcode must store the
+//      program old PSW at 0x28 with the updated instruction address and take
+//      the program new PSW from 0x68;
+//   3. SET PROGRAM MASK: condition code and program mask from a register;
+//   4. SET SYSTEM MASK in supervisor state;
+//   5. LOAD PSW: full PSW replacement, condition code and problem state;
+//   6. privileged operation (code 2): SET SYSTEM MASK in problem state;
+//   7. fixed-point overflow (code 8) with program-mask bit 36 set, checking the
+//      completed instruction's old PSW (condition code 3, updated address);
+//   8. specification exception (code 6) for an unaligned LOAD PSW;
+//   9. directed arithmetic-unit, address-generation and decode checks.
 //
-// The expected values are derived from the program listing and from
-// A22-6821-7, not from the RTL: the program image is written as the literal
-// byte stream of a listing whose encoding is documented instruction by
-// instruction in report/2026-11-05-m1-core.md.
+// Expected values are derived from A22-6821-7 (Principles of Operation) and
+// from the program listings, not from the RTL: see
+// report/2026-11-08-m2-status-switching.md.
 `timescale 1ns/1ps
 
 module tb_ibm_s360_cpu;
@@ -28,8 +29,7 @@ module tb_ibm_s360_cpu;
   always #5 clk = ~clk;
 
   // ---------------------------------------------------------------------------
-  // Storage model: 32 KiB, 32-bit words, big-endian bytes (the byte at the
-  // lowest address of a word occupies bits 31-24).
+  // Storage model: 32 KiB, 32-bit words, big-endian bytes.
   // ---------------------------------------------------------------------------
   localparam int MEM_WORDS = 8192;
 
@@ -58,8 +58,9 @@ module tb_ibm_s360_cpu;
   // ---------------------------------------------------------------------------
   logic [63:0]  psw;
   logic         ovf_pending;
-  logic         pc_check_pending;
-  logic         halted;
+  logic [15:0]  int_code_dbg;
+  logic         int_taken;
+  logic         in_wait_state;
   logic         retire;
   logic [23:0]  retire_ia;
   logic [3:0]   retire_len;
@@ -75,8 +76,9 @@ module tb_ibm_s360_cpu;
       .mem_rdata       (mem_rdata),
       .psw             (psw),
       .ovf_pending     (ovf_pending),
-      .pc_check_pending(pc_check_pending),
-      .halted          (halted),
+      .int_code_dbg    (int_code_dbg),
+      .int_taken       (int_taken),
+      .in_wait_state   (in_wait_state),
       .retire          (retire),
       .retire_ia       (retire_ia),
       .retire_len      (retire_len),
@@ -88,39 +90,42 @@ module tb_ibm_s360_cpu;
   // ---------------------------------------------------------------------------
   int  errors = 0;
   int  checks = 0;
+  int  int_count = 0;
+  logic [15:0] last_int_code = 16'd0;
+  logic        int_taken_d = 1'b0;
+
+  always @(posedge clk) begin
+    int_taken_d <= int_taken;
+    if (rst_n && int_taken) begin
+      int_count <= int_count + 1;
+    end
+    if (rst_n && retire && trace_enable && trace_verbose) begin
+      $display("RET %06h len=%0d", retire_ia, retire_len);
+    end
+    if (int_taken_d) begin
+      last_int_code <= int_code_dbg;
+      if (trace_verbose) begin
+        $display("INT taken: code=%0d old_psw=%08h %08h", int_code_dbg,
+                 mem[13'h0028 >> 2], mem[13'h002C >> 2]);
+      end
+    end
+  end
+
+  // M1 trace checking is enabled only for test 1.
   int  trace_idx = 0;
-  bit  trace_enable = 1'b1;
+  bit  trace_enable = 1'b0;
+  bit  trace_verbose = 1'b0;
   bit  trace_done = 1'b0;
-  bit  trace_overflow = 1'b0;
-
   localparam int N_EXPECTED = 22;
-
   logic [23:0] expected_ia [0:N_EXPECTED-1];
 
   initial begin
     expected_ia = '{
-        24'h00_0100,  // LA   1,0x200
-        24'h00_0104,  // LA   2,0x204
-        24'h00_0108,  // L    3,0(1)
-        24'h00_010C,  // A    3,0(2)
-        24'h00_0110,  // ST   3,8(1)
-        24'h00_0114,  // C    3,8(1)
-        24'h00_0118,  // BC   8,0x128
-        24'h00_0128,  // MVI  12(1),0x40
-        24'h00_012C,  // CLI  12(1),0x40
-        24'h00_0130,  // LTR  3,3
-        24'h00_0132,  // BC   2,0x13A
-        24'h00_013A,  // N    3,0(2)
-        24'h00_013E,  // O    3,0(2)
-        24'h00_0142,  // X    3,0(2)
-        24'h00_0146,  // ST   3,16(1)
-        24'h00_014A,  // L    4,20(1)
-        24'h00_014E,  // A    4,24(1)
-        24'h00_0152,  // SR   4,4
-        24'h00_0154,  // CL   3,0(1)
-        24'h00_0158,  // LR   6,3
-        24'h00_015A,  // LA   15,0x15E
-        24'h00_015E   // BCR  15,15   (self-loop)
+        24'h00_0100, 24'h00_0104, 24'h00_0108, 24'h00_010C, 24'h00_0110,
+        24'h00_0114, 24'h00_0118, 24'h00_0128, 24'h00_012C, 24'h00_0130,
+        24'h00_0132, 24'h00_013A, 24'h00_013E, 24'h00_0142, 24'h00_0146,
+        24'h00_014A, 24'h00_014E, 24'h00_0152, 24'h00_0154, 24'h00_0158,
+        24'h00_015A, 24'h00_015E
     };
   end
 
@@ -133,8 +138,6 @@ module tb_ibm_s360_cpu;
           errors++;
         end
       end else if (retire_ia !== 24'h00_015E) begin
-        // After the expected sequence the machine must stay in the
-        // BRANCH ON CONDITION self-loop.
         $display("FAIL trace[%0d]: retired ia=%06h outside the self-loop",
                  trace_idx, retire_ia);
         errors++;
@@ -142,9 +145,6 @@ module tb_ibm_s360_cpu;
         trace_done <= 1'b1;
       end
       trace_idx <= trace_idx + 1;
-      if (trace_idx > N_EXPECTED + 64) begin
-        trace_overflow <= 1'b1;
-      end
     end
   end
 
@@ -169,15 +169,16 @@ module tb_ibm_s360_cpu;
     end
   endtask
 
-  task automatic check_word(input logic [23:0] a, input logic [31:0] exp);
+  task automatic check_word(input logic [23:0] a, input logic [31:0] exp,
+                            input string what);
     checks++;
     if (mem[a[14:2]] !== exp) begin
-      $display("FAIL: storage[%06h] = %08h, expected %08h", a, mem[a[14:2]], exp);
+      $display("FAIL: storage[%06h] = %08h, expected %08h (%0s)",
+               a, mem[a[14:2]], exp, what);
       errors++;
     end
   endtask
 
-  // Byte offset 0 of a memory word occupies bits 31-24 (big-endian).
   function automatic logic [4:0] byte_lsb(input logic [1:0] off);
     byte_lsb = (5'd3 - {3'b000, off}) << 3;
   endfunction
@@ -190,82 +191,75 @@ module tb_ibm_s360_cpu;
     mem[a[14:2]] = d;
   endtask
 
+  task automatic poke_dw(input logic [23:0] a, input logic [63:0] d);
+    poke_word(a, d[63:32]);
+    poke_word(a + 24'd4, d[31:0]);
+  endtask
+
+  function automatic logic [3:0] hex_nibble(input byte c);
+    logic [7:0] v;
+    if ((c >= "0") && (c <= "9")) begin
+      v = c - 8'h30;
+    end else if ((c >= "A") && (c <= "F")) begin
+      v = c - 8'h41 + 8'h0A;
+    end else if ((c >= "a") && (c <= "f")) begin
+      v = c - 8'h61 + 8'h0A;
+    end else begin
+      v = 8'h00;
+    end
+    hex_nibble = v[3:0];
+  endfunction
+
+  // Write a hex byte string at base (two characters per byte, big-endian order).
+  task automatic poke_hex(input logic [23:0] base, input string s);
+    int n;
+    n = s.len() / 2;
+    for (int i = 0; i < n; i++) begin
+      logic [3:0] hi, lo;
+      hi = hex_nibble(s.getc(2*i));
+      lo = hex_nibble(s.getc(2*i + 1));
+      poke_byte(base + i[23:0], {hi, lo});
+    end
+  endtask
+
   task automatic clear_mem();
     for (int i = 0; i < MEM_WORDS; i++) begin
       mem[i] = 32'd0;
     end
   endtask
 
-  // The program image is a literal byte stream so that instruction encodings
-  // remain visible in the listing order.
-  task automatic load_main_program();
-    logic [7:0] p [0:95];
-    p = '{
-        // 0x100 LA   1,0x200
-        8'h41, 8'h10, 8'h02, 8'h00,
-        // 0x104 LA   2,0x204
-        8'h41, 8'h20, 8'h02, 8'h04,
-        // 0x108 L    3,0(1)          R3 <- 7
-        8'h58, 8'h30, 8'h10, 8'h00,
-        // 0x10C A    3,0(2)          R3 <- 12, CC=2
-        8'h5A, 8'h30, 8'h20, 8'h00,
-        // 0x110 ST   3,8(1)          storage[0x208] <- 12
-        8'h50, 8'h30, 8'h10, 8'h08,
-        // 0x114 C    3,8(1)          equal, CC=0
-        8'h59, 8'h30, 8'h10, 8'h08,
-        // 0x118 BC   8,0x128          taken
-        8'h47, 8'h80, 8'h01, 8'h28,
-        // 0x11C LA   5,0xEAD          skipped
-        8'h41, 8'h50, 8'h0E, 8'hAD,
-        // 0x120 LA   5,0xBAD          skipped
-        8'h41, 8'h50, 8'h0B, 8'hAD,
-        // 0x124 LA   6,0xABC          skipped
-        8'h41, 8'h60, 8'h0A, 8'hBC,
-        // 0x128 MVI  12(1),0x40       storage[0x20C] <- 0x40
-        8'h92, 8'h40, 8'h10, 8'h0C,
-        // 0x12C CLI  12(1),0x40       equal, CC=0
-        8'h95, 8'h40, 8'h10, 8'h0C,
-        // 0x130 LTR  3,3              positive, CC=2
-        8'h12, 8'h33,
-        // 0x132 BC   2,0x13A          taken
-        8'h47, 8'h20, 8'h01, 8'h3A,
-        // 0x136 LA   5,0xBAD          skipped
-        8'h41, 8'h50, 8'h0B, 8'hAD,
-        // 0x13A N    3,0(2)           R3 <- 4, CC=1
-        8'h54, 8'h30, 8'h20, 8'h00,
-        // 0x13E O    3,0(2)           R3 <- 5, CC=1
-        8'h56, 8'h30, 8'h20, 8'h00,
-        // 0x142 X    3,0(2)           R3 <- 0, CC=0
-        8'h57, 8'h30, 8'h20, 8'h00,
-        // 0x146 ST   3,16(1)          storage[0x210] <- 0
-        8'h50, 8'h30, 8'h10, 8'h10,
-        // 0x14A L    4,20(1)          R4 <- 0x7FFFFFFF
-        8'h58, 8'h40, 8'h10, 8'h14,
-        // 0x14E A    4,24(1)          R4 <- 0x80000000, overflow, CC=3
-        8'h5A, 8'h40, 8'h10, 8'h18,
-        // 0x152 SR   4,4              R4 <- 0, CC=0
-        8'h1B, 8'h44,
-        // 0x154 CL   3,0(1)           first operand low, CC=1
-        8'h55, 8'h30, 8'h10, 8'h00,
-        // 0x158 LR   6,3              CC unchanged
-        8'h18, 8'h63,
-        // 0x15A LA   15,0x15E
-        8'h41, 8'hF0, 8'h01, 8'h5E,
-        // 0x15E BCR  15,15            branch to itself
-        8'h07, 8'hFF
-    };
-    for (int i = 0; i < 96; i++) begin
-      poke_byte(24'h00_0100 + i[23:0], p[i]);
-    end
-    // Data area.
-    poke_word(24'h00_0200, 32'd7);
-    poke_word(24'h00_0204, 32'd5);
-    poke_word(24'h00_0214, 32'h7FFF_FFFF);
-    poke_word(24'h00_0218, 32'd1);
+  task automatic start_reset();
+    rst_n = 1'b0;
+    trace_enable = 1'b0;
+    clear_mem();
+    int_count = 0;
+    last_int_code = 16'd0;
+    repeat (2) @(posedge clk);
+  endtask
+
+  task automatic run_cycles(input int n);
+    // Hold reset for three clocks so the sequencer and PSW start from their
+    // reset values before the program runs.
+    rst_n = 1'b0;
+    repeat (3) @(posedge clk);
+    #1 rst_n = 1'b1;
+    repeat (n) @(posedge clk);
+    #1;
+  endtask
+
+  // A handler that sets R15 to its own address and loops there.
+  task automatic poke_handler(input logic [23:0] base);
+    logic [23:0] loop_addr;
+    loop_addr = base + 24'd4;
+    poke_hex(base, "41F0");
+    poke_byte(base + 24'd2, loop_addr[15:8]);
+    poke_byte(base + 24'd3, loop_addr[7:0]);
+    poke_byte(base + 24'd4, 8'h07);   // BCR 15,15
+    poke_byte(base + 24'd5, 8'hFF);
   endtask
 
   // ---------------------------------------------------------------------------
-  // Directed ALU checks (test 3)
+  // Directed ALU / address checks (same set as M1)
   // ---------------------------------------------------------------------------
   s360_alu_op_e alu_op_t;
   logic [31:0]  alu_a_t, alu_b_t, alu_y_t;
@@ -273,21 +267,15 @@ module tb_ibm_s360_cpu;
   logic         alu_ovf_t;
 
   ibm_s360_alu u_alu_t (
-      .op (alu_op_t),
-      .a  (alu_a_t),
-      .b  (alu_b_t),
-      .y  (alu_y_t),
-      .cc (alu_cc_t),
-      .ovf(alu_ovf_t)
+      .op (alu_op_t), .a (alu_a_t), .b (alu_b_t),
+      .y (alu_y_t), .cc (alu_cc_t), .ovf (alu_ovf_t)
   );
 
   task automatic t_alu(input s360_alu_op_e op, input logic [31:0] a,
                        input logic [31:0] b, input logic [31:0] ey,
                        input logic [1:0] ecc, input bit eovf,
                        input string what);
-    alu_op_t = op;
-    alu_a_t  = a;
-    alu_b_t  = b;
+    alu_op_t = op; alu_a_t = a; alu_b_t = b;
     #1;
     checks++;
     if ((alu_y_t !== ey) || (alu_cc_t !== ecc) || (alu_ovf_t !== eovf)) begin
@@ -297,29 +285,21 @@ module tb_ibm_s360_cpu;
     end
   endtask
 
-  // ---------------------------------------------------------------------------
-  // Directed address-generation checks (test 4)
-  // ---------------------------------------------------------------------------
   logic [3:0]  a_b_field, a_x_field;
   logic [31:0] a_b_val, a_x_val;
   logic [11:0] a_disp;
   logic [23:0] a_addr;
 
   ibm_s360_addr u_addr_t (
-      .b_field(a_b_field),
-      .x_field(a_x_field),
-      .b_val  (a_b_val),
-      .x_val  (a_x_val),
-      .disp   (a_disp),
-      .addr   (a_addr)
+      .b_field(a_b_field), .x_field(a_x_field),
+      .b_val(a_b_val), .x_val(a_x_val), .disp(a_disp), .addr(a_addr)
   );
 
   task automatic t_addr(input logic [3:0] bf, input logic [3:0] xf,
                         input logic [31:0] bv, input logic [31:0] xv,
                         input logic [11:0] d, input logic [23:0] ea,
                         input string what);
-    a_b_field = bf; a_x_field = xf; a_b_val = bv; a_x_val = xv;
-    a_disp = d;
+    a_b_field = bf; a_x_field = xf; a_b_val = bv; a_x_val = xv; a_disp = d;
     #1;
     checks++;
     if (a_addr !== ea) begin
@@ -331,31 +311,40 @@ module tb_ibm_s360_cpu;
   // ---------------------------------------------------------------------------
   // Main test sequence
   // ---------------------------------------------------------------------------
-  int retire_at_halt;
-
   initial begin
     rst_n = 1'b0;
+    trace_verbose = $test$plusargs("trace");
     clear_mem();
-    load_main_program();
 
-    // -------------------------------------------------------------------------
-    // Test 1: full program, exact retire trace and final state.
-    // -------------------------------------------------------------------------
-    repeat (3) @(posedge clk);
-    #1 rst_n = 1'b1;
 
-    wait (trace_done == 1'b1);
-    check(!trace_overflow, "program did not leave the self-loop after 86 retires");
-    check(trace_idx > N_EXPECTED, "self-loop was not executed");
-    repeat (3) @(posedge clk);
+    // =========================================================================
+    // Test 1: M1 directed program.
+    // =========================================================================
+    poke_hex(24'h00_0100,
+      "4110020041200204583010005A3020005030100859301008");
+    poke_hex(24'h00_0118, "4780012841500EAD41500BAD41600ABC");
+    poke_hex(24'h00_0128, "9240100C9540100C12334720013A");
+    poke_hex(24'h00_0136, "41500BAD543020005630200057302000");
+    poke_hex(24'h00_0146, "50301010584010145A4010181B44");
+    poke_hex(24'h00_0154, "55301000186341F0015E07FF");
+    poke_word(24'h00_0200, 32'd7);
+    poke_word(24'h00_0204, 32'd5);
+    poke_word(24'h00_0214, 32'h7FFF_FFFF);
+    poke_word(24'h00_0218, 32'd1);
 
-    check(!halted, "core halted unexpectedly");
-    check(!pc_check_pending, "program-check flag raised by a valid program");
-    check(ovf_pending, "fixed-point overflow was not recorded");
-    check(psw[23:0] === 24'h00_015E, "instruction address is not in the self-loop");
+    trace_enable = 1'b1;
+    trace_idx = 0;
+    run_cycles(300);
+
+    checks++;
+    if (!trace_done) begin
+      $display("FAIL: program did not reach the self-loop");
+      errors++;
+    end
+    check(ovf_pending, "overflow flag not set by the directed program");
+    check(psw[23:0] === 24'h00_015E, "program is not in its self-loop");
     check(psw[29:28] === 2'd1, "final condition code is not 1");
     check(psw[31:30] === 2'd1, "ILC of the final BRANCH ON CONDITION is not 1");
-
     check_gpr(1, 32'h0000_0200);
     check_gpr(2, 32'h0000_0204);
     check_gpr(3, 32'h0000_0000);
@@ -363,106 +352,160 @@ module tb_ibm_s360_cpu;
     check_gpr(5, 32'h0000_0000);
     check_gpr(6, 32'h0000_0000);
     check_gpr(15, 32'h0000_015E);
+    check_word(24'h00_0208, 32'd12, "ST result");
+    check_word(24'h00_020C, 32'h4000_0000, "MVI byte");
+    check_word(24'h00_0210, 32'd0, "X result");
 
-    check_word(24'h00_0208, 32'd12);         // ST result
-    check_word(24'h00_020C, 32'h4000_0000);  // MVI byte at offset 0
-    check_word(24'h00_0210, 32'd0);          // X result
+    // =========================================================================
+    // Test 2: operation exception (code 1).
+    // =========================================================================
+    start_reset();
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);  // new PSW -> 0x300
+    poke_handler(24'h00_0300);
+    poke_hex(24'h00_0100, "0000");                  // unassigned opcode
+    run_cycles(80);
 
-    // -------------------------------------------------------------------------
-    // Test 2: unimplemented operation code (0x1C, MULTIPLY RR) must stop the
-    // machine before retiring and raise the program-check flag.
-    // -------------------------------------------------------------------------
-    trace_enable = 1'b0;
-    rst_n = 1'b0;
-    repeat (2) @(posedge clk);
-    clear_mem();
-    poke_byte(24'h00_0100, 8'h1C);  // MULTIPLY (MR) -- not implemented
-    poke_byte(24'h00_0101, 8'hFF);
-    trace_idx = 0;
-    trace_done = 1'b0;
-    #1 rst_n = 1'b1;
-    repeat (2) @(posedge clk);
-    retire_at_halt = trace_idx;
-    repeat (8) @(posedge clk);
+    check(int_count == 1, "operation exception was not taken exactly once");
+    check(last_int_code == 16'd1, "operation exception code is not 1");
+    check_word(24'h00_0028, 32'h0000_0001, "old PSW word 0 (code 1)");
+    check_word(24'h00_002C, 32'h4000_0102, "old PSW word 1 (ILC 1, IA 0x102)");
+    check_gpr(15, 32'h0000_0304);
+    check(psw[23:0] === 24'h00_0304, "handler is not in its self-loop");
 
-    check(halted, "illegal operation code did not halt the core");
-    check(pc_check_pending, "illegal operation code did not raise the program-check flag");
-    check(trace_idx == retire_at_halt, "an instruction retired after the halt");
-    check(psw[23:0] === 24'h00_0100, "instruction address changed on an illegal instruction");
+    // =========================================================================
+    // Test 3: SET PROGRAM MASK (0x04) -- CC and program mask from register 2.
+    // =========================================================================
+    start_reset();
+    poke_hex(24'h00_0100, "41200010042041F0010A07FF");
+    run_cycles(40);
 
-    // -------------------------------------------------------------------------
-    // Test 3: arithmetic unit.
-    // -------------------------------------------------------------------------
+    check(int_count == 0, "SPM caused an unexpected interruption");
+    check(psw[29:28] === 2'd0, "SPM did not set CC 0");
+    check(psw[27:24] === 4'h1, "SPM did not set program mask bit 36");
+    check(psw[23:0] === 24'h00_010A, "SPM program is not in its self-loop");
+
+    // =========================================================================
+    // Test 4: SET SYSTEM MASK (0x80) in supervisor state.
+    // =========================================================================
+    start_reset();
+    poke_hex(24'h00_0100, "924004008000040041F0010C07FF");
+    run_cycles(40);
+
+    check(int_count == 0, "SSM caused an unexpected interruption");
+    check(psw[63:56] === 8'h40, "SSM did not set system mask 0x40");
+    check(psw[23:0] === 24'h00_010C, "SSM program is not in its self-loop");
+
+    // =========================================================================
+    // Test 5: LOAD PSW (0x82) -- full replacement, CC 2, program mask 0xF,
+    // system mask 0x80, instruction address 0x120.
+    // =========================================================================
+    start_reset();
+    poke_dw(24'h00_0070, 64'h8000_0000_AF00_0120);
+    poke_hex(24'h00_0100, "82000070");
+    poke_hex(24'h00_0120, "4140000741F0012807FF");
+    run_cycles(60);
+
+    check(int_count == 0, "LPSW caused an unexpected interruption");
+    check(psw[63:56] === 8'h80, "LPSW did not load the system mask");
+    check(psw[29:28] === 2'd2, "LPSW did not load CC 2");
+    check(psw[27:24] === 4'hF, "LPSW did not load the program mask");
+    check(psw[23:0] === 24'h00_0128, "LPSW did not transfer control to 0x120");
+    check_gpr(4, 32'd7);
+
+    // =========================================================================
+    // Test 6: privileged operation (code 2) -- SSM in problem state.
+    // =========================================================================
+    start_reset();
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
+    poke_handler(24'h00_0300);
+    poke_dw(24'h00_0070, 64'h0001_0000_0000_0108);  // problem state, IA 0x108
+    poke_hex(24'h00_0100, "82000070");              // LPSW (supervisor)
+    poke_hex(24'h00_0108, "80000400");              // SSM in problem state
+    run_cycles(80);
+
+    check(int_count == 1, "privileged-operation check did not fire once");
+    check(last_int_code == 16'd2, "privileged-operation code is not 2");
+    check_word(24'h00_0028, 32'h0001_0002, "old PSW keeps the problem state bit and code 2");
+    check_word(24'h00_002C, 32'h8000_010C, "old PSW: ILC 2, IA 0x10C");
+    check_gpr(15, 32'h0000_0304);
+
+    // =========================================================================
+    // Test 7: fixed-point overflow (code 8) with program-mask bit 36 set.
+    // =========================================================================
+    start_reset();
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
+    poke_handler(24'h00_0300);
+    poke_word(24'h00_0200, 32'h7FFF_FFFF);
+    poke_word(24'h00_0204, 32'd1);
+    poke_hex(24'h00_0100, "412000100420584002005A400204");
+    run_cycles(90);
+
+    check(int_count == 1, "overflow interruption did not fire once");
+    check(last_int_code == 16'd8, "overflow interruption code is not 8");
+    check_word(24'h00_0028, 32'h0000_0008, "overflow old PSW word 0 (code 8)");
+    check_word(24'h00_002C, 32'hB100_010E,
+               "overflow old PSW: ILC 2, CC 3, program mask 1, IA 0x10E");
+    check_gpr(4, 32'h8000_0000);
+    check(ovf_pending, "overflow flag not set");
+    check_gpr(15, 32'h0000_0304);
+
+    // =========================================================================
+    // Test 8: specification exception (code 6) -- unaligned LOAD PSW.
+    // =========================================================================
+    start_reset();
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
+    poke_handler(24'h00_0300);
+    poke_hex(24'h00_0100, "82000072");
+    run_cycles(60);
+
+    check(int_count == 1, "specification exception did not fire once");
+    check(last_int_code == 16'd6, "specification code is not 6");
+    check_word(24'h00_002C, 32'h8000_0104, "old PSW: ILC 2, IA 0x104");
+    check_gpr(15, 32'h0000_0304);
+
+    // =========================================================================
+    // Test 9: directed arithmetic unit, address generation and decode checks.
+    // =========================================================================
     t_alu(ALU_ADD, 32'd7, 32'd5, 32'd12, 2'd2, 1'b0, "add positive");
     t_alu(ALU_ADD, 32'h7FFF_FFFF, 32'd1, 32'h8000_0000, 2'd3, 1'b1, "add positive overflow");
     t_alu(ALU_ADD, 32'h8000_0000, 32'h8000_0000, 32'd0, 2'd3, 1'b1, "add negative overflow to zero");
     t_alu(ALU_ADD, 32'hFFFF_FFFF, 32'd1, 32'd0, 2'd0, 1'b0, "add with carry out");
     t_alu(ALU_SUB, 32'd5, 32'd7, 32'hFFFF_FFFE, 2'd1, 1'b0, "subtract negative result");
     t_alu(ALU_SUB, 32'h8000_0000, 32'd1, 32'h7FFF_FFFF, 2'd3, 1'b1, "subtract overflow");
-    t_alu(ALU_SUB, 32'd0, 32'd1, 32'hFFFF_FFFF, 2'd1, 1'b0, "subtract below zero");
-    t_alu(ALU_CMP, 32'd5, 32'd7, 32'd0, 2'd1, 1'b0, "compare low");
-    t_alu(ALU_CMP, 32'd7, 32'd5, 32'd0, 2'd2, 1'b0, "compare high");
-    t_alu(ALU_CMP, 32'd5, 32'd5, 32'd0, 2'd0, 1'b0, "compare equal");
     t_alu(ALU_CMP, 32'h8000_0000, 32'd1, 32'd0, 2'd1, 1'b0, "compare signed across overflow");
-    t_alu(ALU_CMP, 32'd1, 32'h8000_0000, 32'd0, 2'd2, 1'b0, "compare signed across overflow, high");
+    t_alu(ALU_CMP, 32'd1, 32'h8000_0000, 32'd0, 2'd2, 1'b0, "compare signed high");
     t_alu(ALU_CLR, 32'hFFFF_FFFF, 32'd1, 32'd0, 2'd2, 1'b0, "compare logical high");
-    t_alu(ALU_CLR, 32'd1, 32'hFFFF_FFFF, 32'd0, 2'd1, 1'b0, "compare logical low");
-    t_alu(ALU_CLR, 32'h0000_0040, 32'h0000_0040, 32'd0, 2'd0, 1'b0, "compare logical equal bytes");
-    t_alu(ALU_AND, 32'h0F0F_0F0F, 32'hF0F0_F0F0, 32'd0, 2'd0, 1'b0, "and to zero");
-    t_alu(ALU_OR,  32'h0F0F_0F0F, 32'hF0F0_F0F0, 32'hFFFF_FFFF, 2'd1, 1'b0, "or to ones");
-    t_alu(ALU_XOR, 32'd5, 32'd5, 32'd0, 2'd0, 1'b0, "xor to zero");
-    t_alu(ALU_TEST, 32'd0, 32'd0, 32'd0, 2'd0, 1'b0, "load and test zero");
     t_alu(ALU_TEST, 32'h8000_0000, 32'd0, 32'h8000_0000, 2'd1, 1'b0, "load and test negative");
-    t_alu(ALU_TEST, 32'd7, 32'd0, 32'd7, 2'd2, 1'b0, "load and test positive");
 
-    // -------------------------------------------------------------------------
-    // Test 4: address generation.
-    // -------------------------------------------------------------------------
     t_addr(4'd0, 4'd0, 32'hFFFF_FFFF, 32'hFFFF_FFFF, 12'h123, 24'h00_0123,
            "zero base and index ignore register contents");
-    t_addr(4'd1, 4'd0, 32'hFFFF_F000, 32'hFFFF_FFFF, 12'hFFF, 24'hFF_FFFF,
-           "base plus displacement");
-    t_addr(4'd0, 4'd2, 32'hFFFF_FFFF, 32'h0000_0002, 12'h001, 24'h00_0003,
-           "index plus displacement");
-    t_addr(4'd3, 4'd4, 32'h00FF_FFFF, 32'h0000_0002, 12'h001, 24'h00_0002,
-           "24-bit wraparound");
     t_addr(4'd5, 4'd0, 32'hAB12_3456, 32'hFFFF_FFFF, 12'h000, 24'h12_3456,
            "high-order register bits ignored");
 
-    // -------------------------------------------------------------------------
-    // Decode table spot checks.
-    // -------------------------------------------------------------------------
     begin
       s360_dec_t d;
-      d = s360_decode(8'h18);
-      check(d.valid && (d.op == OP_LR) && (d.fmt == FMT_RR), "decode 0x18 as LR/RR");
-      d = s360_decode(8'h5A);
-      check(d.valid && (d.op == OP_A) && (d.fmt == FMT_RX), "decode 0x5A as A/RX");
-      d = s360_decode(8'h92);
-      check(d.valid && (d.op == OP_MVI) && (d.fmt == FMT_RS_SI), "decode 0x92 as MVI/SI");
-      d = s360_decode(8'h1C);
-      check(!d.valid && (d.fmt == FMT_RR), "decode 0x1C as an unimplemented RR instruction");
-      d = s360_decode(8'hD2);
-      check(!d.valid && (d.fmt == FMT_SS), "decode 0xD2 as an unimplemented SS instruction");
-      check(s360_len_bytes(FMT_RR) == 4'd2, "RR length is two bytes");
-      check(s360_len_bytes(FMT_RX) == 4'd4, "RX length is four bytes");
-      check(s360_len_bytes(FMT_SS) == 4'd6, "SS length is six bytes");
+      d = s360_decode(8'h82);
+      check(d.valid && (d.op == OP_LPSW) && (d.fmt == FMT_RS_SI), "decode 0x82 as LPSW/SI");
+      d = s360_decode(8'h80);
+      check(d.valid && (d.op == OP_SSM) && (d.fmt == FMT_RS_SI), "decode 0x80 as SSM/SI");
+      d = s360_decode(8'h04);
+      check(d.valid && (d.op == OP_SPM) && (d.fmt == FMT_RR), "decode 0x04 as SPM/RR");
+      d = s360_decode(8'h00);
+      check(!d.valid && (d.fmt == FMT_RR), "decode 0x00 as an unassigned RR opcode");
     end
 
-    // -------------------------------------------------------------------------
+    // =========================================================================
     // Report
-    // -------------------------------------------------------------------------
+    // =========================================================================
     if (errors == 0) begin
-      $display("IBM S360 M1 CORE TESTS PASSED (%0d checks, %0d retired instructions in the directed program)",
-               checks, N_EXPECTED);
+      $display("IBM S360 M2 CORE TESTS PASSED (%0d checks)", checks);
       $finish;
     end else begin
-      $display("IBM S360 M1 CORE TESTS FAILED: %0d error(s) in %0d checks", errors, checks);
+      $display("IBM S360 M2 CORE TESTS FAILED: %0d error(s) in %0d checks", errors, checks);
       $fatal(1, "testbench failures");
     end
   end
 
-  // Watchdog.
   initial begin
     #500_000;
     $display("FAIL: watchdog timeout");

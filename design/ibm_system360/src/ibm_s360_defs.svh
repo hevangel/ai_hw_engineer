@@ -38,6 +38,11 @@ localparam int PSW_ILC_MSB = 31;  // manual bits 32-33
 localparam int PSW_CC_MSB  = 29;  // manual bits 34-35
 localparam int PSW_IA_MSB  = 23;  // manual bits 40-63
 localparam int PSW_IA_LSB  = 0;
+localparam int PSW_SYSMASK_MSB = 63;  // manual bits 0-7
+localparam int PSW_INTCODE_MSB = 47;  // manual bits 16-31
+localparam int PSW_PMASK_MSB   = 27;  // manual bits 36-39
+localparam int PSW_PROBLEM_BIT = 48;  // manual bit 15
+localparam int PSW_WAIT_BIT    = 49;  // manual bit 14
 
 // -----------------------------------------------------------------------------
 // Instruction formats. The first two bits of the operation code select the
@@ -78,7 +83,11 @@ typedef enum logic [4:0] {
   OP_S    = 5'd21,  // 5B
   // SI format
   OP_MVI  = 5'd22,  // 92
-  OP_CLI  = 5'd23   // 95
+  OP_CLI  = 5'd23,  // 95
+  OP_SSM  = 5'd24,  // 80
+  OP_LPSW = 5'd25,  // 82
+  // RR format, status switching
+  OP_SPM  = 5'd26   // 04
 } s360_op_e;
 
 typedef struct packed {
@@ -159,6 +168,10 @@ function automatic s360_dec_t s360_decode(input logic [7:0] opcode);
     // ---- Logical, pp. 53-56 ------------------------------------------------
     8'h92: d.op = OP_MVI;
     8'h95: d.op = OP_CLI;
+    // ---- Status switching, pp. 72-74 --------------------------------------
+    8'h04: d.op = OP_SPM;
+    8'h80: d.op = OP_SSM;
+    8'h82: d.op = OP_LPSW;
     default: begin
       d.valid = 1'b0;
       d.op    = OP_ILLEGAL;

@@ -8,8 +8,9 @@ reaches implementation.
 - Program roadmap: [hevangel/ai_engineer#379](https://github.com/hevangel/ai_engineer/issues/379)
 - Shared CPU engine (issue): [hevangel/ai_engineer#384](https://github.com/hevangel/ai_engineer/issues/384)
 - Source and provenance ledger: [spec/sources.md](spec/sources.md)
-- Architecture specification: [spec/spec.md](spec/spec.md)
-- Current milestone report: [report/2026-11-05-m1-core.md](report/2026-11-05-m1-core.md)
+- Architecture specification and current milestone report:
+  [spec/spec.md](spec/spec.md),
+  [report/2026-11-08-m2-status-switching.md](report/2026-11-08-m2-status-switching.md)
 
 ## History
 
@@ -49,21 +50,24 @@ compatibility implies cycle fidelity.
 
 | Area | State |
 |---|---|
-| Architecture specification (M1 subset) | written and sourced — [spec/spec.md](spec/spec.md) |
+| Architecture specification | written and sourced — [spec/spec.md](spec/spec.md) |
 | Source/provenance ledger | started — [spec/sources.md](spec/sources.md) |
-| Shared CPU engine, first increment (M1) | implemented: 23 instructions, PSW, address generation, self-checking simulation, formal properties |
-| Storage, channel I/O, interruptions, protection/DAT | not started |
+| Shared CPU engine, M1 | implemented: 23 instructions, PSW, address generation, self-checking simulation, formal properties |
+| Status switching and program interruptions (M2) | implemented: `SPM`, `SSM`, `LPSW`, program interruptions 1/2/6/8, problem state, wait state |
+| Storage, channel I/O, protection/DAT, SVC/external/I/O interruptions | not started |
 | Model members (20, 22, 25, 30, 40, 44, 50, 65, 67, 75, 85, 91, 95, 195) | not started; each will be a member folder |
 | Independent emulator oracle, IBM diagnostics, real OS boot | not started (issues #383, #441, #429 and later) |
 
-The M1 core is a **functional** first slice, not a qualified S/360 CPU. It runs
-a hand-assembled program that exercises every instruction it implements and it
-has formal proofs for the arithmetic unit, the address adder, the PSW field
-contract and the retirement contract of the core. It does **not** yet run
-historical S/360 software, does not take interruptions, does not implement
-protection or DAT, and has no timing or microarchitecture claim. See
-[report/2026-11-05-m1-core.md](report/2026-11-05-m1-core.md) for the measured
-evidence and the exact list of limitations.
+The core is a **functional** increment, not a qualified S/360 CPU. It runs
+hand-assembled programs that exercise every instruction and interruption it
+implements, and it has formal proofs for the arithmetic unit, the address
+adder, the PSW field contract, the retirement contract and the program-check
+suppression rules. It does **not** yet run historical S/360 software, does not
+implement protection or DAT, has only program interruptions, and has no timing
+or microarchitecture claim. See
+[report/2026-11-05-m1-core.md](report/2026-11-05-m1-core.md) and
+[report/2026-11-08-m2-status-switching.md](report/2026-11-08-m2-status-switching.md)
+for the measured evidence and the exact list of limitations.
 
 ## Folder layout
 

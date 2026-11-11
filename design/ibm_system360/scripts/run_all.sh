@@ -19,4 +19,4 @@ else
     sh "$HERE/run_formal.sh"
 fi
 
-echo "S/360 M1 COMPLETE FLOW PASSED"
+echo "S/360 M2 COMPLETE FLOW PASSED"
