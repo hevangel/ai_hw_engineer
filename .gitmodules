@@ -4,3 +4,63 @@
 [submodule "libs/cdc_primitives"]
 	path = libs/cdc_primitives
 	url = https://github.com/hevangel/cdc_primitives.git
+[submodule "external/martypc"]
+	path = external/martypc
+	url = https://github.com/dbalsom/martypc.git
+	shallow = true
+	update = none
+[submodule "external/pce-286"]
+	path = external/pce-286
+	url = https://github.com/tsupplis/pce-286.git
+	shallow = true
+	update = none
+[submodule "external/86box/86Box"]
+	path = external/86box/86Box
+	url = https://github.com/86Box/86Box.git
+	shallow = true
+	update = none
+[submodule "external/86box/86BoxManager"]
+	path = external/86box/86BoxManager
+	url = https://github.com/86Box/86BoxManager.git
+	shallow = true
+	update = none
+[submodule "external/86box/86box.github.io"]
+	path = external/86box/86box.github.io
+	url = https://github.com/86Box/86box.github.io.git
+	shallow = true
+	update = none
+[submodule "external/86box/assets"]
+	path = external/86box/assets
+	url = https://github.com/86Box/assets.git
+	shallow = true
+	update = none
+[submodule "external/86box/bios-tools"]
+	path = external/86box/bios-tools
+	url = https://github.com/86Box/bios-tools.git
+	shallow = true
+	update = none
+[submodule "external/86box/docs"]
+	path = external/86box/docs
+	url = https://github.com/86Box/docs.git
+	shallow = true
+	update = none
+[submodule "external/86box/kbc-probes"]
+	path = external/86box/kbc-probes
+	url = https://github.com/86Box/kbc-probes.git
+	shallow = true
+	update = none
+[submodule "external/86box/mdsx"]
+	path = external/86box/mdsx
+	url = https://github.com/86Box/mdsx.git
+	shallow = true
+	update = none
+[submodule "external/86box/probing-tools"]
+	path = external/86box/probing-tools
+	url = https://github.com/86Box/probing-tools.git
+	shallow = true
+	update = none
+[submodule "external/86box/roms"]
+	path = external/86box/roms
+	url = https://github.com/86Box/roms.git
+	shallow = true
+	update = none
