@@ -25,9 +25,10 @@ JP cc,nn/JP (HL); PUSH/POP incl. AF; CALL nn/CALL cc/RET/RET cc/RST;
 EX AF,AF'/EX DE,HL/EXX/EX (SP),HL; DI; EI; HALT; and the CB page on registers
 and on (HL) for rotate/shift/RES/SET.
 
-**Not implemented:** `BIT n,(HL)` (its undocumented F3/F5 source is the WZ
-register), the DD/FD index pages and their DD-CB forms, and interrupt entry.
-Those raise `fault_o` instead of executing wrongly.
+**Every documented encoding plus the undocumented ones the exercisers test are now
+implemented**: the primary page, CB (including `BIT n,(HL)` and the DD-CB/FD-CB
+composites with register autocopy), ED (including all block groups) and the DD/FD
+index pages with the undocumented IXH/IXL aliases.
 
 **Formal and synthesis gates pass for the implemented subset:** SBY bmc/cover/
 prove and Yosys generic synthesis are re-run on every change; see the table
@@ -51,31 +52,29 @@ the index pages.
 |---|---|---|
 | ALU differential vs pinned oracle | **PASS**, 648,328 cases, 0 mismatches | `scripts/run_alu.sh`, Verilator 5.052 in the project tool image |
 | ALU negative control | **PASS**, 648,328/648,328 rejected | `run_alu.sh --negative-control` |
-| Instruction differential | **PASS**, 3,032 compared, 0 mismatches, 2 unimplemented | `scripts/run_instr.sh` (state + full memory image) |
-| Verilator lint (core) | No errors; 18 `-Wall` warnings (unused interrupt inputs, reserved parameters) | `verilator --lint-only -Wall` |
+| Instruction differential | **PASS**, 7,168 compared, 0 mismatches, 0 unimplemented | `scripts/run_instr.sh` (state + full memory image) |
+| Verilator lint (core) | No errors (warnings: unused params/signals) | `verilator --lint-only -Wall` |
+| Interrupt directed tests | **PASS**, 12/12 checks (NMI, IM 1, IM 2, EI delay, HALT exit, RETN) | `scripts/run_int.sh` |
 | Formal bmc | **PASS**, depth 40 | `sby -f formal/zilog_z80.sby bmc` |
-| Formal cover | **PASS**, all cover points reached | `sby -f formal/zilog_z80.sby cover` |
+| Formal cover | **PASS**, all cover points reached (depth 25) | `sby -f formal/zilog_z80.sby cover` |
 | Formal prove | **PASS** by k-induction | `sby -f formal/zilog_z80.sby prove` |
-| Synthesis (generic) | **PASS**, 23,011 cells, 290 flops | `scripts/run_synth.sh generic`, Yosys 0.69 |
-| Formal (bmc/prove/cover) | Not run | no properties or `.sby` exist |
-| UVM environment | Not run | not written |
-| ZEXDOC / ZEXALL / z80test | Not run | needs memory/stack instructions first |
-| Historical software | Not run | needs CALL/RET/stack and CP/M harness |
+| Synthesis (generic) | **PASS**, 27,378 cells, 373 flops | `scripts/run_synth.sh generic`, Yosys 0.69 |
+| ZEXDOC / ZEXALL / z80test | Not run | needs the CP/M harness; ZEXALL is ~5.8e9 instructions |
+| Historical software | Not run | needs a CP/M BDOS harness |
 | Synthesis | **PASS** (generic cells; no timing or area target set) | `scripts/run_synth.sh generic` |
 | Native timing comparison | Not run | native engine not started |
 
-The `scripts/` directory holds the repository's scaffolded entry points
-(`run_all.sh`, `run_formal.sh`, `run_sim.sh`, `run_coverage.sh`,
-`run_synth.sh`) unchanged from `design/_template/`. They skip formal and
-simulation when no sources exist and have not been exercised by this design.
+The `scripts/` directory also holds `run_alu.sh`, `run_instr.sh` and
+`run_int.sh`, which are the gates above; `run_all.sh`, `run_formal.sh`,
+`run_sim.sh`, `run_coverage.sh` and `run_synth.sh` are the repository scaffold
+entry points.
 
 ## 4. Known issues and limitations
 
 | Item | Impact | Status |
 |---|---|---|
-| DD/FD index pages absent (with DD-CB/FD-CB) | those encodings fault | next milestone |
-| BIT n,(HL) absent (WZ-sourced F3/F5) | one CB form faults | next milestone |
-| Interrupt entry not modelled | EI/DI and IM are stored but INT/NMI are not accepted | next milestone |
+| WZ/MEMPTR is only modelled where it affects flags | BIT n,(HL) uses the stale WZ, matching the oracle's behaviour for the tested paths | documented limitation |
+| IM 0 executes only the RST-form byte supplied by the device | other injected opcodes behave as a no-op | documented limitation |
 | DAA verified in context only | standalone DAA after an arbitrary F byte is undefined hardware behavior | documented limitation |
 | SCF/CCF F3/F5 from A, no Q latch | matches the pinned oracle | documented assumption |
 | IN A,(n) leaves F unchanged | matches the pinned oracle | documented, differs from some published tables |

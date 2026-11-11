@@ -359,10 +359,8 @@ int main(int argc, char** argv) {
     check(o, tail, "P0");
   }
 
-  // CB page: registers plus the (HL) rotate/shift/RES/SET forms.
-  // BIT n,(HL) is intentionally unimplemented (its F3/F5 source is WZ).
+  // CB page: registers plus the (HL) rotate/shift/BIT/RES/SET forms.
   for (int cb = 0; cb < 256; cb++) {
-    if ((cb & 0x07) == 0x06 && (cb & 0xC0) == 0x40) continue;  // BIT n,(HL)
     check(0xCB, {(uint8_t)cb}, "CB");
   }
 
@@ -375,6 +373,26 @@ int main(int argc, char** argv) {
       tail.push_back((uint8_t)d8(rng));
     }
     check(0xED, tail, "ED");
+  }
+
+  // DD/FD index pages: prefix + opcode + operand bytes.
+  for (int op = 0; op < 256; op++) {
+    std::vector<uint8_t> tail;
+    tail.push_back((uint8_t)op);
+    tail.push_back((uint8_t)d8(rng));
+    tail.push_back((uint8_t)d8(rng));
+    check(0xDD, tail, "DD");
+    check(0xFD, tail, "FD");
+  }
+
+  // DD-CB / FD-CB composites: prefix, CB, displacement, opcode.
+  for (int cb = 0; cb < 256; cb++) {
+    std::vector<uint8_t> tail;
+    tail.push_back(0xCB);
+    tail.push_back((uint8_t)d8(rng));
+    tail.push_back((uint8_t)cb);
+    check(0xDD, tail, "DDCB");
+    check(0xFD, tail, "FDCB");
   }
 
   for (const std::string& s : first_bad) std::printf("MISMATCH %s\n", s.c_str());
