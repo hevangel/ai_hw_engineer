@@ -45,6 +45,7 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1976 | Intel 8259 / 8259A | Eight-input programmable interrupt controller; manufacturer-based request-withdrawal regression | [intel_8259](intel_8259/) |
 | 1976 (July launch) | Zilog Z80 | 8-bit microprocessor; 8080-compatible ISA plus alternate register file, IX/IY, bit and block instructions, three interrupt modes and DRAM refresh. Work in progress: complete instruction set (primary, CB incl. DD-CB/FD-CB, ED incl. block groups, DD/FD index pages) verified against a pinned oracle, with interrupt entry, formal bmc/cover/prove and generic synthesis; ZEXALL and native cycle timing outstanding | [zilog_z80](zilog_z80/) |
 | 1977 (manufacturer history) | AMD Am9511 | Signed integer/native floating arithmetic, conversions and transcendental processing unit | [amd_am9511](amd_am9511/) |
+| 1979 (manufacturer history) | AMD Am9512 | Stack-oriented floating-point processor: 32/64-bit add, subtract, multiply and divide, 16 commands, 8-bit host interface; functional reconstruction with independent vector and formal transport verification | [amd_am9512](amd_am9512/) |
 | 1977* (board use) | Apple II revision-0 support packages | 4116 RAM, ROM, 2513, TTL/bus interfaces and analog support; package years vary | [apple_ii_chips](apple_ii_chips/) |
 | By 1977* (preliminary datasheet; launch unconfirmed) | MOS Technology 6522 VIA | Ports, input latches, handshake, timers and eight serial modes; sampled contract verified, NMOS timing open | [mos_6522](mos_6522/) |
 | 1977* | Intel 8273 | HDLC/SDLC serial protocol controller; framing, NRZI, CRC, DMA and loop relay | [intel_8273](intel_8273/) |
@@ -106,6 +107,13 @@ The 6560/6561, 6567/6569 and 6581 entries are bounded by later printings of Comm
 ### AMD — Am9300
 
 The AMD Am9300 entry uses **1970*** for commercial availability, separating it from first working silicon in **1969**. First-person and AMD-sourced accounts differ on the exact first-shipment milestone; see the [chip history and source discussion](amd_am9300/README.md). The ongoing [historical AMD series ledger](../plans/amd_historical_series.md) records the remaining requested designs and their actual completion state.
+
+### AMD — Am9511 and Am9512
+
+The Am9511 and Am9512 introduction years follow AMD's May 1981 *Am9511A/Am9512
+Floating Point Processor Manual*, which dates the Am9511 to 1977 and the Am9512
+to 1979. No exact launch month is asserted. *Electronics* described the Am9512
+in July 1979; see the [Am9512 overview](amd_am9512/README.md).
 
 ### Apple â€” IIe MMU and IOU
 
