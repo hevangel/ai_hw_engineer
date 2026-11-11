@@ -26,6 +26,9 @@ git clone --recurse-submodules https://github.com/<your-fork>/ai_hw_engineer.git
 cd ai_hw_engineer
 ```
 
+This fetches `libs/`. The reference emulators under `external/` are opt-in;
+see [external/README.md](external/README.md) to fetch the ones you need.
+
 ### 2. Create a Branch
 
 ```bash

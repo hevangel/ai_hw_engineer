@@ -19,6 +19,7 @@ ai_hw_engineer/
 ├── eda_extended/           — Overlay image adding NVC and SystemC, plus their reference corpus
 ├── libs/uvm/               — UVM reference library (git submodule)
 ├── libs/cdc_primitives/    — Verified CDC primitive library (git submodule)
+├── external/               — Opt-in reference emulators and tools (git submodules, see external/README.md)
 ├── design/                 — Chip designs
 │   ├── _template/          — Design template (copy for new chips)
 │   └── <chip_or_family>/   — Canonical issue folder; member folders inside a family
