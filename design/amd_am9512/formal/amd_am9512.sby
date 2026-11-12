@@ -1,0 +1,23 @@
+[tasks]
+bmc
+prove
+cover
+[options]
+bmc: mode bmc
+bmc: depth 12
+prove: mode prove
+cover: mode cover
+cover: depth 20
+[engines]
+bmc: smtbmc z3
+prove: abc pdr
+cover: smtbmc z3
+[script]
+read -formal -D FORMAL -I../src ../src/amd_am9512.sv model_fpu.sv
+prep -top amd_am9512
+[files]
+../src/amd_am9512.sv
+../src/amd_am9512_commands.svh
+model_fpu.sv
+amd_am9512_props.sv
+documented_stack.svh

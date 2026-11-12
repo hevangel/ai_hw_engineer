@@ -1,0 +1,17 @@
+opcode,mnemonic,class,description,status_affected,source_page
+0x00,CLR,data,clear status; stack unchanged,SZUVD,4-36
+0x01,SADD,single,single-precision NOS + TOS -> NOS; pop TOS,SZUV,4-38
+0x02,SSUB,single,single-precision NOS - TOS -> NOS; pop TOS,SZUV,4-38
+0x03,SMUL,single,single-precision NOS * TOS -> NOS; pop TOS,SZUV,4-38
+0x04,SDIV,single,single-precision NOS / TOS -> NOS; pop TOS,SZUDV,4-39
+0x05,CHSS,single,change sign of single-precision TOS; zero if E=0,SZ,4-36
+0x06,PTOS,single,duplicate single-precision TOS; zero TOS if old E=0,SZ,4-39
+0x07,POPS,single,pop single-precision TOS; NOS becomes TOS,SZ,4-39
+0x08,XCHS,single,exchange single-precision TOS and NOS,SZ,4-39
+0x29,DADD,double,double-precision NOS + TOS -> NOS; pop TOS,SZUV,4-37
+0x2A,DSUB,double,double-precision NOS - TOS -> NOS; pop TOS,SZUV,4-37
+0x2B,DMUL,double,double-precision NOS * TOS -> NOS; pop TOS,SZUV,4-37
+0x2C,DDIV,double,double-precision NOS / TOS -> NOS; pop TOS,SZUDV,4-37
+0x2D,CHSD,double,change sign of double-precision TOS,SZ,4-36
+0x2E,PTOD,double,duplicate double-precision TOS,SZ,4-39
+0x2F,POPD,double,pop double-precision TOS; NOS becomes TOS,SZ,4-39
