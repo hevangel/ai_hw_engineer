@@ -1,0 +1,1 @@
+// Formal properties are embedded in src/amd_am9513.sv under `ifdef FORMAL.

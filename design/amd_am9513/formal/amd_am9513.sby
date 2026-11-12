@@ -1,0 +1,22 @@
+[tasks]
+bmc
+prove
+cover
+
+[options]
+bmc: mode bmc
+bmc: depth 20
+prove: mode prove
+cover: mode cover
+
+[engines]
+smtbmc
+
+[script]
+read -formal -sv amd_am9513_props.sv
+read -formal -sv ../src/amd_am9513.sv
+prep -top amd_am9513
+
+[files]
+amd_am9513_props.sv
+../src/amd_am9513.sv
