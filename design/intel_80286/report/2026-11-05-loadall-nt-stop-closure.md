@@ -46,8 +46,15 @@ All results are on RTL `bd74361` unless noted.
 | `run_sim.sh` | 230 PASS |
 | `run_hardware.sh` | PASS: 1,427,994 general records (every real-mode file, including port I/O, ESC, WAIT and HLT) plus the string, register and #GP sets |
 | Vectors, native bus/core, mutation campaigns, IBM AT BIOS software, synthesis | PASS on `7e46383` |
+| Connected-core cover (`intel_80286.sby cover`) | Incomplete: 45 of 89 covers reached, none reported unreachable, before the container was removed after 55.6 hours (2026-11-08) |
 
 ## Open items
 
 - Protected-mode CMPS, SCAS and OUTS limit faults keep the restartability-memo CX values. These differ by one from the real-mode captures.
-- A connected-core cover run on `ba2be56` was started at the time of this report and takes a day or more.
+- The connected-core cover task has never completed. Five runs on this RTL
+  family were lost to container kills or removal; the furthest reached 45 of
+  89 covers in 45.6 hours, then spent 10 more hours on cover 46 without
+  reaching it. Each cover is reached by a single smtbmc engine that searches
+  every remaining cover at once, so later covers get slower. Finishing needs
+  a long uninterrupted host run, or splitting the covers across parallel
+  tasks.
