@@ -414,17 +414,13 @@ incoming TSS selector as the error code. Paired busy-target CALL/JMP cases
 check #GP(0078), exact frames, descriptor-read boundaries and no task-image or
 busy-bit writes.
 
-**ASSUMPTION A26:** the direct far task-gate path currently raises
-#GP(task-gate selector) when the additional descriptor fields checked by the
-RTL (`protected_call_descriptor_header[2:0]`,
-`protected_call_parameter_count`, or `protected_call_descriptor_tail`) are
-nonzero. Figure 8-3 labels the corresponding task-gate fields unused and says
-zero is required for 80386 compatibility, but the inspected 286 text does not
-specify whether nonzero values fault or are ignored. The current direct-transfer
-matrix keeps these fields zero, so it does not validate this behavior. Keep the
-RTL rule as provisional implementation policy, not a confirmed 286 rule, until
-independent 286 evidence resolves it; any future test of the rule is regression
-evidence only, not architectural acceptance.
+The provisional rule formerly recorded here as ASSUMPTION A26 (a #GP for
+nonzero unused task-gate fields) was removed on 2026-11-09. Figure 8-3 labels
+those fields unused and requires zero only for 80386 compatibility, so the
+core now ignores them, along with the reserved last word of TSS and gate
+descriptors and the unused byte of IDT gates. The direct-transfer success
+matrix carries nonzero values in these fields and checks the exact transfer.
+See the [review report](../report/2026-11-09-review-fixes.md).
 The source gap and exact RTL check are recorded in the
 [task-gate source audit](../report/2026-10-28-task-gate-source-audit.md).
 

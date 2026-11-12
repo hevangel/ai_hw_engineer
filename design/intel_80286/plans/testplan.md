@@ -706,3 +706,21 @@ The adapter does not cover other opcode forms, real-mode exception delivery,
 protected mode, IF/TF, non-empty prefetch queues, small-SP shutdown, native pins
 or cycle timing. It adds independent physical-capture evidence for the listed
 forms; it does not close the full-chip completion ledger.
+
+## 2026-11-09 review: protected transfer rules
+
+Each test below fails on source `0fbb7ca` and passes on the fix. All run in
+both READY modes and are part of the default `run_sim.sh` bootstrap.
+
+| Option | Cases | Checks |
+|---|---|---|
+| `--call-not-present` | 8 | Far CALL and JMP to a not-present code segment raise #NP(selector); a not-present data segment and a DPL mismatch raise #GP(selector) first; no accessed-bit write |
+| `--full-stack` | 6 | Same-level INT, same-level far CALL and inner-level delivery through TSS SP0=0000 push at the top of a 64K stack; SP=0002 still faults with no stack write (A44) |
+| `--lock-iopl` | 16 | LOCK NOP at CPL 0 and CPL 3 for IOPL 0-3: #GP(0) only when CPL>IOPL, LOCK never asserted on denial |
+| `--retf-overrun` | 6 | Outer RETF with 8+immediate bytes past FFFF raises #SS(0) before descriptor reads; a frame ending at FFFF returns exactly |
+| `--reserved-fields` | 4 | Interrupt, trap and call gates with nonzero unused/reserved fields transfer exactly |
+
+The direct-TSS and task-gate CALL/JMP success matrix, the task-return path
+and the CPL1/CPL2 IDT task-gate cases now use descriptors with nonzero
+reserved fields. The direct-task fault matrix has 40 executions; its former
+"reserved direct TSS tail" row asserted a fault the 286 does not raise.

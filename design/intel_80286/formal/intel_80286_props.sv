@@ -1574,36 +1574,32 @@
             end
             if (rst_n && $past(rst_n && state==EVENT_GATE_CHECK &&
                 event_delivery_active && event_packet.protected_mode)) begin
-                if ($past(event_gate[39:32]==0 && !event_gate[44] &&
+                if ($past(!event_gate[44] &&
                           (event_gate[43:40]==4'h6 || event_gate[43:40]==4'h7) &&
-                          event_gate[47] && event_gate[63:48]==0 &&
-                          // 9.6.2: the #DF handler must be a task gate.
+                          event_gate[47] && // 9.6.2: the #DF handler must be a task gate.
                           !(event_packet.restartable && event_packet.vector==8) &&
                           (!event_packet.software_interrupt ||
                            cs[1:0]<=event_gate[46:45]))) begin
                     assert(state==EVENT_CODE_START);
                     assert(event_pointer=={event_gate[31:16],event_gate[15:0]});
-                end else if ($past(event_gate[39:32]==0 && !event_gate[44] &&
+                end else if ($past(!event_gate[44] &&
                                    (event_gate[43:40]==4'h6 || event_gate[43:40]==4'h7) &&
-                                   event_gate[47] && event_gate[63:48]==0 &&
-                                   event_packet.software_interrupt &&
+                                   event_gate[47] && event_packet.software_interrupt &&
                                    cs[1:0]>event_gate[46:45])) begin
                     assert(state==EVENT_START && event_packet.vector==13 &&
                            event_packet.error_present &&
                            event_packet.error_code=={5'd0,$past(event_packet.vector),3'b010} &&
                            event_packet.saved_ip==$past(instruction_ip));
-                end else if (!$past(event_gate[39:32]==0 && !event_gate[44] &&
-                                    event_gate[43:40]==4'h5 && event_gate[63:48]==0 &&
-                                    event_gate[47] &&
+                end else if (!$past(!event_gate[44] &&
+                                    event_gate[43:40]==4'h5 && event_gate[47] &&
                                     (!event_packet.software_interrupt ||
                                      cs[1:0]<=event_gate[46:45]))) begin
                     // Not a usable task gate either: App. B page B-49 gives
                     // #GP for type or INT-DPL faults, #NP for a not-present
                     // gate, each with error vector*8+2(+EXT).
                     assert(`I286P_DELIVERY_OUTCOME(
-                        $past(event_gate[39:32]==0 && !event_gate[44] &&
+                        $past(!event_gate[44] &&
                               event_gate[43:40]>=4'h5 && event_gate[43:40]<=4'h7 &&
-                              event_gate[63:48]==0 &&
                               (!event_packet.software_interrupt ||
                                cs[1:0]<=event_gate[46:45])) ? 8'd11 : 8'd13));
                 end

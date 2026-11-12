@@ -250,6 +250,28 @@ command phase. ASSUMPTION A33: interrupt 9 saves the boundary at which the
 overrun is detected. See the
 [processor-extension channel spec](processor_extension_channel.md).
 
+The 2026-11-09 review fixed five protected-mode rules; see the
+[review report](../report/2026-11-09-review-fixes.md).
+
+- A far CALL to a code segment that passes the type and privilege checks but
+  is not present raises #NP(selector), as the far JMP does (App. B CALL).
+- The LOCK prefix raises #GP(0) when CPL is greater than IOPL (App. B LOCK).
+- An outer-level RETF whose 8+immediate frame bytes run past offset FFFF
+  raises #SS(0), as the outer-level IRET does (App. B RET).
+- Unused and reserved descriptor fields are ignored: byte 4 of interrupt,
+  trap and task gates, bits 7-5 of a call gate's word-count byte, a task
+  gate's offset word, and the last word of every gate and TSS descriptor.
+  Intel requires zero there only for 80386 compatibility. This retires the
+  provisional task-gate rule formerly recorded as A26 in the
+  privilege-transition spec.
+- ASSUMPTION A44: a frame pushed from SP=0000 lies at the top of the stack
+  segment (offsets FFFx-FFFF), like any push, and fits when the SS limit
+  covers it. This applies to same-level interrupt delivery, same-level far
+  CALL, the inner-level stack taken from the TSS for an interrupt or call
+  gate, and the error-code push after a task switch. A frame that would only
+  partly wrap (0<SP<frame size) still raises #SS(0); Intel's "stack must have
+  room" text does not define that case and no physical capture covers it.
+
 ASSUMPTION A31: an invalid outer-level return SS raises #SS(selector) per
 Table 7-4, although Appendix B lists #GP/#NP. See
 [the privilege-transition spec](protected_privilege_transition.md).

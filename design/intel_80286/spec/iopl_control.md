@@ -9,7 +9,7 @@ rules needed to establish and preserve IOPL. The authority is Intel's
 especially §§3.11.1, 3.11.3, 4.1 and 10.1.
 
 This slice does not implement task switching, the 80386 I/O permission
-bitmap, LOCK-prefix privilege, complete native port timing, or all FLAGS/NT
+bitmap, complete native port timing, or all FLAGS/NT
 semantics outside the IOPL and IF rules below.
 
 ## I/O privilege
@@ -48,3 +48,10 @@ modes.
 Directed simulation does not close native I/O timing, task switching, the
 full privilege matrix for other instructions, connected-core formal proof,
 or the full release gate.
+
+## LOCK prefix
+
+Appendix B of 210498-005 lists #GP(0) for LOCK when CPL is greater than IOPL.
+The core raises that restartable fault at decode, before any operand access,
+so LOCK is never asserted for a denied prefix. `--lock-iopl` covers CPL 0 and
+CPL 3 against IOPL 0-3 in both READY modes.

@@ -283,7 +283,11 @@ module intel_80286 #(
                  protected_call_table_base;
     logic [10:0] protected_call_descriptor_header;
     logic [31:0] protected_call_descriptor_target;
+    // Descriptor bytes 6-7 are read with the descriptor but ignored: the
+    // 286 reserves them and requires zero only for 80386 compatibility.
+    /* verilator lint_off UNUSEDSIGNAL */
     logic [15:0] protected_call_descriptor_tail, code_load_special_tail;
+    /* verilator lint_on UNUSEDSIGNAL */
     logic [4:0] protected_call_parameter_count;
     logic [4:0] protected_call_parameter_index;
     logic [15:0] ret_stack_adjust;
@@ -1552,6 +1556,11 @@ module intel_80286 #(
                 DECODE,MODRM_DECODE,AFTER_DISP: begin
                     if (undefined_encoding) begin
                         enter_event(8'd6,instruction_ip,1'b0,1'b1,1'b0,16'd0); state<=EVENT_START;
+                    end else if (lock_prefix_active && iopl_denied) begin
+                        // Intel 210498-005 App. B LOCK: #GP(0) if CPL is
+                        // greater than IOPL. The fault precedes any operand
+                        // access, so LOCK is never asserted.
+                        enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0); state<=EVENT_START;
                     end else if (opcode==8'h0f && (system_opcode==8'h04 || system_opcode==8'h05) &&
                                  msw[0] && cs[1:0]!=0) begin
                         // ASSUMPTION A35: 0F 04h/05h raise exception 13 when CPL>0
@@ -2316,7 +2325,8 @@ module intel_80286 #(
                         end else begin
                             pending_ip<=ip; pending_sp<=gpr[4]-16'd4;
                             protected_far_call_active<=1;
-                            if (gpr[4]<4) begin
+                            if (gpr[4]!=0 && gpr[4]<4) begin
+                                // A44: SP=0000 pushes the link at FFFC-FFFF.
                                 enter_event(12,instruction_ip,1'b0,1'b1,1'b1,16'd0);
                                 state<=EVENT_START;
                             end else begin
@@ -2434,7 +2444,10 @@ module intel_80286 #(
                         end
                     end else if (segment_load_target==3 && event_stack_active) begin
                         if (!segment_load_cache_valid ||
-                            event_tss_stack_sp < (event_packet.error_present ? 16'd12 : 16'd10) ||
+                            // A44: SP=0000 places the frame at the top of
+                            // the segment; the wrapped limit terms decide.
+                            (event_tss_stack_sp!=0 &&
+                             event_tss_stack_sp < (event_packet.error_present ? 16'd12 : 16'd10)) ||
                             (segment_load_access[2] ?
                                 (event_tss_stack_sp-(event_packet.error_present ? 16'd12 : 16'd10)) <= segment_load_limit :
                                 (event_tss_stack_sp-16'd1) > segment_load_limit)) begin
@@ -2455,8 +2468,9 @@ module intel_80286 #(
                         end
                     end else if (segment_load_target==2 && protected_call_stack_active) begin
                         if (!segment_load_cache_valid ||
-                            protected_call_tss_stack_sp <
-                                (16'd8+{10'd0,protected_call_parameter_count,1'b0}) ||
+                            (protected_call_tss_stack_sp!=0 &&
+                             protected_call_tss_stack_sp <
+                                (16'd8+{10'd0,protected_call_parameter_count,1'b0})) ||
                             (protected_call_parameter_count!=0 &&
                              (!cache_valid[2] ||
                               ({1'b0,gpr[4]}+{11'd0,protected_call_parameter_count,1'b0}-17'd1)>
@@ -2860,10 +2874,11 @@ module intel_80286 #(
                             ret_outer_preflight_done<=0; ret_outer_ss_ready<=0; retire_o<=0;
                             if (memory_result[17:16]>cs[1:0]) begin
                                 if (({1'b0,gpr[4]}+17'd7+{1'b0,ret_stack_adjust})>17'h0ffff) begin
+                                    // The outer SP:SS words run past FFFF, beyond
+                                    // every SS limit: #SS(0) (App. B RET, return
+                                    // to outer privilege level), as for IRET.
                                     protected_ret_active<=0; ret_outer_active<=0;
-                                    enter_event(13,instruction_ip,1'b0,1'b1,1'b1,
-                                                memory_result[31:16] & 16'hfffc);
-                                    state<=EVENT_START;
+                                    `I286_STACK_OVERRUN
                                 end else begin
                                     memory_start(1'b1,2,gpr[4]+16'd4+ret_stack_adjust,24'd0,
                                                  1'b0,1'b0,1,0,RET_OUTER_NEXT);
@@ -2962,16 +2977,13 @@ module intel_80286 #(
                 end
                 CALL_DESC_CHECK: begin
                     if (protected_call_descriptor_header[7]) begin
-                        if (!protected_call_descriptor_header[10]) begin
-                            enter_event(13,instruction_ip,1'b0,1'b1,1'b1,
-                                        protected_call_selector & 16'hfffc);
-                            state<=EVENT_START; retire_o<=0;
-                        end else begin
-                            protected_call_target_selector<=protected_call_selector;
-                            protected_call_target_offset<=protected_call_offset;
-                            protected_call_through_gate<=0;
-                            state<=CALL_CODE_START; retire_o<=0;
-                        end
+                        // A code/data descriptor goes to the code loader,
+                        // which applies App. B's order: type and privilege
+                        // #GP(selector) before not-present #NP(selector).
+                        protected_call_target_selector<=protected_call_selector;
+                        protected_call_target_offset<=protected_call_offset;
+                        protected_call_through_gate<=0;
+                        state<=CALL_CODE_START; retire_o<=0;
                     end else if (protected_call_descriptor_header[6:3]==4'h1) begin
                         if (((cs[1:0]>protected_call_selector[1:0]) ? cs[1:0] :
                              protected_call_selector[1:0])>protected_call_descriptor_header[9:8]) begin
@@ -2982,8 +2994,7 @@ module intel_80286 #(
                             enter_event(11,instruction_ip,1'b0,1'b1,1'b1,
                                         protected_call_selector & 16'hfffc);
                             state<=EVENT_START; retire_o<=0;
-                        end else if (protected_call_descriptor_target[15:0]<16'h002b ||
-                                     protected_call_descriptor_tail!=0) begin
+                        end else if (protected_call_descriptor_target[15:0]<16'h002b) begin
                             enter_event(10,instruction_ip,1'b0,1'b1,1'b1,
                                         protected_call_selector & 16'hfffc);
                             state<=EVENT_START; retire_o<=0;
@@ -3003,16 +3014,10 @@ module intel_80286 #(
                             state<=TASK_SWITCH_DIRECT_CURRENT_START; retire_o<=0;
                         end
                     end else if (protected_call_descriptor_header[6:3]==4'h5) begin
-                        // ASSUMPTION: A26. Intel's 286 figure marks these fields unused
-                        // and zero for 386 compatibility, but doesn't state the 286
-                        // fault response for nonzero values; this #GP rule is provisional.
-                        if (protected_call_descriptor_header[2:0]!=0 ||
-                            protected_call_parameter_count!=0 ||
-                            protected_call_descriptor_tail!=0) begin
-                            enter_event(13,instruction_ip,1'b0,1'b1,1'b1,
-                                        protected_call_selector & 16'hfffc);
-                            state<=EVENT_START; retire_o<=0;
-                        end else if (((cs[1:0]>protected_call_selector[1:0]) ? cs[1:0] :
+                        // Figure 8-3 marks the task gate's offset, byte 4 and
+                        // last word unused ("must be 0 for 80386
+                        // compatibility"); the 286 ignores them.
+                        if (((cs[1:0]>protected_call_selector[1:0]) ? cs[1:0] :
                                       protected_call_selector[1:0])>protected_call_descriptor_header[9:8]) begin
                             enter_event(13,instruction_ip,1'b0,1'b1,1'b1,
                                         protected_call_selector & 16'hfffc);
@@ -3042,9 +3047,9 @@ module intel_80286 #(
                                 1'b0,1'b0,3'd6,32'd0,TASK_GATE_TSS_TAIL);
                             retire_o<=0;
                         end
-                    end else if (protected_call_descriptor_header[6:3]!=4'h4 ||
-                                 protected_call_descriptor_header[2:0]!=3'b000 ||
-                                 protected_call_descriptor_tail!=0) begin
+                    end else if (protected_call_descriptor_header[6:3]!=4'h4) begin
+                        // The call gate's word-count byte uses bits 4-0 only;
+                        // bits 7-5 and the last word are ignored.
                         enter_event(13,instruction_ip,1'b0,1'b1,1'b1,
                                     protected_call_selector & 16'hfffc);
                         state<=EVENT_START; retire_o<=0;
@@ -3187,12 +3192,11 @@ module intel_80286 #(
                 EVENT_GATE_CHECK: begin
                     // App. B pages B-49/B-50 check order: gate type, INT
                     // gate DPL, gate presence, then the gate's target.
-                    // The reserved-field checks keep the existing policy
-                    // (see ASSUMPTION A26 for the analogous direct path).
-                    if (event_gate[39:32]!=0 || event_gate[44] ||
+                    // The gate's unused byte 4 and reserved last word are
+                    // ignored (zero is required only for 80386 compatibility).
+                    if (event_gate[44] ||
                         (event_gate[43:40]!=4'h5 && event_gate[43:40]!=4'h6 &&
                          event_gate[43:40]!=4'h7) ||
-                        event_gate[63:48]!=0 ||
                         (event_packet.protected_mode && event_packet.restartable &&
                          event_packet.vector==8 && event_gate[43:40]!=4'h5)) begin
                         `I286_DELIVERY_FAULT(8'd13,{5'd0,event_packet.vector,3'b010})
@@ -3208,7 +3212,8 @@ module intel_80286 #(
                         // making any task-state or busy-bit write. App. B
                         // page B-49: a local or out-of-limit TSS selector is
                         // #GP(TSS selector).
-                        if (event_gate[15:0]!=0 || event_gate[31:18]==0 ||
+                        // The task gate's offset word is unused (8.5).
+                        if (event_gate[31:18]==0 ||
                             event_gate[18] ||
                             ({1'b0,{event_gate[31:19],3'b000}}+17'd7)>
                                 {1'b0,gdt_limit}) begin
@@ -3239,8 +3244,7 @@ module intel_80286 #(
                 end
                 TASK_GATE_TSS_CHECK: begin
                     if (event_task_access[4:0]!=5'b00001 || !event_task_access[7] ||
-                        event_task_limit<16'h002b ||
-                        memory_result[15:0]!=0) begin
+                        event_task_limit<16'h002b) begin
                         if (task_switch_instruction) begin
                             enter_event(!event_task_access[7] ? 8'd11 :
                                         (event_task_access[4:0]==5'b00011 ? 8'd13 : 8'd10),
@@ -3337,7 +3341,7 @@ module intel_80286 #(
                         event_delivery_active<=0; task_switch_active<=0;
                         task_switch_from_event<=0; task_return_active<=0;
                         state<=EVENT_START; retire_o<=0;
-                    end else if (event_task_limit<16'h002b || memory_result[15:0]!=0) begin
+                    end else if (event_task_limit<16'h002b) begin
                         task_return_fault(8'd10,event_task_selector&16'hfffc);
                         event_delivery_active<=0; task_switch_active<=0;
                         task_switch_from_event<=0; task_return_active<=0;
@@ -3499,7 +3503,7 @@ module intel_80286 #(
                     state<=SEGMENT_LOAD_WAIT; retire_o<=0;
                 end
                 TASK_ERROR_PUSH: begin
-                    if (task_state_image[6]<2 || !task_segment_cache_valid[2] ||
+                    if (task_state_image[6]==16'd1 || !task_segment_cache_valid[2] ||
                         (task_segment_access[2][2] ?
                             (task_state_image[6]-16'd2)<=task_segment_limit[2] :
                             (task_state_image[6]-16'd1)>task_segment_limit[2])) begin
@@ -3578,8 +3582,11 @@ module intel_80286 #(
                     code_load_target<=1; state<=CODE_LOAD_WAIT; retire_o<=0;
                 end
                 EVENT_FRAME_CHECK: if (owner_event_grant) begin
-                    if (event_packet.saved_sp<(event_packet.error_present ? 16'd8 : 16'd6)) begin
+                    if (event_packet.saved_sp!=0 &&
+                        event_packet.saved_sp<(event_packet.error_present ? 16'd8 : 16'd6)) begin
                         // App. B page B-49 same-level frame room: #SS(0).
+                        // ASSUMPTION A44: SP=0000 pushes at FFFx-FFFF, so
+                        // only the limit precheck below decides.
                         `I286_DELIVERY_FAULT(8'd12,16'd0)
                     end else begin
                         memory_start(1'b1,2,
