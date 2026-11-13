@@ -1,4 +1,5 @@
-# AAh self-test on the partial rebuild: the ROM CRC must fail (no reply).
+# AAh self-test on the verified IBM image: RAM test, ROM checksum and timer
+# interrupt test must pass and the controller must reply 55.
 run 120000
 autoread
 200 write 1 AA

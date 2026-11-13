@@ -20,8 +20,8 @@ Every host read value is compared as well.
 | Manual examples and corner cases (14 tests) | M chapter 2/3 statements and worked examples, exact PCs | `directed_tests.py` |
 | Same 14 programs, RTL vs model | Model | `run_sim.sh` |
 | Random programs, all 256 opcodes, forced host writes, reads, pin changes | Model | `gen_random_test.py`, `run_sim.sh` (32 seeds x 20,000 retires) |
-| IBM 1503033 partial rebuild, command AAh | Model; firmware must stop at the ROM-checksum stage (status 48h, no reply) | `tb/scripts/fw_selftest.txt` |
-| IBM 1503033 CRC-balanced test image, BIOS command order | Model; replies must be 55 00 FF 5D CF CF FE 55 | `tb/scripts/fw_bios_cmds.txt` |
+| IBM 1503033 (hash-verified image), command AAh | Model; the self-test (RAM test, ROM checksum, timer interrupt) must reply 55h | `tb/scripts/fw_selftest.txt` |
+| IBM 1503033 (hash-verified image), BIOS command order | Model; replies must be 55 00 FF 5D CF CF FE 55 | `tb/scripts/fw_bios_cmds.txt` |
 | Sequencing, interrupt and host-flag invariants | Formal proof, any program | `formal/upi42_core.sby` |
 
 Mutation check (run during development, not in the regression): three

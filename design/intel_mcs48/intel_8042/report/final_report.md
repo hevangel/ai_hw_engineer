@@ -3,14 +3,14 @@
 ## Result
 
 The UPI-42 core matches the reference model on every retired instruction in
-all tests. That covers 13 directed programs, 32 random 2K programs of 20,000
+all tests. That covers 14 directed programs, 32 random 2K programs of 20,000
 retires each, and two runs of the IBM PC AT keyboard-controller firmware
 (120,000 and 400,000 retires).
 
-On the CRC-balanced test image the firmware answers the BIOS POST command
-order exactly: AAh→55h, ABh→00h, C0h→FFh, 20h→5Dh, D0h→CFh, and FFh→FEh
-with no keyboard attached. On the partial IBM image the self-test stops at
-its ROM checksum, as the missing bytes require.
+The firmware is IBM's real 1503033 ROM, rebuilt and verified against
+MAME's SHA-1. On it the controller passes its own self-test and answers
+the BIOS POST command order exactly: AAh→55h, ABh→00h, C0h→FFh, 20h→5Dh,
+D0h→CFh, and FFh→FEh with no keyboard attached.
 
 | Check | Command | Result |
 |---|---|---|
@@ -21,8 +21,9 @@ its ROM checksum, as the missing bytes require.
 | Directed tests, model vs manual | `scripts/run_sim.sh` | 14 of 14 pass |
 | Directed tests, RTL vs model | `scripts/run_sim.sh` | 14 of 14 identical |
 | Random programs | `scripts/run_sim.sh` | 32 seeds x 20,000 retires identical; all 256 opcodes, both interrupt vectors |
-| IBM 1503033 partial rebuild, AAh | `scripts/run_sim.sh` | 120,000 retires identical; stops at status 48h (ROM checksum), no reply |
-| IBM 1503033 CRC test image, BIOS command order | `scripts/run_sim.sh` | 400,000 retires and 8 host reads identical; replies `55 00 FF 5D CF CF FE 55` |
+| IBM 1503033 image rebuild | `scripts/run_sim.sh` | 2,048 bytes; SHA-1 `0100f8789fb4de74706ae7f9473a12ec2b9bd729` and CRC32 `5a81c0d2` match MAME |
+| IBM 1503033, AAh self-test | `scripts/run_sim.sh` | 120,000 retires and 1 host read identical; RAM test, ROM checksum and timer-interrupt test pass; reply `55` |
+| IBM 1503033, BIOS command order | `scripts/run_sim.sh` | 400,000 retires and 8 host reads identical; replies `55 00 FF 5D CF CF FE 55` |
 | Synthesis | `scripts/run_synth.sh` | Yosys `synth` + `check -assert`: 5,689 generic cells (1,172 flip-flops, of which 1,024 are the RAM), no latches |
 
 The whole flow (`scripts/run_all.sh`) takes about 46 seconds in the
@@ -46,13 +47,14 @@ RTL. Each was caught by the random seeds:
 
 ## Findings
 
-- **The IBM firmware cannot be fully rebuilt from public sources.** The
-  Tarpai listing (`external/halicery/8042`) gives 1,388 of 2,048 bytes. The AAh self-test
-  computes a CRC over the whole ROM (listing 0754h–07A8h). It must be
-  0000h, and the last two bytes, 7FEh–7FFh (`A0 38`), exist to balance it.
-  Filling the gaps with 00h or FFh does not reproduce MAME's hash. With the
-  real gap bytes unknown, the BIOS's first 8042 command cannot succeed on
-  the rebuilt image.
+- **The IBM firmware is fully rebuilt and hash-verified.** The Tarpai
+  listing (`external/halicery/8042`) gives 1,388 of 2,048 bytes. The dump
+  published by minuszerodegrees.net, whose SHA-1 equals MAME's, showed the
+  other 660: a 24-character identification string at 009h–020h and 00h
+  everywhere else. The rebuild script uses the listing, that string and
+  00h fill, and requires MAME's SHA-1 and CRC32, so it needs no binary
+  download. The AAh self-test computes a CRC over the whole ROM (listing
+  0754h–07A8h) that must be 0000h; it passes.
 - **Two manual errata.**
   - The DA example on p.3-10 adds 9AH + 06H as A1H.
   - The CALL diagram on p.3-8 shows the 1K encoding.
@@ -61,8 +63,6 @@ RTL. Each was caught by the random seeds:
 
 ## Limits
 
-- The test image is not IBM's firmware. Its 660 gap bytes are 00h except
-  the two solved CRC bytes.
 - Keyboard protocol beyond "no keyboard attached" is not exercised yet; that
   needs a keyboard model at system level.
 - Not modeled: DMA pins, the 8243 expander, single-step, EA and the status

@@ -1,24 +1,32 @@
 #!/usr/bin/env python3
-"""Rebuild the IBM PC AT 8042 firmware (part 1503033) from a pinned listing.
+"""Rebuild the IBM PC AT 8042 firmware (part 1503033) and prove it by hash.
 
-No hash-pinned raw dump of 1503033.bin has a citable public source. A. Tarpai
-(Halicery) published a 2010 commented disassembly of the MESS dump, which
-prints every disassembled address with its bytes, under the MIT licence. The
-repository carries it as the opt-in submodule external/halicery/8042. This
-script reads the listing from that submodule (or, if it is not checked out,
-downloads the same file at the pinned commit), converts CRLF to LF, checks
-its SHA-256, and writes:
+A. Tarpai (Halicery) published a 2010 commented disassembly of the IBM
+1503033 ROM under the MIT licence. It prints every disassembled address with
+its bytes: 1,388 of the ROM's 2,048 bytes. The repository carries it as the
+opt-in submodule external/halicery/8042.
 
-  work/firmware/1503033_partial.bin  2048 bytes, unknown bytes = FILL
-  work/firmware/1503033_known.json   the known-byte map and gap ranges
+The other 660 bytes are never executed. In the real chip they are:
+  - 009h-020h: the 24-character identification string in ID_STRING;
+  - everything else: 00h.
+This was established from the dump published by minuszerodegrees.net
+(DUMP_URL). The script does not need that dump: it rebuilds the image from
+the listing, the string and 00h fill, then requires the result to match the
+hashes MAME records for 1503033.bin (CRC32 5a81c0d2, SHA-1 DUMP_SHA1). A
+wrong byte anywhere fails the run.
 
-The listing covers 1,388 of 2,048 bytes. The rebuilt image is therefore not
-the IBM ROM and cannot match MAME's hash for it
-(CRC32 5a81c0d2, SHA-1 0100f8789fb4de74706ae7f9473a12ec2b9bd729).
-Users who hold a verified dump can pass it with --dump; it is checked against
-that SHA-1 and then cross-checked against every listed byte.
+Steps: read the listing from the submodule (or, if it is not checked out,
+download the same file at the pinned commit), convert CRLF to LF, check its
+SHA-256, rebuild, check SHA-1 and CRC32, and write:
 
-Usage: rebuild_1503033.py [--work DIR] [--fill HEX] [--dump PATH]
+  work/firmware/1503033.bin          the verified 2,048-byte ROM image
+  work/firmware/1503033_known.json   listed-byte map, gap ranges, hashes
+
+The image is IBM's copyrighted firmware and stays in the ignored work
+folder. --dump PATH also cross-checks a separately obtained dump against the
+same hashes and the rebuilt image.
+
+Usage: rebuild_1503033.py [--work DIR] [--dump PATH]
 Prints the path of the image to use.
 """
 import argparse
@@ -27,6 +35,7 @@ import json
 import re
 import sys
 import urllib.request
+import zlib
 from pathlib import Path
 
 REVISION = '6ddf1669224342663ed1fc6e9a33f3577ad9ba02'
@@ -36,8 +45,15 @@ SUBMODULE = Path(__file__).resolve().parents[4] / 'external' / 'halicery' / '804
 # SHA-256 of the listing with LF line endings. The PCjs archive copy
 # (jeffpar/pcjs 1a91d38e, machines/pcx86/ibm/keyboard/) has the same content.
 LISTING_SHA256 = '3e10124dfba23726c2e11c2f50812fd1190828f6dd7bc54a4b4d186d1fa5ca98'
+# MAME src/devices/machine/at_keybc.cpp, ROM "1503033.bin".
 DUMP_SHA1 = '0100f8789fb4de74706ae7f9473a12ec2b9bd729'
+DUMP_CRC32 = 0x5a81c0d2
+DUMP_SHA256 = '7c97449f3546f7528165d6f0670ec36934bfbdb42fd7ce7b9d18bf9736c3a515'
+DUMP_URL = ('https://www.minuszerodegrees.net/rom/bin/'
+            'ibm_1503033_5170_kyb_controller_on_motherboard.bin')
 KNOWN_BYTES = 1388
+ID_ADDRESS = 0x009
+ID_STRING = b' 1503033 CORP. IBM 1983 '
 LINE = re.compile(r'^\s*([0-9A-Fa-f]{4}):((?: (?:\| )?[0-9A-Fa-f]{2})+)(?=\s|$)')
 
 
@@ -94,11 +110,21 @@ def fetch_listing(cache):
     return checked(cache.read_bytes(), 'cached').decode('utf-8'), URL
 
 
+def check_image(image, what):
+    if len(image) != 2048:
+        raise ValueError('%s is %d bytes, expected 2048' % (what, len(image)))
+    if hashlib.sha1(image).hexdigest() != DUMP_SHA1:
+        raise ValueError('%s SHA-1 does not match MAME 1503033.bin' % what)
+    if zlib.crc32(image) != DUMP_CRC32:
+        raise ValueError('%s CRC32 does not match MAME 1503033.bin' % what)
+    if hashlib.sha256(image).hexdigest() != DUMP_SHA256:
+        raise ValueError('%s SHA-256 mismatch' % what)
+
+
 def main():
     here = Path(__file__).resolve().parents[1]
     ap = argparse.ArgumentParser()
     ap.add_argument('--work', default=str(here / 'work'))
-    ap.add_argument('--fill', default='00')
     ap.add_argument('--dump')
     args = ap.parse_args()
     dest = Path(args.work) / 'firmware'
@@ -107,25 +133,28 @@ def main():
     mem = parse_listing(text)
     if len(mem) != KNOWN_BYTES:
         raise ValueError('expected %d listed bytes, found %d' % (KNOWN_BYTES, len(mem)))
-    fill = int(args.fill, 16) & 0xFF
-    image = bytes(mem.get(x, fill) for x in range(2048))
-    (dest / '1503033_partial.bin').write_bytes(image)
+    full = dict(mem)
+    for i, val in enumerate(ID_STRING):
+        if ID_ADDRESS + i in mem:
+            raise ValueError('identification string overlaps a listed byte')
+        full[ID_ADDRESS + i] = val
+    image = bytes(full.get(x, 0x00) for x in range(2048))
+    check_image(image, 'rebuilt image')
+    (dest / '1503033.bin').write_bytes(image)
     (dest / '1503033_known.json').write_text(json.dumps({
         'source': source, 'listing_sha256': LISTING_SHA256,
-        'known_bytes': len(mem), 'fill': fill, 'gaps': gaps(mem),
+        'image_sha1': DUMP_SHA1, 'image_sha256': DUMP_SHA256,
+        'listed_bytes': len(mem), 'id_string_bytes': len(ID_STRING),
+        'zero_fill_bytes': 2048 - len(full), 'gaps': gaps(mem),
         'known': [1 if x in mem else 0 for x in range(2048)],
     }) + '\n')
     if args.dump:
         dump = Path(args.dump).read_bytes()
-        if hashlib.sha1(dump).hexdigest() != DUMP_SHA1:
-            raise ValueError('dump SHA-1 does not match MAME 1503033.bin')
-        bad = [x for x, v in mem.items() if dump[x] != v]
-        if bad:
-            raise ValueError('dump disagrees with the listing at %s' %
-                             ', '.join('%03X' % x for x in bad[:8]))
-        print(Path(args.dump).resolve())
-        return 0
-    print(dest / '1503033_partial.bin')
+        check_image(dump, 'supplied dump')
+        if dump != image:
+            raise ValueError('supplied dump differs from the rebuilt image')
+        print('supplied dump matches the rebuilt image', file=sys.stderr)
+    print(dest / '1503033.bin')
     return 0
 
 

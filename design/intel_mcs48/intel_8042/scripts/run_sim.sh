@@ -22,7 +22,7 @@ lockstep() {   # ROM SCRIPT NAME
         --compare "$WORK/$3.rtl"
 }
 
-echo "== firmware: rebuild IBM 1503033 from the pinned listing"
+echo "== firmware: rebuild IBM 1503033 from the pinned listing and verify its hash"
 ROM=$("$PY" "$ROOT/scripts/rebuild_1503033.py" --work "$WORK")
 echo "== decoder vs independent disassembly"
 "$PY" "$ROOT/scripts/check_decoder_vs_listing.py" "$WORK"
@@ -45,19 +45,14 @@ while [ "$s" -le "$SEEDS" ]; do
     s=$((s + 1))
 done
 
-echo "== IBM 1503033 partial rebuild: AAh self-test"
+echo "== IBM 1503033 (verified image): AAh self-test"
 lockstep "$ROM" "$ROOT/tb/scripts/fw_selftest.txt" fw/selftest
-if grep -q '^H' "$WORK/fw/selftest.rtl"; then
-    echo "FAIL: self-test replied although its ROM CRC cannot pass"; exit 1
-fi
-tail -1 "$WORK/fw/selftest.rtl" | grep -q ' pc04F .* sts48 ' || {
-    echo "FAIL: expected the ROM-checksum failure loop (pc 04F, status 48)"; exit 1; }
-echo "PASS: self-test stops at the ROM checksum stage (status 48h), as the gaps require"
+got=$(awk '$1=="H"{printf "%s ", substr($4,2)}' "$WORK/fw/selftest.rtl")
+[ "$got" = "55 " ] || { echo "FAIL: self-test replied '$got', expected '55 '"; exit 1; }
+echo "PASS: self-test (RAM test, ROM checksum, timer interrupt) replies 55"
 
-echo "== IBM 1503033 CRC-balanced TEST image: BIOS command sequence"
-"$PY" "$ROOT/scripts/make_crc_test_image.py" "$ROM" \
-    "$WORK/firmware/1503033_known.json" "$WORK/firmware/1503033_crctest.bin"
-lockstep "$WORK/firmware/1503033_crctest.bin" "$ROOT/tb/scripts/fw_bios_cmds.txt" fw/bios_cmds
+echo "== IBM 1503033 (verified image): BIOS command sequence"
+lockstep "$ROM" "$ROOT/tb/scripts/fw_bios_cmds.txt" fw/bios_cmds
 got=$(awk '$1=="H"{printf "%s ", substr($4,2)}' "$WORK/fw/bios_cmds.rtl")
 want="55 00 FF 5D CF CF FE 55 "
 [ "$got" = "$want" ] || { echo "FAIL: replies '$got', expected '$want'"; exit 1; }

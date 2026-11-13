@@ -35,9 +35,10 @@ for the AT.
 ## Status
 
 Core verified against an independent reference model, with IBM's AT
-firmware running in lockstep. The IBM ROM itself is only partly available.
-1,388 of its 2,048 bytes are known, so its self-test checksum cannot pass
-without a verified dump. See the [report](report/final_report.md).
+firmware running in lockstep. The full 2,048-byte IBM ROM is rebuilt in
+the ignored `work/` folder and must match MAME's SHA-1 for `1503033.bin`.
+On it the controller passes its own self-test (AAh replies 55h). See the
+[report](report/final_report.md).
 
 ```sh
 sh design/intel_mcs48/intel_8042/scripts/run_all.sh

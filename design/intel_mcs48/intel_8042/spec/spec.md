@@ -12,6 +12,7 @@ in lockstep. See [the verification report](../report/final_report.md).
 | D | Intel, *8742 Universal Peripheral Interface 8-Bit Slave Microcontroller*, order 290256-001, November 1991. [Same archive](https://mark-ogden.uk/files/intel/publications/290256-001%208742%20Universal%20Peripheral%20Interface%208-Bit%20Slave%20Microcontroller-Nov91.pdf), SHA-256 `cc784b505d9f0b28c4766723a4d27b789b81259c6a6f3172cdfb62dce791db7f` | 2K ROM / 128-byte RAM sizes, UPI-42 features, pins |
 | L | A. Tarpai (Halicery), *1503033 disassembly* (2010), MIT licence. Submodule `external/halicery/8042` at commit `6ddf1669224342663ed1fc6e9a33f3577ad9ba02` ([Halicery/8042](https://github.com/Halicery/8042)), `8042_1503033.TXT`, SHA-256 `3e10124dfba23726c2e11c2f50812fd1190828f6dd7bc54a4b4d186d1fa5ca98` with LF line endings. PCjs archives identical content (jeffpar/pcjs `1a91d38e`) | IBM firmware bytes; independent disassembler for the decoder cross-check; AT keyboard-line wiring notes |
 | R | MAME `src/devices/machine/at_keybc.cpp` (BSD-3-Clause) | Hash of the IBM dump: `1503033.bin`, CRC32 `5a81c0d2`, SHA-1 `0100f8789fb4de74706ae7f9473a12ec2b9bd729` |
+| Z | minuszerodegrees.net ROM archive, [`ibm_1503033_5170_kyb_controller_on_motherboard.bin`](https://www.minuszerodegrees.net/rom/rom.htm), SHA-256 `7c97449f3546f7528165d6f0670ec36934bfbdb42fd7ce7b9d18bf9736c3a515`; its SHA-1 equals R | Showed what the unlisted bytes are. Not needed to rebuild; optional cross-check |
 
 The PDFs are not committed. Download them into the ignored
 `design/intel_mcs48/work/refs/` folder to check a citation.
@@ -107,20 +108,23 @@ tag marks the RTL (`src/upi42_core.sv`) and the reference model
 
 ## IBM PC AT firmware
 
-The AT uses the 8042 with IBM ROM part 1503033 (MAME "IBM 1983"). No
-citable raw dump is public. `scripts/rebuild_1503033.py` rebuilds 1,388 of
-its 2,048 bytes from listing L. The other 660 bytes, in nine ranges just
-below page boundaries, are never executed in the paths tested, but the
-self-test (command AAh) computes a 16-bit CRC over all 2,048 bytes and
-requires 0000h. With the gaps unknown the self-test fails at status 48h
-and sends no reply.
+The AT uses the 8042 with IBM ROM part 1503033 (MAME "IBM 1983").
+`scripts/rebuild_1503033.py` rebuilds the complete 2,048-byte image:
 
-`scripts/make_crc_test_image.py` builds a **test-only** image: gaps filled
-with 00h and bytes 7FCh-7FDh solved so the CRC is zero. Every listed byte is
-unchanged. It is not the IBM firmware; it lets verification exercise the
-firmware's command handling after a passing self-test. A verified dump can
-be supplied to `rebuild_1503033.py --dump`, which checks it against R and
-against every listed byte.
+- 1,388 bytes from listing L;
+- 24 bytes at 009h-020h, the identification string
+  `" 1503033 CORP. IBM 1983 "`;
+- 636 bytes of 00h in the eight unused ranges below page boundaries.
+
+The script then requires the image to match R (SHA-1 and CRC32), so a
+wrong byte anywhere fails the run. Dump Z showed what the unlisted bytes
+are; `rebuild_1503033.py --dump` cross-checks such a dump against R and
+the rebuilt image. The image is IBM's copyrighted firmware and is written
+only to the ignored `work/firmware/` folder.
+
+The self-test (command AAh) runs a RAM test, a 16-bit CRC over all 2,048
+bytes that must be 0000h (bytes 7FEh-7FFh balance it), and a timer
+interrupt test, then replies 55h. All three pass on the rebuilt image.
 
 AT board wiring used by the bench, from L's notes: P26 drives the keyboard
 clock through an inverter and T0 reads it; P27 drives keyboard data and T1

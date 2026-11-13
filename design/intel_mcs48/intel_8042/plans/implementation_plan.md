@@ -28,7 +28,7 @@ Issue: https://github.com/hevangel/ai_hw_engineer/issues/256
 
 ## Open items
 
-- A verified 1503033 dump would replace the partial rebuild. Without it the
-  self-test cannot pass on the real image.
+- Resolved: the full 1503033 image is rebuilt from the listing, the ROM's
+  identification string and 00h fill, and verified against MAME's hashes.
 - DMA handshake and the 8243 expander are not needed by the AT and are not
   modeled.
