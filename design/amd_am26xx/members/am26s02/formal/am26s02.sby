@@ -1,0 +1,22 @@
+[tasks]
+bmc
+prove
+cover
+
+[options]
+bmc: mode bmc
+prove: mode prove
+cover: mode cover
+depth 24
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal -sv am26s02.sv am26s02_props.sv
+prove: chparam -set PROVE_MODE 1 am26s02_props
+prep -top am26s02_props
+
+[files]
+../src/am26s02.sv
+am26s02_props.sv

@@ -25,9 +25,13 @@ module am2600 #(
     input  logic i4_i,     // I4  pin 5: active-high trigger input
     input  logic co0_n_i,  // CO0# pin 9: asynchronous direct clear
     input  logic co1_n_i,  // CO1# pin 10: asynchronous direct clear
-    output logic q_o,      // Q   pin 6: true output, HIGH during cycle
-    output logic q_n_o     // Q#  pin 8: complementary output
+  output logic q_o,      // Q   pin 6: true output, HIGH during cycle
+  output logic q_n_o     // Q#  pin 8: complementary output
 );
+  /* verilator lint_off PROCASSINIT */
+  // The register declaration initializers implement the documented
+  // power-up modeling assumption (quiescent state from elaboration; the
+  // physical part has no reset pin). Yosys honors the init values.
   // Trigger network per the Table I truth table.
   logic n_trig;
   assign n_trig = (!i0_n_i || !i1_n_i) && i2_i && i3_i && i4_i;
@@ -74,4 +78,5 @@ module am2600 #(
 
   assign q_o   = running;
   assign q_n_o = !running;
+  /* verilator lint_on PROCASSINIT */
 endmodule
