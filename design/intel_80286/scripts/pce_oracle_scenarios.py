@@ -278,6 +278,36 @@ def int_gate():
             yield f'int_gate.{label}.cpl{cpl}', e
 
 
+TSS2 = 0x2200
+
+
+def stack_fault_tasks(e, handler_accessed=True):
+    """Deliver #SS (12) and #DF (8) through task gates on their own stacks.
+
+    A CPL-0 stack fault would otherwise be delivered on the faulting stack,
+    escalate to #DF and shut down, so the first fault's vector and error code
+    would never be compared. #SS switches to TSS1 (0008:0900), #DF to TSS2
+    (0008:0904); the error code lands on that task's stack and the outgoing
+    TSS0 image records the faulting CS:IP and SS:SP.
+
+    handler_accessed presets the accessed bit of the 0038 handler CS. Whether
+    a delivery that later faults on its frame has already set that bit is
+    not defined by Intel (see spec/protected_mode_integration.md A19); the
+    *.abit.* scenarios exercise that order separately.
+    """
+    e.idt(12, gate(0, S_TSS1, 0x85))
+    e.gdt(T3, desc(0x002b, TSS2, 0x81))
+    image = [0x0904, 0x0002, 0x1111, 0x2222, 0x3333, 0x4444, 0x6000, 0x5555, 0x6666, 0x7777,
+             S_DATA0, S_CODE0, S_STACK0, S_DATA0, S_LDT]
+    e.put(TSS2 + 2, w16(0xd000) + w16(S_STACK0))
+    e.put(TSS2 + 14, b''.join(w16(v) for v in image))
+    e.put(CODE0 + 0x0904, HLT)
+    e.idt(8, gate(0, T3, 0x85))
+    if handler_accessed:
+        e.gdt(S_HANDLER, desc(0xffff, HANDLER, 0x9b))
+    return e
+
+
 @family
 def stack_frames():
     """Frames pushed near the ends of the stack segment."""
@@ -286,16 +316,30 @@ def stack_frames():
             for op, body in (('int', int_n(0x2a)), ('callfar', call_far(S_HANDLER, 0x2a * 4)),
                              ('push', b'\x50'), ('pusha', b'\x60'), ('callnear', b'\xe8\x00\x00'),
                              ('fault_gp', mov_ax(0x88) + MOV_DS_AX)):
-                e = Env()
+                e = stack_fault_tasks(Env())
                 e.gdt(S_BIGSTACK, desc(limit, BIGSTACK, 0x92))
                 e.ring0(mov_ax(S_BIGSTACK) + MOV_SS_AX + mov_sp(sp) + body)
                 yield f'stack_frames.{op}.sp{sp:04x}.limit{limit:04x}', e
+    # Accessed-bit order: the handler CS starts not accessed and its
+    # delivery frame then faults (waived; Intel does not define the order).
+    for op, body in (('int', int_n(0x2a)), ('fault_gp', mov_ax(0x88) + MOV_DS_AX)):
+        e = stack_fault_tasks(Env(), handler_accessed=False)
+        e.gdt(S_BIGSTACK, desc(0x00ff, BIGSTACK, 0x92))
+        e.ring0(mov_ax(S_BIGSTACK) + MOV_SS_AX + mov_sp(0x0002) + body)
+        yield f'stack_frames.abit.{op}.sp0002.limit00ff', e
     for sp0 in (0x0000, 0x0002, 0x0008, 0x000a, 0x000c, 0x0100):
         for op, body in (('int', int_n(0x2a)), ('fault_gp', b'\xfa')):
-            e = Env()
+            # Preset the inner SS accessed bit too: it is loaded before the
+            # inner frame room check that faults (same undefined order).
+            e = stack_fault_tasks(Env())
+            e.gdt(S_BIGSTACK, desc(0xffff, BIGSTACK, 0x93))
             e.put(TSS0 + 2, w16(sp0) + w16(S_BIGSTACK))
             e.ring3(body)
             yield f'stack_frames.inner.{op}.sp0_{sp0:04x}', e
+    e = stack_fault_tasks(Env(), handler_accessed=False)
+    e.put(TSS0 + 2, w16(0x0002) + w16(S_BIGSTACK))
+    e.ring3(b'\xfa')
+    yield 'stack_frames.abit.inner.fault_gp.sp0_0002', e
 
 
 @family
@@ -316,10 +360,23 @@ def far_return():
                 e = Env()
                 if caccess is not None: e.gdt(T0, desc(0xffff, CODE3, caccess))
                 if saccess is not None: e.gdt(T1, desc(0xffff, STACK3, saccess))
+                if slabel != 'ok':
+                    # The SS check faults after a valid return CS was read.
+                    # Preset its accessed bit: Intel does not define whether
+                    # that bit is set before a later SS fault (A-bit order is
+                    # exercised by far_return.abit.*, waived).
+                    if clabel == 'outer3': e.gdt(S_CODE3, desc(0xffff, CODE3, 0xfb))
+                    else: e.gdt(T0, desc(0xffff, CODE3, caccess | 1))
                 e.put(CODE3 + 0x0600, HLT); e.put(CODE0 + 0x0600, HLT)
                 e.put(STACK0 + 0x7000, frame_for(cs, ss))
                 e.ring0(mov_sp(0x7000) + tail)
                 yield f'far_return.{op}.cs_{clabel}.ss_{slabel}', e
+        e = Env()
+        e.gdt(T1, desc(0xffff, STACK3, 0x72))
+        e.put(CODE3 + 0x0600, HLT)
+        e.put(STACK0 + 0x7000, frame_for(S_CODE3 | 3, T1 | 3))
+        e.ring0(mov_sp(0x7000) + tail)
+        yield f'far_return.abit.{op}.ss_np', e
         for sp in (0xfff0, 0xfff6, 0xfff8, 0xfffa, 0xfffc, 0xfffe):
             for target in (S_CODE0, S_CODE3 | 3):
                 e = Env()
@@ -430,7 +487,7 @@ def limits():
             for flabel, code in (('push', b'\x50'), ('pop', b'\x58'), ('bp_rd', b'\x89\xe5\x8b\x46\x00'),
                                  ('bp_wr', b'\x89\xe5\x89\x46\x00'), ('enter', b'\xc8\x04\x00\x00'),
                                  ('leave', b'\x89\xe5\xc9'), ('popa', b'\x61'), ('ss_rd', b'\x36\xa1\x00\x01')):
-                e = Env()
+                e = stack_fault_tasks(Env())
                 e.gdt(T0, desc(limit, BIGSTACK, taccess))
                 e.ring0(mov_ax(T0) + MOV_SS_AX + mov_sp(sp) + code + NOP)
                 yield f'limits.stack_{tlabel}.{flabel}.sp{sp:04x}', e
@@ -465,6 +522,37 @@ def tasks():
             e.put(CODE3 + 0x0900, HLT)
             e.ring0(mov_r(3, 0xb0b0) + mov_r(6, 0x5151) + body + NOP)
             yield f'tasks.{op}.{label}', e
+    # The same incoming-task faults with #TS/#NP/#SS/#GP each routed through a
+    # task gate to its own handler task (vector v: TSS at 2200+40h*(v-10),
+    # selector 88h+8*(v-10), starts at 0008:0A00+4v, a HLT). The handler then
+    # needs no stack in the faulting task, so the vector (final IP), the error
+    # code (pushed on the handler task's stack) and the faulting task's saved
+    # image (written to TSS1) are compared even where that task's SS is
+    # invalid or not yet validated. es_limit uses 00A8, beyond the GDT.
+    for op, body in (('jmp_tss', jmp_far(S_TSS1, 0)), ('call_tss', call_far(S_TSS1, 0)),
+                     ('jmp_gate', jmp_far(S_TGATE, 0)), ('call_gate', call_far(S_TGATE, 0)),
+                     ('int_gate', int_n(0x2a))):
+        for label, patch in variants:
+            if label in ('ok', 'ldt_null', 'cs3_ss3', 'nt_flags'):
+                continue
+            e = Env(steps=600, gdt_limit=0xa7)
+            e.gdt(T0, desc(0xffff, CODE0, 0x1a))
+            e.gdt(T1, desc(0xffff, DATA0, 0x98))
+            e.gdt(T2, desc(0x0fff, CODE0, 0x9a))
+            e.idt(0x2a, gate(0, S_TSS1, 0xe5))
+            for vector in (10, 11, 12, 13):
+                tss, sel = 0x2200 + 0x40 * (vector - 10), 0x88 + 8 * (vector - 10)
+                e.gdt(sel, desc(0x002b, tss, 0x81))
+                e.idt(vector, gate(0, sel, 0x85))
+                e.put(tss + 14, b''.join(w16(v) for v in (
+                    0x0a00 + 4 * vector, 0x0002, 0xa1, 0xa2, 0xa3, 0xa4, 0x6000, 0xa5, 0xa6, 0xa7,
+                    S_DATA0, S_CODE0, S_STACK0, S_DATA0, 0)))
+                e.put(CODE0 + 0x0a00 + 4 * vector, HLT)
+            for index, value in patch.items():
+                e.put(TSS1 + 14 + 2 * index, w16(0xa8 if label == 'es_limit' else value))
+            e.put(CODE3 + 0x0900, HLT)
+            e.ring0(mov_r(3, 0xb0b0) + mov_r(6, 0x5151) + body + NOP)
+            yield f'tasks.{op}.{label}.tsgate', e
     # Nested task returns: the second task edits its own back link through ES
     # (selector T3 maps TSS1 as data) before IRET.
     links = [('ok', b''), ('null', mov_ax(0) + b'\x26\xa3\x00\x00'), ('ldt', mov_ax(S_TSS0 | 4) + b'\x26\xa3\x00\x00'),

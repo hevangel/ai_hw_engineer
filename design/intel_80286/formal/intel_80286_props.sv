@@ -550,6 +550,13 @@
                         assert(memory_offset==gpr[4]+16'd4+ret_stack_adjust &&
                                memory_span_delta==16'd3);
                     end
+                    // Protected PUSHA checks its whole 16-byte frame for
+                    // writing before the first word is stored.
+                    ALL_NEXT: begin
+                        assert(all_precheck && opcode==8'h60 && msw[0]);
+                        assert(memory_role==2 && memory_kind==1 && memory_write && memory_size==1);
+                        assert(memory_offset==stack_origin-16'd16 && memory_span_delta==16'd15);
+                    end
                     default: assert(1'b0);
                 endcase
             end
@@ -1355,7 +1362,11 @@
                     event_packet.protected_mode)) begin
                     assert(event_packet.valid && event_packet.protected_mode);
                     assert(cs==$past(event_target_selector) && cs_base==$past(event_target_base));
-                    assert(gpr[4]==$past(pending_sp));
+                    // A same-level handler starts below the saved SP by the frame
+                    // size (FLAGS, CS, IP and any error code); an inner-level
+                    // handler starts below the TSS stack pointer (pending_sp).
+                    assert(gpr[4]==$past(event_stack_active ? pending_sp :
+                        event_packet.saved_sp-(event_packet.error_present ? 16'd8 : 16'd6)));
                     assert(!(flags[8]));
                     if ($past(event_gate[43:40]==4'h6)) begin
                         assert(!(flags[9]));

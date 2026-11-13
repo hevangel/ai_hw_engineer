@@ -175,9 +175,10 @@ def main():
     report = [f'PCE-286 oracle comparison: {len(results)} scenarios, {counts["PASS"]} PASS, '
               f'{counts["MISMATCH"]} MISMATCH, {counts["WAIVED"]} WAIVED', '']
     family_totals = Counter(name.split('.')[0] for name in results)
-    family_bad = Counter(name.split('.')[0] for name, r in results.items() if r['status'] == 'MISMATCH')
+    by_status = Counter((name.split('.')[0], r['status']) for name, r in results.items())
     for fam in sorted(family_totals):
-        report.append(f'  {fam:24s} {family_totals[fam] - family_bad[fam]:5d}/{family_totals[fam]:<5d} agree')
+        report.append(f'  {fam:24s} {by_status[(fam, "PASS")]:5d} pass {by_status[(fam, "WAIVED")]:4d} waived '
+                      f'{by_status[(fam, "MISMATCH")]:4d} mismatch  of {family_totals[fam]}')
     report.append('')
     report.append('Mismatch groups (family, first difference), largest first:')
     for (fam, signature), names in sorted(groups.items(), key=lambda item: -len(item[1])):

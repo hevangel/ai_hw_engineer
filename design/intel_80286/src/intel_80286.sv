@@ -326,6 +326,7 @@ module intel_80286 #(
     logic iret_es_invalid, iret_ds_invalid;
     logic [15:0] all_values [0:7];
     logic [2:0] all_index;
+    logic all_precheck;
     logic [15:0] stack_origin, frame_pointer, frame_sp, frame_source;
     logic [4:0] frame_level, frame_index;
     logic string_op, string_compare, string_source, string_destination;
@@ -659,8 +660,12 @@ module intel_80286 #(
                         (dpl>=cpl && dpl>=rpl);
                 end
                 2'd2: begin // LAR accepts code/data and defined 286 system/gate types.
+                    // ASSUMPTION A45: types 1-5 (TSS, LDT, call and task gate)
+                    // only; interrupt/trap gates (6,7) fail. No Intel text is
+                    // available offline; PCE-286 and 86Box (x86_ops_pmode.h,
+                    // mask 0x003e on a 286) agree.
                     type_valid=access[4] ||
-                        (!access[4] && access[3:0]>=4'd1 && access[3:0]<=4'd7);
+                        (!access[4] && access[3:0]>=4'd1 && access[3:0]<=4'd5);
                     selector_query_eligible=type_valid && privilege_visible;
                 end
                 default: begin // LSL: code/data, available/busy TSS, or LDT.
@@ -1418,7 +1423,7 @@ module intel_80286 #(
             pedc_resume<=BOUNDARY; rm_frame<=0;
             instruction_ss_shadow<=0; instruction_sti_shadow<=0;
             instruction_tf<=0;
-            all_index<=0; stack_origin<=0; frame_pointer<=0; frame_sp<=0; frame_source<=0;
+            all_index<=0; all_precheck<=0; stack_origin<=0; frame_pointer<=0; frame_sp<=0; frame_source<=0;
             frame_level<=0; frame_index<=0;
             repeat_valid<=0; repeat_ne<=0; string_value<=0; element_o<=0;
             for (integer r=0;r<8;r=r+1) all_values[r]<=0;
@@ -1810,8 +1815,9 @@ module intel_80286 #(
                     retire_o <= 1; retire_pc_o <= instruction_pc; retire_opcode_o <= opcode; state <= BOUNDARY;
                     prefix_active <= 0;
                     if (opcode==8'h9b) begin
-                        if (msw[3]) begin
-                            // TS makes WAIT raise processor-extension-not-available.
+                        if (msw[3] && msw[1]) begin
+                            // MP=1 and TS=1 make WAIT raise processor-extension-not-available
+                            // (ASSUMPTION A46: MP=0 with TS=1 does not fault; PCE-286 agrees).
                             enter_event(8'd7,instruction_ip,1'b0,1'b1,1'b0,16'd0);
                             state<=EVENT_START; retire_o<=0;
                         end else if (busy_i) begin
@@ -2015,14 +2021,24 @@ module intel_80286 #(
                         event_packet.software_interrupt<=1'b1;
                         state<=EVENT_START; retire_o<=0;
                     end else if (opcode==8'h60 || opcode==8'h61) begin
-                        retire_o<=0; stack_origin<=gpr[4]; all_index<=0;
+                        retire_o<=0; stack_origin<=gpr[4]; all_index<=0; all_precheck<=0;
                         for (integer r=0;r<8;r=r+1) all_values[r]<=gpr[r];
                         if ((opcode==8'h60 && gpr[4][0] && gpr[4]<16) ||
+                            (opcode==8'h60 && msw[0] && gpr[4]!=0 && gpr[4]<16) ||
                             (opcode==8'h61 && gpr[4][0] && gpr[4]>=16'hfff1)) begin
                             // B-84: real-mode PUSHA shuts down for SP=1/3/5 and raises
                             // 13 for SP=7..15; misaligned wraps are #SS(0) protected.
+                            // ASSUMPTION A44: a protected frame that only partly
+                            // wraps (0<SP<16) is #SS(0); SP=0000 uses FFF0-FFFF.
                             if (opcode==8'h60 && !msw[0] && gpr[4]<6) `I286_REAL_SHUTDOWN(instruction_ip)
                             else `I286_STACK_OVERRUN
+                        end
+                        else if (opcode==8'h60 && msw[0]) begin
+                            // Protected PUSHA checks the whole 16-byte frame
+                            // against SS before its first write, so a limit
+                            // fault leaves memory untouched (restartable #SS(0)).
+                            memory_start(1'b1, 2, gpr[4]-16'd16, 24'd0, 1'b1, 1'b0, 3'd1, 32'd0, ALL_NEXT);
+                            memory_precheck_only<=1; memory_span_delta<=16'd15; all_precheck<=1;
                         end
                         else memory_start(1'b1, 2, (opcode==8'h60 ? gpr[4]-16'd2 : gpr[4]), 24'd0, opcode==8'h60, 1'b0, 2, {16'h0,gpr[0]}, ALL_NEXT);
                     end else if (opcode==8'hc8) begin
@@ -3246,8 +3262,13 @@ module intel_80286 #(
                     if (event_task_access[4:0]!=5'b00001 || !event_task_access[7] ||
                         event_task_limit<16'h002b) begin
                         if (task_switch_instruction) begin
+                            // As for INT below: a gate target that is not an
+                            // available TSS (busy, or any other type) is
+                            // #GP(TSS selector) (App. B CALL/JMP task-gate
+                            // entries; 86Box task_target_check uses #GP for
+                            // the 80286). Only a short TSS is #TS (Table 8-1).
                             enter_event(!event_task_access[7] ? 8'd11 :
-                                        (event_task_access[4:0]==5'b00011 ? 8'd13 : 8'd10),
+                                        (event_task_access[4:0]!=5'b00001 ? 8'd13 : 8'd10),
                                         instruction_ip,1'b0,1'b1,1'b1,
                                         event_task_selector&16'hfffc);
                             task_switch_active<=0; task_switch_instruction<=0;
@@ -3634,7 +3655,16 @@ module intel_80286 #(
                     // NT (after the old FLAGS are pushed); an interrupt gate also IF.
                     flags<=event_packet.saved_flags&
                         (event_gate[43:40]==4'h6 ? 16'hbcff : 16'hbeff);
-                    gpr[4]<=pending_sp;
+                    // A same-level frame sits below event_packet.saved_sp
+                    // (EVENT_FRAME_* above), so the handler SP is derived
+                    // from it, not from pending_sp: enter_event computes
+                    // pending_sp from the outgoing gpr[4], which is stale
+                    // for a fault taken in an incoming task (§8.3 p. 8-6:
+                    // handled in the incoming task context, saved_sp =
+                    // incoming SP), and a #DF promoted by delivery_fault
+                    // adds an error word that pending_sp did not count.
+                    gpr[4]<=event_stack_active ? pending_sp :
+                        event_packet.saved_sp-(event_packet.error_present ? 16'd8 : 16'd6);
                     if (event_stack_active) begin
                         ss<=event_new_ss_selector; ss_base<=event_new_ss_base;
                         cache_limits[47:32]<=event_new_ss_limit;
@@ -3665,7 +3695,10 @@ module intel_80286 #(
                         halt_latch<=1'b0;
                     end
                 end
-                ALL_NEXT: begin
+                ALL_NEXT: if (all_precheck) begin
+                    all_precheck<=0;
+                    memory_start(1'b1, 2, stack_origin-16'd2, 24'd0, 1'b1, 1'b0, 2, {16'h0,all_values[0]}, ALL_NEXT);
+                end else begin
                     if (opcode==8'h61) all_values[3'd7-all_index]<=memory_result[15:0];
                     if (all_index==7) state<=ALL_COMMIT;
                     else if (opcode==8'h60) begin

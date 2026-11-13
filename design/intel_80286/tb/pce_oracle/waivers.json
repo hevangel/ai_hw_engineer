@@ -1,1 +1,67 @@
-[]
+[
+  {
+    "match": "stack_frames.abit.*",
+    "reason": "Accessed-bit order only: the RTL sets the accessed bit of the handler CS (and, for inner delivery, the new SS) when it loads that descriptor, before the delivery frame room check that then faults; PCE-286 and 86Box set it only after the frame is pushed. Intel does not state when the bit is written relative to a later fault in the same transfer; the RTL order is documented as ASSUMPTION A19. All other state, including the #SS/#DF outcome, must still agree; the stack_frames.* scenarios preset these bits to compare everything else.",
+    "source": "spec/protected_mode_integration.md ASSUMPTION A19; spec/code_load_transaction.md A13 (does not establish native A-write timing); 86Box x86seg.c pmodeint sets accessed after the pushes (second opinion, not evidence of 286 timing). No Intel 210498-005 text or physical capture pins the order."
+  },
+  {
+    "match": "far_return.abit.*",
+    "reason": "Accessed-bit order only: for an outer-level RETF/IRET the RTL validates and loads the return CS (setting its accessed bit) before the outer SS check, which then faults; PCE-286 and 86Box write it only after SS validates. Intel does not define the order. The far_return.*.ss_* scenarios preset the bit so the fault vector and frame are still compared.",
+    "source": "spec/protected_privilege_transition.md (Table 7-4 discussion: 'A valid CS descriptor may have its accessed bit set before a later SS or IP fault'); report/2026-10-28-protected-iret-fault-priority.md; 86Box x86seg.c pmoderetf sets accessed after SS validation (second opinion only)."
+  },
+  {
+    "match": "far_return.iret.cs_*.ss_[cdlr]*",
+    "reason": "Outer-level IRET with an invalid return SS (code, DPL0, beyond GDT limit, read-only, RPL mismatch): the RTL raises #SS(SS selector) per ASSUMPTION A31 (Table 7-4 lists every outer-return SS check as a stack fault); PCE-286 raises #GP(SS selector) as Appendix B page B-50 lists. Intel's two texts conflict; unresolved until physical 286 evidence exists. Note the RTL's RETF path uses #GP here (see report), so the two RTL paths also disagree.",
+    "source": "Intel 210498-005 Table 7-4 (page 7-22, visually reviewed per report/2026-10-28-protected-iret-fault-recovery.md) versus Appendix B page B-50; spec/spec.md and spec/protected_privilege_transition.md ASSUMPTION A31."
+  },
+  {
+    "match": "far_return.iret.cs_*.ss_null",
+    "reason": "Outer-level IRET with a null return SS: RTL #SS(0) per ASSUMPTION A31 (Table 7-4), PCE-286 #GP(0) per Appendix B page B-50. Same source conflict as the entry above.",
+    "source": "Intel 210498-005 Table 7-4 versus Appendix B page B-50; spec/protected_privilege_transition.md ASSUMPTION A31."
+  },
+  {
+    "match": "selector_query.arpl.*.src000[0-3].cpl*",
+    "reason": "ARPL with a null (index 0, TI 0, any RPL) source selector: RTL raises #GP(0) per the Intel 80286 B-2/B-3 information sheet; PCE-286 and 86Box (x86_ops_pmode.h opARPL) execute ARPL as a plain RPL adjustment. Intel 210498-005 Appendix B ARPL does not mention the case. Oracle omits an errata-documented behavior; RTL kept.",
+    "source": "Intel 80286 (B-2/B-3) Information Sheet 1984-11-21 (docs.pcjs.org/manuals/intel/80286/80286_B2_B3_Errata-1984-11-21.pdf), cited in spec/protected_execution.md; report/2026-10-28-arpl-reachable-privilege-matrix.md. Not re-read in this session (offline)."
+  },
+  {
+    "match": "npx_msw.esc_*.msw[01]",
+    "reason": "Harness limitation: the PCE-286 driver has no 80287 attached, so ESC issues no reserved-port (F8/FA/FC) writes; the RTL issues the documented 80287 command/operand port cycles. The MSW decision (no exception 7 when EM=TS=0) agrees: only the port-write list differs.",
+    "source": "Intel 80286 Hardware Reference Manual 210760-002 chapter 6 (pp. 6-2 to 6-6) as cited in report/2026-10-28-80287-processor-extension-slice.md; pce286_oracle.c has no npx_event handler."
+  },
+  {
+    "match": "system_ops.lgdt_reg.cpl3",
+    "reason": "LGDT with a register ModRM at CPL3: RTL raises #UD (invalid operand) before the CPL privilege check; PCE-286 raises #GP(0). 86Box checks the register-operand #UD first, then the CPL #GP, agreeing with the RTL. Intel text states neither priority; the CPL0 case (#UD in both) agrees.",
+    "source": "external/86box/86Box/src/cpu/x86_ops_pmode.h op0F01_common case 0x10 (ILLEGAL_ON(cpu_mod == 3) precedes the CPL check); Intel 210498-005 gives no explicit priority."
+  },
+  {
+    "match": "stack_frames.inner.int.sp0_000[28]",
+    "reason": "Software INT to a ring-0 handler whose TSS SS0:SP0 lacks room for the 10-byte inner frame (SP0=0002 partly wraps, SP0=0008 is short): both sides raise #SS through the vector-12 task gate, but the RTL pushes error code 0000 while PCE-286 pushes the new SS selector (0080). The RTL follows the repo citation of Appendix B page B-49 (new stack room failure is #SS(0)); 86Box takes the same #SS(0) through its generic push limit check. PCE-286 uses the SS selector, as later x86 manuals do for some gate paths.",
+    "source": "Intel 210498-005 Appendix B page B-49 as cited in spec/spec.md (Faults while invoking a protected-mode handler) and src/intel_80286.sv EVENT inner-stack check; 86Box x86seg.c pmoderetf/pmodeint has no room precheck (push faults #SS(0)). Page text not re-read in this session (offline)."
+  },
+  {
+    "match": "tasks.*.ss_[nrc][upo][ld][l3e]",
+    "reason": "Incoming task whose SS fails validation (null, RPL3, code segment): both sides raise the same fault (#SS(0)/#SS(0018)/#GP(0008)) in the incoming task, but the handler is a same-level interrupt gate whose frame needs the incoming SS. PCE-286 (and 86Box) keep the outgoing task's hidden SS cache and push the frame through it at incoming SP; the RTL publishes only validated hidden caches, so the push faults, #DF follows and the CPU shuts down. Intel states the incoming-task context but not the hidden SS cache contents when SS was rejected; the repo rule (AGENTS.md '286 task-fault context', failure note 2026-10-29) forbids exposing the outgoing task's caches. The tasks.*.<label>.tsgate scenarios route the same faults through per-vector task gates and agree exactly (vector, error code, saved TSS image).",
+    "source": "Intel 210498-005 section 8.3, printed page 8-6 (incoming registers load before LDT/segment checks; faults handled in the new task; DS/ES may hold unusable selectors), as cited in spec/protected_privilege_transition.md and failure_notes/2026-10-29-intel80286-task-fault-context.md. No Intel text or physical capture defines the SS hidden cache after a rejected SS; 86Box x86seg.c task_checks_286 loads each cache only after its checks (second opinion that the old cache persists). Undefined case, RTL policy kept."
+  },
+  {
+    "match": "tasks.*.ldt_bad",
+    "reason": "Incoming LDT selector invalid: both sides raise #TS(0010) in the incoming task, before its SS is validated. PCE-286 delivers it through the same-level gate using the outgoing hidden SS cache (same selector 0018 here) at incoming SP; the RTL has no validated SS cache yet, so the frame push faults, #DF follows and the CPU shuts down. Same undefined hidden-cache question as the SS entry above; tasks.*.ldt_bad.tsgate agrees exactly.",
+    "source": "Intel 210498-005 section 8.3, printed page 8-6, as cited in spec/protected_privilege_transition.md; failure_notes/2026-10-29-intel80286-task-fault-context.md; AGENTS.md '286 task-fault context'. No Intel text defines the SS cache here."
+  },
+  {
+    "match": "tasks.jmp_*.nt_flags",
+    "reason": "JMP to a task whose TSS image has NT=1: the RTL clears NT in the incoming task, PCE-286 (and 86Box) keep the image's NT. The RTL follows the repo reading of Intel 210498-005 Table 8-2 (incoming NT: JMP cleared, CALL/INT set, IRET unchanged). Later Intel manuals (IA-32 SDM task-linking table) describe JMP as loading NT from the new TSS, which the emulators follow; whether the 286 differs is not established by a physical capture.",
+    "source": "Intel 210498-005 Table 8-2 as recorded in failure_notes/2026-11-04-intel80286-nt-flag-handling.md (follow-up section) and report/2026-11-05-loadall-nt-stop-closure.md; the table page was not re-read in this session (offline). 86Box x86seg.c op_taskswitch286 sets NT only for CALL/INT and otherwise keeps the image value (second opinion, follows later manuals)."
+  },
+  {
+    "match": "int_gate.taskgate_busy.cpl[03]",
+    "reason": "INT through a task gate whose TSS is busy: RTL #GP(0050), PCE-286 #TS(0050). Table 8-1 assigns #GP(incoming TSS selector) to a busy (non-idle) incoming TSS, and App. B makes any non-available-TSS gate target #GP. 86Box raises #GP for the 80286. Oracle defect.",
+    "source": "Intel 210498-005 Table 8-1, printed page 8-6, and section 8.4 as reviewed in report/2026-10-28-task-gate-source-audit.md and failure_notes/2026-10-28-intel80286-task-gate-contract.md; App. B page B-50 as cited in src/intel_80286.sv TASK_GATE_TSS_CHECK; 86Box x86seg.c pmodeint task-gate case (#GP on the 80286). Pages not re-read in this session (offline)."
+  },
+  {
+    "match": "int_gate.taskgate_[nl][ud][lt]*.cpl[03]",
+    "reason": "INT through a task gate whose TSS selector is null (0000) or local (TI=1, 0054): RTL #GP(selector), PCE-286 #TS(selector). The RTL follows the repo citation of App. B page B-49 (a null, local or out-of-limit task-gate TSS selector is #GP(TSS selector)); 86Box raises #GP for the 80286 and #TS only for the 386/486/P5. Oracle defect (386-style rule).",
+    "source": "Intel 210498-005 Appendix B page B-49 as cited in src/intel_80286.sv EVENT task-gate check; 86Box x86seg.c pmodeint task-gate case comment ('#GP(TSS selector) on the 80286 and P6 books'). Page not re-read in this session (offline)."
+  }
+]

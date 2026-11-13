@@ -13,6 +13,12 @@ is the primary architectural reference used for this design.
 
 ## Design status
 
+Protected mode now has an independent executable reference: 2,992 generated
+scenarios are compared against the PCE-286 emulator
+(`scripts/run_pce_oracle.sh`, [loop](plans/pce_oracle_loop.md)). The first
+loop fixed five defects and left 101 scenarios as cited waivers; see the
+[oracle report](report/2026-11-12-pce-oracle-loop.md).
+
 A 2026-11-09 review of the protected-mode paths fixed five defects, each with
 a directed test that fails on the previous source: far CALL to a not-present
 code segment (#NP, not #GP), frames pushed from SP=0000 on a full 64K stack,

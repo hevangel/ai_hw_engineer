@@ -17,7 +17,7 @@ not seed CPL or hidden segment caches.
 The matrix checks DPL3 successes, DPL0 visibility denial, readable versus
 writable data behavior, and the Intel conforming-code rule: VERR/LAR/LSL accept
 DPL0 conforming code from CPL3 with RPL0 or RPL3, while VERW rejects code. For
-system descriptors, LAR accepts types 1–7, LSL accepts available/busy TSS and
+system descriptors, LAR accepts types 1–5 (6–7 rejected, ASSUMPTION A45), LSL accepts available/busy TSS and
 LDT types 1–3 but rejects gates, and VERR/VERW reject them. A DPL0 TSS fails
 LAR/LSL visibility at CPL3. Register and DS:[0020] forms include TSS and
 call-gate cases. A P=0 writable-data descriptor succeeds in VERR/VERW/LAR/LSL;

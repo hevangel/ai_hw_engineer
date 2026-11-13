@@ -424,10 +424,14 @@ See the [review report](../report/2026-11-09-review-fixes.md).
 The source gap and exact RTL check are recorded in the
 [task-gate source audit](../report/2026-10-28-task-gate-source-audit.md).
 
-A 21-configuration negative matrix (42 executions) runs in both READY modes
+A 22-configuration negative matrix (44 executions) runs in both READY modes
 and checks exact #GP/#NP/#TS packets and frames for selected direct-TSS/task-
 gate DPL, presence, busy/type, limit, reserved-byte, selector-boundary and
-current-TR cases. It also puts the task-gate descriptor at the end of the GDT
+current-TR cases. A task gate whose target descriptor is not a TSS (a code
+segment) raises #GP(target selector) for CALL and JMP, as INT through a task
+gate already did; before the 2026-11-12 PCE-286 oracle run the CALL/JMP path
+raised #TS for that case (scenarios `far_xfer.*.taskgate_to_code.*`; App. B
+CALL/JMP task-gate entries, not re-read offline; 86Box agrees). It also puts the task-gate descriptor at the end of the GDT
 and its embedded TSS selector just beyond the limit; both CALL/JMP cases raise
 #TS(0078) before reading that descriptor. A separate 900-cut matrix resets
 direct TSS/task-gate CALL/JMP after each accepted data transfer in both READY

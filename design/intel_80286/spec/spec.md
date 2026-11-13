@@ -271,6 +271,32 @@ The 2026-11-09 review fixed five protected-mode rules; see the
   gate, and the error-code push after a task switch. A frame that would only
   partly wrap (0<SP<frame size) still raises #SS(0); Intel's "stack must have
   room" text does not define that case and no physical capture covers it.
+  Since 2026-11-12 protected-mode PUSHA follows the same rule for its
+  16-byte frame (even 0<SP<16 is #SS(0); SP=0000 uses FFF0-FFFF) and checks
+  the whole frame against the SS limit before its first write, so a limit
+  fault leaves memory unchanged. Before this, PUSHA wrapped word by word and
+  wrote the words that fit before faulting (PCE-286 oracle
+  `stack_frames.pusha.sp000[2468].*`). PCE-286 agrees with this rule; 86Box
+  wraps PUSHA word by word. Real-mode PUSHA is unchanged (B-84, per-word wrap
+  for even SP).
+
+The 2026-11-12 PCE-286 oracle loop (see
+[the loop](../plans/pce_oracle_loop.md) and its
+[report](../report/2026-11-12-pce-oracle-loop.md)) changed these rules.
+
+- A fault taken in an incoming task enters its same-level handler with the
+  incoming SP minus the frame size (section 8.3). The handler SP previously
+  came from the outgoing task.
+- A far CALL or JMP through a task gate whose target is not an available TSS
+  raises #GP(TSS selector), as the IDT task-gate path already did; only a
+  short available TSS is #TS (Table 8-1).
+- Protected-mode PUSHA checks its whole 16-byte frame before the first write.
+- ASSUMPTION A45: LAR accepts system descriptor types 1-5 (TSS, LDT, call
+  gate, task gate) and rejects interrupt and trap gates. No Intel text was
+  available; PCE-286 and 86Box agree.
+- ASSUMPTION A46: WAIT raises exception 7 only when MSW.MP and MSW.TS are
+  both set. PCE-286 agrees; no primary-source quote for TS=1 with MP=0 was
+  retrieved.
 
 ASSUMPTION A31: an invalid outer-level return SS raises #SS(selector) per
 Table 7-4, although Appendix B lists #GP/#NP. See

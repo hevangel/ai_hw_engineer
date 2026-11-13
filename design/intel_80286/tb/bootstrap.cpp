@@ -5490,8 +5490,8 @@ static void protected_selector_query_execution() {
         {"LAR busy TSS access byte",Query::Lar,0x0060,0x83,0x002b,true,true,false,false,true,false},
         {"LAR call-gate access byte",Query::Lar,0x0090,0x84,0x7777,true,true,false,false,true,false},
         {"LAR task-gate access byte",Query::Lar,0x00a8,0x85,0x0000,true,true,false,false,true,false},
-        {"LAR interrupt-gate access byte",Query::Lar,0x00b0,0x86,0x1234,true,true,false,false,true,false},
-        {"LAR trap-gate access byte",Query::Lar,0x00b8,0x87,0x5678,true,true,false,false,true,false},
+        {"LAR interrupt-gate rejected (A45)",Query::Lar,0x00b0,0x86,0x1234,false,true,false,false,true,true},
+        {"LAR trap-gate rejected (A45)",Query::Lar,0x00b8,0x87,0x5678,false,true,false,false,true,true},
         {"LAR reserved system type",Query::Lar,0x00a0,0x80,0x1111,false,true,false,false,true,true},
         {"LAR not-present access byte",Query::Lar,0x0098,0x12,0xabcd,true,true,false,false,true,false},
         {"LAR memory source",Query::Lar,0x0010,0x93,0x0002,true,true,true,false,true,false},
@@ -5731,9 +5731,9 @@ static void protected_selector_query_ring3_execution() {
         {"LSL CPL3 call gate",Query::Lsl,0x00ab,0xe4,0x1104,false,true},
         {"LAR CPL3 task gate",Query::Lar,0x00b3,0xe5,0x1105,true,false},
         {"LSL CPL3 task gate",Query::Lsl,0x00b3,0xe5,0x1105,false,true},
-        {"LAR CPL3 interrupt gate",Query::Lar,0x00bb,0xe6,0x1106,true,false},
+        {"LAR CPL3 interrupt gate rejected",Query::Lar,0x00bb,0xe6,0x1106,false,true},
         {"LSL CPL3 interrupt gate",Query::Lsl,0x00bb,0xe6,0x1106,false,true},
-        {"LAR CPL3 trap gate",Query::Lar,0x00c3,0xe7,0x1107,true,false},
+        {"LAR CPL3 trap gate rejected",Query::Lar,0x00c3,0xe7,0x1107,false,true},
         {"LSL CPL3 trap gate",Query::Lsl,0x00c3,0xe7,0x1107,false,true},
         {"VERR CPL3 TSS memory",Query::Verr,0x0093,0xe1,0x1101,false,false,true},
         {"VERW CPL3 TSS memory",Query::Verw,0x0093,0xe1,0x1101,false,true,true},
@@ -13170,6 +13170,12 @@ static void protected_iopl_controls() {
         {"short task-gate TSS",true,false,0x0070,0x85,0,0x81,0x002a,0,0xff,10,0x0078,true},
         {"busy task-gate TSS CALL",true,true,0x0070,0x85,0,0x83,0x002b,0,0xff,13,0x0078,true},
         {"busy task-gate TSS JMP",true,false,0x0070,0x85,0,0x83,0x002b,0,0xff,13,0x0078,true},
+        // A task-gate target that is not a TSS at all (here an executable
+        // code segment) is #GP(target selector), as for INT through a task
+        // gate: App. B CALL/JMP task-gate entries; 86Box task_target_check
+        // (80286 path); PCE-286 oracle scenarios far_xfer.*.taskgate_to_code.
+        {"code-segment task-gate target CALL",true,true,0x0070,0x85,0,0x9a,0x002b,0,0xff,13,0x0078,true},
+        {"code-segment task-gate target JMP",true,false,0x0070,0x85,0,0x9a,0x002b,0,0xff,13,0x0078,true},
         {"out-of-GDT task-gate TSS CALL",true,true,0x0070,0x85,0,0x81,0x002b,0,0xff,10,0x0078,false,0x0077},
         {"out-of-GDT task-gate TSS JMP",true,false,0x0070,0x85,0,0x81,0x002b,0,0xff,10,0x0078,false,0x0077},
         {"available current TR",false,true,0x0078,0x85,0,0x81,0x002b,0,0x81,10,0x0058,true},
@@ -13298,9 +13304,9 @@ static void protected_iopl_controls() {
               (std::string("rejected task switch read or changed task state/busy state: ")+test.name).c_str());
         ++direct_task_fault_cases;
     }
-    check(direct_task_fault_cases==40,
+    check(direct_task_fault_cases==44,
           "direct TSS/task-gate fault matrix missed an exception case or READY policy");
-    std::cout<<"PASS: 40 rejected direct TSS/task-gate CALL/JMP cases check exact #GP/#NP/#TS priority packets and no task-image/busy-bit side effects in both READY modes\n";
+    std::cout<<"PASS: 44 rejected direct TSS/task-gate CALL/JMP cases check exact #GP/#NP/#TS priority packets and no task-image/busy-bit side effects in both READY modes\n";
 
     // Reset after every accepted data transfer in direct task entry. Accepted
     // writes survive RESET; the partially completed task switch must not resume.
@@ -14229,7 +14235,7 @@ static void processor_extension_contract() {
 
     Bench ts_wait;
     ts_wait.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
-    ts_wait.put(0xf0100,{0xb8,0x08,0x00,0x0f,0x01,0xf0,0x9b});
+    ts_wait.put(0xf0100,{0xb8,0x0a,0x00,0x0f,0x01,0xf0,0x9b});
     ts_wait.reset();
     ts_wait.step(0xfffff0,0xea,0xf000,0x0100,false);
     ts_wait.step(0xf0100,0xb8,0xf000,0x0103,false);
@@ -14239,6 +14245,19 @@ static void processor_extension_contract() {
     check(ts_wait.d.event_packet_restartable_o &&
           !ts_wait.d.event_packet_error_valid_o,
           "WAIT #NM did not preserve the restartable no-error-code fault contract");
+
+    // MP=0 with TS=1: WAIT does not raise #NM (Intel ties exception 7 to MP=1
+    // and TS=1; PCE-286 agrees; no primary-source quote retrievable offline).
+    Bench ts_nomp_wait;
+    ts_nomp_wait.put(0xfffff0,{0xea,0x00,0x01,0x00,0xf0});
+    ts_nomp_wait.put(0xf0100,{0xb8,0x08,0x00,0x0f,0x01,0xf0,0x9b,0xf4});
+    ts_nomp_wait.reset();
+    ts_nomp_wait.step(0xfffff0,0xea,0xf000,0x0100,false);
+    ts_nomp_wait.step(0xf0100,0xb8,0xf000,0x0103,false);
+    ts_nomp_wait.step(0xf0103,0x0f,0xf000,0x0106,false);
+    check((ts_nomp_wait.d.msw_o&0x000a)==0x0008,"LMSW did not set TS without MP");
+    ts_nomp_wait.step(0xf0106,0x9b,0xf000,0x0107,false);
+    check(!ts_nomp_wait.d.event_o && !ts_nomp_wait.d.fault_o,"WAIT with TS and MP=0 faulted");
 
     // An unmasked 80287 error is delivered as vector 16 by WAIT or ESC.
     Bench wait_error;

@@ -724,3 +724,14 @@ The direct-TSS and task-gate CALL/JMP success matrix, the task-return path
 and the CPL1/CPL2 IDT task-gate cases now use descriptors with nonzero
 reserved fields. The direct-task fault matrix has 40 executions; its former
 "reserved direct TSS tail" row asserted a fault the 286 does not raise.
+
+## PCE-286 oracle comparison
+
+`scripts/run_pce_oracle.sh` runs 2,992 generated protected-mode scenarios on
+the PCE-286 emulator and the RTL and requires the same boundary state, port
+writes and final memory. It needs the opt-in `external/pce-286` submodule, so
+it is not part of `run_all.sh`. Families: `seg_load`, `far_xfer`, `int_gate`,
+`far_return`, `stack_frames`, `limits`, `selector_query`, `system_ops`,
+`iopl`, `tasks`, `npx_msw`, `review`. Disagreements kept in the RTL are
+listed in `tb/pce_oracle/waivers.json` with their sources. Not covered:
+external interrupts, NMI, single step, an attached 80287, bus timing.
