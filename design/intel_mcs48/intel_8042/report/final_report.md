@@ -47,7 +47,7 @@ RTL. Each was caught by the random seeds:
 ## Findings
 
 - **The IBM firmware cannot be fully rebuilt from public sources.** The
-  PCjs-archived listing gives 1,388 of 2,048 bytes. The AAh self-test
+  Tarpai listing (`external/halicery/8042`) gives 1,388 of 2,048 bytes. The AAh self-test
   computes a CRC over the whole ROM (listing 0754h–07A8h). It must be
   0000h, and the last two bytes, 7FEh–7FFh (`A0 38`), exist to balance it.
   Filling the gaps with 00h or FFh does not reproduce MAME's hash. With the
@@ -76,5 +76,8 @@ RTL. Each was caught by the random seeds:
 sh design/intel_mcs48/intel_8042/scripts/run_all.sh
 ```
 
-The first run downloads the pinned listing from GitHub into the ignored
-`work/` folder and checks its SHA-256.
+The listing is read from the `external/halicery/8042` submodule; fetch it
+with `git submodule update --init --checkout --depth 1 external/halicery/8042`.
+If it is not checked out, the first run downloads the same file at the
+pinned commit into the ignored `work/` folder. Either way its SHA-256 is
+checked.

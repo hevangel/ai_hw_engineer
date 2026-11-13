@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Cross-check the reference model's decoder against an independent
 disassembler: A. Tarpai's listing of IBM 1503033, produced with his own
-UPI-41/42 disassembler (PCjs archive, pinned in rebuild_1503033.py).
+UPI-41/42 disassembler (external/halicery/8042, pinned in rebuild_1503033.py).
 
 For every instruction line in the listing, the model must decode the same
 bytes to the same mnemonic and length. Differences in notation only
@@ -40,7 +40,7 @@ def norm(s):
 def main():
     work = Path(sys.argv[1]) if len(sys.argv) > 1 else \
         Path(__file__).resolve().parents[1] / 'work'
-    text = fetch_listing(work / 'firmware' / '8042_1503033.TXT')
+    text, _ = fetch_listing(work / 'firmware' / '8042_1503033.TXT')
     mem = parse_listing(text)
     rom = bytes(mem.get(x, 0) for x in range(2048))
     checked = 0

@@ -64,3 +64,8 @@
 	url = https://github.com/86Box/roms.git
 	shallow = true
 	update = none
+[submodule "external/halicery/8042"]
+	path = external/halicery/8042
+	url = https://github.com/Halicery/8042.git
+	shallow = true
+	update = none

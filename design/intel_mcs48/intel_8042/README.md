@@ -27,8 +27,8 @@ introduction date.
 
 Sources: Intel UPI-41A User's Manual 9800504-02B and 8742 data sheet
 290256-001 ([Mark Ogden's Intel archive](https://mark-ogden.uk/files/intel/publications/));
-[PCjs 1503033 disassembly](https://github.com/jeffpar/pcjs/blob/1a91d38eb12e5fdf91116b21ad9ef1935710a496/machines/pcx86/ibm/keyboard/8042_1503033.TXT)
-by A. Tarpai; [MAME at_keybc.cpp](https://github.com/mamedev/mame/blob/master/src/devices/machine/at_keybc.cpp)
+[1503033 disassembly](https://github.com/Halicery/8042/blob/6ddf1669224342663ed1fc6e9a33f3577ad9ba02/8042_1503033.TXT)
+by A. Tarpai (submodule `external/halicery/8042`); [MAME at_keybc.cpp](https://github.com/mamedev/mame/blob/master/src/devices/machine/at_keybc.cpp)
 for the dump hash; [IBM PC history](https://www.ibm.com/history/personal-computer)
 for the AT.
 

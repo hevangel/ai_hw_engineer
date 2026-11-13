@@ -2,7 +2,7 @@
 """Build a TEST image from the partial 1503033 rebuild whose self-test CRC is
 zero, so the core can be driven past the AAh self-test.
 
-This is NOT the IBM firmware. The 660 bytes missing from the PCjs listing are
+This is NOT the IBM firmware. The 660 bytes missing from the Tarpai listing are
 filled with 00h and the two gap bytes BAL (7FCh-7FDh) are solved so that the
 firmware's own ROM CRC (listing 0754h-07A8h, R6:R7 must be 0000h) passes.
 Every listed byte is unchanged. The CRC routine uses only XOR, AND with

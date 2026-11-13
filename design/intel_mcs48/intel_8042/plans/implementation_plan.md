@@ -5,7 +5,7 @@ Issue: https://github.com/hevangel/ai_hw_engineer/issues/256
 ## Steps
 
 1. Sources: Intel UPI-41A User's Manual and 8742 data sheet for the
-   architecture; the PCjs-archived 1503033 listing for the IBM firmware and
+   architecture; A. Tarpai's 1503033 listing (`external/halicery/8042`) for the IBM firmware and
    an independent disassembly; MAME for the dump hash. Done.
 2. Reference model `scripts/upi42_iss.py`, written only from the manual,
    with every unstated rule tagged ASSUMPTION Ux. Cross-check its decoder

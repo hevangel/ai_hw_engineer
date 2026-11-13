@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """Rebuild the IBM PC AT 8042 firmware (part 1503033) from a pinned listing.
 
-No hash-pinned raw dump of 1503033.bin has a citable public source. PCjs
-archives A. Tarpai's 2010 commented disassembly of the MESS dump, which
-prints every disassembled address with its bytes. This script downloads that
-listing at a pinned PCjs commit, checks its SHA-256, and writes:
+No hash-pinned raw dump of 1503033.bin has a citable public source. A. Tarpai
+(Halicery) published a 2010 commented disassembly of the MESS dump, which
+prints every disassembled address with its bytes, under the MIT licence. The
+repository carries it as the opt-in submodule external/halicery/8042. This
+script reads the listing from that submodule (or, if it is not checked out,
+downloads the same file at the pinned commit), converts CRLF to LF, checks
+its SHA-256, and writes:
 
   work/firmware/1503033_partial.bin  2048 bytes, unknown bytes = FILL
   work/firmware/1503033_known.json   the known-byte map and gap ranges
@@ -26,9 +29,12 @@ import sys
 import urllib.request
 from pathlib import Path
 
-REVISION = '1a91d38eb12e5fdf91116b21ad9ef1935710a496'
-SOURCE = 'machines/pcx86/ibm/keyboard/8042_1503033.TXT'
-URL = f'https://raw.githubusercontent.com/jeffpar/pcjs/{REVISION}/{SOURCE}'
+REVISION = '6ddf1669224342663ed1fc6e9a33f3577ad9ba02'
+SOURCE = '8042_1503033.TXT'
+URL = f'https://raw.githubusercontent.com/Halicery/8042/{REVISION}/{SOURCE}'
+SUBMODULE = Path(__file__).resolve().parents[4] / 'external' / 'halicery' / '8042'
+# SHA-256 of the listing with LF line endings. The PCjs archive copy
+# (jeffpar/pcjs 1a91d38e, machines/pcx86/ibm/keyboard/) has the same content.
 LISTING_SHA256 = '3e10124dfba23726c2e11c2f50812fd1190828f6dd7bc54a4b4d186d1fa5ca98'
 DUMP_SHA1 = '0100f8789fb4de74706ae7f9473a12ec2b9bd729'
 KNOWN_BYTES = 1388
@@ -66,17 +72,26 @@ def gaps(mem):
     return out
 
 
-def fetch_listing(cache):
-    if not cache.exists():
-        with urllib.request.urlopen(URL, timeout=90) as response:
-            raw = response.read()
-        if hashlib.sha256(raw).hexdigest() != LISTING_SHA256:
-            raise ValueError('downloaded 1503033 listing SHA-256 mismatch')
-        cache.write_bytes(raw)
-    raw = cache.read_bytes()
+def checked(raw, what):
+    raw = raw.replace(b'\r\n', b'\n')
     if hashlib.sha256(raw).hexdigest() != LISTING_SHA256:
-        raise ValueError('cached 1503033 listing SHA-256 mismatch')
-    return raw.decode('utf-8')
+        raise ValueError('%s 1503033 listing SHA-256 mismatch' % what)
+    return raw
+
+
+def fetch_listing(cache):
+    """Return the listing text and where it came from."""
+    local = SUBMODULE / SOURCE
+    if local.exists():
+        raw = checked(local.read_bytes(), 'submodule')
+        cache.write_bytes(raw)
+        return raw.decode('utf-8'), 'external/halicery/8042@' + REVISION
+    if not cache.exists():
+        print('external/halicery/8042 is not checked out; downloading ' + URL,
+              file=sys.stderr)
+        with urllib.request.urlopen(URL, timeout=90) as response:
+            cache.write_bytes(checked(response.read(), 'downloaded'))
+    return checked(cache.read_bytes(), 'cached').decode('utf-8'), URL
 
 
 def main():
@@ -88,14 +103,15 @@ def main():
     args = ap.parse_args()
     dest = Path(args.work) / 'firmware'
     dest.mkdir(parents=True, exist_ok=True)
-    mem = parse_listing(fetch_listing(dest / '8042_1503033.TXT'))
+    text, source = fetch_listing(dest / '8042_1503033.TXT')
+    mem = parse_listing(text)
     if len(mem) != KNOWN_BYTES:
         raise ValueError('expected %d listed bytes, found %d' % (KNOWN_BYTES, len(mem)))
     fill = int(args.fill, 16) & 0xFF
     image = bytes(mem.get(x, fill) for x in range(2048))
     (dest / '1503033_partial.bin').write_bytes(image)
     (dest / '1503033_known.json').write_text(json.dumps({
-        'source': URL, 'listing_sha256': LISTING_SHA256,
+        'source': source, 'listing_sha256': LISTING_SHA256,
         'known_bytes': len(mem), 'fill': fill, 'gaps': gaps(mem),
         'known': [1 if x in mem else 0 for x in range(2048)],
     }) + '\n')
