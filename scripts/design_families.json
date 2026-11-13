@@ -16,6 +16,9 @@
       "amd_am2914",
       "amd_am2918"
     ],
+    "amd_am29xxx": [
+      "am29331"
+    ],
     "intel_mcs4": [
       "intel_4001",
       "intel_4002",
