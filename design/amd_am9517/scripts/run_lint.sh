@@ -8,3 +8,6 @@ echo "=== Am9517 testbench lint ==="
 # packed observations and integer task arguments also have unused bits.
 verilator --lint-only -Wall -Wno-BLKSEQ -Wno-PROCASSINIT -Wno-UNUSEDSIGNAL \
     --timing --top-module tb_top "$HERE/src/amd_am9517.sv" "$HERE/tb/tb_top.sv"
+echo "=== Am9517A testbench lint ==="
+verilator --lint-only -Wall -Wno-BLKSEQ -Wno-PROCASSINIT -Wno-UNUSEDSIGNAL \
+    --timing --top-module tb_top_a "$HERE/src/amd_am9517.sv" "$HERE/tb/tb_top_a.sv"

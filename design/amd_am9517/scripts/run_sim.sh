@@ -16,6 +16,18 @@ xezim --simulate --sv2017 --error-exit -s tb_top \
     "$HERE/src/amd_am9517.sv" "$HERE/tb/tb_top.sv" "+seed=$SEED" \
     --max-time 5000000ns -l "$HERE/work/sim/xezim.log"
 grep 'Am9517 TEST PASSED' "$HERE/work/sim/xezim.log"
+echo "=== Am9517A Verilator simulation ==="
+verilator --binary -Wall -Wno-BLKSEQ -Wno-PROCASSINIT -Wno-UNUSEDSIGNAL --timing -j 4 --top-module tb_top_a \
+    --Mdir "$HERE/work/sim/obj_a" "$HERE/src/amd_am9517.sv" "$HERE/tb/tb_top_a.sv" \
+    > "$HERE/work/sim/build_a.log" 2>&1
+"$HERE/work/sim/obj_a/Vtb_top_a" > "$HERE/work/sim/verilator_a.log" 2>&1
+grep 'Am9517A TEST PASSED' "$HERE/work/sim/verilator_a.log"
+echo "=== Am9517A Xezim simulation ==="
+XEZIM_COV_DB="$HERE/work/sim/xezim_cov_a.json" \
+xezim --simulate --sv2017 --error-exit -s tb_top_a \
+    "$HERE/src/amd_am9517.sv" "$HERE/tb/tb_top_a.sv" \
+    --max-time 500000ns -l "$HERE/work/sim/xezim_a.log"
+grep 'Am9517A TEST PASSED' "$HERE/work/sim/xezim_a.log"
 echo "=== Am9517 UVM regression ==="
 XEZIM_COV_DB="$HERE/work/sim/uvm_cov.json" \
 xezim --simulate --sv2017 --error-exit -s tb_uvm \

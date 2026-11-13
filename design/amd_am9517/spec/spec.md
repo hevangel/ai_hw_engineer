@@ -1,8 +1,13 @@
-# Original AMD Am9517 specification
+# AMD Am9517 / Am9517A specification
 
 Specification precedes RTL. Primary sources are the 1979 AMD Designer's Guide
-PDF245–260 (datasheet) and PDF297–316 (application brief). This targets the
-original Am9517 rather than silently importing the later Am9517A/8237A contract.
+PDF245–260 (datasheet) and PDF297–316 (application brief) for the original
+Am9517, and the 1980 AMD MOS LSI Data Book (bitsavers trailing-edge, PDF pages
+354–367 in the hosted scan) for the Am9517A. The implementation provides an
+explicit revision selection: `REV_A=0` preserves the original Am9517 contract;
+`REV_A=1` selects the Am9517A revision and is qualified independently. This
+targets documented AMD behavior rather than silently importing an unrelated
+Intel 8237A contract.
 The existing Intel 8237A design is a reusable implementation starting point;
 the AMD register map, grant-time arbitration and pin/reset behavior are audited
 independently against original documentation before reuse.
@@ -119,3 +124,49 @@ used by original software with the actual CPU HOLD/HACK exchange, READY waits,
 and a real two-controller/seven-channel cascade with an external address latch.
 Software compatibility validates these functional conventions without claiming
 physical-chip measurements of undocumented behavior.
+
+
+## Am9517A revision (REV_A=1)
+
+Source: 1980 AMD MOS LSI Data Book, bitsavers trailing-edge mirror
+`http://bitsavers.trailing-edge.com/components/amd/_dataBooks/1980_AMD_MOS_LSI_Data_Book.pdf`,
+Am9517A Multimode DMA Controller section (datasheet/register/timing text in the
+hosted scan, including PDF pages containing the Am9517A register and status
+descriptions).
+
+`amd_am9517` exposes `parameter bit REV_A = 1'b0`. `REV_A=0` selects the
+original Am9517 contract above. `REV_A=1` selects the Am9517A revision documented by
+the cited 1980 source and is qualified independently.
+
+### Documented Am9517A differences implemented
+
+- **Status request bits (bits 7:4 on read of offset 8):** the Am9517A status
+  description states that bits 4-7 are set whenever their corresponding channel
+  is requesting service. For `REV_A=1` the implementation reports pending service
+  requests in bits 7:4 (`eligible` request state per channel) while preserving
+  sticky terminal-count bits 3:0. This differs from the original Am9517 contract
+  where bits 7:4 reflect normalized hardware DREQ inputs.
+
+### Am9517A assumptions and limits
+
+- **A9517A-1 (requesting service):** the datasheet text states request bits are
+  set when a channel is requesting service but does not enumerate every edge case
+  in text form. The implementation maps this to the controller's pending request
+  eligibility (including software requests where applicable and hardware requests
+  subject to the channel/mode conditions used for service eligibility). This is
+  validated by directed Am9517A tests and must be revisited if a clearer primary
+  source contradicts the mapping.
+- **Register map:** the cited Am9517A register/function description indicates
+  write-all-mask-bits at offset F and illegal accesses consistent with the
+  existing implementation; no Clear-Mask-Register command at offset E is claimed.
+  Offset E remains treated as illegal (`A1` adapter) for both revisions.
+- **Reset/priority/request-acknowledge/transfer modes/timing:** the 1980
+  Am9517A source describes the same core functional model (asynchronous active-high
+  reset, HACK-edge priority selection, DREQ/DACK handshakes, single/block/demand/
+  cascade/memory-to-memory/verify transfers, compressed/extended timing options).
+  No additional A-revision behavioral divergence is asserted beyond the documented
+  status-request reporting above; physical timing margins remain outside this
+  digital reconstruction.
+- **Evidence scope:** original Am9517 firmware/cascade/native regressions remain
+  the evidence for `REV_A=0`. Am9517A evidence is recorded separately via
+  `tb/tb_top_a.sv` and any revision-specific checks added to scripts/reports.

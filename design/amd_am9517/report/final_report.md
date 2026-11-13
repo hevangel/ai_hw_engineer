@@ -71,3 +71,16 @@ directed integration exercise the chosen contract, but do not resolve the
 remaining original-silicon uncertainty. No undocumented physical result is
 inferred from passing tests. No unresolved implementation defect was observed
 within this contract.
+
+
+
+## Am9517A revision (issue #244, REV_A=1)
+
+- **Implementation:** `src/amd_am9517.sv` adds `parameter bit REV_A = 1'b0` (default original). `REV_A=1` implements Am9517A status request bits 7:4 as pending service requests per 1980 AMD MOS LSI Data Book (bitsavers) status description; see `spec/spec.md` for source and assumptions (A9517A-1). Register map/illegal-E handling retained per interpreted cited source.
+- **Lint:** `scripts/run_lint.sh` (RTL + tb_top + tb_top_a) passed in `ai-hw-engineer:latest` (Verilator 5.052). 
+- **Simulation (original, REV_A=0):** `tb_top.sv` Verilator run passed: `checks=350971 transfers=66892 seed=1`.
+- **Simulation (Am9517A, REV_A=1):** `tb/tb_top_a.sv` directed tests passed in Verilator: status requesting-service behavior (software request visible, masked DREQ not requesting service) and illegal offset-E write does not clear masks; `checks=5`.
+- **Formal:** SBY bmc task (depth 32, default REV_A=0) passed in container; prove/cover not rerun in this session.
+- **Synthesis:** `scripts/run_synth.sh` passed (Yosys 0.69 generic synthesis/check) in container.
+
+**Limits / not rerun in this session:** full `run_all.sh` for original (xezim/UVM/firmware/cascade/coverage, prove, cover) and any extended Am9517A-specific formal/synthesis qualification beyond shared RTL checks were not executed. Original Am9517 evidence remains as previously recorded for REV_A=0; Am9517A results above are separate and scoped to executed tests.
