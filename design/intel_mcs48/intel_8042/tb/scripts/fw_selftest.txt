@@ -1,0 +1,4 @@
+# AAh self-test on the partial rebuild: the ROM CRC must fail (no reply).
+run 120000
+autoread
+200 write 1 AA

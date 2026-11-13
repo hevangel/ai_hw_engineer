@@ -1,0 +1,17 @@
+# BIOS-style 8042 commands (IBM AT POST order) with no keyboard attached.
+# Replies expected: AA->55 AB->00 C0->FF 20->5D D0->CF D0->CF FF->FE AA->55
+run 400000
+autoread
+kbdloop
+200 write 1 AA
+30000 write 1 AB
+40000 write 1 C0
+50000 write 1 60
+50020 write 0 5D
+60000 write 1 20
+70000 write 1 D0
+80000 write 1 D1
+80020 write 0 DF
+90000 write 1 D0
+100000 write 0 FF
+300000 write 1 AA

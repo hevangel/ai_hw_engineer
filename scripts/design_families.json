@@ -33,6 +33,9 @@
     "intel_8086_8088": [
       "intel_8086",
       "intel_8088"
+    ],
+    "intel_mcs48": [
+      "intel_8042"
     ]
   },
   "catalogs": {
