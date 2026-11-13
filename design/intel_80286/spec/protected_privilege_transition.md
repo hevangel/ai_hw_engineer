@@ -414,24 +414,24 @@ incoming TSS selector as the error code. Paired busy-target CALL/JMP cases
 check #GP(0078), exact frames, descriptor-read boundaries and no task-image or
 busy-bit writes.
 
-**ASSUMPTION A26:** the direct far task-gate path currently raises
-#GP(task-gate selector) when the additional descriptor fields checked by the
-RTL (`protected_call_descriptor_header[2:0]`,
-`protected_call_parameter_count`, or `protected_call_descriptor_tail`) are
-nonzero. Figure 8-3 labels the corresponding task-gate fields unused and says
-zero is required for 80386 compatibility, but the inspected 286 text does not
-specify whether nonzero values fault or are ignored. The current direct-transfer
-matrix keeps these fields zero, so it does not validate this behavior. Keep the
-RTL rule as provisional implementation policy, not a confirmed 286 rule, until
-independent 286 evidence resolves it; any future test of the rule is regression
-evidence only, not architectural acceptance.
+The provisional rule formerly recorded here as ASSUMPTION A26 (a #GP for
+nonzero unused task-gate fields) was removed on 2026-11-09. Figure 8-3 labels
+those fields unused and requires zero only for 80386 compatibility, so the
+core now ignores them, along with the reserved last word of TSS and gate
+descriptors and the unused byte of IDT gates. The direct-transfer success
+matrix carries nonzero values in these fields and checks the exact transfer.
+See the [review report](../report/2026-11-09-review-fixes.md).
 The source gap and exact RTL check are recorded in the
 [task-gate source audit](../report/2026-10-28-task-gate-source-audit.md).
 
-A 21-configuration negative matrix (42 executions) runs in both READY modes
+A 22-configuration negative matrix (44 executions) runs in both READY modes
 and checks exact #GP/#NP/#TS packets and frames for selected direct-TSS/task-
 gate DPL, presence, busy/type, limit, reserved-byte, selector-boundary and
-current-TR cases. It also puts the task-gate descriptor at the end of the GDT
+current-TR cases. A task gate whose target descriptor is not a TSS (a code
+segment) raises #GP(target selector) for CALL and JMP, as INT through a task
+gate already did; before the 2026-11-12 PCE-286 oracle run the CALL/JMP path
+raised #TS for that case (scenarios `far_xfer.*.taskgate_to_code.*`; App. B
+CALL/JMP task-gate entries, not re-read offline; 86Box agrees). It also puts the task-gate descriptor at the end of the GDT
 and its embedded TSS selector just beyond the limit; both CALL/JMP cases raise
 #TS(0078) before reading that descriptor. A separate 900-cut matrix resets
 direct TSS/task-gate CALL/JMP after each accepted data transfer in both READY

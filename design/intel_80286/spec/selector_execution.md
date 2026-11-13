@@ -31,7 +31,7 @@ the architectural authority.
 | `0F 00 /3` LTR | CPL 0 only. Loads an available 286 TSS descriptor from the GDT, sets its busy type bit in memory, then commits TR. It does not switch tasks and does not clear the old TSS busy bit. |
 | `0F 00 /4` VERR | Sets ZF if the selected descriptor is a readable code/data segment visible at CPL/RPL. |
 | `0F 00 /5` VERW | Sets ZF if the selected descriptor is writable data visible at CPL/RPL. |
-| `0F 02 /r` LAR | On success, loads the descriptor access byte into the destination high byte, clears its low byte, and sets ZF. Accepts code/data and defined 286 system/gate types 1–7. |
+| `0F 02 /r` LAR | On success, loads the descriptor access byte into the destination high byte, clears its low byte, and sets ZF. Accepts code/data and system types 1–5 (TSS, LDT, call and task gate); interrupt/trap gates 6–7 fail (ASSUMPTION A45: PCE-286 and 86Box agree; no Intel text offline). |
 | `0F 03 /r` LSL | On success, loads the 16-bit segment, TSS or LDT limit and sets ZF. Gate descriptors are ineligible. |
 
 At CPL greater than zero, LLDT and LTR fault with #GP(0) before using the
@@ -75,7 +75,7 @@ descriptor outside the selected table limit clears ZF without a descriptor
 read. An in-range descriptor whose type or visibility is ineligible also
 clears ZF, without raising #GP/#NP for the selector. VERR accepts readable
 code/data, VERW accepts writable data, LAR accepts code/data and 286 system
-types 1–7 (TSS, LDT and gate descriptors), and LSL accepts code/data plus TSS
+types 1–5 (TSS, LDT, call and task gate; interrupt/trap gates fail, ASSUMPTION A45), and LSL accepts code/data plus TSS
 and LDT types 1–3. For nonconforming descriptors, visibility requires DPL to
 be at least both CPL and selector RPL; conforming code follows the manual's
 conforming-code visibility rule. The presence bit does not reject these
@@ -87,7 +87,7 @@ A reachable CPL3 regression now executes register and DS:[0020] memory-source
 VERR, VERW, LAR and LSL after entering user code through a real outer IRET. Its
 160 runs cover GDT and LDT selectors, DPL3 eligibility, DPL0 visibility denial,
 read-only VERR/VERW differences, DPL0 conforming-code visibility, and all seven
-286 system/gate types. At CPL3, LAR accepts types 1–7; LSL accepts available and
+286 system/gate types. At CPL3, LAR accepts types 1–5 and rejects interrupt/trap gates; LSL accepts available and
 busy TSS plus LDT types 1–3 but rejects gates; VERR/VERW reject system
 descriptors. A DPL0 TSS fails LAR/LSL visibility. Register and DS:[0020]
 memory-source TSS and call-gate queries are included. A visible P=0 writable

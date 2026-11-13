@@ -13,6 +13,20 @@ is the primary architectural reference used for this design.
 
 ## Design status
 
+Protected mode now has an independent executable reference: 2,992 generated
+scenarios are compared against the PCE-286 emulator
+(`scripts/run_pce_oracle.sh`, [loop](plans/pce_oracle_loop.md)). The first
+loop fixed five defects and left 101 scenarios as cited waivers; see the
+[oracle report](report/2026-11-12-pce-oracle-loop.md).
+
+A 2026-11-09 review of the protected-mode paths fixed five defects, each with
+a directed test that fails on the previous source: far CALL to a not-present
+code segment (#NP, not #GP), frames pushed from SP=0000 on a full 64K stack,
+LOCK-prefix IOPL sensitivity, the outer-level RETF frame-overrun fault class,
+and faults on unused/reserved descriptor fields. See the
+[review report](report/2026-11-09-review-fixes.md) and
+[post-mortem](../../failure_notes/2026-11-09-intel80286-review-protected-transfers.md).
+
 Every real-mode file in the pinned physical Harris-286 capture set
 (SingleStepTests/80286 `37c73ca`) now replays exactly, in both READY modes. See the
 [capture replay report](report/2026-11-04-physical-capture-replay.md).
@@ -249,8 +263,8 @@ successors and conditional writes. Corrected-source Yosys 0.69 synthesis
 completed all 13 targets; every `check -assert` reports zero problems, and all
 target logs and netlists are present.
 
-**ASSUMPTION A26 remains open:** Intel marks additional task-gate fields unused
-but does not specify the 286 fault response for nonzero values. The old
+The provisional task-gate ASSUMPTION A26 was retired on 2026-11-09: unused and
+reserved descriptor fields are now ignored. The old
 whole-core PDR is still running against another 21-file snapshot; at 03:07:38 UTC
 it reached frame 166 with 344/411 outputs proved and 67 timeout retries,
 without terminal PASS. The source audit found 19/21 copied

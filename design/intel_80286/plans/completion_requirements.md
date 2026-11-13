@@ -366,9 +366,9 @@ and retained evidence are recorded in the
 [direct-transfer report](../report/2026-10-28-protected-direct-task-transfers.md).
 
 Corrected-source Yosys 0.69 synthesis completed all 13 targets with zero
-structural problems; no RTL behavior changed afterward. **ASSUMPTION A26** is
-still open because the inspected 286 source does not specify the fault
-response for nonzero task-gate fields marked unused. Current-source connected-
+structural problems; no RTL behavior changed afterward. **ASSUMPTION A26** was
+open at that point; it was retired on 2026-11-09, when unused and reserved
+descriptor fields became ignored. Current-source connected-
 core proof, remaining task-switch fault phases, authentic historical software,
 independent-oracle agreement, native timing qualification and full release
 acceptance remain open. The older whole-core PDR is still active on a different

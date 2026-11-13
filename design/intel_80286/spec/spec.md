@@ -250,6 +250,54 @@ command phase. ASSUMPTION A33: interrupt 9 saves the boundary at which the
 overrun is detected. See the
 [processor-extension channel spec](processor_extension_channel.md).
 
+The 2026-11-09 review fixed five protected-mode rules; see the
+[review report](../report/2026-11-09-review-fixes.md).
+
+- A far CALL to a code segment that passes the type and privilege checks but
+  is not present raises #NP(selector), as the far JMP does (App. B CALL).
+- The LOCK prefix raises #GP(0) when CPL is greater than IOPL (App. B LOCK).
+- An outer-level RETF whose 8+immediate frame bytes run past offset FFFF
+  raises #SS(0), as the outer-level IRET does (App. B RET).
+- Unused and reserved descriptor fields are ignored: byte 4 of interrupt,
+  trap and task gates, bits 7-5 of a call gate's word-count byte, a task
+  gate's offset word, and the last word of every gate and TSS descriptor.
+  Intel requires zero there only for 80386 compatibility. This retires the
+  provisional task-gate rule formerly recorded as A26 in the
+  privilege-transition spec.
+- ASSUMPTION A44: a frame pushed from SP=0000 lies at the top of the stack
+  segment (offsets FFFx-FFFF), like any push, and fits when the SS limit
+  covers it. This applies to same-level interrupt delivery, same-level far
+  CALL, the inner-level stack taken from the TSS for an interrupt or call
+  gate, and the error-code push after a task switch. A frame that would only
+  partly wrap (0<SP<frame size) still raises #SS(0); Intel's "stack must have
+  room" text does not define that case and no physical capture covers it.
+  Since 2026-11-12 protected-mode PUSHA follows the same rule for its
+  16-byte frame (even 0<SP<16 is #SS(0); SP=0000 uses FFF0-FFFF) and checks
+  the whole frame against the SS limit before its first write, so a limit
+  fault leaves memory unchanged. Before this, PUSHA wrapped word by word and
+  wrote the words that fit before faulting (PCE-286 oracle
+  `stack_frames.pusha.sp000[2468].*`). PCE-286 agrees with this rule; 86Box
+  wraps PUSHA word by word. Real-mode PUSHA is unchanged (B-84, per-word wrap
+  for even SP).
+
+The 2026-11-12 PCE-286 oracle loop (see
+[the loop](../plans/pce_oracle_loop.md) and its
+[report](../report/2026-11-12-pce-oracle-loop.md)) changed these rules.
+
+- A fault taken in an incoming task enters its same-level handler with the
+  incoming SP minus the frame size (section 8.3). The handler SP previously
+  came from the outgoing task.
+- A far CALL or JMP through a task gate whose target is not an available TSS
+  raises #GP(TSS selector), as the IDT task-gate path already did; only a
+  short available TSS is #TS (Table 8-1).
+- Protected-mode PUSHA checks its whole 16-byte frame before the first write.
+- ASSUMPTION A45: LAR accepts system descriptor types 1-5 (TSS, LDT, call
+  gate, task gate) and rejects interrupt and trap gates. No Intel text was
+  available; PCE-286 and 86Box agree.
+- ASSUMPTION A46: WAIT raises exception 7 only when MSW.MP and MSW.TS are
+  both set. PCE-286 agrees; no primary-source quote for TS=1 with MP=0 was
+  retrieved.
+
 ASSUMPTION A31: an invalid outer-level return SS raises #SS(selector) per
 Table 7-4, although Appendix B lists #GP/#NP. See
 [the privilege-transition spec](protected_privilege_transition.md).

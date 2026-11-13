@@ -550,6 +550,13 @@
                         assert(memory_offset==gpr[4]+16'd4+ret_stack_adjust &&
                                memory_span_delta==16'd3);
                     end
+                    // Protected PUSHA checks its whole 16-byte frame for
+                    // writing before the first word is stored.
+                    ALL_NEXT: begin
+                        assert(all_precheck && opcode==8'h60 && msw[0]);
+                        assert(memory_role==2 && memory_kind==1 && memory_write && memory_size==1);
+                        assert(memory_offset==stack_origin-16'd16 && memory_span_delta==16'd15);
+                    end
                     default: assert(1'b0);
                 endcase
             end
@@ -1355,7 +1362,11 @@
                     event_packet.protected_mode)) begin
                     assert(event_packet.valid && event_packet.protected_mode);
                     assert(cs==$past(event_target_selector) && cs_base==$past(event_target_base));
-                    assert(gpr[4]==$past(pending_sp));
+                    // A same-level handler starts below the saved SP by the frame
+                    // size (FLAGS, CS, IP and any error code); an inner-level
+                    // handler starts below the TSS stack pointer (pending_sp).
+                    assert(gpr[4]==$past(event_stack_active ? pending_sp :
+                        event_packet.saved_sp-(event_packet.error_present ? 16'd8 : 16'd6)));
                     assert(!(flags[8]));
                     if ($past(event_gate[43:40]==4'h6)) begin
                         assert(!(flags[9]));
@@ -1574,36 +1585,32 @@
             end
             if (rst_n && $past(rst_n && state==EVENT_GATE_CHECK &&
                 event_delivery_active && event_packet.protected_mode)) begin
-                if ($past(event_gate[39:32]==0 && !event_gate[44] &&
+                if ($past(!event_gate[44] &&
                           (event_gate[43:40]==4'h6 || event_gate[43:40]==4'h7) &&
-                          event_gate[47] && event_gate[63:48]==0 &&
-                          // 9.6.2: the #DF handler must be a task gate.
+                          event_gate[47] && // 9.6.2: the #DF handler must be a task gate.
                           !(event_packet.restartable && event_packet.vector==8) &&
                           (!event_packet.software_interrupt ||
                            cs[1:0]<=event_gate[46:45]))) begin
                     assert(state==EVENT_CODE_START);
                     assert(event_pointer=={event_gate[31:16],event_gate[15:0]});
-                end else if ($past(event_gate[39:32]==0 && !event_gate[44] &&
+                end else if ($past(!event_gate[44] &&
                                    (event_gate[43:40]==4'h6 || event_gate[43:40]==4'h7) &&
-                                   event_gate[47] && event_gate[63:48]==0 &&
-                                   event_packet.software_interrupt &&
+                                   event_gate[47] && event_packet.software_interrupt &&
                                    cs[1:0]>event_gate[46:45])) begin
                     assert(state==EVENT_START && event_packet.vector==13 &&
                            event_packet.error_present &&
                            event_packet.error_code=={5'd0,$past(event_packet.vector),3'b010} &&
                            event_packet.saved_ip==$past(instruction_ip));
-                end else if (!$past(event_gate[39:32]==0 && !event_gate[44] &&
-                                    event_gate[43:40]==4'h5 && event_gate[63:48]==0 &&
-                                    event_gate[47] &&
+                end else if (!$past(!event_gate[44] &&
+                                    event_gate[43:40]==4'h5 && event_gate[47] &&
                                     (!event_packet.software_interrupt ||
                                      cs[1:0]<=event_gate[46:45]))) begin
                     // Not a usable task gate either: App. B page B-49 gives
                     // #GP for type or INT-DPL faults, #NP for a not-present
                     // gate, each with error vector*8+2(+EXT).
                     assert(`I286P_DELIVERY_OUTCOME(
-                        $past(event_gate[39:32]==0 && !event_gate[44] &&
+                        $past(!event_gate[44] &&
                               event_gate[43:40]>=4'h5 && event_gate[43:40]<=4'h7 &&
-                              event_gate[63:48]==0 &&
                               (!event_packet.software_interrupt ||
                                cs[1:0]<=event_gate[46:45])) ? 8'd11 : 8'd13));
                 end

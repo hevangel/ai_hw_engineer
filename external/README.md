@@ -16,7 +16,15 @@ Fetch only the ones you need:
 
 ```sh
 git submodule update --init --checkout --depth 1 external/martypc
-git submodule update --init --checkout --depth 1 external/86box/86Box
+```
+
+That shallow fetch takes the upstream branch tip. Once upstream has moved
+past the pinned commit it can fail with "did not contain <commit>". The clone
+exists by then, so fetch the pinned commit directly:
+
+```sh
+git -C external/86box/86Box fetch --depth 1 origin "$(git rev-parse HEAD:external/86box/86Box)"
+git -C external/86box/86Box checkout FETCH_HEAD
 ```
 
 To move one to a newer upstream commit, fetch and check it out inside the

@@ -26,6 +26,13 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-11-12 - 80286 defects found by the PCE-286 oracle](2026-11-12-intel80286-pce-oracle-defects.md)
+  An emulator comparison found a wrong handler SP after incoming-task faults,
+  a task-gate fault class, a non-restartable PUSHA and two untested rules.
+- [2026-11-09 - 80286 protected transfers: five rules found by review](2026-11-09-intel80286-review-protected-transfers.md)
+  A source read-through found a far CALL #GP/#NP mix-up, SP=0000 frames
+  rejected on a full stack, LOCK ignoring IOPL, a wrong outer-RETF fault class
+  and faults on reserved descriptor fields; uniform fixtures hid all five.
 - [2026-11-04 - 80286 JMP through a call gate raised #GP instead of transferring](2026-11-04-intel80286-call-gate-jmp-rejected.md)
   An audit against Intel App. B B-54 found every call-gate JMP faulting, with a
   latent privilege-escalating CS-load path behind it; no test covered gate JMPs.
