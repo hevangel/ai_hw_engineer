@@ -1,6 +1,9 @@
 `timescale 1ns/1ps
-// Original AMD Am9517 functional reconstruction; source differences in spec/spec.md.
-module amd_am9517 (
+// AMD Am9517 / Am9517A functional reconstruction; source differences in spec/spec.md.
+// REV_A=0: original Am9517 contract. REV_A=1: Am9517A revision (independent qualification).
+module amd_am9517 #(
+    parameter bit REV_A = 1'b0
+) (
     input  logic        clk,
     input  logic        reset_i,
     input  logic        cs_n,
@@ -153,7 +156,11 @@ module amd_am9517 (
                                           address_q[reg_addr[2:1]][7:0];
                 data_oe = 1'b1;
             end else if (reg_addr == 4'h8) begin
-                data_o = {hardware_request, status_q}; // Original AMD status describes DREQ inputs.
+                if (REV_A)
+                    // Am9517A: bits 4-7 reflect channels requesting service (pending requests).
+                    data_o = {eligible, status_q};
+                else
+                    data_o = {hardware_request, status_q}; // Original AMD status describes DREQ inputs.
                 data_oe = 1'b1;
             end else if (reg_addr == 4'hd) begin
                 data_o = temporary_q;

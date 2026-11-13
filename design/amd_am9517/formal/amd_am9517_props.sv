@@ -75,7 +75,10 @@
                 if ($past((cpu_read || cpu_write) && !reg_addr[3]))
                     assert(byte_high_q == !$past(byte_high_q));
             end
-            if (cpu_read && reg_addr == 8) assert(data_o[7:4] == hardware_request);
+            if (cpu_read && reg_addr == 8) begin
+                if (REV_A) assert(data_o[7:4] == eligible);
+                else assert(data_o[7:4] == hardware_request);
+            end
             if (command_q[2]) assert(!hrq);
             if (state_q == GRANT && !hlda) assert(cpu_select == !cs_n);
             if (past_valid && $past(rst_n) && !$past(master_clear)) begin

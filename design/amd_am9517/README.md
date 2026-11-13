@@ -1,20 +1,32 @@
-# AMD Am9517 multimode DMA controller
+# AMD Am9517 / Am9517A multimode DMA controller
 
 Four independent channels transfer data between memory and peripherals, with
 fixed/rotating arbitration, several service modes, automatic reload, memory
 copy/fill and cascade expansion. It lets an eight-bit CPU delegate bulk transfers
 and provides the foundation for the familiar compatible DMA programming model.
 
-First documented: **by 1978**, public manufacturer announcement. AMD calls
+`src/amd_am9517.sv` implements both revisions with explicit selection:
+`parameter bit REV_A = 1'b0` (default, original Am9517) and `REV_A=1` (Am9517A).
+
+**Am9517** first documented: **by 1978**, public manufacturer announcement. AMD calls
 the Am9517 new in its advertisement in the January 19, 1978 issue of
 [Electronics](https://www.worldradiohistory.com/Archive-Electronics/70s/78/Electronics-1978-01-19.pdf),
 PDF77–78. This is announcement evidence, not an asserted exact first-shipment
 date; an earlier introduction has not been established.
-**Verified functional reconstruction.** The complete lint, formal, native/UVM,
-original-firmware, actual cascade, coverage and synthesis flow passes. Original
-AMD semantics were audited against manufacturer documentation before adapting
-the project-owned Intel 8237A starting point. The independent module implements
-the original AMD differences and retains explicit timing/silicon assumptions.
+
+**Am9517A** source evidence: 1980 AMD MOS LSI Data Book (bitsavers trailing-edge),
+Am9517A Multimode DMA Controller section. The A-revision is qualified
+independently with separate tests/results; original Am9517 regressions remain
+the evidence for `REV_A=0`.
+
+**Verified functional reconstruction (original Am9517, REV_A=0).** The complete lint, formal, native/UVM,
+original-firmware, actual cascade, coverage and synthesis flow passes for the
+original selection. Original AMD semantics were audited against manufacturer
+documentation before adapting the project-owned Intel 8237A starting point.
+The independent module implements the original AMD differences and retains
+explicit timing/silicon assumptions. Am9517A-specific directed tests are added
+(`tb/tb_top_a.sv`) for documented revision behavior; full A-revision flow
+results must be recorded separately when run in the toolchain environment.
 
 - [Specification and assumptions](spec/spec.md)
 - [Implementation plan](plans/implementation_plan.md)
