@@ -1,0 +1,4 @@
+# Expected first unmodeled access of the REV1 BIOS on this board, with the
+# last POST checkpoint written to port 80h. Update only with a report that
+# explains what moved the boundary.
+kind=io-read port=0064 at=F000:00DE post=00

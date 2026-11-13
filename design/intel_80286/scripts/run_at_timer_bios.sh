@@ -20,7 +20,7 @@ sha256sum "$DESIGN_DIR"/src/*.sv \
     "$REPO_DIR/design/intel_8237/src/intel_8237.sv" \
     "$DESIGN_DIR/tb/intel_80286_at_timer.sv" "$DESIGN_DIR/tb/intel_80286_at_dma.sv" "$DESIGN_DIR/tb/intel_80286_at_page.sv" "$DESIGN_DIR/tb/intel_80286_at_fixture.sv" \
     "$DESIGN_DIR/tb/at_timer_bios.cpp" "$SCRIPT_DIR/run_at_timer_bios.sh" \
-    "$SCRIPT_DIR/check_at_timer_bios.py" "$SCRIPT_DIR/generate_firmware_trace.py" \
+    "$SCRIPT_DIR/check_at_timer_bios.py" "$SCRIPT_DIR/bios_replay.py" "$SCRIPT_DIR/generate_firmware_trace.py" \
     "$SCRIPT_DIR/generate_vectors.py" "$SCRIPT_DIR/work_paths.py" "$ROM" > "$OUT_DIR/inputs.sha256"
 verilator --version > "$OUT_DIR/toolchain.txt"
 g++ --version | head -n 1 >> "$OUT_DIR/toolchain.txt"

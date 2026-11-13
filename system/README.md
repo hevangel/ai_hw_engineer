@@ -19,7 +19,7 @@ and a host bridge for external storage, media and user input.
 | SCELBI 8B (SCELBAL BASIC + Shooting Stars) | 1975 | Intel 8008, 16 KiB RAM, bit-banger serial console | [scelbi_8b/](scelbi_8b/) |
 | IBM PC 5150 | 1981 | 8088 bus adapter/shared 8086 EU, 8259, 8253, 8255, 8237, 8272, CGA | [ibm_pc/](ibm_pc/) |
 | IBM PC XT 5160 | 1983 | 8088, 8087, 256 KiB RAM, CGA, IBM/Xebec 10 MB fixed disk | [ibm_pc_xt_5160/](ibm_pc_xt_5160/) |
-| IBM PC AT 5170 (specification only; no RTL yet) | 1984 | Intel 80286, 2× 8259, 8254, 2× 8237, 8042, MC146818 (planned) | [ibm_pc_at_5170/](ibm_pc_at_5170/) |
+| IBM PC AT 5170 (board skeleton; BIOS stops at its first 8042 read) | 1984 | Intel 80286, 8254, 2× 8237 registers, 74LS612 page registers; 8259s, 8042 and MC146818 planned | [ibm_pc_at_5170/](ibm_pc_at_5170/) |
 | Commodore 64 (PAL cycle-exact vs VICE; NTSC functional) | 1982 | MOS 6510, 6569/6567 VIC-II, 6581 SID, 2×6526 CIA, 906114-01 PLA, 64 KiB DRAM | [commodore_64/](commodore_64/) |
 | IBM PS/2 Model 30 | 1987 | Native 8086, planar gate arrays, 8259, 8253, 8237, 8272, MM58167-compatible RTC, MCGA, integrated DBA fixed-disk controller | [ibm_ps2_model30/](ibm_ps2_model30/) |
 | Nintendo Entertainment System (NTSC/PAL) | 1983 | Ricoh 2A03/2A07 CPU+APU, 2C02/2C07 PPU, 2 KiB RAM, CIRAM, NROM/MMC1/UxROM/CNROM cartridges, two pads | [nes/](nes/) |

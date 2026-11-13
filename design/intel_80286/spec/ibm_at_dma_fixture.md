@@ -246,3 +246,15 @@ gate. `IO CH CK` and `PCK` remain external inputs, not parity or channel-check
 implementations. This connection is used by the directed native fixture and
 the newer authentic BIOS native fixture; the earlier functional-bus BIOS
 fixture remains separate.
+
+## Unmodeled ports read from the host-port array
+
+Ports with no modeled device still read from the fixture's generic
+host-port array, which starts at zero. The BIOS relies on this once before
+the tests above: at `F000:00DE` it reads the 8042 status register (port
+`64h`) and takes the cold-boot path when bit 2, the system flag, is clear.
+**ASSUMPTION:** the zero from the array stands in for the 8042's power-on
+status. It is the cold-boot answer, but no 8042 supplies it. The IBM PC AT
+system board (`system/ibm_pc_at_5170`) has no such array and stops at this
+read until an 8042 exists; see its
+[M1 report](../../../system/ibm_pc_at_5170/report/2026-11-13-m1-board-skeleton.md).

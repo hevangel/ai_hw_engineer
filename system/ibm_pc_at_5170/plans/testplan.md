@@ -1,6 +1,6 @@
 # IBM PC AT 5170 test plan
 
-Status: planned. No checks exist yet.
+Status: M1 checks exist (`scripts/run_post.sh`, `scripts/run_synth.sh`, `scripts/run_all.sh`).
 
 ## Oracles
 
@@ -13,15 +13,17 @@ Status: planned. No checks exist yet.
 
 ## Checks by milestone
 
-- M1: BIOS trace to the 8042/CMOS boundary; Unicorn agreement for every
-  instruction; same I/O write order as 86Box up to that point; standalone
-  tests for each promoted board module still pass.
-- M2: 8042 and CMOS chip regressions in their own design folders; BIOS
-  protected-mode memory test passes and returns through the 8042 reset.
-- M3: POST completes with no error text; screen text matches 86Box;
+- M1 (done): lint; the BIOS stops at the expected boundary in both clock
+  scenarios; Unicorn agrees with every instruction up to it; synthesis.
+- M2: 8042 regressions in its own design folder; BIOS takes the cold-boot
+  path at `F000:00DE` and passes its 8042 test at `F000:0422`; the earlier
+  timer, DMA, page and refresh checkpoints pass on the strict board.
+- M3: 8259 and CMOS regressions; BIOS protected-mode memory test passes
+  and returns through the 8042 reset.
+- M4: POST completes with no error text; screen text matches 86Box;
   keyboard input reaches the BIOS buffer; diskette read through DMA.
-- M4: PC DOS boot, DIR, file write and readback, reboot and readback.
-- M5: OS/2 1.0 prompt and the CPGREP output line.
+- M5: PC DOS boot, DIR, file write and readback, reboot and readback.
+- M6: OS/2 1.0 prompt and the CPGREP output line.
 
 ## Every milestone
 

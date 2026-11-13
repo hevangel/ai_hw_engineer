@@ -1,6 +1,8 @@
 # IBM PC AT 5170 specification
 
-Status: specification draft for milestone M0. No system RTL exists yet.
+Status: M1 board skeleton implemented. The unchanged BIOS runs 30
+instructions and stops at its first 8042 status read (`F000:00DE`); see
+[the M1 report](../report/2026-11-13-m1-board-skeleton.md).
 Tracking issue: https://github.com/hevangel/ai_hw_engineer/issues/254
 
 ## Target
@@ -58,9 +60,9 @@ manufacturing checkpoint convention.
 | CPU | `design/intel_80286` | Native bus interface and 82288-style strobes already exist |
 | Timer | `design/intel_8253_8254` (`IS_8254=1`) | Wired through `intel_80286_at_timer.sv` |
 | DMA | 2× `design/intel_8237` | Cascade on controller 2 channel 0 |
-| Interrupts | 2× `design/intel_8259` | Master at 20h, slave at A0h on IRQ2 |
+| Interrupts | 2× `design/intel_8259` | Planned: master at 20h, slave at A0h on IRQ2; not wired in M1 |
 | Floppy | `design/intel_8272` | Plus the AT diskette adapter logic |
-| Board logic | 286 AT fixture modules: page registers, refresh path, port 61h, bank select, RAS trigger | To be promoted from `design/intel_80286/tb/` into system `src/` |
+| Board logic | 286 AT fixture modules: page registers and refresh page map, refresh path, port 61h, RAS trigger (bank select not yet wired) | Reused in place from `design/intel_80286/tb/` by `src/ibm_pc_at_5170.sv` |
 
 ### Missing designs
 
@@ -109,6 +111,22 @@ interrupts.
   to the signals the BIOS observes. DRAM decay is not modeled.
 - ASSUMPTION AT3: diskette and fixed-disk media are decoded sectors, as in
   the XT system (XT2).
+- ASSUMPTION AT4: no DMA channel requests service yet, so every DACK is
+  inactive and only refresh selects a page-map slot.
+- ASSUMPTION AT5: during a refresh grant the other bus masters release
+  -MEMR/-MEMW and pull-ups hold them high (inherited from the 286 native
+  BIOS fixture).
+- ASSUMPTION AT6: RAM powers up as zero. Real DRAM contents are undefined.
+
+## Strict decoding
+
+The board answers an I/O read only from a modeled device, and the POST
+runner stops at the first I/O cycle no device claims and at the first
+memory access outside RAM and ROM. There is no catch-all port array. The
+286 design's AT fixtures use such an array; on that fixture the BIOS's
+cold-boot test of the 8042 system flag (port 64h bit 2, `F000:00DE`)
+reads 0 by default. Zero is the cold-boot answer, but no device supplied
+it. On this board the same read is the first stop.
 
 ## Open decisions
 
@@ -117,7 +135,8 @@ interrupts.
   must be cited before this is settled.
 - D2: video adapter for the first POST milestone (CGA from the PC system or
   MDA).
-- D3: whether to build the 8042 from an MCS-48 core running IBM's 8042
+- D3 (now blocking: the 8042 is the first device the BIOS reads): whether
+  to build the 8042 from an MCS-48 core running IBM's 8042
   firmware, or as a behavioral command model. The first keeps the
   firmware-authenticity rule; the second needs an independent oracle.
 

@@ -1,9 +1,18 @@
 # IBM PC AT 5170 verification report
 
-Status: specification only (M0). No system RTL exists and no system check
-has been run.
+Status: M1 board skeleton. The unchanged REV1 BIOS runs 30 instructions and
+stops at `F000:00DE`, its first 8042 status read. Nothing boots.
 
-What already exists elsewhere (not system evidence): the 286 design's AT
-fixtures run the unchanged REV1 BIOS to `F000:03A2` (timer, DMA register,
-page register and refresh-indication tests), compared with Unicorn. See
-[`design/intel_80286/report/2026-10-29-at-bios-native-refresh.md`](../../../design/intel_80286/report/2026-10-29-at-bios-native-refresh.md).
+| Check | Command | Result |
+|---|---|---|
+| Lint | `scripts/run_post.sh` (first step) | Clean, `verilator --lint-only -Wall` |
+| BIOS stop point, two clock scenarios | `scripts/run_post.sh` | Both stop at `F000:00DE`, port 64h read |
+| Unicorn replay | `scripts/run_post.sh` | 30 of 30 instructions match in each scenario |
+| Synthesis | `scripts/run_synth.sh` | Pass, 76,442 generic cells, `check -assert` clean |
+
+Details, the 8042 finding and limits:
+[M1 report](2026-11-13-m1-board-skeleton.md).
+
+The 286 design's own AT fixture reaches `F000:03A2` (about 247,000
+instructions) because unknown ports read as zero there; that is fixture
+evidence for the CPU, not for this board.
