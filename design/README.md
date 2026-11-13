@@ -75,6 +75,7 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1983 | Apple IIe timing PAL (PAL16R8) | Apple-programmed timing generator: Ï†0/Ï†1 CPU clocks, asymmetric Q3 strobe, PRAS'/PCAS' DRAM strobes with CAS gating, LDPS' video load and the 7 MHz dot clock | [apple_iie_pal](apple_iie_pal/) |
 | 1983 | Ricoh RP2A03 / RP2A07 | NES CPU: native NMOS 6502 with decimal disabled, APU (pulse, triangle, noise, DMC, frame sequencer), OAM/DMC DMA, controller I/O; NTSC and PAL; independent CPU vectors, nestest and blargg test ROMs | [ricoh_2a03](ricoh_2a03/) |
 | 1983 | Ricoh RP2C02 / RP2C07 | NES PPU: dot-level background pipeline, sprite evaluation with the overflow bug, sprite-0 hit, scroll registers, vblank/NMI races; NTSC and PAL; reference-renderer frame compare and blargg PPU test ROMs | [ricoh_2c02](ricoh_2c02/) |
+| By 1983* (keyboard-controller ROM dated 1983; launch unconfirmed) | Intel 8042 (UPI-42) | Universal Peripheral Interface microcontroller (MCS-48 family): 2K ROM, 128-byte RAM, timer, ports and host data/status buffers; core matches an independent manual-derived model on directed, random and IBM PC AT keyboard-controller firmware runs; formal proof and synthesis; the IBM 1503033 ROM is only partly public | [intel_8042](intel_mcs48/intel_8042/) |
 | By 1983* (dated manufacturer description; launch unconfirmed) | MOS Technology 6560 / 6561 VIC | VIC-20 video/sound; complete digital chip (registers, PAL/NTSC raster/interlace, fetch/pixels, light pen, sound) matches MAME per clock and boots original VIC-20 firmware; analog outputs/POT conversion and physical validation pending | [mos_6560](mos_6560/) |
 | By 1983* (dated manufacturer description; launch unconfirmed) | MOS Technology 6567 / 6569 VIC-II | C64 video controller; dot-level digital chip for 6569, 6567R8, 6567R56A, 8565 and 8562 matches MAME per fetch, bus cycle and pixel; original C64 software and physical validation pending | [mos_6567](mos_6567/) |
 | By 1983* (dated manufacturer description; launch unconfirmed) | MOS Technology 6581 / 8580 SID | C64 sound; digital core (oscillators, noise, envelopes, sync/ring, OSC3/ENV3/POT, bus latch) matches reSIDfp per clock for both models; analog DAC/filter stage and original software pending | [mos_6581](mos_6581/) |
@@ -188,6 +189,8 @@ The 74181 entry uses **1970** as the introduction year. Historical references di
 
 Source material is summarized and rephrased for licensing compliance.
 
+
+The Intel 8042 entry records **By 1983\***: no Intel document located so far dates the UPI-42's introduction. The April 1980 [UPI-41A User's Manual](https://mark-ogden.uk/files/intel/publications/9800504-02B%20UPI-41A%20Users%20Manual%20Apr%2080.pdf) covers only the 1K 8041A/8741A, and MAME dates the IBM PC AT keyboard-controller ROM 1503033 that runs on an 8042 to 1983 ([at_keybc.cpp](https://github.com/mamedev/mame/blob/master/src/devices/machine/at_keybc.cpp)). The AT itself was announced in 1984. Technical behavior is sourced in the design's [specification](intel_mcs48/intel_8042/spec/spec.md).
 ## Design documentation
 
 Each chip folder contains its own historical overview, specification, implementation plans, RTL, verification environment, formal properties, scripts, and reports. Start with the chip folder's `README.md` for historical context and links to its Markdown documentation.

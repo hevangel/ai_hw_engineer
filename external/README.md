@@ -52,6 +52,7 @@ git add external/86box/86Box
 | `86box/mdsx/` | [86Box/mdsx](https://github.com/86Box/mdsx) | MDS v2 / MDX decryption library | MIT |
 | `86box/probing-tools/` | [86Box/probing-tools](https://github.com/86Box/probing-tools) | x86 hardware probing tools | GPL-2.0 |
 | `86box/roms/` | [86Box/roms](https://github.com/86Box/roms) | Machine and device ROM images | Preservation notice, see below |
+| `halicery/8042/` | [Halicery/8042](https://github.com/Halicery/8042) | A. Tarpai's commented disassemblies of the IBM AT 8042 (1503033), PS/2 8042 and IBM keyboard 8048 ROMs; source of the 8042 firmware bytes in `design/intel_mcs48/intel_8042` | MIT |
 
 ## Rules for using a reference
 

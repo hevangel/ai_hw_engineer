@@ -1,0 +1,22 @@
+[tasks]
+prove
+cover
+
+[options]
+prove: mode prove
+prove: depth 6
+cover: mode cover
+cover: depth 24
+
+[engines]
+prove: abc pdr
+cover: smtbmc yices
+
+[script]
+read -formal -DFORMAL upi42_core.sv
+prep -top upi42_core
+memory_map
+opt_clean
+
+[files]
+../src/upi42_core.sv
