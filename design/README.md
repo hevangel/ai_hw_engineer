@@ -59,6 +59,7 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | By 1978* (exact year unknown) | AMD Am2914 | Eight-level vectored interrupt controller; pulse capture, masks, thresholds and cascade | [amd_am2914](amd_am29xx/amd_am2914//) |
 | By 1978* (exact year unknown) | AMD Am2918 | Quad D register with continuous Q and three-state Y outputs | [amd_am2918](amd_am29xx/amd_am2918//) |
 | By 1978* (public announcement; exact shipment unknown) | AMD Am9517 | Four-channel multimode DMA, memory copy/fill and cascade expansion | [amd_am9517](amd_am9517/) |
+| 1980 | AMD Am9518 | NBS/DES data ciphering processor; ECB/CBC/8-bit-CFB, master/slave/key ports, E/D/master key registers, IV registers and per-byte key parity | [amd_am9518](amd_am9518/) |
 | 1978 | Intel 8086 | 16-bit microprocessor; complete documented ISA and native digital BIU with independent physical-chip tests | [intel_8086](intel_8086_8088/intel_8086/) |
 | 1979 | Intel 8088 | 8-bit-bus 16-bit microprocessor; shared 8086 execution unit behind a four-byte byte-fetch BIU with independent physical-8088 tests | [intel_8088](intel_8086_8088/intel_8088/) |
 | 1978 | Motorola MC6809 | 8-bit microprocessor; full documented ISA (pages 1/2/3, indexed postbyte indirection, TFR/EXG, MUL, long branches, FIRQ/CWAI/SYNC) passing the hardware-validated reyco2000 functional and interrupt suites; formal bmc/prove/cover | [motorola_6809](motorola_6809/) |
