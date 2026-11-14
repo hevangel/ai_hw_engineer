@@ -1,0 +1,19 @@
+[tasks]
+bmc
+prove
+cover
+[options]
+bmc: mode bmc
+prove: mode prove
+cover: mode cover
+depth 12
+[engines]
+bmc: smtbmc z3
+prove: abc pdr
+cover: smtbmc z3
+[script]
+read -formal -sv -I . amd_am29323.sv
+prep -top amd_am29323
+[files]
+../src/amd_am29323.sv
+amd_am29323_props.sv

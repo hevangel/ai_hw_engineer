@@ -103,6 +103,11 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1983 | Apple IIe timing PAL (PAL16R8) | Apple-programmed timing generator: φ0/φ1 CPU clocks, asymmetric Q3 strobe, PRAS'/PCAS' DRAM strobes with CAS gating, LDPS' video load and the 7 MHz dot clock | [apple_iie_pal](apple_iie_pal/) |
 | By 1986* (bibliographic evidence; launch unconfirmed) | MOS Technology 8520 CIA | Amiga peripheral controller: 6526 core with binary 24-bit TOD event counter and 8520 timer/interrupt timing; matches MAME except nine classified residuals; Amiga software pending | [mos_8520](mos_8520/) |
 | 1984 | WDC W65C816S | 16-bit 6502 extension: run-time 8/16-bit registers, relocatable direct page, 24-bit banks, block moves, emulation mode; every bus cycle matches SingleStepTests (5.08 million records) | [wdc_65c816](wdc_65c816/) |
+| 1985* (advanced information; final datasheet December 1987) | AMD Am29331 | 16-bit microprogram sequencer: 64 high-level instructions, 33-deep stack with modulo-64 pointer, interrupts with automatic return push, FC/C̄IN traps, breakpoint comparator and master/slave ERROR checking; all 64 opcodes against AMD Tables 1/2, Figure 3/4–7 flows, formal BMC/PDR/cover | [amd_am29331](amd_am29xxx/members/am29331/) |
+| 1985* (advanced information) | AMD Am29323 | 32 × 32 multiplier with 67-bit accumulator: PASS/ACCUMULATE/SHIFT-AND-ACCUMULATE, dual input registers, format adjust and rounding, mixed TC/unsigned modes, byte parity and master/slave checking; FA-slice geometry from the format figures, formal BMC/PDR/cover | [amd_am29323](amd_am29xxx/members/am29323/) |
+| 1985* (advanced information; final datasheet Amendment 10, 1988) | AMD Am29334 | 64 × 18 dual-access four-port register file: per-byte write enables, on-chip read/write address multiplexer with read-during-write transparency, transparent output latches, three-state ports; asynchronous latch-based model, formal BMC/PDR/cover | [amd_am29334](amd_am29xxx/members/am29334/) |
+| 1988* (advance information) | AMD Am29338 | 32-bit byte queue: 128-byte parity ring FIFO, 1–4 bytes queued and 1–16 dequeued per cycle, BSW byte reorder, LSB-aligned output window, RXMIT retransmit, POS cascade quadrants and count statuses; lockstep oracle and formal BMC/PDR/cover | [amd_am29338](amd_am29xxx/members/am29338/) |
+| 1986* (preliminary, September 1986) | AMD Am29434 | ECL 64 × 18 four-port dual-access register file; same documented function as the Am29334, shares its RTL and suite | [amd_am29434](amd_am29xxx/members/am29434/) |
 | 1990 | Ricoh 5A22 (S-CPU) | SNES CPU: 65C816 core with 6/8/12-clock memory cycles, DRAM refresh, 8-channel DMA/HDMA, H/V IRQ/NMI, multiplier/divider, auto-joypad; Peter Lemon CPU, bank and HDMA test ROMs | [ricoh_5a22](ricoh_5a22/) |
 | 1990 | Ricoh 5C77 (S-PPU1) | SNES picture unit 1: VRAM/OAM, modes 0–7, offset-per-tile, Mode 7 and multiplier, sprites with overflow flags, high resolution, interlace, mosaic; matched against test-ROM screenshots | [ricoh_5c77](ricoh_5c77/) |
 | 1990 | Ricoh 5C78 (S-PPU2) | SNES picture unit 2: NTSC/PAL timing, CGRAM, windows, priority, colour math, brightness, H/V latches; matched against test-ROM screenshots | [ricoh_5c78](ricoh_5c78/) |
@@ -135,6 +140,17 @@ The Am9511 and Am9512 introduction years follow AMD's May 1981 *Am9511A/Am9512
 Floating Point Processor Manual*, which dates the Am9511 to 1977 and the Am9512
 to 1979. No exact launch month is asserted. *Electronics* described the Am9512
 in July 1979; see the [Am9512 overview](amd_am9512/README.md).
+
+### AMD — Am29300 and the Am29xxx series card
+
+The Am29331 entry uses **1985*** for the advanced-information datasheet in the
+[1985 Am29300 Family Handbook](https://bitsavers.trailing-edge.com/components/amd/bitslice/1985_AM29300_Family_Handbook.pdf),
+with the final production datasheet dated December 1987 (Issue 05729E/0) in the
+[1988 Am29C300/29300 Data Book](https://bitsavers.trailing-edge.com/components/amd/bitslice/1988_AMD_32-Bit_Microprogrammable_Products_Am29C300_29300_Data_Book.pdf).
+No exact first-shipment month is asserted; the Am29331A speed grade is a later
+ordering option. The remaining 29K RISC, Am29300/Am29C300 and Am295xx devices
+are explicit inventory gaps tracked under the [Am29xxx series card](amd_am29xxx/README.md)
+(canonical issue [#126](https://github.com/hevangel/ai_hw_engineer/issues/126)).
 
 ### Apple â€” IIe MMU and IOU
 
@@ -1673,6 +1689,7 @@ Family issues own the corresponding root folder; physical chips use member sub-i
 - [amd_am25xx](amd_am25xx/README.md)
 - [amd_am26xx](amd_am26xx/README.md)
 - [amd_am29xx](amd_am29xx/README.md)
+- [amd_am29xxx](amd_am29xxx/README.md)
 - [intel_8086_8088](intel_8086_8088/README.md)
 - [intel_mcs4](intel_mcs4/README.md)
 - [intel_mcs8](intel_mcs8/README.md)
