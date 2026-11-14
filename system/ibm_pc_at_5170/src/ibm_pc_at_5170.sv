@@ -21,7 +21,7 @@
 // and fixed disk.
 module ibm_pc_at_5170 #(
     // $readmemh image of the 8042 firmware (IBM 1503033), one byte per line.
-    parameter string KBC_ROM_FILE = "",
+    parameter KBC_ROM_FILE = "",
     // 8042 machine cycle in processor clocks. The 8042 crystal input is the
     // 6 MHz PCLK (sheet 17) and a UPI-42 machine cycle is 15 crystal clocks
     // (Intel UPI-41A User's Manual p.2-10), so one machine cycle is 15

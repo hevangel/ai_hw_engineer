@@ -2,7 +2,7 @@
 // CPU's retirement state and read data. The taps use hierarchical
 // references, so this wrapper is not synthesized.
 module ibm_pc_at_5170_tb #(
-    parameter string KBC_ROM_FILE = ""
+    parameter KBC_ROM_FILE = ""
 ) (
     input  logic        clk_i, clk_2x_i, reset_i, ready_n_i,
     input  logic        dma_clk_n_i, hold_permit_i, refresh_ready_i,
