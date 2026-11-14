@@ -33,6 +33,27 @@
     "intel_8086_8088": [
       "intel_8086",
       "intel_8088"
+    ],
+    "amd_am26xx": [
+      "members/am2600",
+      "members/am2602",
+      "members/am2614",
+      "members/am2615",
+      "members/am2616",
+      "members/am2617",
+      "members/am26123",
+      "members/am26l02",
+      "members/am26l123",
+      "members/am26ls29",
+      "members/am26ls30",
+      "members/am26ls31",
+      "members/am26ls32",
+      "members/am26ls33",
+      "members/am26s02",
+      "members/am26s10",
+      "members/am26s11",
+      "members/am26s12",
+      "members/am26s12a"
     ]
   },
   "catalogs": {
