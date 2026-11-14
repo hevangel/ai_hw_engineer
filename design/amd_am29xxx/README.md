@@ -23,14 +23,14 @@ Family Handbook anchors the earliest documented subgroup.
 | am29240 | [#166](https://github.com/hevangel/ai_hw_engineer/issues/166) | planned: members/am29240 |
 | am29243 | [#167](https://github.com/hevangel/ai_hw_engineer/issues/167) | planned: members/am29243 |
 | am29245 | [#168](https://github.com/hevangel/ai_hw_engineer/issues/168) | planned: members/am29245 |
-| am29323 | [#230](https://github.com/hevangel/ai_hw_engineer/issues/230) | planned: members/am29323 |
+| am29323 | [#230](https://github.com/hevangel/ai_hw_engineer/issues/230) | [am29323](members/am29323/README.md) |
 | am29325 | [#169](https://github.com/hevangel/ai_hw_engineer/issues/169) | planned: members/am29325 |
 | am29331 | [#170](https://github.com/hevangel/ai_hw_engineer/issues/170) | [am29331](members/am29331/README.md) |
 | am29332 | [#171](https://github.com/hevangel/ai_hw_engineer/issues/171) | planned: members/am29332 |
-| am29334 | [#172](https://github.com/hevangel/ai_hw_engineer/issues/172) | planned: members/am29334 |
+| am29334 | [#172](https://github.com/hevangel/ai_hw_engineer/issues/172) | [am29334](members/am29334/README.md) |
 | am29337 | [#173](https://github.com/hevangel/ai_hw_engineer/issues/173) | planned: members/am29337 |
 | am29338 | [#174](https://github.com/hevangel/ai_hw_engineer/issues/174) | planned: members/am29338 |
-| am29434 | [#175](https://github.com/hevangel/ai_hw_engineer/issues/175) | planned: members/am29434 |
+| am29434 | [#175](https://github.com/hevangel/ai_hw_engineer/issues/175) | [am29434](members/am29434/README.md) (shares am29334 RTL) |
 | am29501 | [#182](https://github.com/hevangel/ai_hw_engineer/issues/182) | planned: members/am29501 |
 | am29501A | [#231](https://github.com/hevangel/ai_hw_engineer/issues/231) | shares the am29501 contract (A revision) |
 | am29509 | [#232](https://github.com/hevangel/ai_hw_engineer/issues/232) | planned: members/am29509 |
@@ -46,7 +46,7 @@ Family Handbook anchors the earliest documented subgroup.
 | am29528 | [#239](https://github.com/hevangel/ai_hw_engineer/issues/239) | planned: members/am29528 |
 | am29529 | [#240](https://github.com/hevangel/ai_hw_engineer/issues/240) | planned: members/am29529 |
 | am29540 | [#241](https://github.com/hevangel/ai_hw_engineer/issues/241) | planned: members/am29540 |
-| am29C323 | [#176](https://github.com/hevangel/ai_hw_engineer/issues/176) | planned: members/am29c323 |
+| am29C323 | [#176](https://github.com/hevangel/ai_hw_engineer/issues/176) | [am29c323](members/am29c323/README.md) (shares am29323 RTL) |
 | am29C325 | [#177](https://github.com/hevangel/ai_hw_engineer/issues/177) | planned: members/am29c325 |
 | am29C327 | [#178](https://github.com/hevangel/ai_hw_engineer/issues/178) | planned: members/am29c327 |
 | am29C331 | [#179](https://github.com/hevangel/ai_hw_engineer/issues/179) | shares the am29331 RTL (CMOS process) |
