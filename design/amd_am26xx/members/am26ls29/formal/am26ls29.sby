@@ -1,0 +1,21 @@
+[tasks]
+bmc
+prove
+cover
+
+[options]
+bmc: mode bmc
+prove: mode prove
+cover: mode cover
+depth 2
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal -sv am26ls29.sv am26ls29_props.sv
+prep -top am26ls29_props
+
+[files]
+../src/am26ls29.sv
+am26ls29_props.sv
