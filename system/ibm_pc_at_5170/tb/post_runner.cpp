@@ -5,13 +5,24 @@
 // PDF page 29 for the ROM aliases):
 //   000000-09FFFF  640 KiB RAM (base 512 KiB plus 128 KiB expansion)
 //   0F0000-0FFFFF  64 KiB BIOS ROM, aliased at FF0000-FFFFFF
-// Any other memory address, any undecoded I/O port, a halt, a shutdown or a
-// bus protocol error ends the run with a STOP line. The board clocks are
+// Any other memory address, a halt, a shutdown or a bus protocol error ends
+// the run with a STOP line. So does an I/O cycle that no board device
+// decodes, with one exception: a write to an I/O channel address (100h and
+// above; the system board decodes 000h-0FFh, Technical Reference I/O map)
+// is accepted and counted, because the expansion slots are empty and a
+// write to an address no adapter decodes has no effect on the real bus. A
+// read from an empty slot still stops the run: its value is undefined. The board clocks are
 // virtual (ASSUMPTION AT1), not IBM AT physical timing.
 //
 // Trace records (consumed by scripts/check_post_trace.py):
 //   B <addr> <byte> <write> <io>    data transfer, instruction fetches omitted
 //   R <pc> <op> <cs> <ip> <flags> <segs> <8 regs>   retired instruction
+//
+// Optional 8042 log (consumed by scripts/check_kbc_log.py), in time order:
+//   I <pc>            8042 instruction or interrupt vector retired
+//   W <n> <a0> <data> host write took effect after <n> 8042 instruction starts
+//   X <n>             host read of the data register took effect (clears OBF)
+//   S <a0> <data>     value the CPU read from the 8042 (a0 = 1: status)
 #include "Vibm_pc_at_5170_tb.h"
 #include "verilated.h"
 #include <cstdint>
@@ -38,12 +49,19 @@ std::string hex(uint32_t v, int width) {
 int main(int argc, char** argv) {
     Verilated::commandArgs(argc, argv);
     try {
-        if (argc != 5) throw std::runtime_error("usage: post_runner ROM TRACE wait half_period");
+        if (argc != 5 && argc != 6)
+            throw std::runtime_error("usage: post_runner ROM TRACE wait half_period [KBC_LOG]");
         std::ifstream file(argv[1], std::ios::binary);
         std::vector<uint8_t> rom((std::istreambuf_iterator<char>(file)), {});
         if (rom.size() != 65536) throw std::runtime_error("expected a 64 KiB BIOS image");
         std::ofstream trace(argv[2]);
         if (!trace) throw std::runtime_error("cannot open trace");
+        std::ofstream klog;
+        if (argc == 6) {
+            klog.open(argv[5]);
+            if (!klog) throw std::runtime_error("cannot open 8042 log");
+            klog << std::hex;
+        }
         const bool wait = std::stoi(argv[3]) != 0;
         const unsigned half = unsigned(std::stoul(argv[4]));
         if (!half) throw std::runtime_error("zero timer half-period");
@@ -61,6 +79,12 @@ int main(int argc, char** argv) {
         d.clk_i = 0; d.clk_2x_i = 0; d.reset_i = 1; d.ready_n_i = 0;
         d.dma_clk_n_i = 0; d.hold_permit_i = 1; d.refresh_ready_i = 0;
         d.timer_clk_i = 0; d.mem_rdata_i = 0;
+        // Board configuration: keyboard unlocked, monochrome display switch,
+        // no manufacturing jumper, J18 enabling the 2nd 256K, and no keyboard
+        // plugged in (both keyboard lines released).
+        d.kbd_unlocked_i = 1; d.display_mono_i = 1; d.mfg_jumper_i = 0; d.ram_512k_i = 1;
+        d.kbd_clk_i = 1; d.kbd_data_i = 1;
+        uint64_t kbc_retired = 0, kbc_started = 0, slot_writes = 0;
         auto half_clock = [&](bool rising) {
             d.clk_i = rising; d.clk_2x_i = 1; d.eval();
             d.clk_2x_i = 0; d.eval();
@@ -84,6 +108,7 @@ int main(int argc, char** argv) {
             else if (d.shutdown_o) stop = "kind=shutdown";
             else if (d.halted_o) stop = "kind=halt";
             else if (d.fault_o) stop = "kind=fault";
+            else if (d.kbc_illegal_o) stop = "kind=kbc-illegal-opcode";
             if (!stop.empty()) { stop += " at=" + where; break; }
 
             const uint32_t a = d.address_o;
@@ -92,7 +117,8 @@ int main(int argc, char** argv) {
                 return is_ram(x) ? ram[x] : is_rom(x) ? rom[x & 0xffff] : 0;
             };
             if (!d.io_cycle_o) d.mem_rdata_i = uint16_t(byte(base) | (byte(base + 1) << 8));
-            if (d.io_unclaimed_o) {
+            const bool empty_slot_write = d.io_unclaimed_o && d.data_oe_o && (a & 0xffff) >= 0x100;
+            if (d.io_unclaimed_o && !empty_slot_write) {
                 stop = std::string("kind=io-") + (d.data_oe_o ? "write" : "read") +
                        " port=" + hex(a & 0xffff, 4) + " at=" + where;
                 break;
@@ -122,13 +148,31 @@ int main(int argc, char** argv) {
                     if (write && !io) {
                         if (is_ram(x)) ram[x] = value; else ++rom_writes;
                     }
+                    if (io && write && empty_slot_write) ++slot_writes;
+                    // The 8042 select (sheets 13/18): even addresses 060h-06Eh.
+                    if (klog.is_open() && io && !write && (x & 0x3f1) == 0x060)
+                        klog << "S " << ((x >> 2) & 1) << ' ' << unsigned(value) << '\n';
                     if (!fetch)
                         trace << "B " << std::hex << x << ' ' << unsigned(value) << ' ' << write << ' '
                               << io << std::dec << '\n';
                 }
             }
 
+            // 8042 events at this rising edge. An instruction that starts at
+            // the edge used the state before it, so it is counted before a
+            // host event that takes effect at the same edge.
+            if (d.kbc_start_o) ++kbc_started;
+            if (klog.is_open()) {
+                if (d.kbc_wr_end_o)
+                    klog << "W " << kbc_started << ' ' << unsigned(d.kbc_wr_a0_o) << ' '
+                         << unsigned(d.kbc_wr_data_o) << '\n';
+                if (d.kbc_rd_end_o && !d.kbc_rd_a0_o) klog << "X " << kbc_started << '\n';
+            }
             d.clk_i = 1; d.clk_2x_i = 1; d.eval();
+            if (d.kbc_retire_o) {
+                ++kbc_retired;
+                if (klog.is_open()) klog << "I " << unsigned(d.kbc_retire_pc_o) << '\n';
+            }
             if (d.retire_o) {
                 ++retired;
                 cur_cs = uint16_t(d.segs_o >> 16);
@@ -144,8 +188,12 @@ int main(int argc, char** argv) {
         if (stop.empty()) stop = "kind=cycle-limit at=" + hex(cur_cs, 4) + ":" + hex(cur_ip, 4);
         trace.flush();
         if (!trace) throw std::runtime_error("trace write failed");
+        if (klog.is_open()) {
+            klog.flush();
+            if (!klog) throw std::runtime_error("8042 log write failed");
+        }
         std::cout << "STOP " << stop << " post=" << hex(d.post_code_o, 2) << " retired=" << retired
-                  << " cycles=" << cycle << " rom_writes=" << rom_writes << " wait=" << wait
+                  << " cycles=" << cycle << " kbc_retired=" << kbc_retired << " slot_writes=" << slot_writes << " rom_writes=" << rom_writes << " wait=" << wait
                   << " half=" << half << '\n';
         d.final();
         return 0;
