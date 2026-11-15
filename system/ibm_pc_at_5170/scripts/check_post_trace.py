@@ -24,6 +24,11 @@ CHECKPOINTS = {
     'DMA controller 2 registers': (0xf02f8, 0x0302),
     'page registers': (0xf038a, None),
     'refresh indication': (0xf03a2, None),
+    # 8042 test, F000:03A2-0422: IN AL,60h / CMP AL,55h / JNZ error falls
+    # through; the command-byte write is accepted; the test jumps on.
+    '8042 self-test reply 55h': (0xf03db, 0x03dd),
+    '8042 command byte accepted': (0xf03f7, 0x03fe),
+    '8042 test complete': (0xf0402, 0x0422),
 }
 
 

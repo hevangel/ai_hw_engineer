@@ -1,0 +1,30 @@
+// Power-on contents of the MC146818 (U117) for the POST runner: 64 hex bytes
+// in $readmemh form. Written for this model from the CMOS RAM address map in
+// the IBM PC AT Technical Reference, March 1984, printed pages 1-45 to 1-52.
+// It is the record SETUP would leave for the configuration the runner
+// models; it is not a dump of any machine.
+// 00-09: 12:00:00, Tuesday (day 3) 14 August 1984, BCD, 24-hour; alarms 00
+00 00 00 00 12 00 03 14 08 84
+// 0A-0D: A = 26h (32.768 kHz time base, 1.024 kHz rate), B = 02h (24-hour,
+// BCD, interrupts off), C = 00h, D = 80h (valid RAM and time)
+26 02 00 80
+// 0E diagnostic status 00h, 0F shutdown status 00h
+00 00
+// 10 diskette types: A = high capacity (2), B = none; 11 reserved
+20 00
+// 12 fixed disk types: none; 13 reserved
+00 00
+// 14 equipment: one diskette drive (bits 7-6 = 00, bit 0 = 1), primary
+// display monochrome (bits 5-4 = 11), no math coprocessor (bit 1 = 0)
+31
+// 15-16 base memory 0280h KB (640K), low byte first; 17-18 expansion 0
+80 02 00 00
+// 19-2D reserved
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+// 2E-2F checksum of 10h-2Dh, high byte first: 20h+31h+80h+02h = 00D3h
+00 D3
+// 30-31 expansion memory found by POST, 32 century 19h, 33 information
+// flags: bit 7 = 128K base memory expansion installed
+00 00 19 80
+// 34-3F reserved
+00 00 00 00 00 00 00 00 00 00 00 00

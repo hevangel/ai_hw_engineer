@@ -1,7 +1,7 @@
 // Intel 8042 UPI-42: the upi42_core with its 2048 x 8 mask ROM.
 // ROM_FILE is a $readmemh image of the firmware (one byte per line).
 module intel_8042 #(
-    parameter string ROM_FILE = ""
+    parameter ROM_FILE = ""
 ) (
     input  logic        clk,
     input  logic        rst_n,

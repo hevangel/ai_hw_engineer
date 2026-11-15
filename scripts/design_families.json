@@ -43,6 +43,7 @@
     ],
     "intel_mcs48": [
       "intel_8042"
+    ],
     "amd_am26xx": [
       "members/am2600",
       "members/am2602",

@@ -16,12 +16,40 @@ ROOT = Path(__file__).resolve().parents[1]
 WORK_ROOT = get_work_root(ROOT)
 
 
-def decode(uc, pc):
+STRING_OPS = (0xa4,0xa5,0xa6,0xa7,0xaa,0xab,0xac,0xad,0xae,0xaf)
+# Intel 210498-005 Appendix B REP/REPE/REPNE: F3 repeats MOVS/STOS; F3 (REPE)
+# and F2 (REPNE) repeat CMPS/SCAS. Other prefix/opcode pairs stay unsupported,
+# as do INS/OUTS (their per-element port inputs are not replayed here).
+REPEATABLE = {0xf3:(0xa4,0xa5,0xa6,0xa7,0xaa,0xab,0xae,0xaf), 0xf2:(0xa6,0xa7,0xae,0xaf)}
+
+
+def decode(uc, pc, extended=False):
+    """Return (opcode, bytes from the opcode on) for a whitelisted form.
+
+    The default whitelist is the one the ROM-checksum trace in main() was
+    built from. extended=True (used by bios_replay) also accepts the single
+    string forms in STRING_OPS, the REPEATABLE repeated forms (one repeat
+    prefix, in any order with segment prefixes) and 0F 01 /0-/3 with a memory
+    operand (SGDT/SIDT/LGDT/LIDT) and /4 with a register operand (SMSW).
+    """
     raw = bytes(uc.mem_read(pc,10))
     n = 0
-    while n<10 and raw[n] in (0x26,0x2e,0x36,0x3e): n += 1
+    repeat = None
+    while n<10 and (raw[n] in (0x26,0x2e,0x36,0x3e) or extended and raw[n] in (0xf2,0xf3)):
+        if raw[n] in (0xf2,0xf3):
+            if repeat is not None: return None
+            repeat = raw[n]
+        n += 1
     if n==10: return None
     op=raw[n]
+    if repeat is not None:
+        return (op,raw[n:]) if op in REPEATABLE[repeat] else None
+    if extended and op in STRING_OPS: return op,raw[n:]
+    if extended and op==0x0f:
+        if n>7 or raw[n+1]!=0x01: return None
+        m=raw[n+2]; extension=(m>>3)&7
+        if extension<=3 and m<0xc0 or extension==4 and m>=0xc0: return op,raw[n:]
+        return None
     modrm = op<=0x3b and op%8<4 or op in (0x80,0x81,0x83,0x84,0x85,0x86,0x87,
         0x88,0x89,0x8a,0x8b,0x8c,0x8d,0x8e,0x8f,0xc0,0xc1,0xc4,0xc5,0xc6,0xc7,
         0xd0,0xd1,0xd2,0xd3,0xf6,0xf7,0xfe,0xff)

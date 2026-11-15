@@ -65,10 +65,15 @@ def replay(rom_path, trace_path, on_step=None, allow_trailing=False):
             expected_pc = cs*16 + ip
             if pc != expected_pc:
                 raise ValueError(f'PC mismatch at step {steps}: CPU {pc:06x}, oracle {expected_pc:06x}')
-            decoded = decode(g.uc, pc)
+            decoded = decode(g.uc, pc, extended=True)
             if decoded is None or decoded[0] != op:
                 raise ValueError(f'opcode mismatch at {pc:06x}, CPU {op:02x}, oracle {decoded}')
             _, raw = decoded
+            # decode() returns the bytes from the opcode on; the bytes before
+            # it are prefixes. decode() accepts a repeat prefix only on a
+            # repeatable string opcode.
+            repeated = any(b in (0xf2, 0xf3) for b in bytes(g.uc.mem_read(pc, 10 - len(raw))))
+            system = (raw[2] >> 3) & 7 if op == 0x0f else None  # decode() admits only 0F 01
             # This firmware uses one byte input per instruction. Reject a
             # trace that would require different values for one port in the
             # same instruction, rather than silently collapsing its history.
@@ -82,10 +87,31 @@ def replay(rom_path, trace_path, on_step=None, allow_trailing=False):
             before = [g.uc.reg_read(r) for r in REGS]
             g.bus.clear()
             g.seen.clear()
-            g.uc.emu_start(pc, 0, count=1)
-            if len(g.seen) != 1 or g.seen[0][0] != pc:
+            # The CPU trace has one R record per whole instruction; a repeated
+            # string instruction's element transfers all precede it. Unicorn
+            # executes one element per count=1 step and stays at the same PC
+            # until the count ends, so step it until it leaves the instruction
+            # (as Generator.case does) and compare the aggregate.
+            repetitions = 0
+            while True:
+                g.uc.emu_start(pc, 0, count=1)
+                repetitions += 1
+                if not repeated or g.uc.reg_read(UC_X86_REG_CS)*16 + g.uc.reg_read(UC_X86_REG_IP) != pc:
+                    break
+                if repetitions > 65536:
+                    raise ValueError(f'oracle repeat at {pc:06x} did not finish within the CX range')
+            if len(g.seen) != repetitions or any(address != pc for address, _ in g.seen):
                 raise ValueError(f'oracle synchronization error at {pc:06x}')
             ip = g.uc.reg_read(UC_X86_REG_IP)
+            # CMPS/SCAS set OF/SF/ZF/AF/PF/CF as CMP does; the other string
+            # forms, the repeat itself and an initially zero CX (no element)
+            # leave every flag unchanged (Intel 210498-005 §3.7.2 and the
+            # Appendix B CMPS/SCAS/LODS/MOVS/STOS/REP entries; see
+            # design/intel_80286/spec/string_execution.md).
+            if op in (0xa6, 0xa7, 0xae, 0xaf) and (not repeated or before[1]):
+                valid_flags |= 0x8d5
+            # 0F 01 SGDT/SIDT/LGDT/LIDT/SMSW change no flags (210498-005
+            # Appendix B entries; spec/system_register_execution.md).
             if op <= 0x3d and op % 8 <= 5 or op in (0x80, 0x81, 0x83):
                 kind = (raw[1] >> 3) & 7 if op in (0x80, 0x81, 0x83) else op // 8
                 valid_flags |= 0x8d5
@@ -107,16 +133,42 @@ def replay(rom_path, trace_path, on_step=None, allow_trailing=False):
             flags = g.uc.reg_read(UC_X86_REG_EFLAGS) & 0xffff
             segs = sum(g.uc.reg_read(r) << (16*n) for n, r in enumerate(SEGS))
             regs = [g.uc.reg_read(r) for r in REGS]
-            ax_mask = 0xd5ff if op == 0x9f else 0xffff
+            reg_masks = [0xffff] * 8
+            if op == 0x9f:
+                reg_masks[0] = 0xd5ff
+            if system == 4:
+                # SMSW r16: Unicorn stores a later CPU's CR0 low word. Only
+                # PE/MP/EM/TS (bits 0-3) are defined MSW bits on the 286;
+                # bits 4-15 are reserved (210498-005 MSW description and
+                # Appendix B SMSW). Unicorn is not a 286 oracle for them, so
+                # they are not compared and the CPU's value is adopted.
+                reg_masks[raw[2] & 7] = 0x000f
             if (g.uc.reg_read(UC_X86_REG_CS), ip) != (next_cs, next_ip):
                 raise ValueError(f'next CS:IP mismatch at {pc:06x}')
             if (flags ^ actual_flags) & valid_flags or segs != actual_segs:
                 raise ValueError(f'flags/segments mismatch at {pc:06x}: CPU {actual_flags:04x}, oracle {flags:04x}, mask {valid_flags:04x}')
             for index, (expected, actual) in enumerate(zip(regs, actual_regs)):
-                if (expected ^ actual) & (ax_mask if index == 0 else 0xffff):
+                if (expected ^ actual) & reg_masks[index]:
                     raise ValueError(f'register {index} mismatch at {pc:06x}: CPU {actual:04x}, oracle {expected:04x}')
-            if g.bus != pending:
+            if system in (0, 1):
+                # SGDT/SIDT store limit16, base24 and a sixth byte the 286
+                # manual leaves unused (210498-005 Appendix B SGDT/SIDT;
+                # assumption A12 in spec/system_register_execution.md).
+                # Require six ascending writes that agree in every address,
+                # direction and the five defined values; the sixth value is
+                # not authoritative in Unicorn, so the CPU's byte is copied
+                # into the oracle's memory to keep later reads in step.
+                if (len(g.bus) != 6 or len(pending) != 6 or g.bus[:5] != pending[:5] or
+                        (g.bus[5][0],) + g.bus[5][2:] != (pending[5][0],) + pending[5][2:] or
+                        any(g.bus[n][0] != g.bus[0][0] + n or g.bus[n][2:] != (1, 0) for n in range(6))):
+                    raise ValueError(f'bus mismatch at {pc:06x}: CPU {pending}, oracle {g.bus}')
+                address, value = pending[5][:2]
+                g.uc.mem_write(address, bytes([value]))
+                g.shadow[address] = value
+            elif g.bus != pending:
                 raise ValueError(f'bus mismatch at {pc:06x}: CPU {pending}, oracle {g.bus}')
+            if system == 4:
+                g.uc.reg_write(REGS[raw[2] & 7], actual_regs[raw[2] & 7])
             pending.clear()
             if on_step:
                 on_step(pc, next_ip, inputs)

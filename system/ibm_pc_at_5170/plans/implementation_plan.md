@@ -1,7 +1,9 @@
 # IBM PC AT 5170 implementation plan
 
-Status: M1 done (board skeleton, stops at the first 8042 read). M2 (the
-8042) is next and needs decision D3.
+Status: M1 done and merged (board skeleton, stops at the first 8042
+read). M2 done (8042 and MC146818 on the board, stops at the first
+coprocessor-port write); decision D3 is resolved (Option A, below). M3 is
+next.
 
 Each milestone ends with a report in `report/` and an update to issue
 https://github.com/hevangel/ai_hw_engineer/issues/254. A milestone is done
@@ -15,6 +17,8 @@ the current boundary; moving it needs a report.
 - Remaining sourcing (needed before M2/M3 RTL): system I/O map, 8042
   commands and output port, CMOS map and shutdown byte, NMI mask, type-1
   CPU clock, exact announcement date.
+- The 8042 firmware is sourced since M2: IBM part 1503033, rebuilt and
+  hash-verified (see M2).
 
 ## M1: board skeleton with strict decoding (done)
 
@@ -30,27 +34,67 @@ the current boundary; moving it needs a report.
   before the 8042) was wrong: the BIOS reads the 8042 before any other
   board device. See [the M1 report](../report/2026-11-13-m1-board-skeleton.md).
 
-## M2: 8042 keyboard controller
+## M2: 8042 and MC146818 on the board (done)
 
-The 8042 is read at `F000:00DE` (system flag), and its self-test and
-command-byte sequence runs at `F000:03A2`–`0422`, right after the refresh
-test. The BIOS cannot get past either point without it.
+On the strict board the unchanged REV1 BIOS does the following, in order:
 
-- Decide D3. Option A: an MCS-48/UPI-42 core in `design/` running IBM's
-  original 8042 ROM (needs a sourced, hash-pinned dump). Option B: a
-  behavioral model of the host interface, which needs an independent
-  oracle (86Box's AT keyboard controller, run as a separate program) and
-  an assumption entry for every behavior.
-- Wire the 8042 output port to gate A20 and CPU reset.
-- Goal: the BIOS passes `F000:00DE` on the cold-boot path and finishes the
-  8042 test at `F000:0422`. The existing fixture checkpoints (timer, DMA,
-  page registers, refresh) are then re-established on the strict board.
+1. Reads the 8042 status at `F000:00DE`. It reads F0h: system-flag bit 2 is
+   0, so this is a cold boot.
+2. At `F000:01AF` writes 8Bh to port 70h and at `F000:01B3` reads port 71h
+   (RTC status register B), then runs a read/write test of CMOS shutdown
+   byte 0Fh at POST checkpoint 02. It halts at `F000:01AD` if that fails.
+3. Writes ports 3B8h and 3D8h once each.
+4. Runs the timer, DMA, page-register and refresh tests.
+5. Runs its 8042 test at `F000:03A2`–`0422` (AAh gives 55h, C0h reads the
+   input port, then the 60h/5Dh command byte).
+6. Continues to POST checkpoint 12h and stops at `F000:068B` on a write to
+   port F1h (math-coprocessor reset), just before it initializes the 8259s.
 
-## M3: interrupt controllers, CMOS and memory
+So M2 needs the MC146818 as well as the 8042. This corrects the earlier
+split, which put the 8042 in M2 and CMOS in M3.
 
-- Two cascaded 8259s with INTR and INTA wired to the CPU.
-- MC146818 CMOS (ai_engineer#121), the NMI mask at port 70h and the
-  shutdown byte (read at `F000:00E7` on the warm-restart path).
+Done:
+
+- The board top composes the native 80286 (`intel_80286_native_cpu`)
+  directly, not through the 286 design's
+  `intel_80286_at_refresh_timer_native` fixture wrapper, so the board owns
+  CPU reset, INTR and NMI. The timer, port 61h, DMA, page-register and
+  refresh modules are still the 286 design's AT models, reused in place.
+- Decision D3 is resolved as Option A: the Intel 8042 (U126,
+  `design/intel_mcs48/intel_8042`) is an MCS-48/UPI-42 core running IBM's
+  firmware part 1503033. The ROM image is rebuilt and hash-verified by
+  `design/intel_mcs48/intel_8042/scripts/rebuild_1503033.py` (SHA-1
+  `0100f8789fb4de74706ae7f9473a12ec2b9bd729`, matching MAME's
+  `1503033.bin`) into an ignored work folder.
+- 8042 wiring from the Technical Reference (host bus, chip select through
+  U123 and U115, P20 to CPU reset, P21 to A20, P24 to IRQ1, keyboard
+  clock and data, input port, 6 MHz clock stepped once per 15 processor
+  clocks) is recorded in the spec. P20 resets only the 80286.
+- The MC146818 (U117, `design/motorola_mc146818`) is on the board, wired
+  from sheet 18: a write to port 70h is the address strobe and loads the
+  NMI mask from bit 7, port 71h is the data strobe, and its IRQ is the
+  board's IRQ 8 output, not connected until the 8259s exist (M3). It
+  starts from `tb/cmos_configured.hex` (assumption AT11).
+- The runner accepts writes to empty expansion-slot addresses (AT10).
+- An M1 defect is fixed: the board's "undriven read" flag fired during the
+  wait states of a read whose device had not yet driven data; it is now
+  checked when the read completes.
+
+Result: with the 8042 and MC146818 on the board, the unchanged BIOS runs
+1,125,813 instructions (1,084,662 with bus wait states), passes its CMOS
+shutdown-byte test and its own 8042 test, and stops at `F000:068B`, a
+write to port F1h at POST checkpoint 12h. Every instruction matches
+Unicorn and the 8042 matches its reference model. See
+[the M2 report](../report/2026-11-14-m2-8042-and-rtc.md).
+
+## M3: coprocessor ports, interrupt controllers and memory
+
+- Math-coprocessor ports F0h/F1h.
+- Two cascaded 8259s with INTR and INTA wired to the CPU; MC146818 IRQ to
+  interrupt request 8.
+- Wire the 80286 shutdown cycle to CPU reset through the U105/U106
+  flip-flops (sheet 22), replacing the stand-in of assumption AT7. The
+  BIOS reads the shutdown byte at `F000:00E7` on the warm-restart path.
 - Expansion RAM above 1 MB and the protected-mode memory test.
 
 ## M4: video, keyboard input and diskette; full POST
@@ -77,8 +121,8 @@ test. The BIOS cannot get past either point without it.
 
 ## Risks
 
-- The 8042 needs IBM's firmware for option A; without a sourced dump it is
-  a behavioral model (option B).
+- The decode PROM U115 is unpublished (assumption AT8), so the 8042's
+  address aliases are inferred, not read from the PROM.
 - The 286 has no oracle yet for interrupts, NMI and single-step in
   protected mode. OS/2 depends on all three; extend the PCE oracle loop
   before M6.
