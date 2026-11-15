@@ -11,6 +11,7 @@ module ibm_pc_at_5170_tb #(
     input  logic [15:0] mem_rdata_i,
     input  logic        kbd_unlocked_i, display_mono_i, mfg_jumper_i, ram_512k_i,
     input  logic        kbd_clk_i, kbd_data_i,
+    input  logic [15:0] chan_irq_i,
     output logic [23:0] address_o,
     output logic [15:0] data_o, cpu_data_o,
     output logic        data_oe_o, address_oe_o, bhe_n_o, io_cycle_o, fetch_cycle_o,
@@ -22,7 +23,7 @@ module ibm_pc_at_5170_tb #(
     output logic        io_unclaimed_o, io_read_undriven_o,
     output logic [7:0]  post_code_o,
     output logic        a20_gate_o, rc_n_o, kbc_obf_o, cpu_reset_o, kbc_illegal_o,
-    output logic        kbd_clk_o, kbd_data_o, nmi_enable_o, irq8_o,
+    output logic        kbd_clk_o, kbd_data_o, nmi_enable_o, irq8_o, intr_o, inta_cycle_o,
     output logic        kbc_retire_o, kbc_start_o, kbc_wr_end_o, kbc_rd_end_o,
     output logic        kbc_wr_a0_o, kbc_rd_a0_o,
     output logic [7:0]  kbc_wr_data_o,
@@ -45,7 +46,7 @@ module ibm_pc_at_5170_tb #(
         .io_unclaimed_o, .io_read_undriven_o, .post_code_o,
         .kbd_unlocked_i, .display_mono_i, .mfg_jumper_i, .ram_512k_i, .kbd_clk_i, .kbd_data_i,
         .kbd_clk_o, .kbd_data_o, .a20_gate_o, .rc_n_o, .kbc_obf_o, .cpu_reset_o, .kbc_illegal_o,
-        .nmi_enable_o, .irq8_o
+        .nmi_enable_o, .irq8_o, .chan_irq_i, .intr_o, .inta_cycle_o
     );
     /* verilator lint_on PINMISSING */
     assign cpu_data_o = board.cpu_data;

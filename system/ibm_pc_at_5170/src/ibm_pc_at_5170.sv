@@ -48,6 +48,9 @@ module ibm_pc_at_5170 #(
     input  logic        ram_512k_i,        // J18 pins 1-2: 2nd 256K enabled (P14 high)
     // Keyboard cable, open collector: 1 = the keyboard releases the line.
     input  logic        kbd_clk_i, kbd_data_i,
+    // I/O channel interrupt request lines IRQ 3-7, 9-12, 14 and 15 (bits
+    // 0-2, 8 and 13 are unused: those levels are on the system board).
+    input  logic [15:0] chan_irq_i,
     output logic        kbd_clk_o, kbd_data_o,   // line levels as the keyboard sees them
     output logic [23:0] address_o,
     output logic [15:0] data_o,
@@ -70,7 +73,9 @@ module ibm_pc_at_5170 #(
     output logic        cpu_reset_o,
     output logic        kbc_illegal_o,     // 8042 executed an undefined opcode
     output logic        nmi_enable_o,      // port 70h bit 7 written 0
-    output logic        irq8_o             // MC146818 IRQ through U107 (to IRQ 8)
+    output logic        irq8_o,            // MC146818 IRQ through U107 (to IRQ 8)
+    output logic        intr_o,            // master 8259A INT, the 80286 INTR pin
+    output logic        inta_cycle_o       // an interrupt-acknowledge bus cycle is active
 );
     logic cod_inta, m_io, s1, s0, status_oe, hold, detect, refresh_n;
     logic io_req, io_accept, io_write;
@@ -84,6 +89,7 @@ module ibm_pc_at_5170 #(
     logic [7:0] timer_rdata, port61_rdata, dma_rdata, page_rdata, kbc_rdata;
     logic [3:0] port61_control;
     logic [2:0] timer_out;
+    logic cpu_ready_n, shutdown_reset_n;
     logic [3:0] status;
     assign status = {cod_inta, m_io, s1, s0};
 
@@ -115,12 +121,17 @@ module ibm_pc_at_5170 #(
     assign cpu_data = port61_valid ? lane(port61_rdata) :
                       timer_valid  ? lane(timer_rdata) :
                       kbc_valid    ? lane(kbc_rdata) :
+                      pic1_valid   ? lane(pic1_rdata) :
+                      pic2_valid   ? lane(pic2_rdata) :
+                      (inta_tc && pic1_oe) ? {8'h00, pic1_rdata} :
+                      (inta_tc && pic2_oe) ? {8'h00, pic2_rdata} :
                       rtc_valid    ? lane(rtc_rdata) :
                       dma_valid    ? lane(dma_rdata) :
                       page_valid   ? lane(page_rdata) :
                       io_cycle_o   ? 16'h0000 : mem_rdata_i;
 
-    assign io_claimed_o = timer_sel || port61_sel || dma_sel || page_sel || kbc_sel || rtc_sel;
+    assign io_claimed_o = timer_sel || port61_sel || dma_sel || page_sel || kbc_sel || rtc_sel ||
+                          pic1_sel || pic2_sel || copro_sel;
     assign io_unclaimed_o = io_req && !io_claimed_o;
     // Checked when the read completes: a device's data is due at the end of
     // the cycle, not during its wait states.
@@ -200,9 +211,9 @@ module ibm_pc_at_5170 #(
     logic peack_n_unused;
     /* verilator lint_off PINMISSING */
     intel_80286_native_cpu cpu (
-        .clk_i(clk_i), .clk_2x_i(clk_2x_i), .reset_i(reset_i), .res_n_i(rc_n_o),
-        .ready_n_i(ready_n_i), .cenl_i(1'b1), .cen_i(1'b1), .cmdly_i(1'b0),
-        .hold_i(hold), .intr_i(1'b0), .nmi_i(1'b0), .busy_i(1'b0),
+        .clk_i(clk_i), .clk_2x_i(clk_2x_i), .reset_i(reset_i), .res_n_i(rc_n_o && shutdown_reset_n),
+        .ready_n_i(cpu_ready_n), .cenl_i(1'b1), .cen_i(1'b1), .cmdly_i(1'b0),
+        .hold_i(hold), .intr_i(intr_o), .nmi_i(1'b0), .busy_i(1'b0),
         .error_n_i(1'b1), .pereq_i(1'b0), .peack_n_o(peack_n_unused),
         .data_i(cpu_data), .data_o(data_o), .data_oe_o(data_oe_o),
         .address_o(cpu_address), .address_oe_o(address_oe_o),
@@ -221,6 +232,74 @@ module ibm_pc_at_5170 #(
         .refresh_memr_n_o(refresh_memr_n_o), .refresh_memr_oe_o(refresh_memr_oe_o)
     );
     /* verilator lint_on PINMISSING */
+
+    // Sheet 22: flip-flop U105 catches the 80286 shutdown cycle and resets
+    // the processor through the same -SHT DWN net as RC. The reset ends
+    // when the processor's reset clears its shutdown state.
+    assign shutdown_reset_n = !shutdown_o;
+    assign inta_cycle_o = inta_tc;
+
+    // ------------------------------------------------- interrupt controllers
+    // Two 8259As (sheet 16): the master at 020h-03Fh, the slave at 0A0h-0BFh
+    // with its INT on the master's IR2. A0 of each chip is XA0.
+    // The model takes a read or write on every clock its strobe is low, so
+    // each strobe is one clock, at the end of the bus cycle.
+    // Requests: IR0 = timer channel 0, IR1 = +OPT BUF FULL from the 8042,
+    // slave IR0 = IRQ 8 from the MC146818; the rest come from the I/O
+    // channel (chan_irq_i).
+    logic pic1_sel, pic2_sel, pic1_valid, pic2_valid, pic1_oe, pic2_oe, pic1_int, pic2_int;
+    logic [7:0] pic1_rdata, pic2_rdata;
+    logic [2:0] pic_cas, pic_cas_oe;
+    logic inta_cycle, inta_tc, inta_waited, inta_n;
+    assign pic1_sel = io_req && cpu_address[9:5] == 5'b00001;
+    assign pic2_sel = io_req && cpu_address[9:5] == 5'b00101;
+    assign pic1_valid = pic1_sel && io_accept && !io_write;
+    assign pic2_valid = pic2_sel && io_accept && !io_write;
+
+    // Interrupt acknowledge: two bus cycles with status 0000. -INTA is low
+    // for the command phase of each.
+    // ASSUMPTION AT13 (see spec): each acknowledge cycle gets one wait state.
+    // The 8259 model samples -INTA on the clock, so it needs one clock to
+    // put the vector on the bus; the real 8259A answers inside the cycle.
+    always_ff @(posedge clk_i) begin
+        if (cpu_reset_o) inta_cycle <= 1'b0;
+        else if (status_oe) inta_cycle <= status == 4'h0;
+        inta_waited <= inta_tc;
+    end
+    assign inta_tc = address_oe_o && !status_oe && inta_cycle;
+    assign inta_n = !inta_tc;
+    assign cpu_ready_n = ready_n_i || (inta_tc && !inta_waited);
+    assign intr_o = pic1_int;
+
+    /* verilator lint_off PINCONNECTEMPTY */
+    intel_8259 pic1 (
+        .clk(clk_i), .rst_n(!reset_i),
+        .cs_n(!pic1_sel), .rd_n(!pic1_valid), .wr_n(!(pic1_sel && io_write && io_accept)),
+        .a0(cpu_address[0]), .data_i(io_wdata), .data_o(pic1_rdata), .data_oe(pic1_oe),
+        .ir({chan_irq_i[7:3], pic2_int, kbc_obf_o, timer_out[0]}),
+        .int_o(pic1_int), .inta_n(inta_n),
+        .cas_i(3'b000), .cas_o(pic_cas), .cas_oe(pic_cas_oe),
+        .sp_n_i(1'b1), .en_n_o(), .en_n_oe()
+    );
+    intel_8259 pic2 (
+        .clk(clk_i), .rst_n(!reset_i),
+        .cs_n(!pic2_sel), .rd_n(!pic2_valid), .wr_n(!(pic2_sel && io_write && io_accept)),
+        .a0(cpu_address[0]), .data_i(io_wdata), .data_o(pic2_rdata), .data_oe(pic2_oe),
+        .ir({chan_irq_i[15:14], irq13, chan_irq_i[12:9], irq8_o}),
+        .int_o(pic2_int), .inta_n(inta_n),
+        .cas_i(pic_cas & pic_cas_oe), .cas_o(), .cas_oe(),
+        .sp_n_i(1'b0), .en_n_o(), .en_n_oe()
+    );
+    /* verilator lint_on PINCONNECTEMPTY */
+
+    // ---------------------------------------------- math coprocessor ports
+    // Port F0h clears the coprocessor busy latch and port F1h resets the
+    // 80287. No 80287 is fitted, so both writes are accepted and have no
+    // effect; IRQ 13 stays inactive. Reads are not decoded.
+    logic copro_sel, irq13;
+    assign copro_sel = io_req && io_write &&
+                       (cpu_address[9:0] == 10'h0f0 || cpu_address[9:0] == 10'h0f1);
+    assign irq13 = 1'b0;
 
     // ------------------------------------------------- timer and port 61h
     intel_80286_at_timer timer (
@@ -328,6 +407,7 @@ module ibm_pc_at_5170 #(
     /* verilator lint_on PINCONNECTEMPTY */
 
     logic unused;
-    assign unused = ^{dma_ctrl2, port61_control[3:1], timer_out[0], kbc_oe, peack_n_unused,
+    assign unused = ^{dma_ctrl2, port61_control[3:1], kbc_oe, peack_n_unused, pic1_oe, pic2_oe,
+                      chan_irq_i[13], chan_irq_i[8], chan_irq_i[2:0],
                       rtc_oe, rtc_sqw, rtc_dbg};
 endmodule

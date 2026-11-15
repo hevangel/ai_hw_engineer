@@ -84,6 +84,7 @@ int main(int argc, char** argv) {
         // plugged in (both keyboard lines released).
         d.kbd_unlocked_i = 1; d.display_mono_i = 1; d.mfg_jumper_i = 0; d.ram_512k_i = 1;
         d.kbd_clk_i = 1; d.kbd_data_i = 1;
+        d.chan_irq_i = 0;   // no adapter requests an interrupt
         uint64_t kbc_retired = 0, kbc_started = 0, slot_writes = 0;
         auto half_clock = [&](bool rising) {
             d.clk_i = rising; d.clk_2x_i = 1; d.eval();
@@ -105,8 +106,9 @@ int main(int argc, char** argv) {
 
             const std::string where = hex(cur_cs, 4) + ":" + hex(cur_ip, 4);
             if (d.protocol_error_o) stop = "kind=protocol-error";
-            else if (d.shutdown_o) stop = "kind=shutdown";
-            else if (d.halted_o) stop = "kind=halt";
+            // A halt with interrupts disabled can never end (NMI is not
+            // connected). A shutdown resets the processor on the board.
+            else if (d.halted_o && !(d.flags_o & 0x200)) stop = "kind=halt";
             else if (d.fault_o) stop = "kind=fault";
             else if (d.kbc_illegal_o) stop = "kind=kbc-illegal-opcode";
             if (!stop.empty()) { stop += " at=" + where; break; }

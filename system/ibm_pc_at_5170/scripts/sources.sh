@@ -6,6 +6,7 @@ RTC_DIR=$REPO_DIR/design/motorola_mc146818
 BOARD_RTL="$CPU_DIR/src/*.sv
  $REPO_DIR/design/intel_8253_8254/src/intel_8253_8254.sv
  $REPO_DIR/design/intel_8237/src/intel_8237.sv
+ $REPO_DIR/design/intel_8259/src/intel_8259.sv
  $CPU_DIR/tb/intel_80286_at_timer.sv $CPU_DIR/tb/intel_80286_at_dma.sv
  $CPU_DIR/tb/intel_80286_at_page.sv $CPU_DIR/tb/intel_80286_at_page_map.sv
  $CPU_DIR/tb/intel_80286_at_port61.sv $CPU_DIR/tb/intel_80286_at_refresh_request.sv
