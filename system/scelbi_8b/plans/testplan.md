@@ -30,6 +30,14 @@ variables (strings were a separate supplement).
 
 ## Paper-tape reader (scripts/run_ptr.sh)
 
+The SIMH-derived oracle now agrees with the RTL exactly over a full SCELBAL
+session: 1,065,000 architectural instructions, 136,980 `INP` values at matching
+instruction indices, and a 199-byte console transcript including `A + B = 8.0`.
+The earlier `INP`-boundary divergence was a defect in the oracle (it abandoned a
+received character when the host queue emptied mid-frame, unlike SIMH's
+`ttyin_d`, which latches at the start bit and finishes the frame), not in the
+RTL; the RTL was not changed.
+
 `tb/tb_ptr.sv` proves the card works with real 8008 code rather than only being
 wired up. A loader at `0x0200` reads `INP 3` and stores each byte with `Lm M`,
 incrementing `HL`; the test preloads a 24-byte tape and then checks every byte

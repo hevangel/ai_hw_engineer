@@ -68,6 +68,9 @@ forms), and the HTTP backend test:
 - `tb/tb_ptr.sv` (`scripts/run_ptr.sh`) — the paper-tape reader: a real
   8008 loader reads a 24-byte tape image through `INP 3` and stores it to
   memory; the bytes are checked one by one.
+- `scripts/compare_oracle.py` — cross-checks the RTL against the SIMH-derived
+  console oracle (`oracle/`): 1,465,000 architectural instructions and a
+  199-byte console transcript agree exactly, including `A + B = 8.0`.
 
 Boundaries: the console card models the byte-level bit-banger protocol
 (SIMH's model), not 110-baud analog timing; the paper-tape reader follows
@@ -78,6 +81,9 @@ math-functions and strings supplements are not loaded (the base SC1 ROM has no
 function/array or string capability — `UDEFX: HLT`); there is no FPGA build and
 no physical hardware comparison. See `report/final_report.md` for the full
 results and the open RTL-vs-oracle comparison limit.
+
+- [Console oracle](oracle/README.md) — independent SIMH-derived model used to
+  settle the `LET` and `INP` questions
 
 - [Specification](spec/spec.md)
 - [Implementation plan](plans/implementation_plan.md)

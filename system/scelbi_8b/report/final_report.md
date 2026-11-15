@@ -117,12 +117,51 @@ result buried in it.
   (`i8008.c`) are the behavioral reference for the console protocol and the
   load/run procedure.
 
+## RTL vs SIMH oracle: resolved
+
+The earlier open item was a divergence at an `INP` boundary after ~665k
+instructions. It is resolved, and it was a defect in the oracle, not in the RTL.
+
+What the divergence actually was: four `INP 5` reads out of 39,594 (0.01%)
+returned different values, all at the tail of the console session where the
+reader is draining the last character of a line. The oracle returned the idle
+mark (0x80) while the RTL returned a data bit.
+
+Root cause: SIMH's `ttyin_d` latches a character at the start bit and then
+returns its eight data bits unconditionally, even if the host has no more bytes
+queued -- the byte is already in the reader's shift register. The oracle
+re-checked the host queue on every `INP` and abandoned the frame when the queue
+was empty, so it never finished the carriage return that ends a line. That
+stalled SCELBAL after `RUN` in the oracle, which is why the two models disagreed
+about the console transcript.
+
+Fixing the oracle to match `scelbi_io.c` (latch once at the start bit, finish the
+frame regardless of queue state) made the two models agree completely:
+
+| Comparison | Result |
+|---|---|
+| Architectural state, instruction by instruction | 1,065,000 instructions identical |
+| `INP` value at matching instruction index | 136,980 of 136,980 identical |
+| Console transcript (7-bit, ASR-33) | 199 bytes identical, including `A + B = 8.0` |
+
+The RTL was not changed. The card already matched SIMH; the model did not.
+
+The corrected oracle now ships with the system at `system/scelbi_8b/oracle/`
+(see that folder's README) and `scripts/compare_oracle.py` reproduces the
+comparison: 1,465,000 architectural instructions and a 199-byte console
+transcript agree exactly.
+
+Note on method: the first attempt "fixed" this by making the RTL drop a partial
+frame when the FIFO went empty, which broke `tb_calc` (`no READY after boot and
+SCR`) because `tb_calc` types lines back-to-back and the FIFO is momentarily
+empty mid-frame. That confirmed the RTL behaviour was correct and the oracle was
+wrong, and the change was reverted.
+
 ## Known limits
 
-- The RTL-vs-oracle instruction comparison is incomplete: the traces agree for
-  the first 665k instructions and then diverge at an `INP` boundary. The
-  session tests pass on both models, so this is a modeling or alignment
-  difference rather than a known functional failure, but it is not explained.
+- The oracle is a development aid under `work/scelbi_ref/`, not shipped code. It
+  now agrees with the RTL over the tested session, but it remains a second
+  implementation rather than an independent hardware reference.
 - The paper-tape reader follows SIMH's documented port/flag map; SIMH's own PTR
   unit is unimplemented, so there is no reference emulator to diff against. The
   reader is verified only by the loader test above.
