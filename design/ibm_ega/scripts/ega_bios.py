@@ -41,7 +41,8 @@ def entry_index(mode, ext_mem=True, enhanced=False):
 
 
 def set_regs(ent, mono):
-    """SET_REGS port writes (listing 2484-2586) as script lines."""
+    """SET_REGS port writes (listing 2484-2586; C000:0DAB-0E54) as script
+    lines: OUT_DX (C000:0D15) writes the index to DX and the value to DX+1."""
     crt = 0x3B4 if mono else 0x3D4
     st = 0x3BA if mono else 0x3DA
     s = ['OW 3c4 00', 'OW 3c5 01']                      # reset sequencer
@@ -54,6 +55,7 @@ def set_regs(ent, mono):
     s += ['OR %03x' % st]                               # IN AL,DX (WHAT_BASE)
     for i, v in enumerate(ent['attr']):
         s += ['OW 3c0 %02x' % i, 'OW 3c0 %02x' % v]
+    s += ['OW 3c0 00']                                  # C000:0E1A: index 0, PAS = 0
     s += ['OW 3cc 00', 'OW 3ca 01']
     for i, v in enumerate(ent['gc']):
         s += ['OW 3ce %02x' % i, 'OW 3cf %02x' % v]
@@ -86,3 +88,28 @@ def lines_from_runs(runs, hpol, vpol):
     if cur:
         lines.append(cur)
     return lines
+
+
+def pal_on(mono):
+    """PAL_ON (C000:1DB7): IN Input Status 1, OUT 3C0,20h."""
+    return ['OR %03x' % (0x3BA if mono else 0x3DA), 'OW 3c0 20']
+
+
+def is_mono(ent):
+    return not (ent['misc'] & 1)
+
+
+def frames(path, hpol, vpol):
+    """Frames from a trace: list of frames, each a list of lines, each a
+    list of dot values; a frame starts after a vertical retrace ends."""
+    lines = lines_from_runs(read_trace_dots(path), hpol, vpol)
+    fr, cur, prev_v = [], [], 0
+    for ln in lines:
+        v = ((ln[0] >> 7) & 1) ^ vpol
+        if prev_v and not v and cur:
+            fr.append(cur)
+            cur = []
+        cur.append(ln)
+        prev_v = v
+    fr.append(cur)
+    return fr
