@@ -86,6 +86,7 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1979* (family) | Intel 8237 / 8237A | Four-channel programmable DMA controller; original IBM PC BIOS integration | [intel_8237](intel_8237/) |
 | 1980 | Intel 8087 | Architectural numeric coprocessor core; 80-bit stack, original ESC instructions and transactional memory interface | [intel_8087](intel_8087/) |
 | 1980* / 1982* | Intel 8272 / 8272A | Four-drive decoded-media floppy controller; FM/MFM/CRC helpers and original IBM PC BIOS/DMA regression | [intel_8272](intel_8272/) |
+| By 1981* (data-book evidence; launch unconfirmed) | Motorola MC146818 | Real-time clock plus 64-byte CMOS RAM (the IBM PC AT RT/CMOS): BCD/binary calendar with leap years and daylight saving, alarm with don't-care codes, periodic interrupt/SQW, update cycle, RESET/PS pins, multiplexed Motorola bus; data-sheet reference model in lockstep (directed, 32 random seeds), IBM AT BIOS port 70h/71h sequences, formal, mutation check and synthesis | [motorola_mc146818](motorola_mc146818/) |
 | 1982 | Intel 80286 | Work in progress: 24-bit CPU core with real- and protected-mode slices, independent instruction replay, IBM AT BIOS refresh indication and partial memory bank/timing models; DRAM refresh, full ISA, POST and whole-core verification remain open | [intel_80286](intel_80286/) |
 | By 1982* (catalog evidence; launch year unconfirmed) | MOS Technology 6532 RIOT | 128-byte RAM, two eight-bit ports, interval timer and PA7 edge interrupts | [mos_6532](mos_6532/) |
 | 1982 | Intel 80286 | Work in progress: 24-bit register-execution core, ALU/shifts/branches, independent instruction vectors and original IBM AT flags-test regression | [intel_80286](intel_80286/) |
@@ -177,6 +178,8 @@ The Motorola 6800 entry records **1974 (March announcement)**: the [M6800 Microc
 The Motorola 6809 entry records **1978**; secondary sources agree on the year but differ on the month, so only the year is claimed. Technical behavior follows the Motorola MC6809 data sheet and programming manual, cross-checked against [MAME's m6809 core](https://github.com/mamedev/mame/blob/master/src/devices/cpu/m6809/m6809.h) (vector map) and the hardware-validated [reyco2000/6809_6309_code_tester](https://github.com/reyco2000/6809_6309_code_tester) programs. See the [chip overview](motorola_6809/README.md).
 
 The Motorola 68000 entry records **1979 (September announcement)**; the September 1979 announcement is the commonly cited date and the exact day is not asserted. The design is work in progress: verification harness complete (SingleStepTests 680x0 suite, 1,000,060 single-instruction vectors), RTL skeleton lint/synthesis clean, instruction classes landing incrementally. See the [chip overview](motorola_68000/README.md).
+
+The Motorola MC146818 entry records **By 1981\***: the earliest dated source located is the advance-information sheet in the Motorola *Microprocessors Data Manual* (1981), p. 4-1046; the revised sheet ADI-856-R1 appears in the 1983 *8-Bit Microprocessor and Peripheral Data* book. No announcement or first-shipment date was found. See the [chip overview](motorola_mc146818/README.md).
 
 ### Intel — support and peripheral devices (8237, 8251, 8253/8254, 8255, 8259, 8272, 8273, 8275, 8279)
 

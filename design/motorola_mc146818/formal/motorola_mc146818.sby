@@ -1,0 +1,28 @@
+# MC146818 formal checks: inline `ifdef FORMAL properties of
+# src/motorola_mc146818.sv. All inputs (bus, tick, RESET, PS) and the
+# power-on contents of the 64 locations are unconstrained.
+# prove: real-time divider (FAST_SHIFT 0); cover: FAST_SHIFT 10 so that the
+# update cycle is reachable within the bound.
+[tasks]
+prove
+cover
+
+[options]
+prove: mode prove
+cover: mode cover
+cover: depth 40
+
+[engines]
+prove: abc pdr
+cover: smtbmc yices
+
+[script]
+read -formal -DFORMAL motorola_mc146818.sv
+prove: chparam -set FAST_SHIFT 0 motorola_mc146818
+cover: chparam -set FAST_SHIFT 10 motorola_mc146818
+prep -top motorola_mc146818
+memory_map
+opt_clean -purge
+
+[files]
+../src/motorola_mc146818.sv
