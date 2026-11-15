@@ -856,14 +856,15 @@ def light_pen(s):
     s('LP 0', 'LP 1')                     # falling edge sets the flip-flop
     s('XREG 66 01')
     s('T 8')                              # boundary of char 2: latch ma = 2
-    s('OR 3da c6')                        # bit1 strobe, bit2 switch open, de 0
+    s('OR 3da c6')                        # bit 1 strobe, bit 2 switch open, bit 0 = 0
+    #                                       (output char 2 is displayed)
     s.crtc(0x10, 0)
     s('OR 3d5 00')
     s.crtc(0x11, 0)
     s('OR 3d5 02')
     s.ow(0x3DB, 0)                        # LP CLR (E5)
     s('XREG 66 00')
-    s('LPSW 0', 'OR 3da c0')              # switch closed -> bit 2 = 0 ... de 0 at char 3?
+    s('LPSW 0', 'OR 3da c0')              # switch closed -> bit 2 = 0, strobe cleared
     s.ow(0x3DC, 0)                        # LP SET
     s('XREG 66 01')
 
