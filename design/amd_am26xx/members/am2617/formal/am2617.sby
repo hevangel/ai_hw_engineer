@@ -1,0 +1,21 @@
+[tasks]
+bmc
+prove
+cover
+
+[options]
+bmc: mode bmc
+prove: mode prove
+cover: mode cover
+depth 2
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal -sv am2617.sv am2617_props.sv
+prep -top am2617_props
+
+[files]
+../src/am2617.sv
+am2617_props.sv

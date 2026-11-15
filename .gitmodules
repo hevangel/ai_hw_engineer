@@ -1,6 +1,6 @@
 [submodule "libs/uvm"]
 	path = libs/uvm
-	url = https://github.com/nitronis/UVM.git
+	url = https://github.com/git-hevangel/UVM.git
 [submodule "libs/cdc_primitives"]
 	path = libs/cdc_primitives
 	url = https://github.com/hevangel/cdc_primitives.git
