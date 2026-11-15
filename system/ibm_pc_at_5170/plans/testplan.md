@@ -2,7 +2,7 @@
 
 Status: M1 checks exist (`scripts/run_post.sh`, `scripts/run_synth.sh`,
 `scripts/run_all.sh`). M2 adds the 8042 reference-model check, the extended
-Unicorn oracle and three BIOS checkpoints; its final results are pending.
+Unicorn oracle and three BIOS checkpoints.
 
 ## Oracles
 
@@ -29,19 +29,16 @@ Unicorn oracle and three BIOS checkpoints; its final results are pending.
     8042. The script replays the accesses into the independent UPI-42
     reference model running the same firmware and requires the same
     instruction addresses in the same order and the same value for every
-    CPU read. Provisional result, with a bare 64-byte RAM standing in for
-    the MC146818: no-wait scenario, 559,555 8042 instructions and 39,267
-    CPU reads identical; wait-state scenario, 737,730 instructions and
-    28,966 reads identical; data replies 55h and FFh. Final result with
-    the real MC146818: `PENDING-M2-RESULT`.
+    CPU read. Result: no-wait scenario, 559,555 8042 instructions and
+    39,267 CPU reads identical; wait-state scenario, 737,730 instructions
+    and 28,966 reads identical; data replies 55h and FFh.
   - The Unicorn instruction oracle (`scripts/check_post_trace.py` via
     `design/intel_80286/scripts/bios_replay.py`) is extended to the string
     instructions, SGDT/SIDT/LGDT/LIDT and SMSW that the BIOS uses after the
-    8042 test. Provisional result: 1,125,813 instruction states and data
-    transfers match Unicorn up to `F000:068B`. Two values are not compared
+    8042 test. Result: 1,125,813 instruction states and data transfers
+    (1,084,662 with wait states) match Unicorn up to `F000:068B`. Two values are not compared
     because Unicorn models a later CPU: MSW bits 4–15 returned by SMSW and
-    the unused sixth byte stored by SGDT/SIDT. Final result:
-    `PENDING-M2-RESULT`.
+    the unused sixth byte stored by SGDT/SIDT.
   - Three new BIOS checkpoints in `check_post_trace.py`: "8042 self-test
     reply 55h" (`F000:03DB` falls through to `03DD`), "8042 command byte
     accepted" (`F000:03F7` to `03FE`) and "8042 test complete"

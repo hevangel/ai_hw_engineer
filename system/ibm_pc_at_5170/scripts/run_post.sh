@@ -8,7 +8,8 @@
 # Usage: scripts/run_post.sh /path/to/atbios.bin
 # Output: $IBM_PC_AT_WORK_DIR (default system/ibm_pc_at_5170/work)/post
 # The 8042 firmware (IBM 1503033) is rebuilt and hash-checked by
-# design/intel_mcs48/intel_8042/scripts/rebuild_1503033.py.
+# design/intel_mcs48/intel_8042/scripts/rebuild_1503033.py. The MC146818
+# starts from tb/cmos_configured.hex.
 set -eu
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 SYS_DIR=$(dirname "$SCRIPT_DIR")
@@ -37,7 +38,8 @@ sha256sum $BOARD_RTL "$SYS_DIR/tb/ibm_pc_at_5170_tb.sv" "$SYS_DIR/tb/post_runner
     "$SCRIPT_DIR/run_post.sh" "$SCRIPT_DIR/sources.sh" "$SCRIPT_DIR/check_post_trace.py" \
     "$SCRIPT_DIR/check_kbc_log.py" "$SCRIPT_DIR/expected_stop.txt" \
     "$CPU_DIR/scripts/bios_replay.py" "$CPU_DIR/scripts/generate_firmware_trace.py" \
-    "$KBC_DIR/scripts/upi42_iss.py" "$KBC_ROM" "$ROM" > "$OUT_DIR/inputs.sha256"
+    "$KBC_DIR/scripts/upi42_iss.py" "$SYS_DIR/tb/cmos_configured.hex" "$KBC_ROM" "$ROM" \
+    > "$OUT_DIR/inputs.sha256"
 { verilator --version; g++ --version | head -n 1; python3 --version; } > "$OUT_DIR/toolchain.txt"
 
 echo "== lint: ibm_pc_at_5170"
@@ -48,6 +50,7 @@ echo "== build"
 # shellcheck disable=SC2086
 if ! verilator --cc --exe --build -j 4 -O3 -Wall -Wno-SYNCASYNCNET --timescale-override 1ns/1ps \
     "-GKBC_ROM_FILE=\"$OUT_DIR/kbc_1503033.hex\"" \
+    "-GRTC_NVRAM_FILE=\"$SYS_DIR/tb/cmos_configured.hex\"" \
     --top-module ibm_pc_at_5170_tb --Mdir "$OUT_DIR/obj" $BOARD_RTL \
     "$SYS_DIR/tb/ibm_pc_at_5170_tb.sv" "$SYS_DIR/tb/post_runner.cpp" > "$OUT_DIR/build.log" 2>&1; then
     cat "$OUT_DIR/build.log" >&2

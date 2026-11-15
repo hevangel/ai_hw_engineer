@@ -1,8 +1,9 @@
 # IBM PC AT 5170 implementation plan
 
 Status: M1 done and merged (board skeleton, stops at the first 8042
-read). M2 (8042 and MC146818 on the board) is in progress; decision D3 is
-resolved (Option A, below).
+read). M2 done (8042 and MC146818 on the board, stops at the first
+coprocessor-port write); decision D3 is resolved (Option A, below). M3 is
+next.
 
 Each milestone ends with a report in `report/` and an update to issue
 https://github.com/hevangel/ai_hw_engineer/issues/254. A milestone is done
@@ -33,7 +34,7 @@ the current boundary; moving it needs a report.
   before the 8042) was wrong: the BIOS reads the 8042 before any other
   board device. See [the M1 report](../report/2026-11-13-m1-board-skeleton.md).
 
-## M2: 8042 and MC146818 on the board (in progress)
+## M2: 8042 and MC146818 on the board (done)
 
 On the strict board the unchanged REV1 BIOS does the following, in order:
 
@@ -52,7 +53,7 @@ On the strict board the unchanged REV1 BIOS does the following, in order:
 So M2 needs the MC146818 as well as the 8042. This corrects the earlier
 split, which put the 8042 in M2 and CMOS in M3.
 
-Done so far:
+Done:
 
 - The board top composes the native 80286 (`intel_80286_native_cpu`)
   directly, not through the 286 design's
@@ -69,28 +70,22 @@ Done so far:
   U123 and U115, P20 to CPU reset, P21 to A20, P24 to IRQ1, keyboard
   clock and data, input port, 6 MHz clock stepped once per 15 processor
   clocks) is recorded in the spec. P20 resets only the 80286.
-- Port 70h is a write-only latch: bit 7 NMI mask, bits 6–0 RTC/CMOS
-  address. A read of port 70h is unclaimed.
+- The MC146818 (U117, `design/motorola_mc146818`) is on the board, wired
+  from sheet 18: a write to port 70h is the address strobe and loads the
+  NMI mask from bit 7, port 71h is the data strobe, and its IRQ is the
+  board's IRQ 8 output, not connected until the 8259s exist (M3). It
+  starts from `tb/cmos_configured.hex` (assumption AT11).
+- The runner accepts writes to empty expansion-slot addresses (AT10).
 - An M1 defect is fixed: the board's "undriven read" flag fired during the
   wait states of a read whose device had not yet driven data; it is now
   checked when the read completes.
 
-To do:
-
-- Put the MC146818 on the board. It is being built as its own design,
-  `design/motorola_mc146818` (issue originally
-  hevangel/ai_engineer#121). Port 70h write is the address strobe, port 71h
-  is the data strobe, and its IRQ goes to interrupt request 8, not
-  connected until the 8259s exist (M3).
-- Replace the bare 64-byte RAM that stands in for the MC146818 in the
-  experiment below with the real design, and record final results.
-
-Goal: with the 8042 and MC146818 on the board, the unchanged BIOS runs to
-its first access to hardware not on the board, expected at `F000:068B`
-(write to port F1h, POST checkpoint 12h), about 1.1 million instructions,
-passing its own 8042 test on the way. Results so far are provisional: they
-come from an experiment with a bare 64-byte RAM standing in for the
-MC146818. The final instruction count is `PENDING-M2-RESULT`.
+Result: with the 8042 and MC146818 on the board, the unchanged BIOS runs
+1,125,813 instructions (1,084,662 with bus wait states), passes its CMOS
+shutdown-byte test and its own 8042 test, and stops at `F000:068B`, a
+write to port F1h at POST checkpoint 12h. Every instruction matches
+Unicorn and the 8042 matches its reference model. See
+[the M2 report](../report/2026-11-14-m2-8042-and-rtc.md).
 
 ## M3: coprocessor ports, interrupt controllers and memory
 

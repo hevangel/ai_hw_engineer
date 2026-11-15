@@ -2,11 +2,13 @@
 //
 // Composes the native 80286, the 8254 timer, port 61h, the refresh request
 // path, two 8237 register interfaces, the 74LS612 page registers, the
-// refresh page-map gating and the 8042 keyboard controller (U126) running
-// IBM's 1503033 firmware. The timer, port 61h, DMA, page and refresh modules
+// refresh page-map gating, the 8042 keyboard controller (U126) running
+// IBM's 1503033 firmware and the MC146818 real-time clock and CMOS RAM
+// (U117). The timer, port 61h, DMA, page and refresh modules
 // are the 286 design's schematic-cited AT models
 // (design/intel_80286/tb/intel_80286_at_*.sv), reused in place so there is
-// one implementation. The 8042 is design/intel_mcs48/intel_8042.
+// one implementation. The 8042 is design/intel_mcs48/intel_8042 and the
+// MC146818 is design/motorola_mc146818.
 //
 // Memory is external: the host supplies read data for the current memory
 // cycle on mem_rdata_i and performs writes from data_o. address_o is the
@@ -15,9 +17,9 @@
 // decodes, so a run stops at the first missing device instead of reading a
 // guessed value.
 //
-// Not yet modeled: MC146818 CMOS and NMI mask, both 8259 interrupt
-// controllers (INTR is tied low, so the 8042's output-buffer-full line is
-// only an output here), DMA requests and transfers, DRAM, video, diskette
+// Not yet modeled: both 8259 interrupt controllers (INTR is tied low, so
+// the 8042's output-buffer-full line and the clock's IRQ 8 are only
+// outputs here, and the NMI mask has nothing to mask), DMA requests and transfers, DRAM, video, diskette
 // and fixed disk.
 module ibm_pc_at_5170 #(
     // $readmemh image of the 8042 firmware (IBM 1503033), one byte per line.
@@ -26,7 +28,14 @@ module ibm_pc_at_5170 #(
     // 6 MHz PCLK (sheet 17) and a UPI-42 machine cycle is 15 crystal clocks
     // (Intel UPI-41A User's Manual p.2-10), so one machine cycle is 15
     // processor clocks.
-    parameter int unsigned KBC_CYCLE_CLKS = 15
+    parameter int unsigned KBC_CYCLE_CLKS = 15,
+    // $readmemh image of the MC146818's 64 battery-backed locations.
+    parameter RTC_NVRAM_FILE = "",
+    // The clock's 32.768 kHz oscillator (Y3, sheet 18) as a fraction of the
+    // processor clock: one oscillator period every CPU_HZ / RTC_OSC_HZ
+    // processor clocks.
+    parameter int unsigned CPU_HZ = 6_000_000,
+    parameter int unsigned RTC_OSC_HZ = 32_768
 ) (
     input  logic        clk_i, clk_2x_i, reset_i, ready_n_i,
     input  logic        dma_clk_n_i, hold_permit_i, refresh_ready_i,
@@ -61,7 +70,7 @@ module ibm_pc_at_5170 #(
     output logic        cpu_reset_o,
     output logic        kbc_illegal_o,     // 8042 executed an undefined opcode
     output logic        nmi_enable_o,      // port 70h bit 7 written 0
-    output logic [6:0]  rtc_address_o      // port 70h bits 6-0, the RTC/CMOS address
+    output logic        irq8_o             // MC146818 IRQ through U107 (to IRQ 8)
 );
     logic cod_inta, m_io, s1, s0, status_oe, hold, detect, refresh_n;
     logic io_req, io_accept, io_write;
@@ -70,7 +79,8 @@ module ibm_pc_at_5170 #(
     logic [15:0] cpu_data;
     logic timer_sel, timer_valid, port61_sel, port61_valid;
     logic dma_sel, dma_ctrl2, dma_valid, page_sel, page_valid;
-    logic kbc_sel, kbc_valid, port70_sel;
+    logic kbc_sel, kbc_valid, rtc_sel, rtc_as, rtc_ds, rtc_valid;
+    logic [7:0] rtc_rdata;
     logic [7:0] timer_rdata, port61_rdata, dma_rdata, page_rdata, kbc_rdata;
     logic [3:0] port61_control;
     logic [2:0] timer_out;
@@ -105,11 +115,12 @@ module ibm_pc_at_5170 #(
     assign cpu_data = port61_valid ? lane(port61_rdata) :
                       timer_valid  ? lane(timer_rdata) :
                       kbc_valid    ? lane(kbc_rdata) :
+                      rtc_valid    ? lane(rtc_rdata) :
                       dma_valid    ? lane(dma_rdata) :
                       page_valid   ? lane(page_rdata) :
                       io_cycle_o   ? 16'h0000 : mem_rdata_i;
 
-    assign io_claimed_o = timer_sel || port61_sel || dma_sel || page_sel || kbc_sel || port70_sel;
+    assign io_claimed_o = timer_sel || port61_sel || dma_sel || page_sel || kbc_sel || rtc_sel;
     assign io_unclaimed_o = io_req && !io_claimed_o;
     // Checked when the read completes: a device's data is due at the end of
     // the cycle, not during its wait states.
@@ -125,21 +136,55 @@ module ibm_pc_at_5170 #(
         else if (io_req && io_accept && io_write && cpu_address[15:0] == 16'h0080) post_code_o <= io_wdata;
     end
 
-    // Port 70h, write only. Bit 7 is the NMI mask (1 = NMI masked) and bits
-    // 6-0 are the address latched for the MC146818 RTC/CMOS RAM. The
-    // MC146818 itself is not modeled: a read of port 70h and any access to
-    // the data port 71h are unclaimed and stop the run.
-    // ASSUMPTION AT9 (see spec): NMI is masked at power-up.
-    assign port70_sel = io_req && io_write && cpu_address[15:0] == 16'h0070;
+    // ------------------------------- NMI mask and MC146818 (U117, sheet 18)
+    // The decode PROM U115 (sheet 18) serves 070h-07Fh as well as the 8042:
+    // it makes -NMI CS (to the NMI-mask flip-flop, sheet 3) and the
+    // MC146818's AS, DS and R/W. The chip's AD0-AD7 are XD0-XD7.
+    // ASSUMPTION AT9 (see spec): the PROM contents are not published. A write
+    // to an even address 070h-07Eh is taken to strobe AS (latching the
+    // CMOS address from data bits 5-0) and to load the NMI mask from data bit
+    // 7; an access to an odd address 071h-07Fh strobes DS, with R/W from the
+    // direction. A read of an even address is unclaimed. NMI is masked at
+    // power-up.
+    assign rtc_as = io_req && cpu_address[9:4] == 6'h07 && !cpu_address[0] && io_write;
+    assign rtc_ds = io_req && cpu_address[9:4] == 6'h07 && cpu_address[0];
+    assign rtc_sel = rtc_as || rtc_ds;
+    assign rtc_valid = rtc_ds && io_accept && !io_write;
+    always_ff @(posedge clk_i) begin
+        if (reset_i) nmi_enable_o <= 1'b0;
+        else if (rtc_as && io_accept) nmi_enable_o <= !io_wdata[7];
+    end
+
+    // 32.768 kHz oscillator enable from the processor clock.
+    logic [$clog2(CPU_HZ)-1:0] rtc_phase;
+    logic rtc_tick, rtc_irq_n, rtc_oe, rtc_sqw;
+    logic [7:0] rtc_dbg;
     always_ff @(posedge clk_i) begin
         if (reset_i) begin
-            nmi_enable_o <= 1'b0;
-            rtc_address_o <= 7'h00;
-        end else if (port70_sel && io_accept) begin
-            nmi_enable_o <= !io_wdata[7];
-            rtc_address_o <= io_wdata[6:0];
+            rtc_phase <= '0;
+            rtc_tick <= 1'b0;
+        end else if (32'(rtc_phase) + RTC_OSC_HZ >= CPU_HZ) begin
+            rtc_phase <= $bits(rtc_phase)'(32'(rtc_phase) + RTC_OSC_HZ - CPU_HZ);
+            rtc_tick <= 1'b1;
+        end else begin
+            rtc_phase <= $bits(rtc_phase)'(32'(rtc_phase) + RTC_OSC_HZ);
+            rtc_tick <= 1'b0;
         end
     end
+
+    // Sheet 18: CE is low while POWER GOOD (through U108); RESET and PS are
+    // tied to the battery-backed supply through R28/C85, so a system reset
+    // does not reach the chip's RESET pin; IRQ has a 10K pull-up and goes
+    // through inverter U107 to IRQ 8 (sheet 16); SQW and CKOUT are not
+    // connected.
+    motorola_mc146818 #(.NVRAM_FILE(RTC_NVRAM_FILE)) rtc (
+        .clk(clk_i), .rst_n(!reset_i), .tick_i(rtc_tick),
+        .ce_n_i(1'b0), .as_i(rtc_as), .ds_i(rtc_ds), .rw_i(!io_write),
+        .ad_i(io_wdata), .ad_o(rtc_rdata), .ad_oe_o(rtc_oe),
+        .reset_n_i(1'b1), .ps_i(1'b1), .irq_n_o(rtc_irq_n), .sqw_o(rtc_sqw),
+        .dbg_addr_i(6'h00), .dbg_data_o(rtc_dbg)
+    );
+    assign irq8_o = !rtc_irq_n;
 
     // ---------------------------------------------------------------- CPU
     // reset_i is the power-good reset of the whole board. The 8042's RC line
@@ -283,5 +328,6 @@ module ibm_pc_at_5170 #(
     /* verilator lint_on PINCONNECTEMPTY */
 
     logic unused;
-    assign unused = ^{dma_ctrl2, port61_control[3:1], timer_out[0], kbc_oe, peack_n_unused};
+    assign unused = ^{dma_ctrl2, port61_control[3:1], timer_out[0], kbc_oe, peack_n_unused,
+                      rtc_oe, rtc_sqw, rtc_dbg};
 endmodule

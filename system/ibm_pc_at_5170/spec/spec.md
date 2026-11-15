@@ -2,10 +2,11 @@
 
 Status: M1 (board skeleton) is merged: the unchanged BIOS ran 30
 instructions and stopped at its first 8042 status read (`F000:00DE`); see
-[the M1 report](../report/2026-11-13-m1-board-skeleton.md). M2 is in
-progress: the 8042 is on the board, the MC146818 is being built and goes on
-the board next, and the BIOS is expected to run to its first access to
-hardware not on the board, at `F000:068B` (write to port F1h).
+[the M1 report](../report/2026-11-13-m1-board-skeleton.md). M2 puts the
+8042 and the MC146818 on the board: the BIOS now runs about 1.1 million
+instructions, passes its own 8042 test and stops at `F000:068B`, a write
+to port F1h, the first hardware not on the board; see
+[the M2 report](../report/2026-11-14-m2-8042-and-rtc.md).
 Tracking issue: https://github.com/hevangel/ai_hw_engineer/issues/254
 
 ## Target
@@ -70,13 +71,13 @@ manufacturing checkpoint convention.
 | Interrupts | 2× `design/intel_8259` | Planned: master at 20h, slave at A0h on IRQ2; not wired yet (M3) |
 | Keyboard controller | `design/intel_mcs48/intel_8042` (U126) | UPI-42 core running IBM firmware 1503033; on the board since M2 |
 | Floppy | `design/intel_8272` | Plus the AT diskette adapter logic |
+| Real-time clock and CMOS RAM | `design/motorola_mc146818` (U117) | On the board since M2; starts from `tb/cmos_configured.hex` |
 | Board logic | 286 AT fixture modules: page registers and refresh page map, refresh path, port 61h, RAS trigger (bank select not yet wired) | Reused in place from `design/intel_80286/tb/` by `src/ibm_pc_at_5170.sv` |
 
 ### Missing designs
 
 | Function | Tracking |
 |---|---|
-| MC146818 real-time clock and CMOS RAM | `design/motorola_mc146818`, being built (issue originally hevangel/ai_engineer#121); goes on the board in M2 |
 | AT fixed-disk controller (port 1F0h) | Not tracked yet |
 | Video adapter: CGA or MDA first, EGA later (ai_engineer#224) | CGA exists only inside `system/ibm_pc/src/ibm_pc.sv` and needs extraction |
 | 80287 (optional) | ai_engineer#238 |
@@ -154,11 +155,24 @@ memory flag and uses it only to choose which parity signal to expect. On the
 type-1 board P13 is unconnected, so bit 3 reads 1. This system uses the REV1
 BIOS (01/10/84), which masks bit 3 off (`AND AL,F0h` at `F000:0602`).
 
-### Port 70h
+### NMI mask and MC146818 (U117)
 
-The board has a write-only latch at port 70h: bit 7 is the NMI mask
-(1 = masked) and bits 6–0 are the RTC/CMOS address. A read of port 70h is
-unclaimed.
+Sheet 18. The chip's AD0–AD7 are XD0–XD7. Decode PROM U115 makes -NMI CS
+(to the NMI-mask flip-flop, sheet 3) and the chip's DS and R/W; AS comes
+from the PROM through U110 and U80. On this board a write to port 70h
+latches the CMOS address from data bits 5–0 and loads the NMI mask from
+bit 7 (1 = masked); port 71h reads or writes the addressed location. See
+assumption AT9.
+
+- CE is low while POWER GOOD (through U108, MC14069).
+- RESET (pin 18) and PS (pin 22) are tied to the battery-backed supply
+  through R28 and C85, so a system reset does not reach the chip's RESET
+  pin. The board ties both high.
+- IRQ (pin 19) has a 10K pull-up and goes through inverter U107 to IRQ 8
+  (sheet 16). It is an output of the board until the 8259s exist.
+- OSC1 is driven by a 32.768 kHz crystal oscillator (Y3 with U108). SQW
+  and CKOUT are not connected. See assumption AT12.
+- Power-on contents: assumption AT11.
 
 ## Host interface
 
@@ -191,13 +205,25 @@ interrupts.
   8042 is taken to answer at every even address 060h–06Eh (XA4 = 0,
   XA0 = 0), which contains its documented ports 60h and 64h, and port B at
   the odd ones. Address bits above XA9 are not decoded for the 8042.
-- ASSUMPTION AT9: NMI is masked at power-up (the port 70h latch resets to
-  "masked").
+- ASSUMPTION AT9: decode PROM U115 also serves 070h–07Fh and its contents
+  are not published. A write to an even address 070h–07Eh is taken to
+  strobe the MC146818's AS and to load the NMI mask from data bit 7; an
+  access to an odd address 071h–07Fh strobes DS. A read of an even address
+  is unclaimed. NMI is masked at power-up.
 - ASSUMPTION AT10: the expansion slots are empty. A write to an I/O address
   of 100h or above that no board device decodes is accepted and counted
   (the BIOS writes 3B8h and 3D8h once each before the 8042 test). A read
   from such an address, and any unclaimed access below 100h, still stops
   the run.
+- ASSUMPTION AT11: the MC146818 powers up from `tb/cmos_configured.hex`, a
+  battery-good configuration record written for this model from the
+  Technical Reference CMOS map (printed pages 1-45 to 1-52): 12:00:00 on
+  Tuesday 14 August 1984, one high-capacity diskette drive, no fixed disk,
+  monochrome primary display, no math coprocessor, 640K base memory, no
+  expansion memory, valid checksum. It is not a dump of any machine.
+- ASSUMPTION AT12: the clock's 32.768 kHz oscillator (Y3) is derived from
+  the processor clock as 32,768 periods per 6,000,000 processor clocks.
+  The real oscillator is independent of the system clock.
 
 ## Strict decoding
 

@@ -2,7 +2,8 @@
 // CPU's retirement state and read data. The taps use hierarchical
 // references, so this wrapper is not synthesized.
 module ibm_pc_at_5170_tb #(
-    parameter KBC_ROM_FILE = ""
+    parameter KBC_ROM_FILE = "",
+    parameter RTC_NVRAM_FILE = ""
 ) (
     input  logic        clk_i, clk_2x_i, reset_i, ready_n_i,
     input  logic        dma_clk_n_i, hold_permit_i, refresh_ready_i,
@@ -21,8 +22,7 @@ module ibm_pc_at_5170_tb #(
     output logic        io_unclaimed_o, io_read_undriven_o,
     output logic [7:0]  post_code_o,
     output logic        a20_gate_o, rc_n_o, kbc_obf_o, cpu_reset_o, kbc_illegal_o,
-    output logic        kbd_clk_o, kbd_data_o, nmi_enable_o,
-    output logic [6:0]  rtc_address_o,
+    output logic        kbd_clk_o, kbd_data_o, nmi_enable_o, irq8_o,
     output logic        kbc_retire_o, kbc_start_o, kbc_wr_end_o, kbc_rd_end_o,
     output logic        kbc_wr_a0_o, kbc_rd_a0_o,
     output logic [7:0]  kbc_wr_data_o,
@@ -36,7 +36,7 @@ module ibm_pc_at_5170_tb #(
     output logic [15:0] ip_o, flags_o
 );
     /* verilator lint_off PINMISSING */
-    ibm_pc_at_5170 #(.KBC_ROM_FILE(KBC_ROM_FILE)) board (
+    ibm_pc_at_5170 #(.KBC_ROM_FILE(KBC_ROM_FILE), .RTC_NVRAM_FILE(RTC_NVRAM_FILE)) board (
         .clk_i, .clk_2x_i, .reset_i, .ready_n_i, .dma_clk_n_i, .hold_permit_i,
         .refresh_ready_i, .timer_clk_i, .mem_rdata_i, .address_o, .data_o,
         .data_oe_o, .address_oe_o, .bhe_n_o, .io_cycle_o, .fetch_cycle_o, .completed_bytes_o, .hlda_o,
@@ -45,7 +45,7 @@ module ibm_pc_at_5170_tb #(
         .io_unclaimed_o, .io_read_undriven_o, .post_code_o,
         .kbd_unlocked_i, .display_mono_i, .mfg_jumper_i, .ram_512k_i, .kbd_clk_i, .kbd_data_i,
         .kbd_clk_o, .kbd_data_o, .a20_gate_o, .rc_n_o, .kbc_obf_o, .cpu_reset_o, .kbc_illegal_o,
-        .nmi_enable_o, .rtc_address_o
+        .nmi_enable_o, .irq8_o
     );
     /* verilator lint_on PINMISSING */
     assign cpu_data_o = board.cpu_data;
