@@ -749,11 +749,16 @@ class EGA:
             return self.intlatch
         if a == 0x68:
             return self.blink
+        if 0x70 <= a <= 0x78:
+            return self.gc[1][a - 0x70]
+        if a == 0x79:
+            return self.gc_idx
         return 0xFF
 
 
 DBG_REGS = (list(range(0, 6)) + list(range(0x10, 0x2C)) + list(range(0x30, 0x3C))
-            + list(range(0x40, 0x56)) + list(range(0x60, 0x69)))
+            + list(range(0x40, 0x56)) + list(range(0x60, 0x69))
+            + list(range(0x70, 0x7A)))
 
 
 # --------------------------------------------------------------- runner
