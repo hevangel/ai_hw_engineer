@@ -1,9 +1,10 @@
 #!/bin/sh
 # Build the IBM PC AT 5170 board under Verilator, run the unchanged REV1 BIOS
-# until the first unmodeled hardware access, and check the run three ways:
+# until the first unmodeled hardware access, and check the run four ways:
 #   - it stops exactly at the boundary in scripts/expected_stop.txt;
 #   - every executed 80286 instruction matches Unicorn;
-#   - the 8042 on the board matches the UPI-42 reference model.
+#   - the 8042 on the board matches the UPI-42 reference model;
+#   - the MC146818 on the board matches its reference model.
 #
 # Usage: scripts/run_post.sh /path/to/atbios.bin
 # Output: $IBM_PC_AT_WORK_DIR (default system/ibm_pc_at_5170/work)/post
@@ -36,7 +37,8 @@ od -An -v -tx1 -w1 "$KBC_ROM" | tr -d ' ' > "$OUT_DIR/kbc_1503033.hex"
 # shellcheck disable=SC2086
 sha256sum $BOARD_RTL "$SYS_DIR/tb/ibm_pc_at_5170_tb.sv" "$SYS_DIR/tb/post_runner.cpp" \
     "$SCRIPT_DIR/run_post.sh" "$SCRIPT_DIR/sources.sh" "$SCRIPT_DIR/check_post_trace.py" \
-    "$SCRIPT_DIR/check_kbc_log.py" "$SCRIPT_DIR/expected_stop.txt" \
+    "$SCRIPT_DIR/check_kbc_log.py" "$SCRIPT_DIR/check_rtc_log.py" "$SCRIPT_DIR/expected_stop.txt" \
+    "$RTC_DIR/scripts/mc146818_model.py" \
     "$CPU_DIR/scripts/bios_replay.py" "$CPU_DIR/scripts/generate_firmware_trace.py" \
     "$KBC_DIR/scripts/upi42_iss.py" "$SYS_DIR/tb/cmos_configured.hex" "$KBC_ROM" "$ROM" \
     > "$OUT_DIR/inputs.sha256"
@@ -65,7 +67,7 @@ for scenario in '0 8' '1 11'; do
     tag=wait${1}_half${2}
     echo "== run: $tag"
     "$OUT_DIR/obj/Vibm_pc_at_5170_tb" "$ROM" "$OUT_DIR/trace_$tag.txt" "$1" "$2" \
-        "$OUT_DIR/kbc_$tag.txt" | tee "$OUT_DIR/run_$tag.log"
+        "$OUT_DIR/kbc_$tag.txt" "$OUT_DIR/rtc_$tag.txt" | tee "$OUT_DIR/run_$tag.log"
     stop=$(sed -n 's/^STOP \(kind=[^ ]* [^ ]* *[^ ]*\) post=\([0-9A-F]*\).*/\1 post=\2/p' "$OUT_DIR/run_$tag.log")
     if [ "$stop" != "$EXPECTED" ]; then
         echo "FAIL: $tag stopped at '$stop', expected '$EXPECTED'" >&2
@@ -89,6 +91,14 @@ for scenario in '0 8' '1 11'; do
         continue
     fi
     cat "$OUT_DIR/kbc_check_$tag.log"
+    echo "== MC146818 reference model: $tag"
+    if ! python3 "$SCRIPT_DIR/check_rtc_log.py" "$SYS_DIR/tb/cmos_configured.hex" \
+        "$OUT_DIR/rtc_$tag.txt" > "$OUT_DIR/rtc_check_$tag.log" 2>&1; then
+        cat "$OUT_DIR/rtc_check_$tag.log" >&2
+        status=1
+        continue
+    fi
+    cat "$OUT_DIR/rtc_check_$tag.log"
 done
 sha256sum -c "$OUT_DIR/inputs.sha256" > "$OUT_DIR/source_verification.log"
 [ "$status" -eq 0 ] && echo "PASS: both scenarios stopped at: $EXPECTED"

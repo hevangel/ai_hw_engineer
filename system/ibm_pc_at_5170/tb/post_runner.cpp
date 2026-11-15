@@ -30,6 +30,13 @@
 //   W <n> <a0> <data> host write took effect after <n> 8042 instruction starts
 //   X <n>             host read of the data register took effect (clears OBF)
 //   S <a0> <data>     value the CPU read from the 8042 (a0 = 1: status)
+//
+// Optional MC146818 log (consumed by scripts/check_rtc_log.py), in time
+// order; <t> is the number of oscillator periods the chip has counted:
+//   A <t> <byte>      address strobe took effect with this bus value
+//   W <t> <byte>      data write took effect
+//   V <t> <byte>      value the CPU read from port 71h
+//   R <t>             that read took effect (register C clears on read)
 #include "Vibm_pc_at_5170_tb.h"
 #include "verilated.h"
 #include <cstdint>
@@ -62,19 +69,27 @@ std::string hex(uint32_t v, int width) {
 int main(int argc, char** argv) {
     Verilated::commandArgs(argc, argv);
     try {
-        if (argc != 5 && argc != 6)
-            throw std::runtime_error("usage: post_runner ROM TRACE wait half_period [KBC_LOG]");
+        if (argc < 5 || argc > 7)
+            throw std::runtime_error(
+                "usage: post_runner ROM TRACE wait half_period [KBC_LOG [RTC_LOG]]");
         std::ifstream file(argv[1], std::ios::binary);
         std::vector<uint8_t> rom((std::istreambuf_iterator<char>(file)), {});
         if (rom.size() != 65536) throw std::runtime_error("expected a 64 KiB BIOS image");
         std::ofstream trace(argv[2]);
         if (!trace) throw std::runtime_error("cannot open trace");
         std::ofstream klog;
-        if (argc == 6) {
+        if (argc >= 6) {
             klog.open(argv[5]);
             if (!klog) throw std::runtime_error("cannot open 8042 log");
             klog << std::hex;
         }
+        std::ofstream rlog;
+        if (argc == 7) {
+            rlog.open(argv[6]);
+            if (!rlog) throw std::runtime_error("cannot open MC146818 log");
+            rlog << std::hex;
+        }
+        uint64_t rtc_ticks = 0;
         const bool wait = std::stoi(argv[3]) != 0;
         const unsigned half = unsigned(std::stoul(argv[4]));
         if (!half) throw std::runtime_error("zero timer half-period");
@@ -85,7 +100,9 @@ int main(int argc, char** argv) {
         // reached so far.
         std::vector<uint8_t> ram(kRamEnd, 0);
         uint64_t retired = 0, rom_writes = 0, open_reads = 0, open_writes = 0, cpu_resets = 0;
-        uint64_t halt_clocks = 0;
+        uint64_t halt_clocks = 0, inta_cycles = 0;
+        bool inta_active = false;
+        uint8_t inta_byte = 0;
         bool was_reset = true;   // the power-on reset is not counted
         uint16_t cur_cs = 0xf000, cur_ip = 0xfff0;
         unsigned refresh_cycles = 0;
@@ -160,9 +177,6 @@ int main(int argc, char** argv) {
 
             if (d.completed_bytes_o) {
                 const bool io = d.io_cycle_o, write = d.data_oe_o, fetch = d.fetch_cycle_o;
-                if (d.inta_cycle_o)
-                    trace << "A " << std::hex << unsigned(d.cpu_data_o & 0xff) << std::dec << '\n';
-                else
                 for (unsigned b = 0; b < d.completed_bytes_o; b++) {
                     const uint32_t x = a + b;
                     const uint16_t bus = write ? d.data_o : d.cpu_data_o;
@@ -178,6 +192,9 @@ int main(int argc, char** argv) {
                     // The 8042 select (sheets 13/18): even addresses 060h-06Eh.
                     if (klog.is_open() && io && !write && (x & 0x3f1) == 0x060)
                         klog << "S " << ((x >> 2) & 1) << ' ' << unsigned(value) << '\n';
+                    // MC146818 data port (sheet 18): odd addresses 071h-07Fh.
+                    if (rlog.is_open() && io && !write && (x & 0x3f1) == 0x071)
+                        rlog << "V " << rtc_ticks << ' ' << unsigned(value) << '\n';
                     if (!fetch)
                         trace << "B " << std::hex << x << ' ' << unsigned(value) << ' ' << write << ' '
                               << io << std::dec << '\n';
@@ -187,12 +204,31 @@ int main(int argc, char** argv) {
             // 8042 events at this rising edge. An instruction that starts at
             // the edge used the state before it, so it is counted before a
             // host event that takes effect at the same edge.
+            // An interrupt-acknowledge cycle ends when inta_cycle_o falls; the
+            // byte on the data bus in its last clock is what the CPU took.
+            if (d.inta_cycle_o) {
+                inta_active = true;
+                inta_byte = uint8_t(d.cpu_data_o);
+            } else if (inta_active) {
+                inta_active = false;
+                ++inta_cycles;
+                trace << "A " << std::hex << unsigned(inta_byte) << std::dec << '\n';
+            }
             if (d.cpu_reset_o && !was_reset) {
                 ++cpu_resets;
                 trace << "Z\n";
             }
             halt_clocks = (d.halted_o && !(d.flags_o & 0x200)) ? halt_clocks + 1 : 0;
             was_reset = d.cpu_reset_o;
+            // MC146818 events at this rising edge. A bus event is logged
+            // before an oscillator period that the chip counts at the same
+            // edge.
+            if (rlog.is_open()) {
+                if (d.rtc_as_fall_o) rlog << "A " << rtc_ticks << ' ' << unsigned(d.rtc_ad_o) << '\n';
+                if (d.rtc_wr_end_o) rlog << "W " << rtc_ticks << ' ' << unsigned(d.rtc_ad_o) << '\n';
+                if (d.rtc_rd_end_o) rlog << "R " << rtc_ticks << '\n';
+            }
+            if (d.rtc_tick_o) ++rtc_ticks;
             if (d.kbc_start_o) ++kbc_started;
             if (klog.is_open()) {
                 if (d.kbc_wr_end_o)
@@ -226,7 +262,7 @@ int main(int argc, char** argv) {
         }
         std::cout << "STOP " << stop << " post=" << hex(d.post_code_o, 2) << " retired=" << retired
                   << " cycles=" << cycle << " kbc_retired=" << kbc_retired << " slot_writes=" << slot_writes << " rom_writes=" << rom_writes << " open_reads=" << open_reads
-                  << " open_writes=" << open_writes << " cpu_resets=" << cpu_resets << " wait=" << wait
+                  << " open_writes=" << open_writes << " cpu_resets=" << cpu_resets << " inta_cycles=" << inta_cycles << " wait=" << wait
                   << " half=" << half << '\n';
         d.final();
         return 0;
