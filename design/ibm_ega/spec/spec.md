@@ -339,11 +339,11 @@ the sequence 8,0,1,...,7 (9-dot), taking dots from the next character
 (p.61, E24). The index is ANDed with Color Plane Enable bits 3-0 and looks
 up the palette. Output = 0 when blanked; the overscan color when display
 enable is off or when the attribute address bit 5 is 0 (E27); otherwise the
-palette entry. Display enable at boundary `k` is the counter flag of
-boundary `k-1-skew` (End Horizontal Blank bits 6-5), so the BIOS skew of 1
-aligns it with the two-character data pipeline (E18). Blank and vertical
-retrace leave through the same two-character pipeline; horizontal retrace
-is additionally delayed by End Horizontal Retrace bits 6-5.
+palette entry. At boundary `k` the output uses the counter flags of
+boundary `k-1-skew` for display enable (End Horizontal Blank bits 6-5),
+`k-2-cursor skew` for the cursor, `k-1` for blank, `k-delay` for horizontal
+retrace (End Horizontal Retrace bits 6-5) and `k` for vertical retrace
+(E18).
 
 The blink counter (5 bits) increments at each start of vertical retrace:
 characters blink with bit 4 and the cursor with bit 3 (E23).
@@ -394,7 +394,7 @@ bits of its own planes; planes 4-7 select no controller, which reads FFh
 | E15 | Color Don't Care bit = 1 means the plane takes part in the compare | TR p.54 says "1 = don't care"; VGA p.2-87 says "When set to 1, the bits in that map are compared", and the BIOS loads 0Fh in every graphics mode | `read_mode1` |
 | E16 | Rows are numbered from 1 in TR's "one less than" phrases: cursor on rows CS <= rs < CE (none if CS >= CE); underline on rs == UL; row scan wraps after rs == MSL | TR p.32-33, p.39. A literal 0-based reading would put mode 7's underline (UL = 0Dh, 14 rows) outside the character | `cursor_shapes`, BIOS text |
 | E17 | Character map: `A` when attribute bit 3 = 1, Memory Mode bits 1 and 0 are 1 and A != B; else `B` if Memory Mode bit 1 = 1, else map 0. Map `n` is at plane 2 offset `n x 16 KB` | p.22-23 table, p.69 figure (+0K/+16K/+32K/+48K) | `char_map_select` |
-| E18 | Data pipeline: the character displayed at boundary `k` was fetched at boundary `k-2`. Display enable at `k` is the counter flag of boundary `k-1-skew`, so the skew of 1 that the BIOS programs in every mode with more than 64 KB aligns display enable with the data; cursor uses `k-2-cursor skew` (BIOS 0 aligns); blank and vertical retrace use `k-2`; horizontal retrace `k-2-delay` | p.28: skew compensates the fetch, character generator and panning pipeline; its depth is not given | p.28: skew compensates the fetch/character generator/panning pipeline; the depth is not given | `skew` |
+| E18 | Pipeline depths, in characters from the CRTC counter state to the output: data 2 (fetch, then attribute chip), display enable 1 + skew, cursor 2 + cursor skew, blank 1 (through the attribute chip), horizontal retrace = its delay, vertical retrace 0 (both wired from the CRTC to the connector through U8, sheet 9) | p.28: skew compensates the fetch/character generator/panning pipeline; depths not given. With these depths the BIOS skews (1, cursor 0) align, and mode 7 gets the MDA's 6845 sync geometry (front porch 2, retrace 15, back porch 1 character) | `skew`, geometry | p.28: skew compensates the fetch/character generator/panning pipeline; the depth is not given | `skew` |
 | E19 | Shift Load (Clocking bit 2): GC chips output their even plane's byte on characters with even `hc` and their odd plane's byte on odd `hc`, on the even color output; odd color outputs are 0 | p.20 "loaded every other character clock ... 16 bits ... chained" | `shift_load` |
 | E20 | Graphics blink: in the blink-off phase index bit 3 is forced to 1 | Makes the BIOS mode F palette (TR p.67-68) give black/video/blinking/intensified as p.9 states | `graphics_blink` |
 | E21 | Overflow bit 5 ("cursor location bit 8", p.31) has no effect: the cursor location is 16 bits | The cursor location registers already hold 16 bits | written in random tests |
