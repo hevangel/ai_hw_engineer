@@ -6,6 +6,7 @@
 #include <sstream>
 #include <string>
 #include <deque>
+#include <fstream>
 
 // Private line protocol used only by web/server.py. All state is from RTL.
 // The console is a byte pipe: queued bytes enter the board's receiver FIFO
@@ -22,6 +23,8 @@ int main(int argc, char **argv) {
     board.host_mem_addr = 0;
     board.host_mem_data = 0;
     board.host_mem_write = 0;
+    board.ptr_push = 0;
+    board.ptr_data = 0;
     board.eval();
     auto tick = [&]() {
         board.clk = 0; board.eval();
@@ -106,6 +109,29 @@ int main(int argc, char **argv) {
             trap_on = x != 0; trap = y & 0x3fff;
         } else if (command == "TTYIN") {
             tty_in.push_back(x & 255);
+        } else if (command == "TAPERUN") {
+            // Load a tape image from a path, one byte per push.
+            std::ifstream tape(line.c_str() + 8, std::ios::binary);
+            if (!tape) { std::cout << "{\"error\":\"cannot open tape\"}" << std::endl; continue; }
+            int loaded = 0;
+            char byte;
+            while (tape.get(byte) && loaded < 255) {
+                while (board.ptr_full) tick();
+                board.ptr_push = 1;
+                board.ptr_data = (unsigned char)byte;
+                tick();
+                board.ptr_push = 0;
+                board.eval();
+                loaded++;
+            }
+            std::cout << "{\"loaded\":" << loaded << "}" << std::endl;
+            continue;
+        } else if (command == "TAPESTAT") {
+            std::cout << "{\"reads\":" << board.ptr_read_count
+                      << ",\"empty\":" << (board.ptr_empty ? "true" : "false")
+                      << ",\"full\":" << (board.ptr_full ? "true" : "false")
+                      << "}" << std::endl;
+            continue;
         } else if (command == "LOAD") {
             // x = count of raw bytes following on... not used; the server
             // streams TTYIN commands instead. Kept for protocol room.

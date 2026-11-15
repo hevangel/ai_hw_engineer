@@ -136,6 +136,26 @@ $('loadStars').onclick=async()=>{
   setTimeout(()=>ttySendText(STARS_PROGRAM),1500);
 };
 $('runProgram').onclick=()=>ttySendText('RUN\r');
+// Paper-tape reader: load the SCELBAL tape image through the host bridge.
+$('tapeLoad').onclick=async()=>{
+  const el=$('tapeStatus');
+  el.textContent='loading…';
+  try{
+    const r=await fetch('/api/tape',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file:'scelbal_sc1.bin'})});
+    const s=await r.json();
+    if(!r.ok)throw Error(s.error||r.status);
+    el.textContent=`loaded ${s.loaded} bytes`;
+  }catch(err){el.textContent='error: '+err}
+};
+$('tapeStat').onclick=async()=>{
+  const el=$('tapeStatus');
+  try{
+    const r=await fetch('/api/tapestat');
+    const s=await r.json();
+    if(!r.ok)throw Error(s.error||r.status);
+    el.textContent=`reads ${s.reads} · ${s.empty?'empty':'data ready'}${s.full?' · full':''}`;
+  }catch(err){el.textContent='error: '+err}
+};
 $('auto').onclick=()=>send('AUTO');$('pause').onclick=()=>send('PAUSE');$('init').onclick=()=>send('RESET');
 $('step').onclick=()=>send(document.querySelector('input[name=stepMode]:checked').value==='cycle'?'CYCLE':'STEP');
 $('trap').onclick=()=>{const addr=parseInt($('trapAddress').value,16);if(!Number.isInteger(addr)||addr<0||addr>0x3fff){$('error').textContent='Trap address must be 0000–3FFF';return}trap=!trap;send('TRAP',{enabled:trap,address:addr})};

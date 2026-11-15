@@ -72,10 +72,20 @@ loopback by default (`SCELBI_HOST` overrides); `SCELBI_PORT` (default 8080).
 
 - The console card models the SIMH byte-level protocol, not 110-baud analog
   timing. There is no start-bit timing, no baud rate, and no line driver.
-- The paper-tape reader is not implemented. SIMH marks its own PTR as "not
-  implemented yet", so no reference behavior is claimed for it.
-- The SCELBAL math-functions and strings supplements are not loaded; the
-  base SC1 image only. Programs that use string variables or the extra math
-  functions are outside this profile.
+- Paper-tape reader: the card is implemented (`INP 3` returns the byte under
+  the read head and advances one byte; flag bits 1 and 2 report data
+  available and tape in reader). SIMH marks its own PTR unit "not implemented
+  yet", so this is built from SIMH's documented port/flag map in `scelbi_io.c`
+  rather than from a working reference model. SCELBAL's own `SAVE`/`LOAD`
+  vectors are `JMP EXEC` stubs in the SC1 ROM, so the interpreter does not use
+  the reader; it is exercised by `tb/tb_ptr.sv`, which runs a real 8008 loader
+  that reads the tape through `INP 3`. Analog tape timing (sprocket holes,
+  reader speed) is not modelled.
+- Supplement packages: the math-functions and strings packages are not
+  loaded. The base SC1 ROM has no function/array or string capability — its
+  user-defined-function entry point is `UDEFX: HLT` and the parser stops at a
+  function token — so those features need a supplement image that is not part
+  of the 11942-byte SC1 binary. Programs that use string variables, arrays or
+  the extra math functions are outside this profile.
 - Verification is RTL simulation. There is no FPGA build, no physical 8008,
   and no silicon comparison.

@@ -11,6 +11,7 @@ All results below were run in that image on 2026-11-15.
 | `tb/tb_let.sv` `LET` reproducer (`+let=0`) | Pass: implied LET, `A + B = 8.0` (1.99M instructions) |
 | `tb/tb_let.sv` `LET` reproducer (`+let=1`) | Pass: keyword LET, `A + B = 8.0` (1.99M instructions) |
 | `scripts/run_waveform.sh` | Pass: `build/scelbi_8b.vcd` (1.1 MB, 8001 timestamps) over the RUN reply |
+| `tb/tb_ptr.sv` (`scripts/run_ptr.sh`) | Pass: paper-tape reader loads a 24-byte tape through `INP 3` into `0x1000`, every byte checked |
 | HTTP console (`scripts/test_backend.py`) | Pass: AUTO, READY, SCR, /api/load, RUN, WELCOME, rules, first guess answered with a star hint |
 | Web panel | Manual: glass teletype, keyboard, digit keys, LOAD *STARS*, front-panel controls |
 
@@ -61,6 +62,31 @@ as a limitation below; it is not covered by the passing session tests.
 - SCELBAL's cold start prints the sign-on string at 0x01EA (part of the
   loaded image) and waits for console input at the 0x1600 mailbox.
 
+## Paper-tape reader
+
+SIMH's SCELBI 8B model documents the reader's port and status bits in
+`scelbi_io.c` but leaves its own PTR unit unimplemented (`ptr_svc` returns
+immediately). The card here is built from that documented interface: `INP 3`
+returns the byte under the read head and advances one byte; flag-port bit 1
+reports data available and bit 2 reports tape in reader. There is no analog tape
+timing — the reader presents a byte stream, not sprocket-hole timing.
+
+SCELBAL does not use the reader: its `save`/`load` vectors in the SC1 ROM are
+`JMP EXEC` stubs (`sc1.asm` lines 73-74), so the interpreter has no tape
+routines to call. The reader is therefore exercised by real 8008 code rather
+than by the interpreter: `tb/tb_ptr.sv` installs a small loader at `0x0200`,
+preloads a 24-byte tape, and runs it. The loader reads `INP 3`, stores each byte
+with `Lm M` at `[HL]` (incrementing `HL`), and the test checks every byte in
+memory against the tape image. Result: all 24 bytes land in order.
+
+## Web console screenshot
+
+`assets/web-interface.png` is a real capture of the panel at 1500x1250, taken
+after `/api/state` confirmed SCELBAL had booted, the calculator program was
+entered, and the teletype showed `A + B = 8.0`. The capture shows the glass
+teletype, the lamp rows, and the processor readouts (PC, ACC, flags, instruction
+and cycle counts). The earlier claim that no screenshot existed is superseded.
+
 ## Waveform capture
 
 `scripts/run_waveform.sh` boots SCELBAL, types the calculator program and RUN,
@@ -97,8 +123,14 @@ result buried in it.
   the first 665k instructions and then diverge at an `INP` boundary. The
   session tests pass on both models, so this is a modeling or alignment
   difference rather than a known functional failure, but it is not explained.
-- The paper-tape reader is not implemented (SIMH's own model leaves it
-  unimplemented).
-- The math-functions and strings supplements are not loaded.
+- The paper-tape reader follows SIMH's documented port/flag map; SIMH's own PTR
+  unit is unimplemented, so there is no reference emulator to diff against. The
+  reader is verified only by the loader test above.
+- Analog tape timing (sprocket holes, reader speed) is not modelled.
+- The math-functions and strings supplements are not loaded. The base SC1 ROM
+  has no function/array or string capability: its user-defined-function entry
+  point is `UDEFX: HLT` and the parser stops at a function token, so those
+  features need a supplement image that is not part of the 11942-byte SC1
+  binary.
 - No FPGA build, no physical hardware, no analog line timing.
 - The web panel screenshot is not committed; `assets/` is empty.

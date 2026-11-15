@@ -28,6 +28,23 @@ strings are the bit-7-set encodings; typed-character echoes come back as
 sent. The Shooting Stars listing uses the implied LET and avoids string
 variables (strings were a separate supplement).
 
+## Paper-tape reader (scripts/run_ptr.sh)
+
+`tb/tb_ptr.sv` proves the card works with real 8008 code rather than only being
+wired up. A loader at `0x0200` reads `INP 3` and stores each byte with `Lm M`,
+incrementing `HL`; the test preloads a 24-byte tape and then checks every byte
+that landed in memory against the image. The opcodes were verified against the
+8008 user manual: `INP 3` is `0x47`, `Lm M` (M-(r), source A) is `0xF8`,
+`INR L` is `0x30`, `Llh`/`Lh` are `0x36`/`0x2E`.
+
+## Web console screenshot
+
+`assets/web-interface.png` is a real capture, not a mockup. The panel was driven
+over `/api/tty` to a booted SCELBAL session showing `A + B = 8.0`, then
+captured with headless Edge at 1500x1250. Before capturing, the script checks
+`/api/state` actually reports the result, so the image cannot be taken of a
+blank or early panel.
+
 ## Waveform capture (scripts/run_waveform.sh)
 
 `tb/tb_wave.sv` boots SCELBAL, types the calculator program and RUN, then

@@ -13,8 +13,13 @@ predecessor. The 8H/8B split (1974 hobbyist model, 1975 business model with
 
 ## Web interface and waveform
 
-No screenshot is committed yet; `assets/` is empty. The web panel is exercised
-by `scripts/test_backend.py` over HTTP, but there is no captured image of it.
+![SCELBI 8B web console showing a booted SCELBAL session](assets/web-interface.png)
+
+The panel above is a real capture of the running system: SCELBAL has booted,
+the SIMH guide's calculator program is entered, and the glass teletype shows
+`A + B = 8.0` followed by the `READY` prompt. The front panel reports `RUN`,
+and the lamp rows show the live address/data buses. The capture was taken after
+the result was confirmed through `/api/state`.
 
 Waveform capture is implemented. `scripts/run_waveform.sh` boots SCELBAL,
 types the calculator program and RUN, and writes a VCD of the CPU, bus and
@@ -60,12 +65,19 @@ forms), and the HTTP backend test:
 - `scripts/test_backend.py` — the same flow through the HTTP console
   (AUTO, SCR, /api/load, RUN, rules, first guess answered with stars).
 
+- `tb/tb_ptr.sv` (`scripts/run_ptr.sh`) — the paper-tape reader: a real
+  8008 loader reads a 24-byte tape image through `INP 3` and stores it to
+  memory; the bytes are checked one by one.
+
 Boundaries: the console card models the byte-level bit-banger protocol
-(SIMH's model), not 110-baud analog timing; the paper-tape reader is not
-implemented; the SCELBAL math-functions and strings supplements are not
-loaded (the base SC1 image only); there is no FPGA build and no physical
-hardware comparison. See `report/final_report.md` for the full results and
-the open RTL-vs-oracle comparison limit.
+(SIMH's model), not 110-baud analog timing; the paper-tape reader follows
+SIMH's documented port/flag map but SIMH leaves its own PTR unit unimplemented,
+and SCELBAL's `SAVE`/`LOAD` vectors are stubs in the SC1 ROM, so the reader is
+exercised by a test loader rather than by the interpreter; the SCELBAL
+math-functions and strings supplements are not loaded (the base SC1 ROM has no
+function/array or string capability — `UDEFX: HLT`); there is no FPGA build and
+no physical hardware comparison. See `report/final_report.md` for the full
+results and the open RTL-vs-oracle comparison limit.
 
 - [Specification](spec/spec.md)
 - [Implementation plan](plans/implementation_plan.md)
