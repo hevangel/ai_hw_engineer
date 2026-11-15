@@ -1,0 +1,22 @@
+// MC146818 power-on image (NVRAM_FILE format: 64 hex bytes, $readmemh).
+// A battery-good IBM PC AT configuration written for this test bench from
+// the CMOS map in the IBM PC AT Technical Reference (March 1984), pp. 1-45
+// to 1-52. Not a dump of any machine.
+// 00-09: 12:34:56 Thursday 15 November 1984 (BCD, 24 h); alarms 00
+56 00 34 00 12 00 05 15 11 84
+// 0A-0D: A = 26h (32.768 kHz, 1.024 kHz), B = 02h (24 h, BCD), C, D = VRT
+26 02 00 80
+// 0E diagnostic status 00, 0F shutdown status 00
+00 00
+// 10 diskette types (A: high capacity), 11, 12 no fixed disk, 13
+20 00 00 00
+// 14 equipment byte, 15-16 base memory 0280h (640K), 17-18 expansion 0
+21 80 02 00 00
+// 19-2D reserved
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+// 2E-2F checksum of 10h-2Dh, high byte first: 20+21+80+02 = 00C3h
+00 C3
+// 30-31 expansion memory (POST), 32 century 19, 33 information flags (640K)
+00 00 19 80
+// 34-3F reserved
+00 00 00 00 00 00 00 00 00 00 00 00

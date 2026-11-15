@@ -1,0 +1,436 @@
+"""Independent-oracle construction for the AMD Am9518 design.
+
+Anchors a third-party DES implementation (pyDes) against OpenSSL and against
+published known-answer vectors, then emits:
+
+  - src/des_tables.svh   FIPS 46 permutation/S-box tables as SV functions
+  - tb/vectors/*.txt     pinned test vectors for the RTL harness
+  - tb/vectors/SHA256SUMS
+
+Every emitted vector is verified with BOTH pyDes and OpenSSL before being
+written (two independent external implementations).
+"""
+import hashlib
+import pathlib
+import re
+import subprocess
+import sys
+import tempfile
+
+from pyDes import des as pydes_des
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+
+# ---------------------------------------------------------------------------
+# Published FIPS 46 tables (authoritative source text for table emission).
+# ---------------------------------------------------------------------------
+IP_T = """58 50 42 34 26 18 10 2
+60 52 44 36 28 20 12 4
+62 54 46 38 30 22 14 6
+64 56 48 40 32 24 16 8
+57 49 41 33 25 17 9 1
+59 51 43 35 27 19 11 3
+61 53 45 37 29 21 13 5
+63 55 47 39 31 23 15 7"""
+
+FP_T = """40 8 48 16 56 24 64 32
+39 7 47 15 55 23 63 31
+38 6 46 14 54 22 62 30
+37 5 45 13 53 21 61 29
+36 4 44 12 52 20 60 28
+35 3 43 11 51 19 59 27
+34 2 42 10 50 18 58 26
+33 1 41 9 49 17 57 25"""
+
+E_T = """32 1 2 3 4 5
+4 5 6 7 8 9
+8 9 10 11 12 13
+12 13 14 15 16 17
+16 17 18 19 20 21
+20 21 22 23 24 25
+24 25 26 27 28 29
+28 29 30 31 32 1"""
+
+P_T = """16 7 20 21 29 12 28 17
+1 15 23 26 5 18 31 10
+2 8 24 14 32 27 3 9
+19 13 30 6 22 11 4 25"""
+
+PC1_T = """57 49 41 33 25 17 9
+1 58 50 42 34 26 18
+10 2 59 51 43 35 27
+19 11 3 60 52 44 36
+63 55 47 39 31 23 15
+7 62 54 46 38 30 22
+14 6 61 53 45 37 29
+21 13 5 28 20 12 4"""
+
+PC2_T = """14 17 11 24 1 5
+3 28 15 6 21 10
+23 19 12 4 26 8
+16 7 27 20 13 2
+41 52 31 37 47 55
+30 40 51 45 33 48
+44 49 39 56 34 53
+46 42 50 36 29 32"""
+
+SB_T = {
+    1: """14 4 13 1 2 15 11 8 3 10 6 12 5 9 0 7
+0 15 7 4 14 2 13 1 10 6 12 11 9 5 3 8
+4 1 14 8 13 6 2 11 15 12 9 7 3 10 5 0
+15 12 8 2 4 9 1 7 5 11 3 14 10 0 6 13""",
+    2: """15 1 8 14 6 11 3 4 9 7 2 13 12 0 5 10
+3 13 4 7 15 2 8 14 12 0 1 10 6 9 11 5
+0 14 7 11 10 4 13 1 5 8 12 6 9 3 2 15
+13 8 10 1 3 15 4 2 11 6 7 12 0 5 14 9""",
+    3: """10 0 9 14 6 3 15 5 1 13 12 7 11 4 2 8
+13 7 0 9 3 4 6 10 2 8 5 14 12 11 15 1
+13 6 4 9 8 15 3 0 11 1 2 12 5 10 14 7
+1 10 13 0 6 9 8 7 4 15 14 3 11 5 2 12""",
+    4: """7 13 14 3 0 6 9 10 1 2 8 5 11 12 4 15
+13 8 11 5 6 15 0 3 4 7 2 12 1 10 14 9
+10 6 9 0 12 11 7 13 15 1 3 14 5 2 8 4
+3 15 0 6 10 1 13 8 9 4 5 11 12 7 2 14""",
+    5: """2 12 4 1 7 10 11 6 8 5 3 15 13 0 14 9
+14 11 2 12 4 7 13 1 5 0 15 10 3 9 8 6
+4 2 1 11 10 13 7 8 15 9 12 5 6 3 0 14
+11 8 12 7 1 14 2 13 6 15 0 9 10 4 5 3""",
+    6: """12 1 10 15 9 2 6 8 0 13 3 4 14 7 5 11
+10 15 4 2 7 12 9 5 6 1 13 14 0 11 3 8
+9 14 15 5 2 8 12 3 7 0 4 10 1 13 11 6
+4 3 2 12 9 5 15 10 11 14 1 7 6 0 8 13""",
+    7: """4 11 2 14 15 0 8 13 3 12 9 7 5 10 6 1
+13 0 11 7 4 9 1 10 14 3 5 12 2 15 8 6
+1 4 11 13 12 3 7 14 10 15 6 8 0 5 9 2
+6 11 13 8 1 4 10 7 9 5 0 15 14 2 3 12""",
+    8: """13 2 8 4 6 15 11 1 10 9 3 14 5 0 12 7
+1 15 13 8 10 3 7 4 12 5 6 11 0 14 9 2
+7 11 4 1 9 12 14 2 0 6 10 13 15 3 5 8
+2 1 14 7 4 10 8 13 15 12 9 0 3 5 6 11""",
+}
+
+
+def _nums(text: str) -> list[int]:
+    return [int(x) for x in text.split()]
+
+
+# ---------------------------------------------------------------------------
+# Deterministic pseudo-random byte source for test vectors.
+# SHA-256 in counter mode; used ONLY to generate reproducible test data,
+# never for key material at rest or in transit.
+# ---------------------------------------------------------------------------
+class _Drbg:
+    def __init__(self, seed: bytes) -> None:
+        self._seed = seed
+        self._ctr = 0
+        self._buf = b""
+
+    def bytes(self, n: int) -> bytes:
+        out = bytearray()
+        while len(out) < n:
+            blk = hashlib.sha256(self._seed + self._ctr.to_bytes(8, "big")).digest()
+            self._ctr += 1
+            out += blk
+        return bytes(out[:n])
+
+
+DRBG = _Drbg(b"am9518-vector-seed-v1")
+
+
+def par_adj(b: bytes) -> bytes:
+    """Adjust each byte to odd parity (LSB is the parity bit).
+
+    The Am9518 checks odd parity on key bytes and the DES algorithm ignores
+    the parity bit, so this changes neither the effective key nor any
+    ciphertext; it only keeps the bus bytes legal for the parity checker.
+    The LSB is set to the complement of the parity of the upper seven bits.
+    """
+    out = bytearray()
+    for x in b:
+        upper_ones = bin(x & 0xFE).count("1")
+        lsb = 0 if upper_ones % 2 else 1
+        out.append((x & 0xFE) | lsb)
+    return bytes(out)
+
+# ---------------------------------------------------------------------------
+# OpenSSL cross-check (second independent implementation).  The openssl CLI
+# is invoked with a fixed argv list (shell=False, no shell interpolation);
+# arguments are hex strings generated by this script from bytes.hex().
+# ---------------------------------------------------------------------------
+_HEX_RE = re.compile(r"^[0-9a-f]{16}$")
+
+
+def openssl_des(key: bytes, block: bytes, encrypt: bool) -> bytes:
+    assert _HEX_RE.fullmatch(key.hex())
+    with tempfile.NamedTemporaryFile(delete=False) as f:
+        f.write(block)
+        name = f.name
+    cmd = ["openssl", "enc", "-des-ecb", "-provider", "legacy",
+           "-provider", "default", "-K", key.hex(), "-nosalt", "-nopad",
+           "-in", name]
+    if not encrypt:
+        cmd += ["-d"]
+    out = subprocess.run(cmd, capture_output=True, check=True,
+                         shell=False).stdout
+    return out[:8]
+
+
+def ref_des(key: bytes, block: bytes, encrypt: bool = True) -> bytes:
+    d = pydes_des(key, b"\0" * 8, pad=None, padmode=None)
+    r = d.encrypt(block) if encrypt else d.decrypt(block)
+    assert openssl_des(key, block, encrypt) == r, \
+        "pyDes/OpenSSL disagreement on " + key.hex()
+    return r
+
+
+# ---------------------------------------------------------------------------
+# Known-answer anchors (published values).
+# ---------------------------------------------------------------------------
+ANCHORS = [
+    ("0000000000000000", "0000000000000000", "8ca64de9c1b123a7",
+     "all-zero KAT (NBS literature)"),
+    ("0123456789abcdef", "4e6f772069732074", "3fa40e8a984d4815",
+     "'Now is t' example (FIPS-era literature)"),
+    ("8000000000000000", "0000000000000000", "95a8d72813daa94d",
+     "AMD 1985 interface guide hardware test"),
+]
+
+WEAK_KEYS = [
+    "0101010101010101", "1f1f1f1f0e0e0e0e",
+    "e0e0e0e0f1f1f1f1", "fefefefefefefefe",
+]
+
+
+def check_anchors() -> None:
+    for k, p, c, src in ANCHORS:
+        got = ref_des(bytes.fromhex(k), bytes.fromhex(p)).hex()
+        assert got == c, f"anchor failed: {k} {p} got {got} want {c} ({src})"
+        print(f"[anchor OK] {src}")
+    # Weak-key involution: E_k(E_k(x)) == x for weak keys.
+    blk = bytes.fromhex("0123456789abcdef")
+    for k in WEAK_KEYS:
+        kb = bytes.fromhex(k)
+        once = ref_des(kb, blk)
+        twice = ref_des(kb, once)
+        assert twice == blk, f"weak-key involution failed for {k}"
+        print(f"[anchor OK] weak-key involution {k}")
+
+
+# ---------------------------------------------------------------------------
+# SV table emission
+# ---------------------------------------------------------------------------
+def emit_perm(name: str, table: list[int], width: int, in_width: int) -> str:
+    lines = []
+    lines.append(f"    function automatic logic [{width-1}:0] f_{name}("
+                 f"logic [{in_width-1}:0] b);")
+    lines.append("        // FIPS 46 table: " + " ".join(str(x) for x in table))
+    lines.append(f"        for (int i = 0; i < {width}; i++) begin")
+    lines.append(f"            f_{name}[{width-1}-i] = "
+                 f"b[{in_width} - TABLE_{name.upper()}[8*i +: 8]];")
+    lines.append("        end")
+    lines.append("    endfunction")
+    return "\n".join(lines)
+
+
+def emit_sbox(idx: int, rows: list[list[int]]) -> str:
+    lines = []
+    lines.append(f"    function automatic logic [3:0] f_sbox{idx}(logic [5:0] x);")
+    lines.append("        // Input x[5:0] carries b1..b6 (b1 = MSB).")
+    lines.append("        // row = {b1,b6}, col = {b2,b3,b4,b5}.")
+    lines.append("        case ({x[5], x[0], x[4:1]})")
+    for r in range(4):
+        for c in range(16):
+            key6 = (r << 4) | c
+            lines.append(f"            6'h{key6:02X}: f_sbox{idx} = 4'd{rows[r][c]};")
+    lines.append("            default: f_sbox%d = '0;" % idx)
+    lines.append("        endcase")
+    lines.append("    endfunction")
+    return "\n".join(lines)
+
+
+def write_sv_tables() -> None:
+    parts = []
+    parts.append("// des_tables.svh — FIPS PUB 46 (1977) tables, GENERATED by")
+    parts.append("// scripts/generate_vectors.py from the published table text;")
+    parts.append("// do not edit by hand. FIPS bit n <-> vector bit (64-n).")
+    parts.append("`ifndef DES_TABLES_SVH")
+    parts.append("`define DES_TABLES_SVH")
+    parts.append("")
+    # Input widths: PC-1 sees the raw 64-bit key (drops parity bits);
+    # PC-2 sees the 56-bit C||D image; E sees 32 bits (R); P sees 32;
+    # IP/FP see 64.
+    tables = {
+        "IP": (_nums(IP_T), 64),
+        "FP": (_nums(FP_T), 64),
+        "EXPAND": (_nums(E_T), 32),
+        "PBOX": (_nums(P_T), 32),
+        "PC1": (_nums(PC1_T), 64),
+        "PC2": (_nums(PC2_T), 56),
+    }
+    for name, (tbl, in_width) in tables.items():
+        width = len(tbl)
+        # Reversed so that entry i sits at bits [8*i +: 8] (the first item
+        # of a concatenation lands at the MSB end).
+        packed = "".join(f"8'h{x:02x}," for x in reversed(tbl))
+        # Emit the table as one packed wide vector (yosys does not accept
+        # unpacked-array localparams) plus the permutation function.
+        parts.append(f"    localparam bit [8*{width}-1:0] TABLE_{name} = "
+                     + "{" + packed.rstrip(",") + "};")
+        parts.append(emit_perm(name.lower(), tbl, width, in_width))
+        parts.append("")
+    for idx, tbl in SB_T.items():
+        rows = [int(x) for x in tbl.split()]
+        assert len(rows) == 64
+        parts.append(emit_sbox(idx, [rows[i * 16:(i + 1) * 16] for i in range(4)]))
+        parts.append("")
+    parts.append("    function automatic logic [31:0] f_sboxes(logic [47:0] e);")
+    parts.append("        f_sboxes[31:28] = f_sbox1(e[47:42]);")
+    parts.append("        f_sboxes[27:24] = f_sbox2(e[41:36]);")
+    parts.append("        f_sboxes[23:20] = f_sbox3(e[35:30]);")
+    parts.append("        f_sboxes[19:16] = f_sbox4(e[29:24]);")
+    parts.append("        f_sboxes[15:12] = f_sbox5(e[23:18]);")
+    parts.append("        f_sboxes[11: 8] = f_sbox6(e[17:12]);")
+    parts.append("        f_sboxes[ 7: 4] = f_sbox7(e[11: 6]);")
+    parts.append("        f_sboxes[ 3: 0] = f_sbox8(e[ 5: 0]);")
+    parts.append("    endfunction")
+    parts.append("")
+    parts.append("`endif // DES_TABLES_SVH")
+    out = ROOT / "src" / "des_tables.svh"
+    out.write_text("\n".join(parts) + "\n", encoding="utf-8", newline="\n")
+    print(f"wrote {out}")
+
+
+# ---------------------------------------------------------------------------
+# Vector files
+# ---------------------------------------------------------------------------
+VEC_DIR = ROOT / "tb" / "vectors"
+
+
+def _fmt_hex(b: bytes) -> str:
+    return b.hex().upper()
+
+
+def write_vectors() -> None:
+    VEC_DIR.mkdir(parents=True, exist_ok=True)
+    files: dict[str, list[str]] = {}
+
+    # kat_ecb.txt: KEY PT CT lines (encrypt anchors + deterministic blocks).
+    lines = ["# KEY PT CT (hex, encrypt)", "# format: key plaintext ciphertext"]
+    for k, p, c, _src in ANCHORS:
+        got = ref_des(bytes.fromhex(k), bytes.fromhex(p)).hex()
+        assert got == c
+        lines.append(f"{k.upper()} {p.upper()} {c.upper()}")
+    for _ in range(16):
+        k = DRBG.bytes(8)
+        pt = DRBG.bytes(8)
+        lines.append(f"{_fmt_hex(k)} {_fmt_hex(pt)} {_fmt_hex(ref_des(k, pt))}")
+    files["kat_ecb.txt"] = lines
+
+    # ecb_soak.txt: randomized ECB blocks (decrypt direction soak).
+    lines = ["# KEY CT PT (decrypt soak): PT = DES^-1(CT) under KEY"]
+    for _ in range(128):
+        k = DRBG.bytes(8)
+        pt = DRBG.bytes(8)
+        ct = ref_des(k, pt)
+        lines.append(f"{_fmt_hex(k)} {_fmt_hex(ct)} {_fmt_hex(pt)}")
+    files["ecb_soak.txt"] = lines
+
+    # cbc.txt: KEY IV P1..Pn / C1..Cn sequences, encrypt and decrypt.
+    lines = ["# CBC sequences", "# E <n> <key> <iv> <p1..pn> <c1..cn>",
+             "# D <n> <key> <iv> <c1..cn> <p1..pn>"]
+    for _ in range(8):
+        k = DRBG.bytes(8)
+        iv = DRBG.bytes(8)
+        n = 2 + (DRBG.bytes(1)[0] % 4)
+        pt = [DRBG.bytes(8) for _ in range(n)]
+        ct, prev = [], iv
+        for b in pt:
+            prev = ref_des(k, bytes(x ^ y for x, y in zip(b, prev)))
+            ct.append(prev)
+        lines.append("E " + " ".join([f"{n}"] +
+                                     [_fmt_hex(x) for x in [k, iv] + pt + ct]))
+        lines.append("D " + " ".join([f"{n}"] +
+                                     [_fmt_hex(x) for x in [k, iv] + ct + pt]))
+    files["cbc.txt"] = lines
+
+    # cfb8.txt: KEY IV <n> stream pairs (encrypt: P stream -> C stream).
+    lines = ["# 8-bit CFB", "# E <key> <iv> <n> <pbytes...> <cbytes...>",
+             "# D <key> <iv> <n> <cbytes...> <pbytes...>"]
+    for _ in range(8):
+        k = DRBG.bytes(8)
+        iv = DRBG.bytes(8)
+        n = 6 + (DRBG.bytes(1)[0] % 14)
+        p = DRBG.bytes(n)
+        reg = iv
+        c = bytearray()
+        for pb in p:
+            ks = ref_des(k, reg)[0]
+            cb = pb ^ ks
+            c.append(cb)
+            reg = reg[1:] + bytes([cb])
+        lines.append("E " + " ".join([_fmt_hex(k), _fmt_hex(iv), f"{n}"] +
+                                     [f"{x:02X}" for x in p + bytes(c)]))
+        lines.append("D " + " ".join([_fmt_hex(k), _fmt_hex(iv), f"{n}"] +
+                                     [f"{x:02X}" for x in bytes(c) + p]))
+    files["cfb8.txt"] = lines
+
+    # encrypted_loads.txt: fields for the encrypted-load suites.
+    # Per case (16 hex fields):
+    #   MK EK_ENC EK DK_ENC DK IVE_ENC IVE IVD_ENC IVD EMK_IN EMK_OUT
+    #   PROBE_IN PROBE_E_OUT PROBE_D_OUT EIVE_OUT EIVD_OUT
+    # where (all ECB single-block):
+    #   EK_ENC = E(MK, EK); DK_ENC = E(MK, DK)      -> cmds 31/32
+    #   IVE_ENC = E(DK, IVE); IVD_ENC = E(DK, IVD)  -> cmds A5/A4 (A7)
+    #   EMK_OUT = E(MK, EMK_IN)                     -> cmd 39
+    #   PROBE_E_OUT = E(EK, PROBE_IN)               -> verify 31
+    #   PROBE_D_OUT = D(DK, PROBE_E_OUT)            -> verify 32
+    #   EIVE_OUT = E(EK, IVE); EIVD_OUT = E(EK, IVD)-> cmds A9/A8
+    lines = ["# Encrypted-load vectors: 16 hex fields per line.",
+             "# MK EK_ENC EK DK_ENC DK IVE_ENC IVE IVD_ENC IVD EMK_IN EMK_OUT",
+             "# PROBE_IN PROBE_E_OUT PROBE_D_OUT EIVE_OUT EIVD_OUT"]
+    for _ in range(6):
+        mk = par_adj(DRBG.bytes(8))
+        ek = par_adj(DRBG.bytes(8))
+        dk = par_adj(DRBG.bytes(8))
+        ive = DRBG.bytes(8)
+        ivd = DRBG.bytes(8)
+        emk_in = DRBG.bytes(8)
+        probe = DRBG.bytes(8)
+        probe_e = ref_des(ek, probe)
+        probe_d = ref_des(dk, probe_e, encrypt=False)
+        fields = [
+            mk, ref_des(mk, ek), ek,
+            ref_des(mk, dk), dk,
+            ref_des(dk, ive), ive,
+            ref_des(dk, ivd), ivd,
+            emk_in, ref_des(mk, emk_in),
+            probe, probe_e, probe_d,
+            ref_des(ek, ive), ref_des(ek, ivd),
+        ]
+        lines.append(" ".join(_fmt_hex(x) for x in fields))
+    files["encrypted_loads.txt"] = lines
+
+    # Write files with fixed suffix + sums.
+    for name, lines_ in files.items():
+        path = VEC_DIR / name
+        path.write_text("\n".join(lines_) + "\n", encoding="utf-8", newline="\n")
+        print(f"wrote {path}")
+
+    sums = []
+    for name in sorted(files):
+        data = (VEC_DIR / name).read_bytes()
+        sums.append(hashlib.sha256(data).hexdigest() + "  " + name)
+    (VEC_DIR / "SHA256SUMS").write_text("\n".join(sums) + "\n",
+                                        encoding="utf-8", newline="\n")
+    print("wrote SHA256SUMS")
+
+
+def main() -> None:
+    check_anchors()
+    write_sv_tables()
+    write_vectors()
+    print("oracle tables + vectors generated OK")
+
+
+if __name__ == "__main__":
+    sys.exit(main())
