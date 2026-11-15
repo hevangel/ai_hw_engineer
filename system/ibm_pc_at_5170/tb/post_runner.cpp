@@ -5,8 +5,12 @@
 // PDF page 29 for the ROM aliases):
 //   000000-09FFFF  640 KiB RAM (base 512 KiB plus 128 KiB expansion)
 //   0F0000-0FFFFF  64 KiB BIOS ROM, aliased at FF0000-FFFFFF
-// Any other memory address, a halt, a shutdown or a bus protocol error ends
-// the run with a STOP line. So does an I/O cycle that no board device
+// No memory card is fitted, so every other memory address is unpopulated:
+// a write there is ignored and counted, a data read returns kOpenBus and is
+// counted (the BIOS sizes memory by finding where a written pattern does not
+// read back), and an instruction fetch from there ends the run. A halt with
+// interrupts disabled or a bus protocol error also ends the run with a STOP
+// line. So does an I/O cycle that no board device
 // decodes, with one exception: a write to an I/O channel address (100h and
 // above; the system board decodes 000h-0FFh, Technical Reference I/O map)
 // is accepted and counted, because the expansion slots are empty and a
@@ -17,12 +21,22 @@
 // Trace records (consumed by scripts/check_post_trace.py):
 //   B <addr> <byte> <write> <io>    data transfer, instruction fetches omitted
 //   R <pc> <op> <cs> <ip> <flags> <segs> <8 regs>   retired instruction
+//   A <byte>                        interrupt-acknowledge cycle; the second
+//                                   of each pair carries the vector
+//   Z                               the processor was reset (8042 RC or shutdown)
 //
 // Optional 8042 log (consumed by scripts/check_kbc_log.py), in time order:
 //   I <pc>            8042 instruction or interrupt vector retired
 //   W <n> <a0> <data> host write took effect after <n> 8042 instruction starts
 //   X <n>             host read of the data register took effect (clears OBF)
 //   S <a0> <data>     value the CPU read from the 8042 (a0 = 1: status)
+//
+// Optional MC146818 log (consumed by scripts/check_rtc_log.py), in time
+// order; <t> is the number of oscillator periods the chip has counted:
+//   A <t> <byte>      address strobe took effect with this bus value
+//   W <t> <byte>      data write took effect
+//   V <t> <byte>      value the CPU read from port 71h
+//   R <t>             that read took effect (register C clears on read)
 #include "Vibm_pc_at_5170_tb.h"
 #include "verilated.h"
 #include <cstdint>
@@ -36,6 +50,12 @@
 
 namespace {
 constexpr uint32_t kRamEnd = 0xa0000;
+// ASSUMPTION AT14 (see spec): value read from a memory address no device
+// drives.
+constexpr uint8_t kOpenBus = 0xff;
+// Processor clocks a halt with interrupts disabled may last (about a third
+// of a second at 6 MHz) before the run is given up.
+constexpr uint64_t kHaltWait = 2000000;
 bool is_rom(uint32_t a) { return (a >= 0x0f0000 && a <= 0x0fffff) || a >= 0xff0000; }
 bool is_ram(uint32_t a) { return a < kRamEnd; }
 
@@ -49,19 +69,27 @@ std::string hex(uint32_t v, int width) {
 int main(int argc, char** argv) {
     Verilated::commandArgs(argc, argv);
     try {
-        if (argc != 5 && argc != 6)
-            throw std::runtime_error("usage: post_runner ROM TRACE wait half_period [KBC_LOG]");
+        if (argc < 5 || argc > 7)
+            throw std::runtime_error(
+                "usage: post_runner ROM TRACE wait half_period [KBC_LOG [RTC_LOG]]");
         std::ifstream file(argv[1], std::ios::binary);
         std::vector<uint8_t> rom((std::istreambuf_iterator<char>(file)), {});
         if (rom.size() != 65536) throw std::runtime_error("expected a 64 KiB BIOS image");
         std::ofstream trace(argv[2]);
         if (!trace) throw std::runtime_error("cannot open trace");
         std::ofstream klog;
-        if (argc == 6) {
+        if (argc >= 6) {
             klog.open(argv[5]);
             if (!klog) throw std::runtime_error("cannot open 8042 log");
             klog << std::hex;
         }
+        std::ofstream rlog;
+        if (argc == 7) {
+            rlog.open(argv[6]);
+            if (!rlog) throw std::runtime_error("cannot open MC146818 log");
+            rlog << std::hex;
+        }
+        uint64_t rtc_ticks = 0;
         const bool wait = std::stoi(argv[3]) != 0;
         const unsigned half = unsigned(std::stoul(argv[4]));
         if (!half) throw std::runtime_error("zero timer half-period");
@@ -71,7 +99,11 @@ int main(int argc, char** argv) {
         // undefined; the BIOS writes RAM before reading it in the code
         // reached so far.
         std::vector<uint8_t> ram(kRamEnd, 0);
-        uint64_t retired = 0, rom_writes = 0;
+        uint64_t retired = 0, rom_writes = 0, open_reads = 0, open_writes = 0, cpu_resets = 0;
+        uint64_t halt_clocks = 0, inta_cycles = 0;
+        bool inta_active = false;
+        uint8_t inta_byte = 0;
+        bool was_reset = true;   // the power-on reset is not counted
         uint16_t cur_cs = 0xf000, cur_ip = 0xfff0;
         unsigned refresh_cycles = 0;
         std::string stop;
@@ -84,6 +116,7 @@ int main(int argc, char** argv) {
         // plugged in (both keyboard lines released).
         d.kbd_unlocked_i = 1; d.display_mono_i = 1; d.mfg_jumper_i = 0; d.ram_512k_i = 1;
         d.kbd_clk_i = 1; d.kbd_data_i = 1;
+        d.chan_irq_i = 0;   // no adapter requests an interrupt
         uint64_t kbc_retired = 0, kbc_started = 0, slot_writes = 0;
         auto half_clock = [&](bool rising) {
             d.clk_i = rising; d.clk_2x_i = 1; d.eval();
@@ -105,8 +138,11 @@ int main(int argc, char** argv) {
 
             const std::string where = hex(cur_cs, 4) + ":" + hex(cur_ip, 4);
             if (d.protocol_error_o) stop = "kind=protocol-error";
-            else if (d.shutdown_o) stop = "kind=shutdown";
-            else if (d.halted_o) stop = "kind=halt";
+            // A shutdown resets the processor on the board. A halt with
+            // interrupts disabled can end only by a processor reset (NMI is
+            // not connected); the BIOS halts like that after asking the 8042
+            // to pulse the reset line, so allow kHaltWait clocks for it.
+            else if (halt_clocks > kHaltWait) stop = "kind=halt";
             else if (d.fault_o) stop = "kind=fault";
             else if (d.kbc_illegal_o) stop = "kind=kbc-illegal-opcode";
             if (!stop.empty()) { stop += " at=" + where; break; }
@@ -114,27 +150,27 @@ int main(int argc, char** argv) {
             const uint32_t a = d.address_o;
             const uint32_t base = a & ~1u;
             auto byte = [&](uint32_t x) -> uint8_t {
-                return is_ram(x) ? ram[x] : is_rom(x) ? rom[x & 0xffff] : 0;
+                return is_ram(x) ? ram[x] : is_rom(x) ? rom[x & 0xffff] : kOpenBus;
             };
             if (!d.io_cycle_o) d.mem_rdata_i = uint16_t(byte(base) | (byte(base + 1) << 8));
-            const bool empty_slot_write = d.io_unclaimed_o && d.data_oe_o && (a & 0xffff) >= 0x100;
+            const uint32_t port = d.io_port_o;
+            const bool empty_slot_write = d.io_unclaimed_o && d.data_oe_o && port >= 0x100;
             if (d.io_unclaimed_o && !empty_slot_write) {
                 stop = std::string("kind=io-") + (d.data_oe_o ? "write" : "read") +
-                       " port=" + hex(a & 0xffff, 4) + " at=" + where;
+                       " port=" + hex(port, 4) + " at=" + where;
                 break;
             }
             if (d.io_read_undriven_o) {
-                stop = "kind=io-undriven port=" + hex(a & 0xffff, 4) + " at=" + where;
+                stop = "kind=io-undriven port=" + hex(port, 4) + " at=" + where;
                 break;
             }
-            if (d.cycle_active_o && d.address_oe_o && !d.io_cycle_o) {
+            if (d.completed_bytes_o && !d.io_cycle_o && d.fetch_cycle_o) {
                 // A byte access to an odd address uses only the high lane;
                 // an even access uses the high lane only when BHE# is low.
                 const bool low = !(a & 1), high = (a & 1) || !d.bhe_n_o;
                 for (uint32_t b : {base, base + 1})
                     if (((b == base && low) || (b == base + 1 && high)) && !is_ram(b) && !is_rom(b))
-                        stop = std::string("kind=mem-") + (d.data_oe_o ? "write" : "read") +
-                               " addr=" + hex(b, 6) + " at=" + where;
+                        stop = "kind=fetch-unpopulated addr=" + hex(b, 6) + " at=" + where;
                 if (!stop.empty()) break;
             }
             d.eval();
@@ -146,12 +182,19 @@ int main(int argc, char** argv) {
                     const uint16_t bus = write ? d.data_o : d.cpu_data_o;
                     const uint8_t value = uint8_t(bus >> (((x) & 1) * 8));
                     if (write && !io) {
-                        if (is_ram(x)) ram[x] = value; else ++rom_writes;
+                        if (is_ram(x)) ram[x] = value;
+                        else if (is_rom(x)) ++rom_writes;
+                        else ++open_writes;
                     }
+                    if (!write && !io && !fetch && !is_ram(x) && !is_rom(x) && !d.inta_cycle_o)
+                        ++open_reads;
                     if (io && write && empty_slot_write) ++slot_writes;
                     // The 8042 select (sheets 13/18): even addresses 060h-06Eh.
                     if (klog.is_open() && io && !write && (x & 0x3f1) == 0x060)
                         klog << "S " << ((x >> 2) & 1) << ' ' << unsigned(value) << '\n';
+                    // MC146818 data port (sheet 18): odd addresses 071h-07Fh.
+                    if (rlog.is_open() && io && !write && (x & 0x3f1) == 0x071)
+                        rlog << "V " << rtc_ticks << ' ' << unsigned(value) << '\n';
                     if (!fetch)
                         trace << "B " << std::hex << x << ' ' << unsigned(value) << ' ' << write << ' '
                               << io << std::dec << '\n';
@@ -161,6 +204,31 @@ int main(int argc, char** argv) {
             // 8042 events at this rising edge. An instruction that starts at
             // the edge used the state before it, so it is counted before a
             // host event that takes effect at the same edge.
+            // An interrupt-acknowledge cycle ends when inta_cycle_o falls; the
+            // byte on the data bus in its last clock is what the CPU took.
+            if (d.inta_cycle_o) {
+                inta_active = true;
+                inta_byte = uint8_t(d.cpu_data_o);
+            } else if (inta_active) {
+                inta_active = false;
+                ++inta_cycles;
+                trace << "A " << std::hex << unsigned(inta_byte) << std::dec << '\n';
+            }
+            if (d.cpu_reset_o && !was_reset) {
+                ++cpu_resets;
+                trace << "Z\n";
+            }
+            halt_clocks = (d.halted_o && !(d.flags_o & 0x200)) ? halt_clocks + 1 : 0;
+            was_reset = d.cpu_reset_o;
+            // MC146818 events at this rising edge. A bus event is logged
+            // before an oscillator period that the chip counts at the same
+            // edge.
+            if (rlog.is_open()) {
+                if (d.rtc_as_fall_o) rlog << "A " << rtc_ticks << ' ' << unsigned(d.rtc_ad_o) << '\n';
+                if (d.rtc_wr_end_o) rlog << "W " << rtc_ticks << ' ' << unsigned(d.rtc_ad_o) << '\n';
+                if (d.rtc_rd_end_o) rlog << "R " << rtc_ticks << '\n';
+            }
+            if (d.rtc_tick_o) ++rtc_ticks;
             if (d.kbc_start_o) ++kbc_started;
             if (klog.is_open()) {
                 if (d.kbc_wr_end_o)
@@ -193,7 +261,8 @@ int main(int argc, char** argv) {
             if (!klog) throw std::runtime_error("8042 log write failed");
         }
         std::cout << "STOP " << stop << " post=" << hex(d.post_code_o, 2) << " retired=" << retired
-                  << " cycles=" << cycle << " kbc_retired=" << kbc_retired << " slot_writes=" << slot_writes << " rom_writes=" << rom_writes << " wait=" << wait
+                  << " cycles=" << cycle << " kbc_retired=" << kbc_retired << " slot_writes=" << slot_writes << " rom_writes=" << rom_writes << " open_reads=" << open_reads
+                  << " open_writes=" << open_writes << " cpu_resets=" << cpu_resets << " inta_cycles=" << inta_cycles << " wait=" << wait
                   << " half=" << half << '\n';
         d.final();
         return 0;

@@ -2,8 +2,11 @@
 
 Status: M1 done and merged (board skeleton, stops at the first 8042
 read). M2 done (8042 and MC146818 on the board, stops at the first
-coprocessor-port write); decision D3 is resolved (Option A, below). M3 is
-next.
+coprocessor-port write); decision D3 is resolved (Option A, below). M3 done
+(coprocessor ports, both 8259As, shutdown-to-reset and the I/O bus
+conversion on the board; stops at the read of fixed-disk status port 1F7h at
+POST checkpoint 3Ch). Every instruction matches Unicorn and the board
+synthesizes. M4 is next.
 
 Each milestone ends with a report in `report/` and an update to issue
 https://github.com/hevangel/ai_hw_engineer/issues/254. A milestone is done
@@ -87,18 +90,63 @@ write to port F1h at POST checkpoint 12h. Every instruction matches
 Unicorn and the 8042 matches its reference model. See
 [the M2 report](../report/2026-11-14-m2-8042-and-rtc.md).
 
-## M3: coprocessor ports, interrupt controllers and memory
+## M3: coprocessor ports, interrupt controllers and shutdown (done)
 
-- Math-coprocessor ports F0h/F1h.
-- Two cascaded 8259s with INTR and INTA wired to the CPU; MC146818 IRQ to
-  interrupt request 8.
-- Wire the 80286 shutdown cycle to CPU reset through the U105/U106
-  flip-flops (sheet 22), replacing the stand-in of assumption AT7. The
-  BIOS reads the shutdown byte at `F000:00E7` on the warm-restart path.
-- Expansion RAM above 1 MB and the protected-mode memory test.
+Between `F000:068B` and the new stop the BIOS does the following, in order:
+
+1. Writes port F1h, then initializes both 8259s (master ICW1 11h, ICW2 08h,
+   ICW3 04h, ICW4 01h; slave ICW1 11h, ICW2 70h, ICW3 02h, ICW4 01h; then
+   masks FFh).
+2. Enters protected mode, runs POST checkpoints 13h–1Dh and sizes memory
+   above 1 MB by writing AA55h to each 64K block and reading it back
+   (routine HOW_BIG1, printed pages 5-46 and 5-47). It finds none.
+3. Writes FEh to port 64h so that the 8042 pulses the CPU reset line, and
+   halts until the reset arrives. This happens three times in the run.
+4. Back in real mode, tests the 8259 mask registers, checks for unexpected
+   interrupts, writes page registers 82h and 83h with one word
+   `OUT 82h,AX` at `F000:0C9A` (checkpoint 27h), tests timer channel 2,
+   unmasks IRQ 0 and takes four timer interrupts (vector 08h).
+5. Runs further protected-mode tests (checkpoints F0h–FAh) and exercises
+   the 8042 (keyboard disable and enable, test inputs, keyboard reset,
+   interface test, command bytes, and D1h/DDh which closes the A20 gate).
+6. Reads the MC146818 many times, writes video and diskette ports, then
+   reads port 1F7h (fixed-disk status) at checkpoint 3Ch and stops there.
+
+Done:
+
+- Two 8259As on the board (sheet 16): master U114 and slave U125, selects
+  from U123, -INTA from the 82288, IRQ 0 from the 8254, IRQ 1 from the
+  8042, IRQ 8 from the MC146818, IRQ 13 from the coprocessor logic and
+  IRQ 3–7, 9–12, 14–15 from the I/O channel (inactive). Assumptions
+  AT13 and AT16.
+- Math-coprocessor ports F0h and F1h (sheet 3). No 80287 is fitted
+  (AT17).
+- 80286 shutdown cycle to CPU reset through U84 and U105 (sheet 22),
+  replacing the stand-in of assumption AT7. NMI stays unconnected: with no
+  parity logic or I/O channel check modeled neither source can be active.
+- I/O bus conversion: a word I/O cycle becomes two byte cycles for the
+  8-bit board devices (AT15). Without it the BIOS failed checkpoint 27h.
+- Runner: unpopulated memory (AT14); a halt ends the run only after
+  2,000,000 processor clocks with interrupts disabled; a shutdown no
+  longer ends the run; `A` and `Z` trace records; counters in the STOP
+  line; an optional MC146818 log checked by `scripts/check_rtc_log.py`.
+- The protected-mode memory test runs with no expansion memory fitted.
+  Expansion RAM moves to a later milestone, tied to decision D1.
+
+Result: with the new parts on the board, the unchanged BIOS runs
+16,688,169 instructions (16,586,155 with bus wait states) and stops at
+`F000:1453`, a read of port 1F7h at POST checkpoint 3Ch. Both scenarios
+show 3 CPU resets and 8 interrupt-acknowledge cycles (4 interrupts,
+vector 08h). The 8042 and the MC146818 match their reference models.
+Every instruction state and data transfer of both runs matches Unicorn,
+through protected mode, the interrupts, four exceptions and the resets. See
+[the M3 report](../report/2026-11-15-m3-interrupts-and-protected-mode.md).
 
 ## M4: video, keyboard input and diskette; full POST
 
+- Decide what a read from an empty slot returns, or fit the adapters the
+  BIOS probes. The fixed disk at 1F0h–1F7h comes first in the BIOS's order
+  and is the M3 stop.
 - Video adapter per decision D2. Extract the CGA from the PC system into a
   reusable module rather than copying it.
 - Keyboard scan codes from the host through the 8042.
@@ -113,7 +161,8 @@ Unicorn and the 8042 matches its reference model. See
 
 ## M6: OS/2 1.0 and CPGREP
 
-- Settle decision D1 and memory size.
+- Settle decision D1 and memory size. Expansion RAM above 1 MB (moved here
+  from M3) follows that decision.
 - Boot MS OS/2 1.0 and run `CPGREP -yn fast ..\README`. Compare with the
   PCjs baseline.
 - Any 286 defect found here is an escaped defect: failure note, fix in

@@ -3,10 +3,15 @@
 Status: M1 (board skeleton) is merged: the unchanged BIOS ran 30
 instructions and stopped at its first 8042 status read (`F000:00DE`); see
 [the M1 report](../report/2026-11-13-m1-board-skeleton.md). M2 puts the
-8042 and the MC146818 on the board: the BIOS now runs about 1.1 million
-instructions, passes its own 8042 test and stops at `F000:068B`, a write
+8042 and the MC146818 on the board: the BIOS then ran about 1.1 million
+instructions, passed its own 8042 test and stopped at `F000:068B`, a write
 to port F1h, the first hardware not on the board; see
-[the M2 report](../report/2026-11-14-m2-8042-and-rtc.md).
+[the M2 report](../report/2026-11-14-m2-8042-and-rtc.md). M3 adds the two
+8259As, the coprocessor ports and the shutdown-to-reset path: the BIOS now
+runs about 16.7 million instructions and stops at `F000:1453`, a read of
+port 1F7h (fixed-disk status) at POST checkpoint 3Ch, because no
+fixed-disk adapter is fitted; see
+[the M3 report](../report/2026-11-15-m3-interrupts-and-protected-mode.md).
 Tracking issue: https://github.com/hevangel/ai_hw_engineer/issues/254
 
 ## Target
@@ -49,15 +54,22 @@ Technical reference pages confirmed so far (PDF page numbers):
 - 33 (1-15): I/O channel features (I/O space 100h–3FFh for adapters, 24-bit
   memory addresses).
 - 62 (1-44): 8042 input port, output port and test input definitions.
+- 28–29 (1-10, 1-11): system interrupt levels, in decreasing priority.
+- 46 (1-28): system I/O address map.
+- 47 (1-29) and 104–105 (2-4, 2-5): coprocessor busy latch, IRQ 13 and the
+  F0h and F1h ports.
+- 181 (5-43): the BIOS listing that initializes both 8259As; 184–185
+  (5-46, 5-47): its memory-size routine for RAM above 1 MB.
 - Logic diagrams, "System Board (Sheet N of 22)" is PDF page 78+N: sheet 1
-  (U94, U129, 82284 and Y2), 3 (U51), 5 (J18), 13 (U123), 16 (8259A IR1),
-  17 (8042 U126), 18 (U115) and 22 (U105, U106).
+  (U94, U129, 82284, Y2, the 80286 and 80287 pins), 2 (82288 U83, -INTA),
+  3 (U51, U118, U130, U85, U109), 5 (J18), 11 (U86), 13 (U123, U113),
+  16 (U114, U125, 8254 OUT0), 17 (8042 U126), 18 (U115), 19 and 20 (I/O
+  channel interrupt request lines) and 22 (U84, U105, U106).
 
-Still to cite before RTL that depends on them: the system I/O address map,
-the 8042 command set and output port (system reset and gate A20 bits), the
-MC146818 CMOS map including the shutdown byte, the NMI mask at port 70h,
-the 80287 ports, the CPU clock of the type-1 board, and the port 80h
-manufacturing checkpoint convention.
+Still to cite before RTL that depends on them: the 8042 command set and
+output port (system reset and gate A20 bits), the MC146818 CMOS map
+including the shutdown byte, the CPU clock of the type-1 board, and the
+port 80h manufacturing checkpoint convention.
 
 ## Hardware and integration
 
@@ -68,7 +80,7 @@ manufacturing checkpoint convention.
 | CPU | `design/intel_80286` | Native bus interface and 82288-style strobes already exist |
 | Timer | `design/intel_8253_8254` (`IS_8254=1`) | Wired through `intel_80286_at_timer.sv` |
 | DMA | 2× `design/intel_8237` | Cascade on controller 2 channel 0 |
-| Interrupts | 2× `design/intel_8259` | Planned: master at 20h, slave at A0h on IRQ2; not wired yet (M3) |
+| Interrupts | 2× `design/intel_8259` | Master (U114) at 20h, slave (U125) at A0h on IRQ 2; on the board since M3 |
 | Keyboard controller | `design/intel_mcs48/intel_8042` (U126) | UPI-42 core running IBM firmware 1503033; on the board since M2 |
 | Floppy | `design/intel_8272` | Plus the AT diskette adapter logic |
 | Real-time clock and CMOS RAM | `design/motorola_mc146818` (U117) | On the board since M2; starts from `tb/cmos_configured.hex` |
@@ -78,7 +90,7 @@ manufacturing checkpoint convention.
 
 | Function | Tracking |
 |---|---|
-| AT fixed-disk controller (port 1F0h) | Not tracked yet |
+| AT fixed-disk controller (port 1F0h) | Not tracked yet; the BIOS probes it first, and its status read at 1F7h is the M3 stop |
 | Video adapter: CGA or MDA first, EGA later (ai_engineer#224) | CGA exists only inside `system/ibm_pc/src/ibm_pc.sv` and needs extraction |
 | 80287 (optional) | ai_engineer#238 |
 
@@ -92,16 +104,20 @@ manufacturing checkpoint convention.
   the top 64K of each alias. The CPU's reset fetch at FFFFF0h uses the
   upper alias.
 - 100000 and up: expansion RAM. OS/2 needs memory above 1 MB; the amount
-  follows decision D1.
+  follows decision D1. No memory card is fitted as of M3, so this range and
+  all other memory outside the 640K RAM and the ROM is unpopulated; see
+  AT14.
 
 ### Clocks and reset
 
-Reset comes from the 82284-style power-good path and from the 8042 output
-port. OS/2 and the BIOS use the 8042 reset to return from protected mode,
-with the CMOS shutdown byte choosing the restart path. Gate A20 comes from
-the 8042 output port. Clock ratios between CPU, timer (1.19 MHz) and DMA
-follow the existing fixture assumptions until the type-1 clock tree is
-cited. The 8042 wiring is in the next section.
+Reset comes from the 82284-style power-good path, from the 8042 output
+port and, since M3, from an 80286 shutdown cycle. OS/2 and the BIOS use
+the 8042 reset to return from protected mode, with the CMOS shutdown byte
+choosing the restart path. Gate A20 comes from the 8042 output port. Clock
+ratios between CPU, timer (1.19 MHz) and DMA follow the existing fixture
+assumptions until the type-1 clock tree is cited. The 8042 wiring is in
+the next section; the interrupt controllers, coprocessor ports, shutdown
+path and I/O bus conversion follow the MC146818 section.
 
 The board top composes the native 80286 (`intel_80286_native_cpu`)
 directly, not through the 286 design's `intel_80286_at_refresh_timer_native`
@@ -169,10 +185,78 @@ assumption AT9.
   through R28 and C85, so a system reset does not reach the chip's RESET
   pin. The board ties both high.
 - IRQ (pin 19) has a 10K pull-up and goes through inverter U107 to IRQ 8
-  (sheet 16). It is an output of the board until the 8259s exist.
+  (sheet 16). Since M3 it is the slave 8259A's IR0.
 - OSC1 is driven by a 32.768 kHz crystal oscillator (Y3 with U108). SQW
   and CKOUT are not connected. See assumption AT12.
 - Power-on contents: assumption AT11.
+
+### Interrupt controllers (U114, U125)
+
+Sheet 16 (PDF page 94), with the selects on sheet 13 and -INTA on sheet 2.
+The 8259 design reused is `design/intel_8259`.
+
+- Master U114 has SP/-EN pulled up by RN5; slave U125 has SP/-EN grounded.
+  CAS0–CAS2 are wired pin to pin. The slave's INT is on the master's IR2,
+  and the master's INT goes straight to the 80286 INTR pin (sheet 1).
+- Chip selects come from U123 (74ALS138, sheet 13): -INTR1 CS for I/O
+  020h–03Fh (master) and -INTR 2 CS for 0A0h–0BFh (slave), from XA5–XA9.
+  A0 of each chip is XA0, so each chip answers throughout its 32-address
+  block, even addresses as A0 = 0 and odd as A0 = 1. Reads and writes are
+  qualified by -XIOR and -XIOW.
+- -INTA comes from the 82288 (U83, sheet 2) to both chips. The vector
+  returns on the XD bus through U113 (74ALS245, sheet 13), whose direction
+  input turns it toward SD during -INTA, and then through the ordinary
+  read path to the CPU data bus (sheet 2). See AT13.
+- Master requests: IR0 = 8254 OUT0 (a direct wire, sheet 16), IR1 =
+  +OPT BUF FULL from the 8042, IR2 = slave INT, IR3–IR7 = I/O channel
+  IRQ 3–7 (sheet 20). Slave requests: IR0 = IRQ 8 from the MC146818
+  (through U107), IR1 = IRQ 9 (sheet 20), IR2–IR4 = IRQ 10–12 and IR6–IR7 =
+  IRQ 14–15 (sheet 19), IR5 = IRQ 13 from the coprocessor PAL U130
+  (sheet 3). The schematic draws no pull-ups on the I/O channel request
+  lines; see AT16.
+- The BIOS (listing PDF page 181, printed 5-43) programs the master with
+  ICW1 11h, ICW2 08h, ICW3 04h, ICW4 01h and the slave with ICW1 11h,
+  ICW2 70h, ICW3 02h, ICW4 01h, then masks both with FFh.
+
+### Math-coprocessor ports
+
+Sheet 3 (PDF page 81) and sheet 13. U123 output Y7 (-CS287) selects I/O
+0E0h–0FFh. PAL16L8A U130 decodes it with XA3, XA0 and -XIOW into the
+busy-latch clear (write to F0h), +RESET 287 (write to F1h), -NPCS, -BUSY 286
+and IRQ 13. Only -XIOW enters the PAL, so reads of F0h–F7h are not
+decoded. +RESET 287 goes to the 80287 only; the 80286 is not reset by it.
+The Technical Reference describes the busy latch and the two ports on
+printed pages 1-29, 2-4 and 2-5.
+
+No 80287 is fitted. The 80287 BUSY input has a 10K pull-up (RN4) and the
+80286 ERROR pin has only a 10K pull-up, so the 80286 sees a coprocessor
+that is not busy and has no error; IRQ 13 stays inactive. Both writes
+have no effect. See AT17.
+
+### Shutdown to CPU reset
+
+Sheet 22 (PDF page 100). U84 (74ALS27) decodes the 80286 shutdown cycle
+(A1, S1 and S0 low) and clocks flip-flop U105 with M/-IO as its data. U105
+and two further stages (U105b, U106) drive -SHT DWN, the same net that the
+8042's RC line presets, and U94 ORs it with the 82284 RESET at the 80286
+RESET pin (sheet 1). Only the 80286 is reset. See AT7.
+
+### I/O bus conversion
+
+Every device on the system board is 8 bits wide, while the 80286 runs a
+word I/O instruction (`OUT 82h,AX`) as one 16-bit cycle. The board holds
+the processor not ready during a word I/O cycle and gives the devices two
+byte cycles: the even address with the low byte, then the odd address with
+the high byte. The BIOS depends on this at `F000:0C9A`, where one word
+write sets page registers 82h and 83h. See AT15.
+
+### NMI
+
+NMI is not connected to the processor. On sheet 3, NMI = (I/O-channel-check
+latch U109 OR parity latch U86 on sheet 11) AND NOT the mask flip-flop U118;
+U118 is preset by reset, so NMI is disabled at power-up, which agrees with
+AT9. With no parity logic and no I/O channel check modeled, neither source
+can be active.
 
 ## Host interface
 
@@ -198,9 +282,11 @@ interrupts.
 - ASSUMPTION AT6: RAM powers up as zero. Real DRAM contents are undefined.
 - ASSUMPTION AT7: the CPU wrapper's two-stage RES synchronizer stands in for
   the U105/U106 flip-flop stages between RC and the 80286 RESET pin. The
-  reset lasts while RC is low plus that delay. The same flip-flop's capture
-  of an 80286 shutdown cycle (shutdown to CPU reset) is not wired yet, so a
-  shutdown stops the run.
+  reset lasts while RC is low plus that delay. Since M3 the same flip-flop's
+  capture of an 80286 shutdown cycle is wired: a shutdown resets the
+  processor through the same path. The reset ends when the processor's reset
+  clears its shutdown state; the real pulse length depends on SDCLK
+  (sheet 15), which was not traced.
 - ASSUMPTION AT8: the contents of decode PROM U115 are not published. The
   8042 is taken to answer at every even address 060h–06Eh (XA4 = 0,
   XA0 = 0), which contains its documented ports 60h and 64h, and port B at
@@ -212,9 +298,10 @@ interrupts.
   is unclaimed. NMI is masked at power-up.
 - ASSUMPTION AT10: the expansion slots are empty. A write to an I/O address
   of 100h or above that no board device decodes is accepted and counted
-  (the BIOS writes 3B8h and 3D8h once each before the 8042 test). A read
-  from such an address, and any unclaimed access below 100h, still stops
-  the run.
+  (the BIOS writes 3B8h and 3D8h once each before the 8042 test, and later
+  the other video and diskette ports). A read from such an address, and any
+  unclaimed access below 100h, still stops the run; since M3 that is the
+  stop, at the read of port 1F7h.
 - ASSUMPTION AT11: the MC146818 powers up from `tb/cmos_configured.hex`, a
   battery-good configuration record written for this model from the
   Technical Reference CMOS map (printed pages 1-45 to 1-52): 12:00:00 on
@@ -224,14 +311,33 @@ interrupts.
 - ASSUMPTION AT12: the clock's 32.768 kHz oscillator (Y3) is derived from
   the processor clock as 32,768 periods per 6,000,000 processor clocks.
   The real oscillator is independent of the system clock.
+- ASSUMPTION AT13: each interrupt-acknowledge cycle gets one wait state. The
+  8259 model samples -INTA on the clock and needs one clock to put the
+  vector on the bus; the real 8259A answers inside the cycle.
+- ASSUMPTION AT14: no memory card is fitted, so memory outside the 640K RAM
+  and the ROM is unpopulated. The schematic has no pull-ups or bus-hold on
+  any data bus (sheets 1, 2, 6, 8–11, 13, 15–17, 19, 20), so an undriven
+  read is electrically undefined; the runner returns FFh. A write there is
+  ignored and counted; an instruction fetch from there stops the run. The
+  BIOS's memory sizing only needs the value to differ from what it wrote.
+- ASSUMPTION AT15: in the I/O bus conversion the two byte cycles are
+  separated by one clock with no device selected; the conversion logic's
+  own timing is not modeled.
+- ASSUMPTION AT16: the I/O channel interrupt request lines have no pull-ups
+  on the schematic (sheets 16, 19, 20); with no adapter they are taken as
+  inactive (0).
+- ASSUMPTION AT17: the equations of PAL U130 are not published; the
+  coprocessor writes are decoded at F0h and F1h only.
 
 ## Strict decoding
 
 The board answers an I/O read only from a modeled device. The POST runner
-stops at the first I/O read no device claims, at any unclaimed I/O access
-below 100h and at the first memory access outside RAM and ROM; an unclaimed
-write to 100h or above is accepted and counted (AT10). There is no
-catch-all port array. The
+stops at the first I/O read no device claims and at any unclaimed I/O
+access below 100h. A write to memory outside RAM and ROM is ignored and
+counted, a data read there returns FFh and is counted, and only an
+instruction fetch there stops the run (AT14). An unclaimed I/O write to
+100h or above is accepted and counted (AT10). There is no catch-all port
+array. The
 286 design's AT fixtures use such an array; on that fixture the BIOS's
 cold-boot test of the 8042 system flag (port 64h bit 2, `F000:00DE`)
 reads 0 by default. Zero is the cold-boot answer, but no device supplied

@@ -11,6 +11,7 @@ module ibm_pc_at_5170_tb #(
     input  logic [15:0] mem_rdata_i,
     input  logic        kbd_unlocked_i, display_mono_i, mfg_jumper_i, ram_512k_i,
     input  logic        kbd_clk_i, kbd_data_i,
+    input  logic [15:0] chan_irq_i,
     output logic [23:0] address_o,
     output logic [15:0] data_o, cpu_data_o,
     output logic        data_oe_o, address_oe_o, bhe_n_o, io_cycle_o, fetch_cycle_o,
@@ -20,9 +21,12 @@ module ibm_pc_at_5170_tb #(
     output logic        refresh_o, refresh_ras_trigger_o,
     output logic        refresh_memr_n_o, refresh_memr_oe_o,
     output logic        io_unclaimed_o, io_read_undriven_o,
+    output logic [15:0] io_port_o,
     output logic [7:0]  post_code_o,
     output logic        a20_gate_o, rc_n_o, kbc_obf_o, cpu_reset_o, kbc_illegal_o,
-    output logic        kbd_clk_o, kbd_data_o, nmi_enable_o, irq8_o,
+    output logic        kbd_clk_o, kbd_data_o, nmi_enable_o, irq8_o, intr_o, inta_cycle_o,
+    output logic        rtc_tick_o, rtc_as_fall_o, rtc_wr_end_o, rtc_rd_end_o,
+    output logic [7:0]  rtc_ad_o,
     output logic        kbc_retire_o, kbc_start_o, kbc_wr_end_o, kbc_rd_end_o,
     output logic        kbc_wr_a0_o, kbc_rd_a0_o,
     output logic [7:0]  kbc_wr_data_o,
@@ -42,15 +46,23 @@ module ibm_pc_at_5170_tb #(
         .data_oe_o, .address_oe_o, .bhe_n_o, .io_cycle_o, .fetch_cycle_o, .completed_bytes_o, .hlda_o,
         .cycle_active_o, .protocol_error_o, .halted_o, .shutdown_o, .fault_o,
         .refresh_o, .refresh_ras_trigger_o, .refresh_memr_n_o, .refresh_memr_oe_o,
-        .io_unclaimed_o, .io_read_undriven_o, .post_code_o,
+        .io_unclaimed_o, .io_read_undriven_o, .io_port_o, .post_code_o,
         .kbd_unlocked_i, .display_mono_i, .mfg_jumper_i, .ram_512k_i, .kbd_clk_i, .kbd_data_i,
         .kbd_clk_o, .kbd_data_o, .a20_gate_o, .rc_n_o, .kbc_obf_o, .cpu_reset_o, .kbc_illegal_o,
-        .nmi_enable_o, .irq8_o
+        .nmi_enable_o, .irq8_o, .chan_irq_i, .intr_o, .inta_cycle_o
     );
     /* verilator lint_on PINMISSING */
     assign cpu_data_o = board.cpu_data;
     assign kbc_retire_o = board.kbc.retire_o;
     assign kbc_retire_pc_o = board.kbc.retire_pc_o;
+    // MC146818 events: an oscillator period, and the clock edges at which
+    // an address strobe, a write and a read take effect (rtc_ad_o is the
+    // bus value the chip sampled for the strobe or write).
+    assign rtc_tick_o = board.rtc_tick;
+    assign rtc_as_fall_o = board.rtc.as_fall;
+    assign rtc_wr_end_o = board.rtc.wr_end;
+    assign rtc_rd_end_o = board.rtc.rd_end;
+    assign rtc_ad_o = board.rtc.ad_q;
     // An 8042 instruction (or interrupt vector) starts in a machine cycle
     // whose sequencer state is S_FETCH (encoding 0); host-bus effects apply
     // at the clock edge where wr_end/rd_end are high.

@@ -21,6 +21,9 @@ STRING_OPS = (0xa4,0xa5,0xa6,0xa7,0xaa,0xab,0xac,0xad,0xae,0xaf)
 # and F2 (REPNE) repeat CMPS/SCAS. Other prefix/opcode pairs stay unsupported,
 # as do INS/OUTS (their per-element port inputs are not replayed here).
 REPEATABLE = {0xf3:(0xa4,0xa5,0xa6,0xa7,0xaa,0xab,0xae,0xaf), 0xf2:(0xa6,0xa7,0xae,0xaf)}
+# Extended-mode one-byte forms (Intel 210498-005 Appendix B): PUSHA, POPA,
+# RET far imm16, RET far, INT imm8, IRET.
+EXTENDED_OPS = (0x60,0x61,0xca,0xcb,0xcd,0xcf)
 
 
 def decode(uc, pc, extended=False):
@@ -31,6 +34,10 @@ def decode(uc, pc, extended=False):
     string forms in STRING_OPS, the REPEATABLE repeated forms (one repeat
     prefix, in any order with segment prefixes) and 0F 01 /0-/3 with a memory
     operand (SGDT/SIDT/LGDT/LIDT) and /4 with a register operand (SMSW).
+    It also accepts EXTENDED_OPS, BOUND (62, memory operand only), ARPL (63),
+    LMSW (0F 01 /6), SLDT/STR/LLDT/LTR/VERR/VERW (0F 00 /0-/5) and LAR/LSL
+    (0F 02/03), the forms the BIOS protected-mode tests use, and
+    MUL/IMUL/DIV/IDIV (F6/F7 /4-/7).
     """
     raw = bytes(uc.mem_read(pc,10))
     n = 0
@@ -45,10 +52,15 @@ def decode(uc, pc, extended=False):
     if repeat is not None:
         return (op,raw[n:]) if op in REPEATABLE[repeat] else None
     if extended and op in STRING_OPS: return op,raw[n:]
+    if extended and op in EXTENDED_OPS: return op,raw[n:]
+    if extended and op==0x62: return (op,raw[n:]) if raw[n+1]<0xc0 else None
+    if extended and op==0x63: return op,raw[n:]
     if extended and op==0x0f:
-        if n>7 or raw[n+1]!=0x01: return None
-        m=raw[n+2]; extension=(m>>3)&7
-        if extension<=3 and m<0xc0 or extension==4 and m>=0xc0: return op,raw[n:]
+        if n>7: return None
+        second=raw[n+1]; m=raw[n+2]; extension=(m>>3)&7
+        if second==0x01 and (extension<=3 and m<0xc0 or extension==4 and m>=0xc0 or extension==6):
+            return op,raw[n:]
+        if second==0x00 and extension<=5 or second in (0x02,0x03): return op,raw[n:]
         return None
     modrm = op<=0x3b and op%8<4 or op in (0x80,0x81,0x83,0x84,0x85,0x86,0x87,
         0x88,0x89,0x8a,0x8b,0x8c,0x8d,0x8e,0x8f,0xc0,0xc1,0xc4,0xc5,0xc6,0xc7,
@@ -56,7 +68,7 @@ def decode(uc, pc, extended=False):
     if modrm:
         m=raw[n+1]; extension=(m>>3)&7
         if op in (0xc0,0xc1,0xd0,0xd1,0xd2,0xd3) and extension==6: return None
-        if op in (0xf6,0xf7) and extension not in (0,2,3): return None
+        if op in (0xf6,0xf7) and extension not in ((0,2,3,4,5,6,7) if extended else (0,2,3)): return None
         if op==0xfe and extension not in (0,1): return None
         if op==0xff and extension not in (0,1,2,4,6): return None
         if op in (0xc6,0xc7,0x8f) and extension!=0: return None
