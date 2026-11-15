@@ -13,9 +13,18 @@ predecessor. The 8H/8B split (1974 hobbyist model, 1975 business model with
 
 ## Web interface and waveform
 
-No screenshot is committed yet; capture `assets/web-interface.jpg` after
-booting the console and loading *STARS* (the glass teletype shows the READY
-prompt and the game's star hints). No waveform capture is implemented.
+No screenshot is committed yet; `assets/` is empty. The web panel is exercised
+by `scripts/test_backend.py` over HTTP, but there is no captured image of it.
+
+Waveform capture is implemented. `scripts/run_waveform.sh` boots SCELBAL,
+types the calculator program and RUN, and writes a VCD of the CPU, bus and
+console signals over the RUN reply:
+
+```sh
+sh system/scelbi_8b/scripts/run_waveform.sh
+docker run --rm -it -v "$PWD:/work" -w /work ai-hw-engineer:latest \
+  surfer system/scelbi_8b/build/scelbi_8b.vcd
+```
 
 The console: an ASR-33 glass teletype (the game's "display"), a keyboard
 with number keys (the game's "input" — type your guess 1–100 and the machine
@@ -37,22 +46,26 @@ guess. The server binds loopback by default (`SCELBI_HOST` overrides).
 ## Verification and boundaries
 
 `sh system/scelbi_8b/scripts/run_all.sh` runs strict lint, the RTL
-regressions, and the HTTP backend test:
+regressions (boot/calculator, the full Shooting Stars session, and both `LET`
+forms), and the HTTP backend test:
 
 - `tb/tb_calc.sv` — boots SCELBAL, types the SIMH guide's example program,
   RUN prints `A + B = 8.0` (floating point, 6 digits).
 - `tb/tb_game.sv` — types the Shooting Stars listing, plays with sequential
   guesses to a win (star hints, win burst, guess count, goodbye), 130M+
   instructions, every console byte checked.
+- `tb/tb_let.sv` — the keyword form (`10 LET A=1`) and the implied form
+  (`10 A=1`) both print `A + B = 8.0`. The earlier report of a `LET` hang
+  does not reproduce; it was a console-driving artifact in the old test.
 - `scripts/test_backend.py` — the same flow through the HTTP console
   (AUTO, SCR, /api/load, RUN, rules, first guess answered with stars).
 
 Boundaries: the console card models the byte-level bit-banger protocol
 (SIMH's model), not 110-baud analog timing; the paper-tape reader is not
 implemented; the SCELBAL math-functions and strings supplements are not
-loaded (the base SC1 image only). This build's interpreter hangs on `LET`
-statements — the game listing uses direct assignments (documented in the
-specification).
+loaded (the base SC1 image only); there is no FPGA build and no physical
+hardware comparison. See `report/final_report.md` for the full results and
+the open RTL-vs-oracle comparison limit.
 
 - [Specification](spec/spec.md)
 - [Implementation plan](plans/implementation_plan.md)
