@@ -50,6 +50,18 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_GET(self):
+        if self.path == "/api/tapestat":
+            # TAPESTAT returns its own JSON line from the simulator.
+            with lock:
+                if process.poll() is not None:
+                    raise RuntimeError("simulator exited")
+                process.stdin.write("TAPESTAT\n")
+                process.stdin.flush()
+                result = process.stdout.readline()
+                if not result:
+                    raise RuntimeError("simulator returned no state")
+            self.send_json(json.loads(result))
+            return
         if self.path == "/api/state":
             try:
                 self.send_json(command("RUN 50000" if last_state and last_state["running"] else "STATE"))
@@ -92,6 +104,34 @@ class Handler(SimpleHTTPRequestHandler):
                 for ch in text.upper().replace("\r\n", "\n").replace("\n", "\r"):
                     command(f"TTYIN {ord(ch) & 255}")
                 self.send_json(command("STATE"))
+            except (ValueError, TypeError, json.JSONDecodeError) as exc:
+                self.send_json({"error": str(exc)}, 400)
+            except Exception as exc:
+                self.send_json({"error": str(exc)}, 500)
+            return
+        if self.path == "/api/tape":
+            # Load a paper-tape image into the reader. The file must live in
+            # the system folder (no path traversal).
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length > 4096:
+                    raise ValueError("request too large")
+                body = json.loads(self.rfile.read(length) or b"{}")
+                name = body.get("file")
+                if not isinstance(name, str) or "/" in name or "\\" in name:
+                    raise ValueError("invalid tape file")
+                path = system / "build" / name
+                if not path.is_file():
+                    raise ValueError(f"no such tape: {name}")
+                with lock:
+                    if process.poll() is not None:
+                        raise RuntimeError("simulator exited")
+                    process.stdin.write(f"TAPERUN {path}\n")
+                    process.stdin.flush()
+                    result = process.stdout.readline()
+                    if not result:
+                        raise RuntimeError("simulator returned no state")
+                self.send_json(json.loads(result))
             except (ValueError, TypeError, json.JSONDecodeError) as exc:
                 self.send_json({"error": str(exc)}, 400)
             except Exception as exc:

@@ -28,6 +28,13 @@ module tb_game;
     logic [7:0] last_output_data;
     logic [31:0] cycle_count, instruction_count;
 
+    logic ptr_push = 0;
+    logic [7:0] ptr_data = 0;
+    logic ptr_empty;
+    logic ptr_full;
+    logic [7:0] ptr_byte;
+    logic [31:0] ptr_read_count;
+
     scelbi_8b dut (.*);
 
     // Console transcript ring.

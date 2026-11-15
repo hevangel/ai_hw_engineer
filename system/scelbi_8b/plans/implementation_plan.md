@@ -17,4 +17,9 @@ Status: implemented.
    (types a listing with CR line endings); loopback bind; glass-teletype web
    panel with number keys and the LOAD *STARS* flow.
 5. Verification: RTL regressions (calculator session; full Shooting Stars
-   play-through) and the HTTP backend test; record results in the report.
+   play-through; `LET` reproducer for both forms), the HTTP backend test, and
+   a scoped VCD capture of the RUN reply; record results in the report.
+6. Independent oracle: a SCELBI 8B console simulator derived from SIMH's
+   `i8008.c` rather than from this RTL, used to check that the reported `LET`
+   hang is a property of the firmware or of the old test harness. It is a
+   development aid under `work/` and is not part of the shipped verification.

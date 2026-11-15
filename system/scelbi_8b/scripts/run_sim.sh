@@ -19,3 +19,11 @@ verilator --binary --timing -Wno-fatal --top-module tb_calc \
     "$SYSTEM/src/scelbi_8b.sv" "$SYSTEM/tb/tb_calc.sv" \
     >"$SYSTEM/build/calc_build.log"
 (cd "$ROOT" && "$SYSTEM/build/obj_calc/Vtb_calc" "+image=$SYSTEM/build/scelbal.hex")
+# `LET` regression: the keyword form and the implied form must behave the same.
+verilator --binary --timing -Wno-fatal --top-module tb_let \
+    --Mdir "$SYSTEM/build/obj_let" \
+    "$ROOT/design/intel_mcs8/intel_8008/src/intel_8008.sv" \
+    "$SYSTEM/src/scelbi_8b.sv" "$SYSTEM/tb/tb_let.sv" \
+    >"$SYSTEM/build/let_build.log"
+(cd "$ROOT" && "$SYSTEM/build/obj_let/Vtb_let" "+image=$SYSTEM/build/scelbal.hex" "+let=0")
+(cd "$ROOT" && "$SYSTEM/build/obj_let/Vtb_let" "+image=$SYSTEM/build/scelbal.hex" "+let=1")

@@ -23,8 +23,9 @@ The Shooting Stars game listing (`spec/reference/shooting_stars.bas`) is the
 1974 People's Computer Company game (copyright PCC; transcription:
 github.com/maurymarkowitz/What-to-Do-After-you-Hit-Return, `stars.hpb`),
 adapted to SCELBAL's dialect: no string variables (strings were a separate
-supplement package), direct assignments instead of `LET` (this build's LET
-parse hangs the interpreter — see the report), and numeric Y/N answers.
+supplement package) and numeric Y/N answers. It uses direct assignment
+(`A=1`), which is the implied-LET form SCELBAL documents and which this
+build accepts.
 
 ## Hardware and integration
 
@@ -62,3 +63,29 @@ loopback by default (`SCELBI_HOST` overrides); `SCELBI_PORT` (default 8080).
   guesses and exited cleanly (`tb/tb_game.sv`, 130M+ instructions).
 - Console fidelity: every byte the machine prints carries bit 7 (the card's
   parity convention); echoes of typed characters come back as sent.
+- `LET` handling: both the keyword form (`10 LET A=1`) and the implied form
+  (`10 A=1`) are accepted and produce `A + B = 8.0` (`tb/tb_let.sv`).
+  The earlier claim that this build hangs on `LET` was a test-harness
+  artifact — see `report/final_report.md`, "The LET hang".
+
+## Qualified scope
+
+- The console card models the SIMH byte-level protocol, not 110-baud analog
+  timing. There is no start-bit timing, no baud rate, and no line driver.
+- Paper-tape reader: the card is implemented (`INP 3` returns the byte under
+  the read head and advances one byte; flag bits 1 and 2 report data
+  available and tape in reader). SIMH marks its own PTR unit "not implemented
+  yet", so this is built from SIMH's documented port/flag map in `scelbi_io.c`
+  rather than from a working reference model. SCELBAL's own `SAVE`/`LOAD`
+  vectors are `JMP EXEC` stubs in the SC1 ROM, so the interpreter does not use
+  the reader; it is exercised by `tb/tb_ptr.sv`, which runs a real 8008 loader
+  that reads the tape through `INP 3`. Analog tape timing (sprocket holes,
+  reader speed) is not modelled.
+- Supplement packages: the math-functions and strings packages are not
+  loaded. The base SC1 ROM has no function/array or string capability — its
+  user-defined-function entry point is `UDEFX: HLT` and the parser stops at a
+  function token — so those features need a supplement image that is not part
+  of the 11942-byte SC1 binary. Programs that use string variables, arrays or
+  the extra math functions are outside this profile.
+- Verification is RTL simulation. There is no FPGA build, no physical 8008,
+  and no silicon comparison.

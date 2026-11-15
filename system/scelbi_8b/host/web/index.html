@@ -24,6 +24,12 @@
         <div class="control-block"><div class="section-label">PROCESSOR</div><div class="button-row"><button id="auto" class="primary">AUTO</button><button id="pause">P/P</button><button id="step">AV / STEP</button><button id="init">INIT</button></div><div class="radio-row"><label><input type="radio" name="stepMode" value="instruction" checked> INS</label><label><input type="radio" name="stepMode" value="cycle"> CYCLE</label></div></div>
         <div class="control-block"><div class="section-label">ADDRESS TRAP</div><div class="inline"><input id="trapAddress" type="text" inputmode="text" value="0040" maxlength="4" aria-label="Trap address in hexadecimal"><button id="trap">TRAP OFF</button></div><p>Stops after the current instruction when the next PC matches.</p></div>
         <div class="control-block"><div class="section-label">GAMES</div><div class="button-row"><button id="loadStars">LOAD *STARS*</button><button id="runProgram">RUN</button></div><p>Types the 1974 PCC <em>Shooting Stars</em> listing into SCELBAL (after <span class="mono">SCR</span>), then starts it.</p></div>
+        <div class="control-block">
+          <div class="section-label">PAPER-TAPE READER</div>
+          <div class="button-row"><button id="tapeLoad">LOAD TAPE</button><button id="tapeStat">STATUS</button></div>
+          <p>Feeds a paper-tape image to <span class="mono">INP 3</span>. The reader holds up to 255 bytes; SCELBAL's own <span class="mono">SAVE</span>/<span class="mono">LOAD</span> vectors are stubs in the SC1 ROM, so this exercises the card, not the interpreter.</p>
+          <div class="inline"><span class="mono" id="tapeStatus">tape idle</span></div>
+        </div>
         <div class="control-block"><div class="section-label">MEMORY AT PC</div><div id="memory" class="bytes mono"></div></div>
       </div>
     </section>
