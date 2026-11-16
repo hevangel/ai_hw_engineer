@@ -18,7 +18,8 @@ FW=$ROOT/work/firmware
 mkdir -p "$WORK/directed" "$WORK/random" "$WORK/bios"
 
 echo "== ROM: fetch and verify the IBM PS/2 Display Adapter BIOS"
-"$PY" -I "$S/get_rom.py" "$ROOT/work" | tail -1
+"$PY" -I "$S/get_rom.py" "$ROOT/work" > "$WORK/get_rom.log"
+tail -1 "$WORK/get_rom.log"
 
 echo "== build lockstep bench"
 verilator --cc --exe --build -O2 -j 4 --x-assign 0 --x-initial 0 -Wno-fatal \
@@ -72,8 +73,17 @@ if [ -z "${VGA_SKIP_BIOS:-}" ]; then
         lockstep "$WORK/bios/$name.txt" "$WORK/bios/$name"
     done <"$WORK/bios/list.txt"
     "$PY" -I "$S/bios_modes.py" check "$FW/vga_rom.bin" "$WORK/bios"
+    # capstone and Unicorn are not in the tool image: install pinned
+    # versions into the ignored work folder (python -I ignores PYTHONPATH,
+    # so the ROM scripts read VGA_PYDEPS themselves).
+    VGA_PYDEPS=$WORKROOT/pydeps
+    export VGA_PYDEPS
+    if [ ! -f "$VGA_PYDEPS/unicorn/__init__.py" ] || [ ! -f "$VGA_PYDEPS/capstone/__init__.py" ]; then
+        "$PY" -m pip install --quiet --target "$VGA_PYDEPS" unicorn==2.1.4 capstone==5.0.6
+    fi
     echo "== ROM static I/O audit"
-    "$PY" -I "$S/rom_io_audit.py" "$FW/ibm_vga.bin" "$WORK/bios/io_audit.md" | tail -1
+    "$PY" -I "$S/rom_io_audit.py" "$FW/ibm_vga.bin" "$WORK/bios/io_audit.md" > "$WORK/bios/io_audit.log"
+    tail -1 "$WORK/bios/io_audit.log"
     echo "== ROM execution (Unicorn): POST and INT 10h mode sets, replayed on RTL and model"
     "$PY" -I "$S/rom_exec.py" gen "$FW/vga_rom.bin" "$WORK/bios"
     while read -r name; do
@@ -106,7 +116,8 @@ fi
 
 echo "== coverage gate (directed + random + BIOS runs, model counters)"
 if [ -n "${VGA_NO_COVERAGE_GATE:-}" ]; then
-    "$PY" -I "$S/report_coverage.py" "$WORK"/random/*.cov "$WORK"/directed/*.cov | tail -1
+    "$PY" -I "$S/report_coverage.py" "$WORK"/random/*.cov "$WORK"/directed/*.cov > "$WORK/coverage.log"
+    tail -1 "$WORK/coverage.log"
 elif [ -n "${VGA_SKIP_BIOS:-}" ]; then
     "$PY" -I "$S/report_coverage.py" "$WORK"/random/*.cov "$WORK"/directed/*.cov --require
 else
