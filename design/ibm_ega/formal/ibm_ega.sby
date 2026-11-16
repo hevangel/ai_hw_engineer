@@ -20,10 +20,10 @@ cover: smtbmc yices
 read -formal -DFORMAL ega_plane_ram.sv ega_rom.sv ega_io_decode.sv ega_ext_regs.sv
 read -formal -DFORMAL ega_sequencer.sv ega_crtc.sv ega_graphics_ctrl.sv
 read -formal -DFORMAL ega_display_fetch.sv ega_attribute_ctrl.sv ibm_ega.sv
-blackbox ega_plane_ram ega_rom
+
 prep -top ibm_ega
 flatten
-setundef -undriven -anyseq
+
 
 [files]
 ../src/ega_plane_ram.sv

@@ -17,7 +17,8 @@
 //   P1 l / P3 l     jumpers                    FEAT v: feature inputs
 //   LP l / LPSW l   -LPEN IN / -LPEN SW pins   DACK l: -DACK0 level
 //   DUMPR           all debug registers        DUMPM p aaaa n: plane bytes
-//   XREG/XMEM/XDOTS/XPIX/XIRQ  model-only expectations (ignored here)
+//   XREG aa ee / XMEM p aaaa ee  record "Q R aa vv" / "Q M p aaaa vv" (the
+//                   model checks ee); XDOTS/XPIX/XIRQ: model-only
 //
 // Trace: "T n dots" + run-length "V count value" lines per T (value =
 // video | hsync<<6 | vsync<<7 | blank<<8 | de<<9 | video_oe<<10, one per
@@ -185,8 +186,18 @@ int main(int argc, char **argv) {
                 fprintf(out, "%02x", top->dbg_mem_data_o);
             }
             fprintf(out, "\n");
+        } else if (op == "XREG") {
+            top->dbg_reg_addr_i = hx(0);
+            top->eval();
+            fprintf(out, "Q R %02x %02x\n", hx(0), top->dbg_reg_data_o);
+        } else if (op == "XMEM") {
+            top->dbg_plane_i = hx(0);
+            top->dbg_mem_addr_i = hx(1);
+            top->eval();
+            fprintf(out, "Q M %u %04x %02x\n", hx(0), hx(1), top->dbg_mem_data_o);
         } else if (op[0] == 'X') {
-            // model-only expectation
+            // model-only expectation (XDOTS/XPIX/XIRQ: the dot stream and
+            // the I lines already carry the observed values)
         } else {
             fprintf(stderr, "unknown command %s\n", op.c_str());
             return 2;

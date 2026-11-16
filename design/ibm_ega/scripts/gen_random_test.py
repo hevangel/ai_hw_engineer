@@ -192,7 +192,7 @@ def main():
             L.append('DUMPR')
     L.append('DUMPR')
     for p in range(4):
-        L.append('DUMPM %d %04x 40' % (p, r.randint(0, 0xFFC0)))
+        L.append('DUMPM %d 0000 10000' % p)    # every byte of every plane
     with open(out, 'w') as f:
         f.write('# random seed %d\n' % seed + '\n'.join(L) + '\n')
 

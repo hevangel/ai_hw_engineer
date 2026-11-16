@@ -14,7 +14,7 @@ read_verilog -sv $S/ega_plane_ram.sv $S/ega_rom.sv $S/ega_io_decode.sv $S/ega_ex
 read_verilog -sv $S/ega_sequencer.sv $S/ega_crtc.sv $S/ega_graphics_ctrl.sv
 read_verilog -sv $S/ega_display_fetch.sv $S/ega_attribute_ctrl.sv $S/ibm_ega.sv
 blackbox ega_plane_ram ega_rom
-synth -top ibm_ega
+synth -flatten -top ibm_ega
 check -assert
 tee -o $WORK/synth_stat.txt stat
 " >/dev/null

@@ -846,8 +846,12 @@ def run(script, trace_path, rom=None, cov_path=None):
             lines.append('M %d %04x ' % (p, a0) + ''.join(
                 '%02x' % m.planes[p][(a0 + i) & 0xFFFF] for i in range(n)))
         elif op == 'XREG':
+            # the observed value also goes into the trace, so the RTL is
+            # compared at every expectation point
+            lines.append('Q R %02x %02x' % (h[0], m.dbg_reg(h[0])))
             expect(m.dbg_reg(h[0]), h[1], 'XREG %02x' % h[0])
         elif op == 'XMEM':
+            lines.append('Q M %d %04x %02x' % (h[0], h[1], m.planes[h[0]][h[1]]))
             expect(m.planes[h[0]][h[1]], h[2], 'XMEM %d %04x' % (h[0], h[1]))
         elif op == 'XDOTS':
             expect(len(last), int(t[1]), 'XDOTS')

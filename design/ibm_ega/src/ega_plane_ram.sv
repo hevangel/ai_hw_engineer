@@ -17,13 +17,22 @@ module ega_plane_ram (
     input  logic [15:0] dbg_addr,
     output logic [7:0]  dbg_rdata
 );
+`ifdef FORMAL
+    // Formal: the plane is a black box; its read data are unconstrained.
+    (* anyseq *) logic [7:0] f_a, f_b, f_d;
+    always_ff @(posedge clk) begin
+        a_rdata <= f_a;
+        b_rdata <= f_b;
+    end
+    assign dbg_rdata = f_d;
+    logic f_unused;
+    assign f_unused = ^{a_addr, a_we, a_wdata, b_addr, dbg_addr};
+`else
     logic [7:0] mem [0:65535];
 
-`ifndef FORMAL
     initial begin
         for (int i = 0; i < 65536; i++) mem[i] = 8'h00;
     end
-`endif
 
     always_ff @(posedge clk) begin
         if (a_we) mem[a_addr] <= a_wdata;
@@ -32,4 +41,5 @@ module ega_plane_ram (
     end
 
     assign dbg_rdata = mem[dbg_addr];
+`endif
 endmodule

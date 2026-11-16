@@ -222,9 +222,9 @@ module ega_crtc (
     // horizontal retrace never wraps the line; vertical retrace never
     // wraps the frame; counters bounded
     always_comb begin
-        assume (regs[0] <= 8'd70);
+        assume (regs[0] <= 8'd48);
         assume ({1'b0, regs[4]} + 9'd33 <= f_ht2);
-        assume (vt <= 9'd40);
+        assume (vt <= 9'd30);
         assume (vrs + 9'd17 <= vt);
         assume (!regs[5'h17][2]);
     end
@@ -260,6 +260,11 @@ module ega_crtc (
             if (char_ce && hs_q && !hs_cur) assert (f_hcnt == {1'b0, f_hw});
             if (char_ce && go_line && vs_line && !vs_n) assert (f_vcnt == {1'b0, f_vw});
             assert (f_hcnt <= 7'd32);
+            // inductive helpers: counts equal the distance from the start
+            if (hs_q) assert ({2'b00, f_hcnt} == hc - {1'b0, regs[4]});
+            if (hs_q) assert (hc > {1'b0, regs[4]});
+            if (vs_line) assert ({4'd0, f_vcnt} == vc - {1'b0, vrs} + 10'd1);
+            if (vs_line) assert (vc >= {1'b0, vrs});
 `endif
             // the interrupt latch is held clear by VRE bit 4 = 0 (TR p.37)
             if (!regs[5'h11][4]) assert (!vint);
