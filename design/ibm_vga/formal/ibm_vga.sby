@@ -24,6 +24,14 @@ read -formal -DFORMAL vga_sequencer.sv vga_crtc.sv vga_graphics_ctrl.sv
 read -formal -DFORMAL vga_display_fetch.sv vga_attribute_ctrl.sv vga_dac.sv ibm_vga.sv
 prep -top ibm_vga
 flatten
+# out-of-range part selects behind unreachable conditions (for example
+# the flag-history index 0, register-file reads at reserved indices)
+# elaborate to x ($shiftx): map memories and cells, then make those bits
+# free values
+memory_map
+techmap
+opt -fast
+setundef -anyseq
 
 [files]
 ../src/vga_plane_ram.sv

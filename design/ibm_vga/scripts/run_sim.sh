@@ -82,6 +82,26 @@ if [ -z "${VGA_SKIP_BIOS:-}" ]; then
     done <"$WORK/bios/exec_list.txt"
 fi
 
+echo "== clock-enable ratio: clk at 29.0 and 47.3 MHz, oscillator enables from phase accumulators"
+# The card needs clk >= the fastest selected oscillator (one enable per clk
+# at most) and no fixed ratio: rerun runs whose model traces exist with
+# irregular enables; every trace must equal the model's unchanged.
+nr=0
+for mhz in 29.0 47.3; do
+    for f in "$WORK"/directed/*.model "$WORK"/random/r1.model "$WORK"/random/r2.model              "$WORK"/bios/entry07.model "$WORK"/bios/entry18.model "$WORK"/bios/entry1b.model              "$WORK"/bios/entry1c.model "$WORK"/bios/exec_mode13.model; do
+        [ -f "$f" ] || continue
+        b=${f%.model}
+        VGA_CLK_MHZ=$mhz "$WORK/obj/vga_tb" "$b.txt" "$b.ratio"
+        if ! cmp -s "$b.model" "$b.ratio"; then
+            echo "FAIL: clk $mhz MHz: RTL differs from model: $b"
+            diff "$b.model" "$b.ratio" | head -6
+            exit 1
+        fi
+        nr=$((nr + 1))
+    done
+done
+echo "PASS: $nr runs identical with irregular oscillator enables"
+
 echo "== coverage gate (directed + random + BIOS runs, model counters)"
 if [ -n "${VGA_NO_COVERAGE_GATE:-}" ]; then
     "$PY" -I "$S/report_coverage.py" "$WORK"/random/*.cov "$WORK"/directed/*.cov | tail -1

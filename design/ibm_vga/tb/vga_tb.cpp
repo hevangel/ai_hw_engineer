@@ -13,7 +13,14 @@
 //   OR aaaa [ee|Z]  I/O read cycle             ORN: the same with AEN high
 //   MW aaaaa dd     memory write cycle
 //   MR aaaaa [ee|Z] memory read cycle
-//   T n             n clocks with both oscillator enables pulsing (decimal)
+//   T n             n master pulses (decimal): by default n clocks with both
+//                   oscillator enables pulsing; with VGA_CLK_MHZ set, clk
+//                   runs at that rate and each oscillator enable comes from
+//                   a phase accumulator (25.175 / 28.322 MHz), so enables
+//                   are irregular and never more than one per clock; the T
+//                   command then runs until the selected oscillator (Misc
+//                   Output bits 3-2, read through the debug port) has
+//                   pulsed n times
 //   RST l           RESET DRV level            DACK l: -DACK0 level
 //   LOAD v          monitor load load_i (3 bits)
 //   DUMPR           all debug registers        DUMPM p aaaa n: plane bytes
@@ -42,6 +49,7 @@ static Vibm_vga *top;
 static FILE *out;
 static std::vector<std::pair<long, unsigned>> runs;
 static long dots = 0;
+static double clk_mhz = 0.0, acc25 = 0.0, acc28 = 0.0;
 
 static void record() {
     if (!top->pix_en_o) return;
@@ -112,6 +120,13 @@ int main(int argc, char **argv) {
     out = fopen(argv[2], "w");
     std::ifstream in(argv[1]);
     const std::vector<int> DBG = dbg_list();
+    const char *cm = getenv("VGA_CLK_MHZ");
+    clk_mhz = cm ? atof(cm) : 0.0;
+    if (clk_mhz > 0 && clk_mhz < 28.322) {
+        fprintf(stderr, "VGA_CLK_MHZ %.3f is below the fastest oscillator (28.322 MHz)
+", clk_mhz);
+        return 2;
+    }
     idle();
     top->reset_drv_i = 0; top->dack0_n_i = 1; top->load_i = 7;
     top->dbg_reg_addr_i = 0; top->dbg_plane_i = 0; top->dbg_mem_addr_i = 0; top->dbg_dac_i = 0;
@@ -136,9 +151,25 @@ int main(int argc, char **argv) {
         if (op == "T") {
             long n = strtol(t.at(0).c_str(), nullptr, 10);
             dots = 0; runs.clear();
-            for (long i = 0; i < n; i++) {
-                top->osc25_ce_i = 1; top->osc28_ce_i = 1;
-                clk();
+            if (clk_mhz > 0) {
+                top->dbg_reg_addr_i = 0x60;
+                top->eval();
+                int cs = (top->dbg_reg_data_o >> 2) & 3;
+                long got = 0;
+                while (got < n) {
+                    acc25 += 25.175; acc28 += 28.322;
+                    bool e25 = acc25 >= clk_mhz, e28 = acc28 >= clk_mhz;
+                    if (e25) acc25 -= clk_mhz;
+                    if (e28) acc28 -= clk_mhz;
+                    top->osc25_ce_i = e25; top->osc28_ce_i = e28;
+                    clk();
+                    if (cs == 0 ? e25 : cs == 1 ? e28 : true) got++;
+                }
+            } else {
+                for (long i = 0; i < n; i++) {
+                    top->osc25_ce_i = 1; top->osc28_ce_i = 1;
+                    clk();
+                }
             }
             top->osc25_ce_i = 0; top->osc28_ce_i = 0;
             for (int i = 0; i < 6; i++) clk();

@@ -116,7 +116,7 @@ module vga_graphics_ctrl (
     // ------------------------------------------------------ serializer
     function automatic logic [35:0] ser(input logic [31:0] p, input logic odd);
         logic [35:0] o;
-        logic [7:0]  by;
+        logic [7:0]  by, b0, b1;
         o = 36'd0;
         for (int j = 0; j < 8; j++) begin
             if (regs[5][6]) begin
@@ -126,18 +126,22 @@ module vga_graphics_ctrl (
             end else if (shift_load) begin
                 // EGA E19: even map bytes on even characters, odd on odd,
                 // on the even colour outputs
-                for (int c = 0; c < 2; c++) begin
-                    by = odd ? p[8*(2*c+1) +: 8] : p[8*(2*c) +: 8];
-                    o[4*j + 2*c] = by[7-j];
-                end
+                b0 = odd ? p[15:8]  : p[7:0];
+                b1 = odd ? p[31:24] : p[23:16];
+                o[4*j]     = b0[7-j];
+                o[4*j + 2] = b1[7-j];
             end else if (regs[5][5]) begin
-                for (int c = 0; c < 2; c++) begin
-                    by = (j < 4) ? p[8*(2*c) +: 8] : p[8*(2*c+1) +: 8];
-                    o[4*j + 2*c + 1] = by[7 - 2*(j & 3)];
-                    o[4*j + 2*c]     = by[6 - 2*(j & 3)];
-                end
+                b0 = (j < 4) ? p[7:0]   : p[15:8];
+                b1 = (j < 4) ? p[23:16] : p[31:24];
+                o[4*j + 1] = b0[7 - 2*(j & 3)];
+                o[4*j]     = b0[6 - 2*(j & 3)];
+                o[4*j + 3] = b1[7 - 2*(j & 3)];
+                o[4*j + 2] = b1[6 - 2*(j & 3)];
             end else begin
-                for (int n = 0; n < 4; n++) o[4*j + n] = p[8*n + 7 - j];
+                o[4*j]     = p[7 - j];
+                o[4*j + 1] = p[15 - j];
+                o[4*j + 2] = p[23 - j];
+                o[4*j + 3] = p[31 - j];
             end
         end
         ser = o;                       // EGA E32: the 9th dot is 0

@@ -561,6 +561,25 @@ def status_bits(s):
 
 
 @test
+def video_status_mux(s):
+    # V16 (EGA E11): Input Status 1 bits 5-4 from the colour outputs chosen
+    # by Color Plane Enable bits 5-4. Index 15 everywhere in character 0,
+    # palette 15 = 2Ah = P5..P0 101010b; the read is after dot 18 (output
+    # character 2 of line 0, display enable on)
+    tiny(s)
+    s.seq(2, 0x0F).mw(0xA0000, 0xFF)
+    s.attr(0x0F, 0x2A)
+    run_seq(s)
+    s('T 19', 'OR 3da 00')                              # 00: {P2, P0} = 00
+    for cpe, want in [(0x1F, 0x30), (0x2F, 0x20), (0x3F, 0x00)]:
+        s.attr(0x12, cpe)
+        s('T %d' % FRAME, 'OR 3da %02x' % want)
+    # Screen Off does not stop the tap (POST C000:0270 runs with it set)
+    s.attr(0x12, 0x2F).seq(1, 0x21)
+    s('T %d' % FRAME, 'OR 3da 20')
+
+
+@test
 def vertical_interrupt(s):
     tiny(s)
     s.crtc(0x11, 0x15)                                   # enable (bit5 = 0), clear off
