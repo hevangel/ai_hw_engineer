@@ -12,6 +12,10 @@ runs about 16.7 million instructions and stops at `F000:1453`, a read of
 port 1F7h (fixed-disk status) at POST checkpoint 3Ch, because no
 fixed-disk adapter is fitted; see
 [the M3 report](../report/2026-11-15-m3-interrupts-and-protected-mode.md).
+M4a adds an I/O channel and an IBM EGA in a slot: the same stop is reached
+after 18.2 million instructions with the system BIOS and the card's BIOS,
+and the display shows the BIOS's memory count and two error lines; see
+[the M4a report](../report/2026-11-16-m4a-io-channel-and-ega.md).
 Tracking issue: https://github.com/hevangel/ai_hw_engineer/issues/254
 
 ## Target
@@ -82,6 +86,7 @@ port 80h manufacturing checkpoint convention.
 | DMA | 2× `design/intel_8237` | Cascade on controller 2 channel 0 |
 | Interrupts | 2× `design/intel_8259` | Master (U114) at 20h, slave (U125) at A0h on IRQ 2; on the board since M3 |
 | Keyboard controller | `design/intel_mcs48/intel_8042` (U126) | UPI-42 core running IBM firmware 1503033; on the board since M2 |
+| Video | `design/ibm_ega` | IBM Enhanced Graphics Adapter with 256 KB, in an expansion slot of the machine `ibm_pc_at_5170_ega.sv` only; since M4a |
 | Floppy | `design/intel_8272` | Plus the AT diskette adapter logic |
 | Real-time clock and CMOS RAM | `design/motorola_mc146818` (U117) | On the board since M2; starts from `tb/cmos_configured.hex` |
 | Board logic | 286 AT fixture modules: page registers and refresh page map, refresh path, port 61h, RAS trigger (bank select not yet wired) | Reused in place from `design/intel_80286/tb/` by `src/ibm_pc_at_5170.sv` |
@@ -91,15 +96,24 @@ port 80h manufacturing checkpoint convention.
 | Function | Tracking |
 |---|---|
 | AT fixed-disk controller (port 1F0h) | Not tracked yet; the BIOS probes it first, and its status read at 1F7h is the M3 stop |
-| Video adapter: CGA or MDA first, EGA later (ai_engineer#224) | CGA exists only inside `system/ibm_pc/src/ibm_pc.sv` and needs extraction |
+| Keyboard (a device on the 8042's keyboard connector) | Not tracked yet; with none attached the BIOS reports error 301 |
+| Diskette adapter (8272 and AT logic) | Not tracked yet; the BIOS reports error 601 |
+| VGA card | `design/ibm_vga`, being built; not on the machine |
 | 80287 (optional) | ai_engineer#238 |
+
+The video adapter row is no longer missing: the EGA is in the machine
+`ibm_pc_at_5170_ega.sv` (see "I/O channel and EGA"). CGA and MDA are not
+modeled in this system; the CGA exists only inside
+`system/ibm_pc/src/ibm_pc.sv`.
 
 ### Memory map (24-bit physical)
 
 - 000000–09FFFF: base RAM (512K on the board plus 128K expansion for
   640K).
-- 0A0000–0BFFFF: video buffer.
-- 0C0000–0DFFFF: adapter ROM space.
+- 0A0000–0BFFFF: video buffer. In the EGA machine the card owns it (the
+  channel passes it to the card); on the bare board it is unpopulated.
+- 0C0000–0DFFFF: adapter ROM space. In the EGA machine the card's 16 KB
+  ROM (IBM 6277356) answers at 0C0000–0C3FFF; the rest is unpopulated.
 - 0E0000–0FFFFF and FE0000–FFFFFF: system ROM. The 64K REV1 image lives in
   the top 64K of each alias. The CPU's reset fetch at FFFFF0h uses the
   upper alias.
@@ -258,12 +272,48 @@ U118 is preset by reset, so NMI is disabled at power-up, which agrees with
 AT9. With no parity logic and no I/O channel check modeled, neither source
 can be active.
 
+### I/O channel and EGA
+
+Added in M4a. Source: `src/at_io_channel.sv` and
+`src/ibm_pc_at_5170_ega.sv`; the board gained the output `mem_cycle_o`.
+
+- The channel (`at_io_channel`) runs 8-bit device cycles for the
+  expansion slots (AT18). It owns memory A0000h–DFFFFh and I/O at 100h and
+  above that no board device decodes. A word memory access is two byte
+  cycles. An I/O read that no board device answers takes its data from the
+  host or the channel instead of reading 0.
+- Reused design: [`design/ibm_ega`](../../../design/ibm_ega/), the IBM
+  Enhanced Graphics Adapter with 256 KB of display memory. Its ROM (IBM
+  6277356, 9/13/84) is fetched and hash-checked by
+  `design/ibm_ega/scripts/get_rom.py` into the ignored `work/` folder.
+- Memory map in this machine: A0000h–BFFFFh video memory (the card's
+  planes); C0000h–C3FFFh the card's BIOS ROM.
+- Interrupt: the card's IRQ2 goes to the board's IRQ 9, which is the
+  channel's IRQ 2 pin on the AT (sheet 16).
+- Card switches in the bench: SW1 off, SW2 on, SW3 on, SW4 off, which is
+  the Enhanced Color Display as primary display in 350-line mode.
+- CMOS image `tb/cmos_ega.hex`: equipment byte 01h (display with its own
+  BIOS, one diskette drive) and checksum 00A3h. The bare board keeps
+  `tb/cmos_configured.hex` (AT11).
+- Clocks: assumption AT19. Pixels are rebuilt by the runner from the
+  card's direct-drive monitor connector, active area only; the six bits
+  are read as the 350-line 64-colour interpretation, and 200-line modes
+  are not converted.
+- The channel's timing is not the real board's (AT18) and the video clock
+  ratio is virtual (AT19).
+
 ## Host interface
 
 Follow the PC/XT pattern: Verilator simulator, Python web server, browser
 panel with video, keyboard, power/reset/pause/step, diskette mount and
 export, and a CPU/bus waveform. Host code must never intercept BIOS or DOS
 interrupts.
+
+Not built yet. The only host is the POST runner (`tb/post_runner.cpp`):
+it supplies RAM, ROM and the mapping of unpopulated memory, and in the EGA
+machine it rebuilds one video frame from the card's monitor connector and
+writes it as a PPM (`--frame`). It has no keyboard, diskette, panel or
+waveform.
 
 ## Assumptions
 
@@ -356,8 +406,12 @@ stops at the first I/O read no device claims and at any unclaimed I/O
 access below 100h. A write to memory outside RAM and ROM is ignored and
 counted, a data read there returns FFh and is counted, and only an
 instruction fetch there stops the run (AT14). An unclaimed I/O write to
-100h or above is accepted and counted (AT10). There is no catch-all port
-array. The
+100h or above is accepted and counted (AT10). With `--empty-slots`, an
+unclaimed I/O read at 100h or above returns FFh and is counted instead of
+stopping the run; this is used for exploration only. In the EGA machine
+the channel and the card answer first: a byte no card drives reads FFh
+(AT14), and four I/O reads of the regression went unanswered by any card
+(counted, not a stop). There is no catch-all port array. The
 286 design's AT fixtures use such an array; on that fixture the BIOS's
 cold-boot test of the 8042 system flag (port 64h bit 2, `F000:00DE`)
 reads 0 by default. Zero is the cold-boot answer, but no device supplied
@@ -372,7 +426,9 @@ the read completes.
   size; video adapter). OS/2 1.0's minimum memory and supported displays
   must be cited before this is settled.
 - D2: video adapter for the first POST milestone (CGA from the PC system or
-  MDA).
+  MDA). Settled in practice in M4a: the IBM EGA, which the AT BIOS probes
+  through its own option ROM at C0000h. The VGA card (`design/ibm_vga`) is
+  being built.
 - D3 (resolved in M2, Option A): the 8042 is an MCS-48/UPI-42 core running
   IBM's original firmware 1503033, not a behavioral command model. The ROM
   image is rebuilt and hash-verified by
@@ -389,4 +445,9 @@ the read completes.
 3. MS OS/2 1.0 reaches the command prompt and `CPGREP -yn fast ..\README`
    prints the same line as the PCjs baseline.
 4. Lint, chip regressions, system simulation and synthesis pass, and the
-   README shows a real panel and waveform screenshot.
+   README shows a real panel and waveform screenshot. Met so far: lint,
+   the 8042 and MC146818 checks, system simulation of POST to checkpoint
+   3Ch (bare board and EGA machine) and synthesis. Not met: POST does not
+   complete (no keyboard, diskette or fixed disk), no 86Box or PCjs
+   comparison has been made, and there is no panel or waveform; the README
+   shows one captured POST frame only.
