@@ -130,8 +130,8 @@ reference models in all four. The display is checked as the text of one
 frame against the ROM's own font. The board synthesizes to 86,864 generic
 cells, the EGA machine to 94,169 and the VGA machine to 129,054 (the cards'
 plane RAMs and ROMs are black boxes; the VGA DAC's palette is in logic). The
-bare-board regression was last run for M4a, not on the VGA branch; its
-inputs are unchanged since M4a except `tb/post_runner.cpp`.
+bare-board regression, rerun on the VGA branch, is unchanged in both
+scenarios.
 
 Limits:
 

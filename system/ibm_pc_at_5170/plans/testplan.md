@@ -134,9 +134,9 @@ regression (`scripts/run_post_card.sh ega|vga`).
   - Synthesis of `ibm_pc_at_5170_vga` (129,054 generic cells, plane RAMs
     and ROM black-boxed).
   - Not checked: graphics modes and the DAC in the machine (only the
-    card's own suite covers them), the VGA ROM against an IBM listing, the
-    bare-board regression (last run for M4a), and the M4a "not checked"
-    items.
+    card's own suite covers them), the VGA ROM against an IBM listing, and
+    the M4a "not checked" items. The bare-board regression was rerun on
+    this branch and is unchanged.
 - M4b (remaining): POST completes with no error text; screen text matches
   86Box; keyboard input reaches the BIOS buffer; diskette read through DMA.
 - M5: PC DOS boot, DIR, file write and readback, reboot and readback.
