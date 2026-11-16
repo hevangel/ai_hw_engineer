@@ -13,8 +13,9 @@
 // line. So does an I/O cycle below 100h that no board device decodes (the
 // system board decodes 000h-0FFh, Technical Reference I/O map). The
 // expansion slots are empty, so an I/O channel address (100h and above)
-// is undriven: a write there has no effect and a read returns kOpenBus;
-// both are counted (ASSUMPTION AT14).
+// is undriven: a write there has no effect and is counted; a read ends
+// the run, or with --empty-slots returns kOpenBus and is counted
+// (ASSUMPTION AT14).
 //
 // The board clocks are
 // virtual (ASSUMPTION AT1), not IBM AT physical timing.
@@ -41,6 +42,8 @@
 //
 // Options, after the positional arguments:
 //   --stop-post=XX    stop when port 80h holds XX (hex)
+//   --empty-slots     an I/O read at 100h or above that nothing answers returns
+//                     kOpenBus and is counted, instead of ending the run
 //   --stop-at=ADDR    stop after the instruction at physical address ADDR (hex) retires
 //   --max-cycles=N    give the run up after N processor clocks
 //   --frame=FILE      (EGA build) write the last complete video frame as a PPM
@@ -49,7 +52,8 @@
 // Graphics Adapter sits on the I/O channel and owns memory A0000-DFFFF and
 // the I/O addresses it decodes. A channel read the card does not drive
 // still returns kOpenBus. The picture is rebuilt from the card's monitor
-// connector: one pixel per pix_en_o, a new line at each horizontal sync
+// connector: one pixel per pix_en_o while display enable is active (the
+// border is left out), a new line at each horizontal sync
 // and a new frame at each vertical sync; the six direct-drive bits
 // {r,g,b,R,G,B} map to 2/3 and 1/3 intensity per gun (Enhanced Color
 // Display, 350-line mode).
@@ -98,12 +102,18 @@ int main(int argc, char** argv) {
     try {
         int stop_post = -1;
         long stop_at = -1;
+#ifdef AT_EGA
+        bool empty_slots = true;   // the I/O channel is modeled
+#else
+        bool empty_slots = false;
+#endif
         uint64_t cycle_limit = kCycleLimit;
         std::string frame_path;
         while (argc > 5 && std::string(argv[argc - 1]).rfind("--", 0) == 0) {
             const std::string opt = argv[--argc];
             if (opt.rfind("--stop-post=", 0) == 0) stop_post = std::stoi(opt.substr(12), nullptr, 16);
             else if (opt.rfind("--frame=", 0) == 0) frame_path = opt.substr(8);
+            else if (opt == "--empty-slots") empty_slots = true;
             else if (opt.rfind("--stop-at=", 0) == 0) stop_at = std::stol(opt.substr(10), nullptr, 16);
             else if (opt.rfind("--max-cycles=", 0) == 0) cycle_limit = std::stoull(opt.substr(13));
             else throw std::runtime_error("unknown option " + opt);
@@ -175,7 +185,7 @@ int main(int argc, char** argv) {
                 lines.emplace_back();
             }
             was_hsync = d.hsync_o; was_vsync = d.vsync_o;
-            if (!d.blank_o) lines.back().push_back(uint8_t(d.video_o));
+            if (d.de_o) lines.back().push_back(uint8_t(d.video_o));
         };
         // ASSUMPTION AT19: the video clock runs at the processor clock's
         // rate, and the 8254 clock is the channel's OSC / 12 on the same
@@ -240,7 +250,7 @@ int main(int argc, char** argv) {
             const uint32_t port = d.io_port_o;
             const bool empty_slot = d.io_unclaimed_o && port >= 0x100;
             const bool empty_slot_write = empty_slot && d.data_oe_o;
-            if (d.io_unclaimed_o && !empty_slot) {
+            if (d.io_unclaimed_o && !(empty_slot && (empty_slots || d.data_oe_o))) {
                 stop = std::string("kind=io-") + (d.data_oe_o ? "write" : "read") +
                        " port=" + hex(port, 4) + " at=" + where;
                 break;

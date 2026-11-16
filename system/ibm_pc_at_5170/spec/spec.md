@@ -328,6 +328,26 @@ interrupts.
   inactive (0).
 - ASSUMPTION AT17: the equations of PAL U130 are not published; the
   coprocessor writes are decoded at F0h and F1h only.
+- ASSUMPTION AT18: I/O channel cycles for 8-bit cards (`at_io_channel.sv`)
+  are one clock of address setup, four clocks of command and one clock of
+  hold per byte; a word memory access to a card is two such byte cycles,
+  low byte first. The board's real command timing and default wait states
+  for 8-bit devices are not modeled clock for clock, and I/O CH RDY is not
+  used. The channel owns memory A0000h-DFFFFh and unanswered I/O at 100h
+  and above; a byte no card drives reads FFh (AT14).
+- ASSUMPTION AT19: in the machine with a video card
+  (`ibm_pc_at_5170_ega.sv`) the card's clock runs at the processor clock's
+  rate and stands for 24 MHz; the channel's 14.31818 MHz OSC, the card's
+  16.257 MHz crystal and the 8254 clock (OSC / 12) are derived from it, so
+  video and the timer keep their real ratio to each other. The processor
+  clock is therefore four times faster relative to them than the real
+  6 MHz. Reason: the 80286 model is not cycle accurate (it needs about
+  17 clocks per instruction in this BIOS, a real 80286 about a quarter of
+  that), and the EGA BIOS's self-test counts display-enable pulses per
+  frame by polling Input Status 1; at the real ratio the model polls too
+  slowly and miscounts (224 of 350). The 8042 and the MC146818 keep the
+  board's processor-clock ratios (AT1), so they run four times fast
+  relative to video. Nothing here is IBM AT physical timing.
 
 ## Strict decoding
 
