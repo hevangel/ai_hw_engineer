@@ -48,7 +48,9 @@
 //   --max-cycles=N    give the run up after N processor clocks
 //   --frame=FILE      (EGA build) write the last complete video frame as a PPM
 //
-// Built with -DAT_EGA the machine is ibm_pc_at_5170_ega: an IBM Enhanced
+// Built with -DAT_VGA the machine is ibm_pc_at_5170_vga (IBM PS/2 Display
+// Adapter; the frame holds its DAC outputs). Built with -DAT_EGA the
+// machine is ibm_pc_at_5170_ega: an IBM Enhanced
 // Graphics Adapter sits on the I/O channel and owns memory A0000-DFFFF and
 // the I/O addresses it decodes. A channel read the card does not drive
 // still returns kOpenBus. The picture is rebuilt from the card's monitor
@@ -57,9 +59,14 @@
 // and a new frame at each vertical sync; the six direct-drive bits
 // {r,g,b,R,G,B} map to 2/3 and 1/3 intensity per gun (Enhanced Color
 // Display, 350-line mode).
-#ifdef AT_EGA
+#if defined(AT_EGA)
+#define AT_CARD 1
 #include "Vibm_pc_at_5170_ega_tb.h"
 using Dut = Vibm_pc_at_5170_ega_tb;
+#elif defined(AT_VGA)
+#define AT_CARD 1
+#include "Vibm_pc_at_5170_vga_tb.h"
+using Dut = Vibm_pc_at_5170_vga_tb;
 #else
 #include "Vibm_pc_at_5170_tb.h"
 using Dut = Vibm_pc_at_5170_tb;
@@ -102,7 +109,7 @@ int main(int argc, char** argv) {
     try {
         int stop_post = -1;
         long stop_at = -1;
-#ifdef AT_EGA
+#ifdef AT_CARD
         bool empty_slots = true;   // the I/O channel is modeled
 #else
         bool empty_slots = false;
@@ -167,12 +174,29 @@ int main(int argc, char** argv) {
         d.kbd_clk_i = 1; d.kbd_data_i = 1;
         d.chan_irq_i = 0;   // no adapter requests an interrupt
         uint64_t kbc_retired = 0, kbc_started = 0, slot_writes = 0, slot_reads = 0;
+#ifdef AT_CARD
 #ifdef AT_EGA
         // Enhanced Color Display as the primary display in its 350-line
         // mode: SW1 off, SW2 on, SW3 on, SW4 off (1 = off); P1 at pin 2 =
         // secondary red, P3 at the 3xx port addresses.
-        d.ega_sw_i = 0x9; d.ega_p1_i = 1; d.ega_p3_i = 1; d.vid_clk_i = 0;
-        std::vector<std::vector<uint8_t>> lines(1), last_frame;
+        d.ega_sw_i = 0x9; d.ega_p1_i = 1; d.ega_p3_i = 1;
+        // The six direct-drive bits {r,g,b,R,G,B}: 2/3 and 1/3 intensity.
+        auto pixel = [&]() -> uint32_t {
+            const unsigned v = d.video_o;
+            uint32_t rgb = 0;
+            for (int gun = 2; gun >= 0; gun--)
+                rgb = (rgb << 8) | (0xAA * ((v >> gun) & 1) + 0x55 * ((v >> (gun + 3)) & 1));
+            return rgb;
+        };
+#else
+        // The DAC's 6-bit codes scaled to 8 bits per gun.
+        auto pixel = [&]() -> uint32_t {
+            auto scale = [](unsigned c) { return (c << 2) | (c >> 4); };
+            return (scale(d.r_o) << 16) | (scale(d.g_o) << 8) | scale(d.b_o);
+        };
+#endif
+        d.vid_clk_i = 0;
+        std::vector<std::vector<uint32_t>> lines(1), last_frame;
         uint64_t frames = 0;
         bool was_hsync = false, was_vsync = false;
         // One rising edge of the video clock has just been evaluated.
@@ -185,7 +209,7 @@ int main(int argc, char** argv) {
                 lines.emplace_back();
             }
             was_hsync = d.hsync_o; was_vsync = d.vsync_o;
-            if (d.de_o) lines.back().push_back(uint8_t(d.video_o));
+            if (d.de_o) lines.back().push_back(pixel());
         };
         // ASSUMPTION AT19: the video clock runs at the processor clock's
         // rate, and the 8254 clock is the channel's OSC / 12 on the same
@@ -195,17 +219,28 @@ int main(int argc, char** argv) {
 #define VID_RISE() do { d.vid_clk_i = 1; } while (0)
 #define VID_AFTER() do { video_sample(); } while (0)
 #define VID_FALL() do { d.vid_clk_i = 0; } while (0)
+#ifdef AT_VGA
+// The VGA needs a clock faster than its 28.322 MHz oscillator: two video
+// clocks per processor clock (48 MHz on the AT19 time base), the second
+// with the falling edge of clk_i.
+#define VID_SECOND 1
 #else
+#define VID_SECOND 0
+#endif
+#else
+#define VID_SECOND 0
 #define VID_RISE() do { } while (0)
 #define VID_AFTER() do { } while (0)
 #define VID_FALL() do { } while (0)
 #endif
         auto half_clock = [&](bool rising) {
             d.clk_i = rising; d.clk_2x_i = 1;
-            if (rising) VID_RISE(); else VID_FALL();
+            if (rising || VID_SECOND) VID_RISE(); else VID_FALL();
             d.eval();
-            if (rising) VID_AFTER();
-            d.clk_2x_i = 0; d.eval();
+            if (rising || VID_SECOND) VID_AFTER();
+            d.clk_2x_i = 0;
+            if (VID_SECOND) VID_FALL();
+            d.eval();
         };
         d.eval();
         for (int i = 0; i < 16; i++) { half_clock(true); half_clock(false); }
@@ -215,7 +250,7 @@ int main(int argc, char** argv) {
         for (; cycle < cycle_limit && stop.empty(); cycle++) {
             d.ready_n_i = wait ? (cycle % 5 != 4) : 0;
             d.dma_clk_n_i = cycle & 1;
-#ifdef AT_EGA
+#ifdef AT_CARD
             timer_acc += 2 * (kOscHz / 12);
             if (timer_acc >= kVidHz) { timer_acc -= kVidHz; timer_level = !timer_level; }
             d.timer_clk_i = timer_level ? 7 : 0;
@@ -259,7 +294,7 @@ int main(int argc, char** argv) {
                 stop = "kind=io-undriven port=" + hex(port, 4) + " at=" + where;
                 break;
             }
-#ifdef AT_EGA
+#ifdef AT_CARD
             const bool chan_driven = d.chan_sel_o && d.chan_driven_o;
             const bool chan_mem = d.chan_sel_o && !d.io_cycle_o;
 #else
@@ -355,7 +390,9 @@ int main(int argc, char** argv) {
                 trace << std::dec << '\n';
             }
             VID_AFTER();
-            d.clk_2x_i = 0; d.eval();
+            d.clk_2x_i = 0;
+            if (VID_SECOND) VID_FALL();
+            d.eval();
             half_clock(false);
             if ((stop_post >= 0 && d.post_code_o == stop_post && !d.cpu_reset_o && cycle > 64) ||
                 (stop_at >= 0 && d.retire_o && long(d.retire_pc_o) == stop_at)) {
@@ -375,7 +412,7 @@ int main(int argc, char** argv) {
                   << " cycles=" << cycle << " kbc_retired=" << kbc_retired << " slot_writes=" << slot_writes << " slot_reads=" << slot_reads << " rom_writes=" << rom_writes << " open_reads=" << open_reads
                   << " open_writes=" << open_writes << " cpu_resets=" << cpu_resets << " inta_cycles=" << inta_cycles << " wait=" << wait
                   << " half=" << half << '\n';
-#ifdef AT_EGA
+#ifdef AT_CARD
         std::cout << "VIDEO frames=" << frames << " chan_mem_writes=" << chan_writes;
         if (!last_frame.empty()) {
             size_t width = 0;
@@ -389,9 +426,8 @@ int main(int argc, char** argv) {
                 ppm << "P6\n" << width << ' ' << (last - first) << "\n255\n";
                 for (size_t y = first; y < last; y++)
                     for (size_t x = 0; x < width; x++) {
-                        const unsigned v = x < last_frame[y].size() ? last_frame[y][x] : 0;
-                        for (int gun = 2; gun >= 0; gun--)
-                            ppm.put(char(0xAA * ((v >> gun) & 1) + 0x55 * ((v >> (gun + 3)) & 1)));
+                        const uint32_t v = x < last_frame[y].size() ? last_frame[y][x] : 0;
+                        ppm.put(char(v >> 16)); ppm.put(char(v >> 8)); ppm.put(char(v));
                     }
                 if (!ppm) throw std::runtime_error("frame write failed");
             }

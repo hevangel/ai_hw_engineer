@@ -1,6 +1,6 @@
 # RTL source list of the IBM PC AT 5170 board, shared by run_post.sh,
-# run_post_ega.sh and run_synth.sh. Sourced with REPO_DIR and SYS_DIR set;
-# defines BOARD_RTL, CHANNEL_RTL and EGA_RTL.
+# run_post_card.sh and run_synth.sh. Sourced with REPO_DIR and SYS_DIR set;
+# defines BOARD_RTL, CHANNEL_RTL, EGA_RTL and VGA_RTL.
 CPU_DIR=$REPO_DIR/design/intel_80286
 KBC_DIR=$REPO_DIR/design/intel_mcs48/intel_8042
 RTC_DIR=$REPO_DIR/design/motorola_mc146818
@@ -21,3 +21,5 @@ BOARD_RTL="$CPU_DIR/src/*.sv
 EGA_DIR=$REPO_DIR/design/ibm_ega
 CHANNEL_RTL="$SYS_DIR/src/at_io_channel.sv"
 EGA_RTL="$EGA_DIR/src/*.sv"
+VGA_DIR=$REPO_DIR/design/ibm_vga
+VGA_RTL="$VGA_DIR/src/*.sv"

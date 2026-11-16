@@ -35,3 +35,14 @@ if grep 'Latch inferred' "$WORK_DIR/synth/ibm_pc_at_5170_ega.log" | grep -v 'ref
 fi
 grep -E '^ +[0-9]+ cells$' "$WORK_DIR/synth/ibm_pc_at_5170_ega.log" | tail -1
 echo "PASS: ibm_pc_at_5170_ega synthesized; log $WORK_DIR/synth/ibm_pc_at_5170_ega.log"
+
+# The machine with the VGA card, its plane RAMs and ROM black boxes too.
+echo "== synth: ibm_pc_at_5170_vga"
+# shellcheck disable=SC2086
+yosys -Q -l "$WORK_DIR/synth/ibm_pc_at_5170_vga.log" -p "read_verilog -sv $(echo $BOARD_RTL $CHANNEL_RTL $VGA_RTL)     $SYS_DIR/src/ibm_pc_at_5170_vga.sv; blackbox vga_plane_ram vga_rom;     hierarchy -check -top ibm_pc_at_5170_vga; synth -top ibm_pc_at_5170_vga; check -assert; stat" > /dev/null
+if grep 'Latch inferred' "$WORK_DIR/synth/ibm_pc_at_5170_vga.log" | grep -v 'refresh_arbiter.*hold_latched'; then
+    echo "FAIL: unexpected latch inferred" >&2
+    exit 1
+fi
+grep -E '^ +[0-9]+ cells$' "$WORK_DIR/synth/ibm_pc_at_5170_vga.log" | tail -1
+echo "PASS: ibm_pc_at_5170_vga synthesized; log $WORK_DIR/synth/ibm_pc_at_5170_vga.log"
