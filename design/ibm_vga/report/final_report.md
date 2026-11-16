@@ -22,7 +22,24 @@ failure. Individual stages: `run_lint.sh`, `run_formal.sh`, `run_sim.sh
 
 ## Results (run_all.sh, clean work directory)
 
-RESULTS_TABLE
+Run of 2026-11-16 in container `claude-ibm-vga` (image `ai-hw-engineer:latest`
+plus unicorn 2.1.4 and capstone): **PASS: ibm_vga complete flow in 1281 s**.
+
+| Stage | Result | Time |
+|---|---|---|
+| Lint | `verilator --lint-only -Wall` clean on `ibm_vga` and each of the 10 sub-modules alone | 2 s |
+| Formal | 4 targets proved (abc pdr) and covered (yices); 5 planted faults detected | 96 s |
+| ROM | 86Box file hashes, MAME `ibm-vga.bin` CRC32/SHA-1 equal after the 8 KB rotation, header, checksum, sign-on, table | in simulation |
+| Directed | 29 tests: the model meets every literal expectation, the RTL trace is identical | in simulation |
+| Random | 32 seeds x 600 operations identical (45,113 trace lines, 1,628,148 dots, final register/DAC/256 KB dumps) | in simulation |
+| BIOS geometry | 28 entries equal their registers; 22 display entries equal Figure 2-4/2-5 resolutions and HITR Figures 99-104 (40-column horizontal disagreement reported) | in simulation |
+| Static I/O audit | 31 ports reachable, each decoded or documented as another device's; 52 sites resolved only by execution | in simulation |
+| ROM execution | 5 Unicorn scenarios: POST passes (colour, mono, none); RTL = model on every replayed trace; mode 3, 12h, 13h pictures pixel-exact against images rebuilt from the ROM | in simulation |
+| Clock ratio | 72 runs identical with clk at 29.0 and 47.3 MHz and irregular enables | in simulation |
+| Coverage gate | 64 registers, 824 register bit values, 190 further items, all 28 BIOS entries and 5 executions: no hole | in simulation |
+| Simulation total | | 741 s |
+| Mutation | 20 of 20 mutants killed | 87 s |
+| Synthesis | Yosys `synth -flatten`, `check -assert` clean, no latches | 355 s |
 
 ## BIOS mode-table geometry
 
@@ -195,15 +212,56 @@ card faster than 28.322 MHz (for example at twice its rate).
 
 ## Mutation testing
 
-MUTATION_TABLE
+| Mutant | Fault | Killed by (first differing trace) |
+|---|---|---|
+| m1_fn_and_is_or | write path: function AND acts as OR | `random/r4` |
+| m2_wm3_mask | write mode 3: rotated data not ANDed into the mask | `directed/write_modes` |
+| m3_compare_inverted | read mode 1: Don't Care sense inverted | `directed/read_modes` |
+| m4_c256_order | 256-colour serializer: low nibble first | `directed/mode13_pixels` |
+| m5_chain4_paddr | chain 4: plane address keeps A1-A0 | `directed/odd_even_and_chain4` |
+| m6_htotal | CRTC: HT+4 characters per line | `directed/tiny_frame_timing` |
+| m7_protect | CRTC: Protect bit ignored | `directed/crtc_protect` |
+| m8_double_scan | CRTC: double scan ignored | `directed/double_scan` |
+| m9_vbe_bits | CRTC: vertical blank end compared on 5 bits | `random/r2` |
+| m10_dword | CRTC: doubleword address without MA13-12 in bits 1-0 | `directed/doubleword_high_address` |
+| m11_pel_width | attribute: PEL width pairs swapped | `directed/mode13_pixels` |
+| m12_io_a10 | I/O decode: A10 decoded (no 400h aliases) | `directed/io_decode_aliases` |
+| m13_enable_pos | card enable ignores POS 102h | `directed/card_enable` |
+| m14_dac_order | DAC: read returns green first | `directed/dac_state_machine` |
+| m15_pelmask | DAC: PEL mask not applied | `directed/dac_pel_mask` |
+| m16_colsel | attribute: Color Select bits 3-2 not used for P7-P6 | `directed/color_plane_enable_and_select` |
+| m17_text_depth | pipeline: alphanumeric depth equal to graphics (V14) | `directed/text_glyphs` |
+| m18_sense | switch sense: open outputs not doubled | `directed/switch_sense` |
+| m19_status_mux | Input Status 1 bits 5-4 always 0 (the V16 defect) | `directed/video_status_mux` |
+| m20_attr_3c1 | I/O decode: 3C1 also accepts attribute writes | `directed/registers_readback` |
+
+20 of 20 killed; each kill is a behavioural difference (RTL trace differs from the model), not a build or tool error. Mutants run the directed tests and 4 random seeds (the BIOS and clock-ratio stages are skipped inside mutants). m10 survived the first run: the tiny geometry never reached memory addresses of 4096 and above, where the doubleword output bits 1-0 carry MA13-12; test `doubleword_high_address` was added.
 
 ## Formal
 
-FORMAL_TABLE
+| Target | Task | Result | Time |
+|---|---|---|---|
+| `vga_dac` | prove (abc pdr) / cover (yices) | PASS / 3 covers reached | 1 s |
+| `vga_graphics_ctrl` | prove / cover | PASS / all covers reached | 2 s |
+| `vga_crtc` | prove_h, prove_v / cover | PASS / 3 covers reached | 27 s |
+| `ibm_vga` (RAM, ROM black boxes, DAC shadow entry) | prove / cover | PASS / all covers reached | 51 s |
+
+Planted faults, each of which must make its proof fail: DAC sub-index wrap
+at 3 (`vga_dac`), write mode 3 mask without the rotated data
+(`vga_graphics_ctrl`), horizontal retrace end on 4 bits (`vga_crtc`
+prove_h), vertical retrace end on 5 bits (`vga_crtc` prove_v), DAC decoded
+in setup mode (`ibm_vga`): all 5 detected. The card-top script maps
+memories and cells and turns the x bits of out-of-range selects behind
+unreachable conditions into free values (`setundef -anyseq`) before the
+proof, which can only make the proof harder.
 
 ## Synthesis
 
-SYNTH_TABLE
+Yosys generic synthesis of `ibm_vga` with the four plane RAMs and the ROM
+as black boxes: 40,826 cells, about 5,580 flip-flops (most of them the
+256 x 18-bit DAC palette, 4,608 bits, kept in logic so the design stays
+self-contained; an FPGA build would map it, like the planes, to block RAM).
+`check -assert` is clean and no latch is inferred.
 
 ## Disagreements between documents, emulators and the ROM
 
