@@ -10,12 +10,13 @@
 // counted (the BIOS sizes memory by finding where a written pattern does not
 // read back), and an instruction fetch from there ends the run. A halt with
 // interrupts disabled or a bus protocol error also ends the run with a STOP
-// line. So does an I/O cycle that no board device
-// decodes, with one exception: a write to an I/O channel address (100h and
-// above; the system board decodes 000h-0FFh, Technical Reference I/O map)
-// is accepted and counted, because the expansion slots are empty and a
-// write to an address no adapter decodes has no effect on the real bus. A
-// read from an empty slot still stops the run: its value is undefined. The board clocks are
+// line. So does an I/O cycle below 100h that no board device decodes (the
+// system board decodes 000h-0FFh, Technical Reference I/O map). The
+// expansion slots are empty, so an I/O channel address (100h and above)
+// is undriven: a write there has no effect and a read returns kOpenBus;
+// both are counted (ASSUMPTION AT14).
+//
+// The board clocks are
 // virtual (ASSUMPTION AT1), not IBM AT physical timing.
 //
 // Trace records (consumed by scripts/check_post_trace.py):
@@ -56,6 +57,8 @@ constexpr uint8_t kOpenBus = 0xff;
 // Processor clocks a halt with interrupts disabled may last (about a third
 // of a second at 6 MHz) before the run is given up.
 constexpr uint64_t kHaltWait = 2000000;
+// Processor clocks after which a run that has not stopped is given up.
+constexpr uint64_t kCycleLimit = 6000000000ull;
 bool is_rom(uint32_t a) { return (a >= 0x0f0000 && a <= 0x0fffff) || a >= 0xff0000; }
 bool is_ram(uint32_t a) { return a < kRamEnd; }
 
@@ -117,7 +120,7 @@ int main(int argc, char** argv) {
         d.kbd_unlocked_i = 1; d.display_mono_i = 1; d.mfg_jumper_i = 0; d.ram_512k_i = 1;
         d.kbd_clk_i = 1; d.kbd_data_i = 1;
         d.chan_irq_i = 0;   // no adapter requests an interrupt
-        uint64_t kbc_retired = 0, kbc_started = 0, slot_writes = 0;
+        uint64_t kbc_retired = 0, kbc_started = 0, slot_writes = 0, slot_reads = 0;
         auto half_clock = [&](bool rising) {
             d.clk_i = rising; d.clk_2x_i = 1; d.eval();
             d.clk_2x_i = 0; d.eval();
@@ -127,7 +130,7 @@ int main(int argc, char** argv) {
         d.reset_i = 0;
 
         uint64_t cycle = 0;
-        for (; cycle < 400000000 && stop.empty(); cycle++) {
+        for (; cycle < kCycleLimit && stop.empty(); cycle++) {
             d.ready_n_i = wait ? (cycle % 5 != 4) : 0;
             d.dma_clk_n_i = cycle & 1;
             d.timer_clk_i = ((cycle / half) & 1) ? 7 : 0;
@@ -152,10 +155,14 @@ int main(int argc, char** argv) {
             auto byte = [&](uint32_t x) -> uint8_t {
                 return is_ram(x) ? ram[x] : is_rom(x) ? rom[x & 0xffff] : kOpenBus;
             };
-            if (!d.io_cycle_o) d.mem_rdata_i = uint16_t(byte(base) | (byte(base + 1) << 8));
+            // The host's data for this cycle: memory, or the undriven bus of
+            // an I/O read that no board device answers.
+            d.mem_rdata_i = d.io_cycle_o ? uint16_t(kOpenBus | (kOpenBus << 8))
+                                         : uint16_t(byte(base) | (byte(base + 1) << 8));
             const uint32_t port = d.io_port_o;
-            const bool empty_slot_write = d.io_unclaimed_o && d.data_oe_o && port >= 0x100;
-            if (d.io_unclaimed_o && !empty_slot_write) {
+            const bool empty_slot = d.io_unclaimed_o && port >= 0x100;
+            const bool empty_slot_write = empty_slot && d.data_oe_o;
+            if (d.io_unclaimed_o && !empty_slot) {
                 stop = std::string("kind=io-") + (d.data_oe_o ? "write" : "read") +
                        " port=" + hex(port, 4) + " at=" + where;
                 break;
@@ -189,6 +196,7 @@ int main(int argc, char** argv) {
                     if (!write && !io && !fetch && !is_ram(x) && !is_rom(x) && !d.inta_cycle_o)
                         ++open_reads;
                     if (io && write && empty_slot_write) ++slot_writes;
+                    if (io && !write && empty_slot) ++slot_reads;
                     // The 8042 select (sheets 13/18): even addresses 060h-06Eh.
                     if (klog.is_open() && io && !write && (x & 0x3f1) == 0x060)
                         klog << "S " << ((x >> 2) & 1) << ' ' << unsigned(value) << '\n';
@@ -261,7 +269,7 @@ int main(int argc, char** argv) {
             if (!klog) throw std::runtime_error("8042 log write failed");
         }
         std::cout << "STOP " << stop << " post=" << hex(d.post_code_o, 2) << " retired=" << retired
-                  << " cycles=" << cycle << " kbc_retired=" << kbc_retired << " slot_writes=" << slot_writes << " rom_writes=" << rom_writes << " open_reads=" << open_reads
+                  << " cycles=" << cycle << " kbc_retired=" << kbc_retired << " slot_writes=" << slot_writes << " slot_reads=" << slot_reads << " rom_writes=" << rom_writes << " open_reads=" << open_reads
                   << " open_writes=" << open_writes << " cpu_resets=" << cpu_resets << " inta_cycles=" << inta_cycles << " wait=" << wait
                   << " half=" << half << '\n';
         d.final();

@@ -10,8 +10,9 @@
 // one implementation. The 8042 is design/intel_mcs48/intel_8042 and the
 // MC146818 is design/motorola_mc146818.
 //
-// Memory is external: the host supplies read data for the current memory
-// cycle on mem_rdata_i and performs writes from data_o. address_o is the
+// Memory and the expansion slots are external: the host supplies read data
+// on mem_rdata_i for the current memory cycle, and for an I/O read that no
+// board device answers, and performs writes from data_o. address_o is the
 // system address bus, after the A20 gate. I/O reads are served only by
 // modeled devices. io_unclaimed_o flags an I/O cycle that no modeled device
 // decodes, so a run stops at the first missing device instead of reading a
@@ -155,7 +156,7 @@ module ibm_pc_at_5170 #(
                       rtc_valid    ? lane(rtc_rdata) :
                       dma_valid    ? lane(dma_rdata) :
                       page_valid   ? lane(page_rdata) :
-                      io_cycle_o   ? 16'h0000 : mem_rdata_i;
+                      mem_rdata_i;
     assign cpu_data = (word_io && conv == 2'd2) ? {dev_data[15:8], conv_low} : dev_data;
 
     assign io_claimed_o = timer_sel || port61_sel || dma_sel || page_sel || kbc_sel || rtc_sel ||
