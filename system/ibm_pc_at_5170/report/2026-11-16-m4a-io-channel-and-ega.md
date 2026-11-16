@@ -23,7 +23,7 @@ in and no diskette adapter is modeled. Nothing boots.
 | MC146818 against its reference model | `scripts/run_post_ega.sh` | 64,931 address strobes, 23 writes and 64,906 CPU read values identical over 46.5 s of clock time |
 | 80286 against Unicorn | `scripts/run_post_ega.sh` | 18,201,512 instruction states and data transfers match, in the system BIOS and in the EGA BIOS; 13 of 13 BIOS checkpoints |
 | Bare board, unchanged | `scripts/run_post.sh` | Stops at `kind=io-read port=01F7 at=F000:1453 post=3C`; 16,688,169 and 16,586,155 instructions match Unicorn; 8042 and MC146818 match their models |
-| Synthesis, board | `scripts/run_synth.sh` | 87,161 generic cells, as in M3 |
+| Synthesis, board | `scripts/run_synth.sh` | 86,864 generic cells (87,161 in M3; the unanswered-I/O read path no longer forces 0) |
 | Synthesis, EGA machine | `scripts/run_synth.sh` | `ibm_pc_at_5170_ega`: 94,169 generic cells with the card's plane RAMs and ROM as black boxes; `check -assert` clean; the only latch is the refresh arbiter's schematic latch |
 
 The clean run of 2026-11-16 in the `ai-hw-engineer` image took about 15

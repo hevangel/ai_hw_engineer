@@ -15,7 +15,7 @@ adapter is fitted. Nothing boots.
 | Unicorn replay | `scripts/run_post.sh` | Every instruction state and data transfer matches: 16,688,169 and 16,586,155 instructions, through protected mode, 4 hardware interrupts, 4 exceptions, 69 software interrupts and 3 resets; 13 of 13 BIOS checkpoints |
 | 8042 against its reference model | `scripts/run_post.sh` | 7,777,553 and 10,543,228 8042 instructions; 1,648,422 and 1,637,225 CPU reads identical |
 | MC146818 against its reference model | `scripts/run_post.sh` | 22,855 and 14,538 address strobes, 23 writes each; 22,830 and 14,513 CPU reads identical |
-| Synthesis, board | `scripts/run_synth.sh` | Pass, 87,161 generic cells, `check -assert` clean; the only latch is the refresh arbiter's schematic latch |
+| Synthesis, board | `scripts/run_synth.sh` | Pass, 86,864 generic cells, `check -assert` clean; the only latch is the refresh arbiter's schematic latch |
 | EGA machine: lint | `scripts/run_post_ega.sh` (first step) | Clean, `verilator --lint-only -Wall` on `ibm_pc_at_5170_ega` |
 | EGA machine: stop point | `scripts/run_post_ega.sh` | `kind=stop-at after=F1453 at=F000:1454 post=3C`; 18,201,512 instructions, 279,013,645 processor clocks, 3 CPU resets, 14 interrupt-acknowledge cycles (7 timer interrupts), 1,321 channel I/O writes, 4 unanswered channel I/O reads, 1,270,314 channel memory writes, 648 video frames |
 | EGA machine: screen | `scripts/run_post_ega.sh` (`scripts/check_frame.py`) | The last frame, 640 x 350, decodes with the ROM's own 8 x 14 font to `00640 KB OK`, ` 301-Keyboard Error`, ` 601-Diskette Error` |
