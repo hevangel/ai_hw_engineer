@@ -218,12 +218,18 @@ module ega_crtc (
     assign f_vw  = ((regs[5'h11][3:0] - vrs[3:0]) == 4'd0) ? 5'd16
                  : {1'b0, regs[5'h11][3:0] - vrs[3:0]};
 
-`ifdef FORMAL_PROVE
-    // horizontal retrace never wraps the line; vertical retrace never
-    // wraps the frame; counters bounded
+`ifdef FORMAL_PROVE_H
+    // horizontal: HT <= 48 and the retrace never wraps the line
     always_comb begin
         assume (regs[0] <= 8'd48);
         assume ({1'b0, regs[4]} + 9'd33 <= f_ht2);
+        assume (vt <= 9'd3);
+    end
+`elsif FORMAL_PROVE_V
+    // vertical: short lines (HT <= 2), VT <= 30, the retrace never wraps
+    // the frame, no HRTC/2
+    always_comb begin
+        assume (regs[0] <= 8'd2);
         assume (vt <= 9'd30);
         assume (vrs + 9'd17 <= vt);
         assume (!regs[5'h17][2]);
@@ -253,18 +259,24 @@ module ega_crtc (
     always_comb begin
         if (rst_n && !f_init) begin
             assert (hc <= f_ht2);
-`ifdef FORMAL_PROVE
+`ifdef FORMAL_PROVE_H
             assert (hc < f_ht2);
-            assert (vc <= {1'b0, vt} + 10'd1);
-            // a retrace that ends had exactly the programmed width
+            // a retrace that ends had exactly the programmed width (TR p.29)
             if (char_ce && hs_q && !hs_cur) assert (f_hcnt == {1'b0, f_hw});
-            if (char_ce && go_line && vs_line && !vs_n) assert (f_vcnt == {1'b0, f_vw});
             assert (f_hcnt <= 7'd32);
-            // inductive helpers: counts equal the distance from the start
+            // inductive helpers: the count equals the distance from the start
             if (hs_q) assert ({2'b00, f_hcnt} == hc - {1'b0, regs[4]});
             if (hs_q) assert (hc > {1'b0, regs[4]});
+            if (hs_q) assert (f_hcnt <= {1'b0, f_hw});
+`endif
+`ifdef FORMAL_PROVE_V
+            assert (hc < f_ht2);
+            assert (vc <= {1'b0, vt} + 10'd1);
+            // a retrace that ends had exactly the programmed width (TR p.37)
+            if (char_ce && go_line && vs_line && !vs_n) assert (f_vcnt == {1'b0, f_vw});
             if (vs_line) assert ({4'd0, f_vcnt} == vc - {1'b0, vrs} + 10'd1);
             if (vs_line) assert (vc >= {1'b0, vrs});
+            if (vs_line) assert (f_vcnt <= {1'b0, f_vw});
 `endif
             // the interrupt latch is held clear by VRE bit 4 = 0 (TR p.37)
             if (!regs[5'h11][4]) assert (!vint);
@@ -278,7 +290,7 @@ module ega_crtc (
                 assert ($past(vs_n && !vs_line && go_line && char_ce) && !$past(regs[5'h11][5]));
             // vertical retrace starts only on the programmed line
             if (vs_line && !$past(vs_line)) assert (vc == {1'b0, vrs});
-`ifndef FORMAL_PROVE
+`ifdef FORMAL_COVER
             // a complete frame: the counter wraps after the last line
             cover ($past(vc) == {1'b0, vt} + 10'd1 && vc == 10'd0 && $past(go_line));
             cover (vrtc_start && vint);

@@ -409,7 +409,17 @@ module ibm_ega #(
     always_ff @(posedge clk) f_init <= 1'b0;
     always_comb if (f_init) assume (!rst_n);
 
-    logic [7:0] f_x;          // B0 or D0 by Misc Output bit 0
+    // ISA bus protocol (environment): one strobe at a time, address and AEN
+    // stable while a strobe is low and in the clock after its release, and
+    // no new strobe in the clock of a release.
+    always_comb begin
+        assume ($onehot0({!s_ior, !s_iow, !s_memr, !s_memw}));
+        if (!s_ior || !s_iow || !s_memr || !s_memw || any_ev)
+            assume (s_a == p_a && s_aen == p_aen);
+        if (any_ev) assume (s_ior && s_iow && s_memr && s_memw);
+    end
+
+    logic [7:0] f_x;         // B0 or D0 by Misc Output bit 0
     logic       f_io_dec;     // U16 condition on the current address
     assign f_x = misc[0] ? 8'hD0 : 8'hB0;
     assign f_io_dec = !s_aen && s_a[9] && (s_p3 ? s_a[8] : !s_a[8]);
