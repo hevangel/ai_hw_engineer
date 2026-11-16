@@ -162,7 +162,8 @@ run-length list, and `scripts/bios_modes.py` measures geometry from it.
 | 55 | attribute flip-flop (1 = next write is data) | 60 | Misc Output |
 | 61 | Feature Control | 62-65 | processor latches, planes 0-3 |
 | 66 | light-pen flip-flop | 67 | vertical-interrupt latch |
-| 68 | blink frame counter (5 bits) | other | FFh |
+| 68 | blink frame counter (5 bits) | 70-78 | graphics registers 0-8 (GC 2 copy) |
+| 79 | GC 2 graphics index | other | FFh |
 
 ## I/O and memory decode (sheets 1 and 4)
 
@@ -409,6 +410,7 @@ bits of its own planes; planes 4-7 select no controller, which reads FFh
 | E30 | Read Map Select 4-7 (no controller selected) reads FFh; two controllers with the same position combine by AND | Bus pull-ups; positions are a BIOS-fixed hierarchy | `gc_position` |
 | E31 | Switch sense: Clocking select k reads switch SW(4-k) (00 → SW4 ... 11 → SW1); closed reads 0 | The listing's POST (C000:009B) builds INFO_3 bit 3 from clock select 00 and bit 0 from 11, and p.15 states bit 3 = switch 4, bit 0 = switch 1 | `switch_sense`, BIOS POST replay |
 | E32 | 9-dot graphics: the 9th dot index is 0 | Not stated | random |
+| E33 | Data Rotate rotates the processor byte to the right | TR p.49 gives a count but no direction; VGA p.2-82: "rotated to the right" | `write_mode0`, formal (GC) |
 
 ## BIOS usage
 
