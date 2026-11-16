@@ -1,12 +1,14 @@
 # IBM PC AT 5170 verification report
 
-Status: M4a. The unchanged REV1 BIOS runs 16,688,169 instructions of its
-power-on self-test (16,586,155 with bus wait states) on the bare board and
-stops at `F000:1453`, a read of port 1F7h (fixed-disk status) at POST
+Status: M4b part 1. The unchanged REV1 BIOS runs 16,688,169 instructions of
+its power-on self-test (16,586,155 with bus wait states) on the bare board
+and stops at `F000:1453`, a read of port 1F7h (fixed-disk status) at POST
 checkpoint 3Ch. With an I/O channel and an IBM EGA in a slot, it and the
 card's BIOS run 18,201,512 instructions to the same point and the display
-shows the BIOS's memory count and its two error lines. No fixed-disk
-adapter is fitted. Nothing boots.
+shows the BIOS's memory count and its two error lines. With an IBM VGA
+(PS/2 Display Adapter) in the slot instead, it and the card's BIOS run
+16,294,929 instructions to the same point and the 720 x 400 display shows
+the same three lines. No fixed-disk adapter is fitted. Nothing boots.
 
 | Check | Command | Result |
 |---|---|---|
@@ -23,12 +25,24 @@ adapter is fitted. Nothing boots.
 | EGA machine: MC146818 | `scripts/run_post_ega.sh` | 64,931 address strobes, 23 writes, 64,906 CPU read values identical; 46.5 s of clock time |
 | EGA machine: Unicorn replay | `scripts/run_post_ega.sh` | 18,201,512 instruction states and data transfers match, in the system BIOS and in the EGA BIOS; 7 hardware interrupts, 146 software interrupts, 3 resets, 4 exceptions; 13 of 13 BIOS checkpoints |
 | Synthesis, EGA machine | `scripts/run_synth.sh` | Pass, `ibm_pc_at_5170_ega` 94,169 generic cells with the card's plane RAMs and ROM as black boxes (new in M4a); `check -assert` clean; the only latch is the refresh arbiter's schematic latch |
+| VGA machine: stop point | `scripts/run_post_vga.sh` (2026-11-16) | `kind=stop-at after=F1453 at=F000:1454 post=3C`; 16,294,929 instructions, 225,013,628 processor clocks, 3 CPU resets, 8 interrupt-acknowledge cycles (4 timer interrupts), 3,229 channel I/O writes, 7 unanswered channel I/O reads, 271,594 channel memory writes, 583 video frames |
+| VGA machine: screen | `scripts/run_post_vga.sh` (`scripts/check_frame.py`) | The last frame, 720 x 400, decodes with the VGA ROM's 8 x 16 font (9 x 16 cells, replacement glyphs, ninth-column rule) to `00640 KB OK`, ` 301-Keyboard Error`, ` 601-Diskette Error` |
+| VGA machine: 8042 | `scripts/run_post_vga.sh` | 8,002,514 instructions, 19 host writes, 6 data reads, 1,648,623 CPU read values identical |
+| VGA machine: MC146818 | `scripts/run_post_vga.sh` | 17,020 address strobes, 23 writes, 16,995 CPU read values identical; 37.5 s of clock time |
+| VGA machine: Unicorn replay | `scripts/run_post_vga.sh` | 16,294,929 instruction states and data transfers match, in the system BIOS and in the VGA BIOS; 13 of 13 BIOS checkpoints |
+| Synthesis, VGA machine | `scripts/run_synth.sh` | Pass, `ibm_pc_at_5170_vga` 129,054 generic cells with the card's plane RAMs and ROM as black boxes (the DAC's palette is in logic); `check -assert` clean; the only latch is the refresh arbiter's schematic latch |
+| EGA machine, rerun after the script refactor | `scripts/run_post_ega.sh` | Identical to the M4a results above (18,201,512 instructions; screen, 8042, MC146818 and Unicorn pass) |
 
-The EGA machine is checked in one scenario (no added wait states).
-`run_post_ega.sh` takes about 35 minutes (15 of simulation and screen and
-device checks, 20 for the Unicorn replay); `run_all.sh` does not run it.
+Each card machine is checked in one scenario (no added wait states).
+`run_post_card.sh ega|vga` is the one regression for either card;
+`run_post_ega.sh` and `run_post_vga.sh` are wrappers. `run_post_ega.sh` takes
+about 35 minutes (15 of simulation and screen and device checks, 20 for the
+Unicorn replay); `run_all.sh` does not run either. The bare-board
+regression (`run_post.sh`) was last run for M4a and not rerun on this
+branch; its inputs are unchanged since M4a except `tb/post_runner.cpp`.
 
 Details, findings and limits:
+[M4b part 1 report](2026-11-16-m4b-vga.md) and the
 [M4a report](2026-11-16-m4a-io-channel-and-ega.md). Earlier:
 [M3 report](2026-11-15-m3-interrupts-and-protected-mode.md),
 [M2 report](2026-11-14-m2-8042-and-rtc.md) and
@@ -39,8 +53,9 @@ Exploratory, not part of the regression: a longer run of the EGA machine
 checkpoint 3Fh and waits at `(RESUME = "F1" KEY)`; the bare board with
 readable empty slots (`--empty-slots`) also reaches checkpoint 3Fh.
 
-Not yet modeled: a keyboard on the connector, diskette, fixed disk, the
-80287 and VGA. NMI is not connected. Channel timing is not the real
+Not yet modeled: a keyboard on the connector, diskette, fixed disk and the
+80287. VGA graphics modes and the DAC are not exercised by the POST run, and
+the VGA ROM image could not be cross-checked against an IBM listing. NMI is not connected. Channel timing is not the real
 board's (AT18) and the video and processor clocks keep a virtual ratio
 (AT19). The 8259s are checked only by the BIOS's own tests and by the
 vectors and in-service values seen. The display is checked as text of one

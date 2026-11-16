@@ -6,7 +6,8 @@ Unicorn oracle and three BIOS checkpoints. M3 adds the MC146818
 reference-model check and extends the Unicorn oracle to protected mode,
 hardware interrupts and processor resets. M4a adds the EGA machine's
 regression (`scripts/run_post_ega.sh`), a screen-text check and the Unicorn
-replay of the EGA BIOS.
+replay of the EGA BIOS. M4b part 1 adds the VGA machine to the same
+regression (`scripts/run_post_card.sh ega|vga`).
 
 ## Oracles
 
@@ -113,9 +114,31 @@ replay of the EGA BIOS.
   - Not checked: channel timing (AT18), real video timing (AT19), 200-line
     modes, the 8259s against an independent model, a comparison with an
     independent whole-machine emulator.
-- M4b: POST completes with no error text; screen text matches 86Box;
-  keyboard input reaches the BIOS buffer; diskette read through DMA; the
-  VGA card is run with its own BIOS in the same way as the EGA.
+- M4b part 1 (done): `scripts/run_post_vga.sh` (wrapper of
+  `run_post_card.sh vga`) on the machine with the channel and the VGA card,
+  one scenario. The run stops after `F1453` at `F000:1454`, POST
+  checkpoint 3Ch (`scripts/expected_stop_vga.txt`). Checks:
+  - Screen: `scripts/check_frame.py` decodes the last 720 x 400 frame with
+    9 x 16 cells from the VGA ROM's 8 x 16 font, its table of replacement
+    glyphs for 9-dot modes (19 characters) and the ninth-column rule, and
+    compares it with `tb/expected_screen_vga.txt` (the same three lines as
+    the EGA machine). One frame, not a continuous check.
+  - 8042 against the UPI-42 model: 8,002,514 instructions and 1,648,623
+    CPU read values identical. MC146818 against its model (from
+    `tb/cmos_ega.hex`): 17,020 strobes and 16,995 read values identical.
+  - Unicorn: 16,294,929 instruction states and data transfers match in the
+    system BIOS and the VGA BIOS; 13 of 13 BIOS checkpoints. No event
+    counters were collected for this run.
+  - EGA machine: `scripts/run_post_ega.sh` rerun after the script
+    refactor, identical to M4a.
+  - Synthesis of `ibm_pc_at_5170_vga` (129,054 generic cells, plane RAMs
+    and ROM black-boxed).
+  - Not checked: graphics modes and the DAC in the machine (only the
+    card's own suite covers them), the VGA ROM against an IBM listing, the
+    bare-board regression (last run for M4a), and the M4a "not checked"
+    items.
+- M4b (remaining): POST completes with no error text; screen text matches
+  86Box; keyboard input reaches the BIOS buffer; diskette read through DMA.
 - M5: PC DOS boot, DIR, file write and readback, reboot and readback.
 - M6: OS/2 1.0 prompt and the CPGREP output line.
 

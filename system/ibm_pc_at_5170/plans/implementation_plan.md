@@ -7,7 +7,8 @@ coprocessor-port write); decision D3 is resolved (Option A, below). M3 done
 conversion on the board; stops at the read of fixed-disk status port 1F7h at
 POST checkpoint 3Ch). Every instruction matches Unicorn and the board
 synthesizes. M4a done (I/O channel and an IBM EGA in a slot; same stop,
-with a working display). M4b is next.
+with a working display). M4b part 1 done (the IBM VGA card on the AT;
+same stop, 720 x 400 display). The rest of M4b is next.
 
 Each milestone ends with a report in `report/` and an update to issue
 https://github.com/hevangel/ai_hw_engineer/issues/254. A milestone is done
@@ -172,9 +173,24 @@ board's regression is unchanged. See
 
 ## M4b: VGA, keyboard input and diskette; full POST
 
-- VGA card: `design/ibm_vga` is being built and is not on the machine yet.
-  Adding it needs its own machine top or a slot choice, and the VGA BIOS
-  as a legally obtained input.
+Part 1 (VGA) is done; the keyboard device, the diskette adapter and the
+full POST remain.
+
+- VGA card (part 1, done): `src/ibm_pc_at_5170_vga.sv` puts `design/ibm_vga`
+  (IBM PS/2 Display Adapter, 256 KB, DAC, adapter BIOS in the 32 KB window
+  at C0000h) in the slot, card IRQ2 on IRQ 9, a colour analog monitor
+  attached, and a card clock of twice the processor clock standing for
+  48 MHz (an extension of AT19). The runner's `-DAT_VGA` build writes the
+  DAC's 6-bit codes scaled to 8 bits per gun. `scripts/run_post_card.sh
+  ega|vga` is now the one regression for either card (`run_post_ega.sh` and
+  `run_post_vga.sh` are wrappers), and `scripts/check_frame.py` reads
+  720 x 400 VGA text. Result: 16,294,929 instructions, the same stop at
+  `F000:1454`, the same three screen lines, 8042, MC146818 and Unicorn all
+  pass; the machine synthesizes to 129,054 generic cells. The EGA machine's
+  results are unchanged. The bare-board regression was not rerun on this
+  branch. See [the M4b part 1 report](../report/2026-11-16-m4b-vga.md).
+  The VGA ROM is a legally fetched input; it could not be cross-checked
+  against an IBM listing.
 - Keyboard device on the 8042's keyboard connector, with scan codes from
   the host. Without it the BIOS reports error 301 and waits at
   `(RESUME = "F1" KEY)` (checkpoint 3Fh in the exploratory run).
