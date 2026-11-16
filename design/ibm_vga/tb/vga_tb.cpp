@@ -123,8 +123,7 @@ int main(int argc, char **argv) {
     const char *cm = getenv("VGA_CLK_MHZ");
     clk_mhz = cm ? atof(cm) : 0.0;
     if (clk_mhz > 0 && clk_mhz < 28.322) {
-        fprintf(stderr, "VGA_CLK_MHZ %.3f is below the fastest oscillator (28.322 MHz)
-", clk_mhz);
+        fprintf(stderr, "VGA_CLK_MHZ %.3f is below the fastest oscillator (28.322 MHz)\n", clk_mhz);
         return 2;
     }
     idle();
