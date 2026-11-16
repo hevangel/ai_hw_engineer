@@ -7,6 +7,16 @@ bytes are supplied to Unicorn; every architectural register, the defined
 FLAGS bits, the next CS:IP and every data transfer must then agree.
 Device behavior is not checked here: the inputs come from the trace.
 
+Memory reads outside RAM (000000-09FFFF) and the fitted ROMs (the BIOS ROM
+and any adapter ROM images given) are device inputs too, for example the
+EGA's video memory at A0000-BFFFF, whose read path (planes, latches, read
+modes) is not plain RAM. They are served to Unicorn from the trace inside
+its memory-read hook, one byte per access in the CPU's order, so a string
+instruction that reads many device bytes, or rereads one, gets each value
+the CPU saw; the address of every such read must match the CPU's next one.
+Writes there are compared like any transfer but do not decide later reads.
+A ROM read always returns the image byte, also after a write to it.
+
 Two event records are also accepted:
   A <byte>  an interrupt-acknowledge cycle; a hardware interrupt between two
             instructions is a pair of them, the second carrying the vector,
@@ -36,6 +46,7 @@ single-step entry) stops the replay with an error.
 """
 import hashlib
 import struct
+from collections import deque
 from pathlib import Path
 
 from generate_firmware_trace import decode
@@ -60,7 +71,7 @@ ERROR_CODE = 5424
 FAR_OPS = frozenset((0xca, 0xcb, 0xcd, 0xcf, 0xea))
 
 
-def is_rom(address):
+def is_bios_rom(address):
     return 0xf0000 <= address < 0x100000 or 0xff0000 <= address < 0x1000000
 
 
@@ -124,7 +135,41 @@ def strip_oracle_accessed(bus):
 
 
 class _Replay:
-    def __init__(self, rom):
+    def rom_byte(self, address):
+        """The ROM byte at address, or None where no ROM is fitted."""
+        if is_bios_rom(address):
+            return self.rom[address & 0xffff]
+        for base, image in self.adapter_roms:
+            if base <= address < base + len(image):
+                return image[address - base]
+        return None
+
+    def read_hook(self, recorder, uc, access, address, size, value, data):
+        """Unicorn's memory-read hook: settle the bytes, then record them.
+
+        QEMU calls the hook before it loads, so a byte written here is the
+        value Unicorn reads. A device byte (neither RAM nor ROM) is the
+        CPU's next device read, which must be at this address; otherwise it
+        is left unserved, reported after the instruction, and the transfer
+        comparison fails. A ROM byte is reset to the image in case this
+        instruction wrote it. Generator's recorder then logs the transfer.
+        """
+        if address + size > RAM_END:
+            shadow = self.g.shadow
+            for a in range(max(address, RAM_END), address + size):
+                byte = self.rom_byte(a)
+                if byte is None:
+                    if not self.device_reads or self.device_reads[0][0] != a:
+                        self.device_unserved.append(a)
+                        continue
+                    byte = self.device_reads.popleft()[1]
+                    self.stats['open_bus_reads'] += 1
+                if shadow.get(a, 0) != byte:
+                    uc.mem_write(a, bytes([byte]))
+                    shadow[a] = byte
+        recorder(uc, access, address, size, value, data)
+
+    def __init__(self, rom, adapter_roms=()):
         g = self.g = Generator(None)
         uc = self.uc = g.uc
         uc.mem_map(0x200000, 0xe00000)  # the 286's full 16 MiB physical space
@@ -132,6 +177,25 @@ class _Replay:
             uc.mem_write(base, rom)
             g.shadow.update((base+i, v) for i, v in enumerate(rom))
         self.rom = rom
+        # ROMs on adapter cards (base address, image): read-only memory the
+        # oracle executes and reads like the BIOS ROM.
+        self.adapter_roms = [(base, bytes(image)) for base, image in adapter_roms]
+        for base, image in self.adapter_roms:
+            if base < RAM_END or is_bios_rom(base) or is_bios_rom(base + len(image) - 1):
+                raise ValueError(f'adapter ROM at {base:06x} overlaps board memory')
+            uc.mem_write(base, image)
+            g.shadow.update((base+i, v) for i, v in enumerate(image))
+        # Device-memory reads the current instruction made on the CPU, in
+        # order: (address, byte). read_hook serves them to Unicorn.
+        self.device_reads = deque()
+        self.device_unserved = []
+        uc.hook_del(g.read_hook_handle)
+        recorder = g.read_hook
+        # Generator re-registers g.read_hook after a far RET (see run); the
+        # serving hook replaces it there too.
+        g.read_hook = lambda u, access, address, size, value, data: \
+            self.read_hook(recorder, u, access, address, size, value, data)
+        g.read_hook_handle = uc.hook_add(UC_HOOK_MEM_READ, g.read_hook)
         self.intr = []
         uc.hook_add(UC_HOOK_INTR, lambda u, number, data: self.intr.append(number))
         self.cr0_reset = uc.reg_read(UC_X86_REG_CR0) & ~1
@@ -432,15 +496,15 @@ class _Replay:
                     last_pc = pc
                     continue
                 where = f'at step {steps}, CPU {pc:06x}'
-                # Memory outside RAM and ROM is unpopulated on this board:
-                # what a read returns there is board behavior, an input from
-                # the trace like an I/O read.
-                for address, value, write, io in pending:
-                    if not write and not io and address >= RAM_END and not is_rom(address):
-                        stats['open_bus_reads'] += 1
-                        if g.shadow.get(address, 0) != value:
-                            uc.mem_write(address, bytes([value]))
-                            g.shadow[address] = value
+                # Memory outside RAM and ROM belongs to devices (video memory)
+                # or is unpopulated: what a read returns there is board
+                # behavior, an input from the trace like an I/O read, served
+                # in order by read_hook. These records cover the faulting
+                # instruction (if any), the event entry and this instruction.
+                self.device_reads = deque((address, value) for address, value, write, io in pending
+                                          if not write and not io and address >= RAM_END and
+                                          self.rom_byte(address) is None)
+                self.device_unserved = []
                 # This firmware uses one byte input per instruction. Reject a
                 # trace that would require different values for one port in the
                 # same instruction, rather than silently collapsing its history.
@@ -560,6 +624,10 @@ class _Replay:
                         raise ValueError(f'oracle repeat at {pc:06x} did not finish within the CX range')
                 if len(g.seen) != repetitions or any(address != pc for address, _ in g.seen):
                     raise ValueError(f'oracle synchronization error at {pc:06x}')
+                if self.device_unserved or self.device_reads:
+                    raise ValueError(f'device-memory read mismatch at {pc:06x}: oracle read '
+                                     f'{[f"{a:06x}" for a in self.device_unserved[:8]]} without a CPU read there, '
+                                     f'CPU reads left {[f"{a:06x}={v:02x}" for a, v in list(self.device_reads)[:8]]}')
                 bus = g.bus
                 flag_addresses = ()
                 if op == 0x9c and len(bus) == 2:
@@ -578,7 +646,7 @@ class _Replay:
                     stats['software_interrupts'] += 1
                 if op == 0x0f and raw[1] == 0x01 and system == 6:
                     self.pm = bool(uc.reg_read(UC_X86_REG_CR0) & 1)
-                if op in FAR_OPS or self.intr:
+                if op in FAR_OPS or self.intr or op == 0xff and (raw[1] >> 3) & 7 == 3:
                     self.refresh_cs()
                 elif not self.pm:
                     self.cs_base = uc.reg_read(UC_X86_REG_CS) * 16
@@ -722,9 +790,9 @@ class _Replay:
                 # Writes outside RAM do not change memory on this board.
                 for address, value, write, io in pending:
                     if write and not io and address >= RAM_END:
-                        if is_rom(address):
+                        byte = self.rom_byte(address)
+                        if byte is not None:
                             stats['rom_writes'] += 1
-                            byte = self.rom[address & 0xffff]
                             uc.mem_write(address, bytes([byte]))
                             g.shadow[address] = byte
                         else:
@@ -742,20 +810,21 @@ class _Replay:
         return steps, last_pc, pending
 
 
-def replay(rom_path, trace_path, on_step=None, allow_trailing=False, stats=None):
+def replay(rom_path, trace_path, on_step=None, allow_trailing=False, stats=None, adapter_roms=()):
     """Compare the trace with Unicorn.
 
     on_step(pc, next_ip, inputs) is called after each compared instruction,
     where inputs maps port -> byte read by that instruction. With
     allow_trailing, data records after the last retirement (an instruction
     the run stopped inside) are returned instead of rejected. If stats is a
-    dict it receives the event and non-oracle counters.
+    dict it receives the event and non-oracle counters. adapter_roms is a
+    sequence of (base address, image bytes) for ROMs on adapter cards.
     Returns (steps, last_pc, trailing_records).
     """
     rom = Path(rom_path).read_bytes()
     if len(rom) != 65536 or hashlib.sha256(rom).hexdigest() != ROM_SHA256:
         raise ValueError('unrecognized IBM AT BIOS')
-    state = _Replay(rom)
+    state = _Replay(rom, adapter_roms)
     try:
         return state.run(trace_path, on_step, allow_trailing)
     finally:
