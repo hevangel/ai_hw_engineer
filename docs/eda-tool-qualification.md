@@ -18,6 +18,45 @@ docker run --rm -v "$PWD:/work" -w /work ai-hw-engineer-apple-ii   python3 scrip
 
 The script writes actual commands, exit codes, log paths and pass/fail results to its ignored work directory's `results.json`. Expected failures must contain the expected diagnostic; an unrelated failure does not pass. A failed tool/probe exits the overall audit nonzero.
 
+## Extended EDA image — GHDL and Icarus (2026-11-16)
+
+This section covers the extended EDA overlay, which adds GHDL and Icarus to the
+base tools image without changing it. It is tracked by
+[#466](https://github.com/hevangel/ai_engineer/issues/466) and
+[#467](https://github.com/hevangel/ai_engineer/issues/467), with the
+overlay-level coordination issue
+[#84](https://github.com/hevangel/ai_hw_engineer/issues/84).
+
+| Item | Value |
+| --- | --- |
+| Base image at capture | `ai-hw-engineer:latest` = `sha256:dbe6aa7014193f8b293dad3d0d11632393b01d32b3a8c0a88de0fa5136880384` (an older local image that predates the Java stage; rebuilt from the repo recipe as `ai-hw-engineer:base-rebuild` = `sha256:557fad5259a99725ed1ce10a4391613aca2fd7f2d1e1cb06a4c8c816ad08709e` for the base regression) |
+| Extended image | `ai-hw-engineer-extended:ghdl-icarus` = `sha256:2ee3534921850954afad047a1c564ffcf04c73e318120eba34322ada04123bc3` |
+| GHDL | Ubuntu `5.0.1+dfsg-1ubuntu1` (mcode backend), GPL-2.0-or-later |
+| Icarus Verilog | Ubuntu `iverilog=12.0-3`, GPL-2.0, with the `0-3` VPI flag fix |
+| Checks | 102 checks across `versions`, `nvc`, `ghdl`, `icarus`, `systemc`, `interop` — 102 passed |
+
+```sh
+docker build -f eda_extended/Dockerfile -t ai-hw-engineer-extended .
+docker run --rm -v "$PWD:/work" -w /work ai-hw-engineer-extended \
+    python3 scripts/check_extended_eda.py --work-dir scratchpad/eda-extended
+```
+
+What the extended-image probes establish:
+
+- GHDL: a differential check over the six NVC VHDL corpus cases against the
+  same `expected.txt` (5 byte-identical; `counter` differs only by GHDL's
+  `simulation finished @<time>` line), plus a GHDL waveform case with VCD and
+  FST output, a VHDL-93 case, a syntax error, a missing architecture body, an
+  assertion failure that stops the run, and `--std=93` rejecting a VHDL-2008
+  `process (all)` while `--std=08` accepts it.
+- Icarus: two positive cases (`four_state` X/Z retention, `counter`) with
+  hand-written expected output, a compile failure, a required nonzero `$fatal`
+  exit, and the packaged-helper path — both `iverilog-vpi` and the documented
+  direct-`cc` route build and load a real VPI module.
+- No mixed-language or SV/VHDL adapter is qualified by any of this. The only
+  qualified exchange between tools is a waveform file (VCD/FST) that Surfer
+  reads; the `interop` probes cover that.
+
 ## Inspected baseline
 
 | Tool / owning issue | Evidence | Result |

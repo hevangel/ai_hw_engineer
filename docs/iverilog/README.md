@@ -53,6 +53,19 @@ The [root-cause investigation](vpi-prefix-map-root-cause.md) traced the malforme
 
 ## Qualified baseline
 
-Icarus is qualified only in the Apple II overlay (four-state run, packaged C/C++ VPI helper, `$fatal` exit).
+Icarus is qualified in two places, with the same pinned package and the same
+`0-3` flag fix:
+
+- the [Apple II overlay](../../system/apple_ii/Dockerfile) (four-state run, packaged C/C++ VPI helper, `$fatal` exit);
+- the [extended EDA overlay](../../eda_extended/Dockerfile), tracked by
+  [#467](https://github.com/hevangel/ai_engineer/issues/467).
+
+The extended-image probes live in `scripts/check_extended_eda.py` under the
+`icarus` tool name and use the corpus in `eda_extended/icarus/`: two positive
+cases (`four_state`, `counter`) with hand-written `expected.txt`, a compile
+failure, a required nonzero `$fatal` exit, and the packaged-helper build/load
+path (both the packaged `iverilog-vpi` and the documented direct-`cc` route).
+A shared probe would not prove either profile on its own; both are run against
+the same image contents.
 
 Pins, license, compatibility with the other pinned tools, and supported/unsupported behavior are recorded in [EDA tool baseline](../eda-tool-baseline.md) and the probe results in [EDA tool qualification](../eda-tool-qualification.md).

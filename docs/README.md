@@ -18,6 +18,10 @@ account credits. `--list` needs no CLI or network; `--dry-run` fetches fresh
 pages and prints diffs without writing. Repeat `--tool` or `--page` to narrow
 the selection. Use `--firecrawl-bin` to select an executable or wrapper.
 
+Tool folders present: `dockerhub`, `eda-tool-qualification`, `eqy`, `ghdl`,
+`iverilog`, `java`, `nvc`, `surfer`, `systemc`, `uvm`, `verible`, `verilator`,
+`xezim`, `yosys-symbiyosys`.
+
 Sources and upstream licensing links are maintained in
 [`scripts/tool_doc_sources.json`](../scripts/tool_doc_sources.json). Generated
 Markdown goes under `docs/<tool>/upstream/`; the updater also generates
@@ -46,4 +50,4 @@ The [headless Java JDK](java/README.md) supports independently sourced reference
 
 The [2026-10-25 EDA qualification](eda-tool-qualification.md) records positive/negative native-tool probes, the Icarus C/C++ helper fix, and the built-in browser Surfer waveform proof. Reproduce the CLI matrix with `python3 scripts/check_eda_tools.py` in the selected image.
 
-The [extended EDA overlay](../eda_extended/README.md) adds upstream [NVC](nvc/README.md) (VHDL) and [SystemC](systemc/README.md) on top of this image, with a shared reference corpus for the later Rust ports. Run its probes with `python3 scripts/check_extended_eda.py` inside the overlay image.
+The [extended EDA overlay](../eda_extended/README.md) adds upstream [NVC](nvc/README.md) and [GHDL](ghdl/README.md) (VHDL) and [SystemC](systemc/README.md), plus [Icarus Verilog](iverilog/README.md) in that overlay, on top of this image. The VHDL corpus is shared, so NVC and GHDL are compared against the same expected output. Run its probes with `python3 scripts/check_extended_eda.py` inside the overlay image.
