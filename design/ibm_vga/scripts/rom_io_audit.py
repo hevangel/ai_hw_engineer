@@ -30,6 +30,9 @@ import sys
 from collections import defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Third-party packages come from the folder run_sim.sh installs them into.
+if os.environ.get('VGA_PYDEPS'):
+    sys.path.insert(0, os.environ['VGA_PYDEPS'])
 from capstone import CS_ARCH_X86, CS_MODE_16, Cs  # noqa: E402
 from capstone.x86 import X86_OP_IMM, X86_OP_MEM, X86_OP_REG  # noqa: E402
 

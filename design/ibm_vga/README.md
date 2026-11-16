@@ -55,7 +55,7 @@ any enable pattern works.
 
 ```sh
 python3 design/ibm_vga/scripts/get_rom.py         # downloads into ignored work/
-sh design/ibm_vga/scripts/run_all.sh               # needs: pip install unicorn==2.1.4 capstone
+sh design/ibm_vga/scripts/run_all.sh               # installs unicorn and capstone into work/pydeps
 ```
 
 ## Documents

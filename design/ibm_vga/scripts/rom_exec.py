@@ -44,6 +44,9 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Third-party packages come from the folder run_sim.sh installs them into.
+if os.environ.get('VGA_PYDEPS'):
+    sys.path.insert(0, os.environ['VGA_PYDEPS'])
 import vga_bios as B  # noqa: E402
 import vga_model as VM  # noqa: E402
 

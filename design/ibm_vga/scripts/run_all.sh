@@ -5,8 +5,8 @@
 # execution of the POST and INT 10h mode sets replayed on RTL and model,
 # irregular clock enables), mutation check, synthesis. Exits nonzero on the
 # first failure. work/refs and work/firmware are kept (downloads).
-# Requires the Python packages capstone and unicorn (2.1.4) for the ROM
-# stages: pip install unicorn==2.1.4 capstone
+# The ROM stages need the Python packages capstone and unicorn; run_sim.sh
+# installs pinned versions into the work folder (network needed once).
 set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 WORK=${VGA_WORK_DIR:-$ROOT/work}
