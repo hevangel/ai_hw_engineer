@@ -1,0 +1,41 @@
+:root{--bg:#e9e5dc;--ink:#1f1f1c;--muted:#6b675e;--panel:#f7f4ee;--line:#cfc9bc;--accent:#1f4e8c;--bezel:#d9d3c5;--led:#3ad64a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,sans-serif}
+.layout{max-width:1200px;margin:0 auto;padding:16px}
+header{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.eyebrow{font-size:11px;letter-spacing:.15em;color:var(--muted)}
+h1{margin:0;font-size:28px;letter-spacing:.05em}h1 span{color:var(--accent)}
+.configuration{color:var(--muted);font-size:13px}
+.workstation{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:16px}
+@media (max-width:800px){.workstation{grid-template-columns:1fr}}
+.bezel{background:var(--bezel);border-radius:14px;padding:22px 22px 10px;box-shadow:inset 0 0 0 1px var(--line)}
+.glass{position:relative;background:#000;border-radius:6px;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;outline:none}
+.glass:focus{box-shadow:0 0 0 3px var(--accent)}
+#display{width:100%;height:100%;image-rendering:auto;display:block}
+#overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#888;font-family:monospace;letter-spacing:.2em}
+.monitor-bottom{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);padding-top:8px}
+.ibm-mark{font-weight:700;letter-spacing:.2em;color:#2b4f86}
+#monitor-led,.leds i{display:inline-block;width:8px;height:8px;border-radius:50%;background:#555;margin:0 4px 0 12px}
+#monitor-led.on,.leds i.on{background:var(--led)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px}
+.buttons{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+button{font:inherit;padding:5px 12px;border:1px solid var(--line);background:#fff;border-radius:5px;cursor:pointer}
+button:disabled{opacity:.45;cursor:default}
+.status{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin:0}
+.status dt{font-size:11px;color:var(--muted)}.status dd{margin:0;font-family:monospace}
+#machine-state{margin-top:10px;font-size:12px;color:var(--muted)}
+.keyboard{margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.leds{font-size:12px;color:var(--muted);margin-bottom:8px}.leds span{font-weight:600;letter-spacing:.1em;margin-right:6px}
+.leds small{margin-left:16px}
+.keys{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+#keyboard-hint{font-size:12px;color:var(--muted);margin-left:8px}
+.batch,.waveform-panel{margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+summary{cursor:pointer;font-weight:600}summary span{font-weight:400;color:var(--muted);margin-left:8px;font-size:12px}
+.batch-view{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:12px;margin-top:10px}
+@media (max-width:800px){.batch-view{grid-template-columns:1fr}}
+#batch_image{width:100%;aspect-ratio:4/3;background:#000;border-radius:4px}
+#batch_slider{width:100%}
+#batch_screen{font-size:10px;max-height:240px;overflow:auto;background:#fff;border:1px solid var(--line);padding:6px}
+.waveform-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#surfer_frame{width:100%;height:520px;border:1px solid var(--line);margin-top:8px;background:#fff}
+#error{color:#a00;font-weight:600}

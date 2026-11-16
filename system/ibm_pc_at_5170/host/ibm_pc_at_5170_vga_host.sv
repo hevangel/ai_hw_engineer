@@ -46,7 +46,7 @@ module ibm_pc_at_5170_vga_host #(
     // P27 drives data).
     output logic [7:0]  kbc_p2_o
 );
-    logic [63:0] segs;
+
     /* verilator lint_off PINMISSING */
     ibm_pc_at_5170_vga #(.KBC_ROM_FILE(KBC_ROM_FILE), .RTC_NVRAM_FILE(RTC_NVRAM_FILE),
                          .VGA_ROM_FILE(VGA_ROM_FILE)) machine (
@@ -64,8 +64,8 @@ module ibm_pc_at_5170_vga_host #(
     /* verilator lint_on PINMISSING */
     assign cpu_data_o = machine.board.cpu_data;
     assign retire_o = machine.board.cpu.core.retire_o;
-    assign segs = machine.board.cpu.core.segs_o;
-    assign cs_o = segs[31:16];
+
+    assign cs_o = machine.board.cpu.core.segs_o[31:16];
     assign ip_o = machine.board.cpu.core.ip_o;
     assign flags_o = machine.board.cpu.core.flags_o;
     assign kbc_p2_o = machine.board.kbc.p2_o;

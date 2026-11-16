@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IBM PC AT 5170</title><link rel="stylesheet" href="style.css"></head>
+<body><div class="layout"><main>
+<header><div><span class="eyebrow">PERSONAL COMPUTER AT / 1984</span><h1>IBM <span>5170</span></h1></div>
+<div class="configuration"><span id="config">80286 · 640 KB</span> · IBM VGA · 84-key keyboard · RTL simulation</div></header>
+
+<section class="workstation">
+<div class="monitor"><div class="bezel">
+<div class="glass" id="screen" tabindex="0" aria-label="Display. Click it to type on the AT keyboard.">
+<canvas id="display" width="720" height="400"></canvas>
+<div id="overlay">POWER OFF</div>
+</div>
+<div class="monitor-bottom"><span class="ibm-mark">IBM</span><span>COLOR DISPLAY · ANALOG</span><i id="monitor-led"></i></div>
+</div></div>
+
+<div class="panel">
+<div class="buttons">
+<button id="power">Power on</button><button id="run" disabled>Run</button><button id="pause" disabled>Pause</button><button id="reset" disabled>Reset</button>
+</div>
+<dl class="status">
+<div><dt>POST</dt><dd id="post">--</dd></div>
+<div><dt>CS:IP</dt><dd id="csip">----:----</dd></div>
+<div><dt>Clocks</dt><dd id="clocks">0</dd></div>
+<div><dt>Instructions</dt><dd id="instructions">0</dd></div>
+<div><dt>Frames</dt><dd id="frames">0</dd></div>
+<div><dt>Speed</dt><dd id="speed">--</dd></div>
+<div><dt>Real time</dt><dd id="realtime">--</dd></div>
+<div><dt>Machine time</dt><dd id="simtime">--</dd></div>
+</dl>
+<div id="machine-state" role="status">Power off.</div>
+</div>
+</section>
+
+<section class="keyboard">
+<div class="leds"><span>KEYBOARD</span><i id="led-num"></i>Num Lock<i id="led-caps"></i>Caps Lock<i id="led-scroll"></i>Scroll Lock<small id="kbd-state"></small></div>
+<div class="keys">
+<button data-keys="F1">F1</button><button data-keys="Esc">Esc</button><button data-keys="Enter">Enter</button><button data-keys="Ctrl+Alt+Del">Ctrl-Alt-Del</button>
+<span id="keyboard-hint">Click the display to type. Keys go to the keyboard model as AT scan code set 2 make and break codes.</span>
+</div>
+</section>
+
+<details id="batch_panel" class="batch" hidden>
+<summary>Batch run <span id="batch_dir"></span></summary>
+<div class="batch-content">
+<div class="batch-view"><img id="batch_image" alt="Saved frame of the batch run"><div>
+<div id="batch_status" role="status"></div>
+<label>Saved frame <input id="batch_slider" type="range" min="0" max="0" value="0"></label>
+<div class="buttons"><button id="batch_prev">Previous</button><button id="batch_next">Next</button><button id="batch_live">Live</button><button id="batch_play">Play</button></div>
+<pre id="batch_screen"></pre>
+</div></div>
+</div>
+</details>
+
+<p id="error" role="alert" hidden></p>
+</main>
+
+<details id="waveform_panel" class="waveform-panel" open>
+<summary>Waveform <span>FST · Surfer</span></summary>
+<div class="waveform-content">
+<p>Capture the next processor clocks of this machine. Capturing pauses it; press Run to continue.</p>
+<div class="waveform-actions">
+<label>Clocks <select id="waveform_clocks"><option value="1024">1,024</option><option value="4096" selected>4,096</option><option value="16384">16,384</option><option value="65536">65,536</option><option value="262144">262,144</option></select></label>
+<button id="waveform_capture" disabled>Capture</button>
+<label>Signals <select id="waveform_signals"><option value="cpu">Processor bus</option><option value="keyboard">Keyboard lines</option><option value="video">Video</option></select></label>
+<button id="waveform_refresh" disabled>Reload waveform</button>
+<a id="waveform_download" href="/waveform.fst" download="ibm-pc-at-5170.fst" hidden>Download FST</a>
+</div>
+<div id="waveform_status" role="status">Power on, then capture a waveform.</div>
+<iframe id="surfer_frame" title="Surfer waveform viewer"></iframe>
+</div>
+</details></div>
+<script type="module" src="app.js"></script><script type="module" src="waveform.js"></script></body></html>
