@@ -1,0 +1,22 @@
+# Graphics controller alone: write-mode data equations on one anyconst bit
+# slice, read path (both read modes), stored register widths (abc pdr,
+# unbounded); covers for each write mode and read mode 1 (smtbmc yices).
+[tasks]
+prove
+cover
+
+[options]
+prove: mode prove
+cover: mode cover
+cover: depth 20
+
+[engines]
+prove: abc pdr
+cover: smtbmc yices
+
+[script]
+read -formal -DFORMAL ega_graphics_ctrl.sv
+prep -top ega_graphics_ctrl
+
+[files]
+../src/ega_graphics_ctrl.sv

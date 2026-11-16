@@ -104,6 +104,7 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1983 | Apple IIe IOU (341-0267) | Full-custom video machine: display scanner and interleaved display-address fold, video-mode soft switches, keyboard strobe/auto-repeat, annunciator/speaker/cassette outputs | [apple_iie_iou](apple_iie_iou/) |
 | 1983 | Apple IIe timing PAL (PAL16R8) | Apple-programmed timing generator: φ0/φ1 CPU clocks, asymmetric Q3 strobe, PRAS'/PCAS' DRAM strobes with CAS gating, LDPS' video load and the 7 MHz dot clock | [apple_iie_pal](apple_iie_pal/) |
 | By 1986* (bibliographic evidence; launch unconfirmed) | MOS Technology 8520 CIA | Amiga peripheral controller: 6526 core with binary 24-bit TOD event counter and 8520 timer/interrupt timing; matches MAME except nine classified residuals; Amiga software pending | [mos_8520](mos_8520/) |
+| 1984 (announced 10 September 1984) | IBM Enhanced Graphics Adapter (EGA) | ISA display card and its five LSI devices (CRTC, sequencer, two graphics controllers, attribute controller), 256 KB planes, BIOS ROM 6277356 at C0000h; matches an independent technical-reference model on directed, random, all 23 BIOS mode-table entries and BIOS font-load/mode-set replays (modes 3, 3*, 7) pixel for pixel; formal, mutation, synthesis | [ibm_ega](ibm_ega/) |
 | 1984 | WDC W65C816S | 16-bit 6502 extension: run-time 8/16-bit registers, relocatable direct page, 24-bit banks, block moves, emulation mode; every bus cycle matches SingleStepTests (5.08 million records) | [wdc_65c816](wdc_65c816/) |
 | 1985* (advanced information; final datasheet December 1987) | AMD Am29331 | 16-bit microprogram sequencer: 64 high-level instructions, 33-deep stack with modulo-64 pointer, interrupts with automatic return push, FC/C̄IN traps, breakpoint comparator and master/slave ERROR checking; all 64 opcodes against AMD Tables 1/2, Figure 3/4–7 flows, formal BMC/PDR/cover | [amd_am29331](amd_am29xxx/members/am29331/) |
 | 1985* (advanced information) | AMD Am29323 | 32 × 32 multiplier with 67-bit accumulator: PASS/ACCUMULATE/SHIFT-AND-ACCUMULATE, dual input registers, format adjust and rounding, mixed TC/unsigned modes, byte parity and master/slave checking; FA-slice geometry from the format figures, formal BMC/PDR/cover | [amd_am29323](amd_am29xxx/members/am29323/) |
@@ -131,6 +132,10 @@ The 6530 entry uses **by 1976** from the manufacturer's [August 1976 KIM-1 User 
 The 6532 year is an availability bound from the [1982 MOS Data Catalog](https://bitsavers.trailing-edge.com/components/mosTechnology/_dataBooks/1982_MOS_Technology_Data_Catalog.pdf), not a claim that it launched in 1982. The archived datasheet is assigned 1976 by a secondary catalog, but the date is not established on the scan; see the [chip history](mos_6532/README.md). The requested sequential chip reconstructions followed by Atari 2600, Commodore 64, NES and Super Nintendo are tracked in the [MOS series ledger](../plans/mos_historical_series.md).
 
 The 6560/6561, 6567/6569 and 6581 entries are bounded by later printings of Commodore manuals that are explicitly dated 1983 (the VIC-20 Programmer's Reference Guide sixth printing and the C64 Programmer's Reference Guide eighth printing); no earlier dated primary document was located, and the 6569 and 8580 revisions are not dated by them. See each chip README.
+
+### IBM — Enhanced Graphics Adapter
+
+The EGA year is the date of IBM announcement letter ENUS184-114 (10 September 1984); InfoWorld reported the product on 8 October 1984. The modeled technical reference is dated August 2, 1984 and its BIOS ROM 9/13/84. The month of first shipment is not established; see the [EGA README](ibm_ega/README.md).
 
 ### AMD — Am9300
 

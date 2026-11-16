@@ -1,0 +1,121 @@
+# Am2708 formal verification script for SymbiYosys
+
+# This script defines a SymbiYosys verification configuration
+# for the AMD Am2708 1K × 8 UV EPROM implementation
+
+# General settings
+[options]
+# SYMBUSY os timeout for each solver (seconds)
+timeout = 300
+
+# BMC settings
+[bmc]
+# Number of iterations for BMC
+iterations = 1000
+
+# Prove settings
+[prove]
+# Number of proof attempts
+attempts = 100
+
+# Cover settings
+[cover]
+# Coverage goals (percent)
+goals = 100
+
+[tasks]
+# Core functionality verification
+basic_functionality:
+    simplify: true
+    bmc: true
+    prove: true
+    cover: true
+
+# Memory operation verification
+memory_operations:
+    simplify: true
+    bmc: true
+    prove: true
+    cover: true
+    init: tb.top.tb_init
+    properties: tb.top.mem_op_props
+
+# Programming sequence verification
+programming_sequence:
+    simplify: true
+    bmc: true
+    prove: true
+    cover: true
+    init: tb.top.tb_init
+    properties: tb.top.program_props
+
+# Erase timing verification
+erase_timing:
+    simplify: true
+    bmc: true
+    prove: true
+    cover: true
+    init: tb.top.tb_init
+    properties: tb.top.erase_props
+
+# JEDEC command compliance
+jedec_compliance:
+    simplify: true
+    bmc: true
+    prove: true
+    cover: true
+    init: tb.top.tb_init
+    properties: tb.top.jedec_props
+
+# Error condition handling
+error_handling:
+    simplify: true
+    bmc: true
+    prove: true
+    cover: true
+    init: tb.top.tb_init
+    properties: tb.top.error_props
+
+# Memory integrity verification
+memory_integrity:
+    simplify: true
+    bmc: true
+    prove: true
+    cover: true
+    init: tb.top.tb_init
+    properties: tb.top.integrity_props
+
+[constraints]
+# Add any timing constraints or signal constraints here
+# Example: exclude certain paths from analysis
+exclude: {
+    tb.top.error_condition
+}
+
+# Set specific signal constraints if needed
+# constraint: { signal_name = expression }
+
+[reports]
+# Enable reporting for all tasks
+basic_functionality: csv, json
+memory_operations: csv, json
+programming_sequence: csv, json
+erase_timing: csv, json
+jedec_compliance: csv, json
+error_handling: csv, json
+memory_integrity: csv, json
+
+[info]
+# Additional information for SymbiYosys
+author = "Am27xx Series Development Team"
+description = "Am2708 formal verification with BMC, Prove, and Cover analysis"
+tags = "eprom, memory, formal, verification"
+
+# Target device information
+target_device = "am2708"
+feature_set = "standard_jedec"
+compliance = "jedec_standard_2020"
+
+# Verification approach
+verification_approach = "mixed"
+# mixed: Uses BMC for bounded analysis, Prove for unbounded, Cover for completeness
