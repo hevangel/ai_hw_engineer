@@ -33,22 +33,28 @@ class Simulator:
         self.lock = threading.RLock()
         self.waveform_path = work / f'cpu-waveform-{args.port}.fst'
         self.log = (work / f'simulator-{args.port}.log').open('w')
-        cmd = [args.simulator, args.bios, args.vga_rom, f'--fst={self.waveform_path}',
-               f'--ext-kb={args.ext_kb}']
+        self.cmd = [args.simulator, args.bios, args.vga_rom, f'--fst={self.waveform_path}',
+                    f'--ext-kb={args.ext_kb}']
         if args.script:
-            cmd.append(f'--script={args.script}')
-        self.process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                        stderr=self.log, text=True, bufsize=1)
+            self.cmd.append(f'--script={args.script}')
+        self.start()
         self.running = False
-        self.powered = True
+        self.powered = False   # the page starts with the machine off
         self.slice = 200000
         self.state = self.command('STATE')
         self.frame = (0, b'')
 
+    def start(self):
+        self.process = subprocess.Popen(self.cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                        stderr=self.log, text=True, bufsize=1)
+
     def command(self, line):
         with self.lock:
             if self.process.poll() is not None:
-                raise RuntimeError('the RTL simulator exited; see its log in work/')
+                if line != 'RESET':
+                    raise RuntimeError('the RTL simulator exited; power on again to restart it '
+                                       '(its log is in work/web/)')
+                self.start()   # power on after a crash: a new simulator process
             self.process.stdin.write(line + '\n')
             self.process.stdin.flush()
             reply = self.process.stdout.readline()

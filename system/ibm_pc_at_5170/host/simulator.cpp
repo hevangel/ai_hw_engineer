@@ -89,6 +89,12 @@ std::string hex(uint32_t v, int width) {
     return buf;
 }
 
+std::string hexbytes(const std::vector<uint8_t>& v) {
+    std::string s;
+    for (size_t i = 0; i < v.size(); i++) s += (i ? " " : "") + hex(v[i], 2);
+    return s;
+}
+
 std::vector<uint8_t> read_file(const std::string& path) {
     std::ifstream f(path, std::ios::binary);
     if (!f) throw std::runtime_error("cannot read " + path);
@@ -309,6 +315,7 @@ std::vector<uint8_t> png(const std::vector<std::vector<uint32_t>>& f, unsigned w
 
 class Machine {
 public:
+    std::unique_ptr<VerilatedContext> ctx;   // declared before d: destroyed after it
     std::unique_ptr<Dut> d;
     std::vector<uint8_t> rom, ram, ext;
     AtKeyboard kbd;
@@ -319,6 +326,7 @@ public:
     uint64_t open_reads = 0, open_writes = 0, rom_writes = 0, slot_reads = 0, slot_writes = 0;
     uint64_t chan_writes = 0, port60_reads = 0, halt_clocks = 0, power_ons = 0;
     int last_port60 = -1;
+    std::vector<uint8_t> port60_log;   // the last 32 values the processor read from port 60h
     uint16_t cs = 0xf000, ip = 0xfff0;
     std::string stop;               // why the machine stopped (it then stays stopped)
     std::vector<std::vector<uint32_t>> last_frame;
@@ -342,7 +350,12 @@ public:
     // again from its battery image (tb/cmos_ega.hex).
     void power_on() {
         close_capture();
-        d = std::make_unique<Dut>();
+        // Each power-on gets its own context: tracing a second model in a
+        // shared context crashed (Verilator 5.052).
+        d.reset();
+        ctx = std::make_unique<VerilatedContext>();
+        ctx->traceEverOn(true);
+        d = std::make_unique<Dut>(ctx.get());
         ram.assign(kBaseEnd, 0);
         std::fill(ext.begin(), ext.end(), 0);
         kbd.power_on();
@@ -351,6 +364,7 @@ public:
         open_reads = open_writes = rom_writes = slot_reads = slot_writes = chan_writes = 0;
         port60_reads = halt_clocks = 0;
         last_port60 = -1;
+        port60_log.clear();
         cs = 0xf000; ip = 0xfff0;
         stop.clear();
         lines.assign(1, {});
@@ -437,6 +451,7 @@ public:
           << ",\"slotReads\":" << slot_reads << ",\"slotWrites\":" << slot_writes
           << ",\"extKB\":" << ext.size() / 1024 << ",\"powerOns\":" << power_ons
           << ",\"port60Reads\":" << port60_reads << ",\"lastPort60\":" << last_port60
+          << ",\"port60Log\":\"" << hexbytes(port60_log) << "\""
           << ",\"frameWidth\":" << frame_width << ",\"frameHeight\":" << last_frame.size()
           << ",\"clocksPerSecond\":" << uint64_t(clocks_per_s)
           << ",\"realTimeFraction\":" << clocks_per_s / kAt19Hz
@@ -447,7 +462,9 @@ public:
           << ",\"lastSent\":" << kbd.last_sent() << ",\"lastReceived\":" << kbd.last_received()
           << ",\"queued\":" << kbd.queued() << ",\"pendingKeys\":" << key_queue.size()
           << ",\"resets\":" << kbd.resets() << ",\"aborted\":" << kbd.aborted()
-          << ",\"typematic\":" << unsigned(kbd.typematic_byte()) << "}"
+          << ",\"typematic\":" << unsigned(kbd.typematic_byte())
+          << ",\"receivedLog\":\"" << hexbytes(kbd.received_log()) << "\",\"sentLog\":\""
+          << hexbytes(kbd.sent_log()) << "\"}"
           << ",\"kbdFlags\":\"" << hex(ram[0x417], 2) << hex(ram[0x418], 2) << "\",\"kbdHead\":\""
           << hex(ram[0x41a] | (ram[0x41b] << 8), 4) << "\",\"kbdTail\":\"" << hex(ram[0x41c] | (ram[0x41d] << 8), 4)
           << "\",\"kbdBuffer\":\"" << [&] { std::string h; for (unsigned i = 0x41e; i < 0x43e; i++) h += hex(ram[i], 2); return h; }()
@@ -568,7 +585,11 @@ private:
                     ++open_reads;
                 if (io && write && empty_slot) ++slot_writes;
                 if (io && !write && empty_slot && !chan_driven) ++slot_reads;
-                if (io && !write && x == 0x60) { ++port60_reads; last_port60 = value; }
+                if (io && !write && x == 0x60) {
+                    ++port60_reads; last_port60 = value;
+                    if (port60_log.size() == 32) port60_log.erase(port60_log.begin());
+                    port60_log.push_back(value);
+                }
             }
         }
 #ifdef AT_DISKETTE
@@ -752,7 +773,12 @@ int batch(Machine& m, Script& script, uint64_t clocks, uint64_t save_every, cons
     };
     uint64_t next_save = save_every;
     while (m.cycle < clocks && m.stop.empty()) {
-        if (script.poll(m)) save(false);   // the screen the rule reacted to
+        if (script.poll(m)) {
+            // The screen the rule reacted to, also as PPM for check_frame.py.
+            save(false);
+            if (m.frame_width)
+                m.write_ppm((fs::path(dir) / ("rule" + std::to_string(script.next) + ".ppm")).string());
+        }
         if (until_script && script.next >= script.rules.size() && m.key_queue.empty()) break;
         const uint64_t slice = std::min({clocks - m.cycle, next_save > m.cycle ? next_save - m.cycle : 1,
                                          script.horizon(m)});
@@ -761,6 +787,7 @@ int batch(Machine& m, Script& script, uint64_t clocks, uint64_t save_every, cons
     }
     script.poll(m);
     save(true);
+    if (m.frame_width) m.write_ppm((fs::path(dir) / "frame.ppm").string());   // for check_frame.py
     return m.stop.empty() ? 0 : 3;
 }
 }  // namespace

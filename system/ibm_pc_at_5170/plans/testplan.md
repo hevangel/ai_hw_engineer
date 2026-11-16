@@ -137,6 +137,22 @@ regression (`scripts/run_post_card.sh ega|vga`).
     card's own suite covers them), the VGA ROM against an IBM listing, the
     bare-board regression (last run for M4a), and the M4a "not checked"
     items.
+- Keyboard and web host (2026-11-17), `scripts/run_keyboard_test.sh`:
+  - Stage 1: with the keyboard model attached the BIOS's keyboard reset
+    reaches the keyboard (FFh received, FAh and AAh sent) and the frame,
+    read with the VGA ROM's font by `check_frame.py`, equals
+    `scripts/expected_screen_keyboard.txt` (no 301-Keyboard Error).
+  - Stage 2 (about 2 hours, skipped with `quick`): at the BIOS's
+    `(RESUME = "F1" KEY)` prompt the script presses F1 through the
+    keyboard model; the keyboard sends 05h, F0h 05h, port 60h delivers
+    3Bh then BBh (the 8042's translation to set 1) and the prompt goes
+    away.
+  - The web page itself (monitor, controls, keyboard capture, waveform)
+    is checked by a real headless-browser screenshot; it has no automated
+    regression.
+  - Not checked: typematic repeat and LED commands against an
+    independent oracle (they are exercised only if the BIOS or a user
+    uses them), and the keyboard in the POST runner.
 - M4b (remaining): POST completes with no error text; screen text matches
   86Box; keyboard input reaches the BIOS buffer; diskette read through DMA.
 - M5: PC DOS boot, DIR, file write and readback, reboot and readback.

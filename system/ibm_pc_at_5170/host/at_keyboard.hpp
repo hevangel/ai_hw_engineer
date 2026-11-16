@@ -24,9 +24,11 @@
 // passes 6 clocks per microsecond: the keyboard keeps its real ratio to the
 // 8042 (ASSUMPTION AT20).
 #pragma once
+#include <algorithm>
 #include <cstdint>
 #include <deque>
 #include <string>
+#include <vector>
 
 class AtKeyboard {
 public:
@@ -55,6 +57,11 @@ public:
     // Power applied: POR, then BAT, then AA (when the interface allows).
     void power_on() {
         reset_state();
+        rx_log_.clear();
+        tx_log_.clear();
+        sent_ = received_ = aborted_ = resets_ = 0;
+        last_sent_value_ = last_received_ = -1;
+        std::fill(physical_.begin(), physical_.end(), false);
         state_ = State::kBat;
         wait_ = clocks_ms(kPorMs + kBatMs);
     }
@@ -120,6 +127,8 @@ public:
     uint64_t resets() const { return resets_; }
     unsigned queued() const { return unsigned(fifo_.size() + replies_.size()); }
     int last_received() const { return last_received_; }
+    const std::vector<uint8_t>& received_log() const { return rx_log_; }
+    const std::vector<uint8_t>& sent_log() const { return tx_log_; }
     int last_sent() const { return last_sent_value_; }
     const char* state_name() const {
         switch (state_) {
@@ -161,6 +170,8 @@ private:
     uint64_t stable_ = 0;
     bool sending_reply_ = false;
     uint64_t sent_ = 0, received_ = 0, aborted_ = 0, resets_ = 0;
+    std::vector<uint8_t> rx_log_, tx_log_;   // the last 64 bytes each way since power-on
+    static void log(std::vector<uint8_t>& v, uint8_t b) { if (v.size() == 64) v.erase(v.begin()); v.push_back(b); }
 
     uint64_t clocks_ms(unsigned ms) const { return uint64_t(ms) * 1000 * us_; }
     static unsigned index(uint8_t code) { return code == 0x83 ? 0x02 : code == 0x84 ? 0x7f : code; }
@@ -293,6 +304,7 @@ private:
         stable_ = 0;
         ++sent_;
         last_sent_value_ = byte_;
+        log(tx_log_, byte_);
         if (byte_ != 0xfe) last_sent_ = byte_;   // [KBD] 01C3: FE is not remembered
         if (sending_reply_) {
             const int action = replies_.front().action;
@@ -352,6 +364,7 @@ private:
             stable_ = 0;
             ++received_;
             last_received_ = byte_;
+            log(rx_log_, byte_);
             command(byte_, rx_stop_ && (parity(byte_) != rx_parity_));
             return;
         }

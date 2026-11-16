@@ -194,6 +194,19 @@ full POST remain.
 - Keyboard device on the 8042's keyboard connector, with scan codes from
   the host. Without it the BIOS reports error 301 and waits at
   `(RESUME = "F1" KEY)` (checkpoint 3Fh in the exploratory run).
+  Done on 2026-11-17 for the web/batch host: `host/at_keyboard.hpp`
+  (assumptions AT20-AT24), checked against the real 8042 by
+  `scripts/run_keyboard_test.sh`; see
+  [the web front end and keyboard report](../report/2026-11-17-web-front-end-and-keyboard.md).
+  Still to do: attach it in `tb/post_runner.cpp` so that the regression's
+  expected screen loses the 301 line (left to the branch that owns the
+  runner).
+- Web front end and batch host (done 2026-11-17, same report): persistent
+  simulator, page with monitor, controls, keyboard and Surfer waveform,
+  unattended batch runs with saved frames and scripted keys, and memory
+  size chosen at start (`--ext-kb`, for the 2 MB OS/2 machine). The
+  diskette branch hooks its media model into `host/simulator.cpp` at the
+  marked `AT_DISKETTE` integration point.
 - AT diskette adapter with the 8272 (error 601 today).
 - The fixed disk at 1F0h–1F7h comes first in the BIOS's order; the
   regression's stop is the read of 1F7h. Either fit the controller (M5) or
@@ -225,4 +238,8 @@ full POST remain.
   before M6.
 - Simulation speed: OS/2 boot is hundreds of millions of instructions.
   M1 runs about 12 cycles per instruction; measure host speed once the
-  BIOS runs longer and plan checkpointing if needed.
+  BIOS runs longer and plan checkpointing if needed. Measured on
+  2026-11-17: about 450,000 processor clocks per second (single thread;
+  `--threads 4` was far slower), so 3 billion clocks take about 2 hours.
+  Long boots run as unattended batch runs (`scripts/run_batch.sh`);
+  save/restore checkpoints are not implemented yet.

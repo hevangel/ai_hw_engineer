@@ -45,11 +45,46 @@ DAC, 24 KB adapter BIOS) in the VGA machine.
 
 ## Web interface and waveform
 
-There is no web interface and no waveform capture yet, so no panel or
-waveform screenshot is available. The only host is the POST runner.
+WEB_SCREENSHOT_PLACEHOLDER
 
-The image below is not a panel. It is the last video frame of the EGA
-machine at the stop point (POST checkpoint 3Ch), captured in simulation
+The page (`host/web/`, served by `host/server.py`) drives the VGA machine
+through a persistent Verilator simulator (`host/simulator.cpp`):
+
+- **Monitor.** The picture is rebuilt from the card's analog monitor
+  connector (DAC codes scaled to 8 bits per gun, active area only) and
+  shown at a 4:3 aspect ratio; it refreshes whenever a new frame has been
+  completed.
+- **Controls and status.** Power (a fresh model: power-on reset, RAM
+  cleared, keyboard power-on), Reset (the same), Run and Pause. Status
+  shows the POST checkpoint (port 80h), CS:IP, processor clocks,
+  instructions, frames, the measured speed in processor clocks per second
+  and as a fraction of real time on the AT19 time base (the processor
+  clock stands for 24 MHz), and the machine time. A stop of the kind
+  that ends the regression (for example an unclaimed I/O read below 100h)
+  is shown and stops the machine.
+- **Keyboard.** Click the display and type: browser key events are mapped
+  to the 84-key AT keyboard's scan code set 2 (the table and its choices
+  are at the top of `host/web/app.js`; cursor and editing keys use the
+  numeric-keypad keys that carry them on the AT keyboard, F11/F12 have no
+  AT key) and enter the keyboard model as key down and key up; browser
+  auto-repeat is ignored because the model repeats on its own. Losing
+  focus releases the held keys. Buttons send F1, Esc, Enter and
+  Ctrl-Alt-Del. The Num, Caps and Scroll Lock lamps show what the BIOS set
+  with command EDh.
+- **Waveform.** Capture records the next 1,024 to 262,144 processor clocks
+  to FST and opens it in the self-hosted Surfer (`/surfer/`, from the
+  image). Presets: processor bus (clock, reset, CS, IP, retirement,
+  address, cycle type, data both ways, I/O port, channel select, INTR and
+  INTA, refresh, POST code), keyboard lines (both drivers and line levels,
+  8042 port 2, OBF, port 60h reads) and video (video clock, pixel enable,
+  syncs, display enable, DAC codes). Every signal of
+  `host/ibm_pc_at_5170_vga_host.sv` is in the file. The time axis uses
+  41.67 ns per processor clock (AT19). Capturing pauses the machine.
+- **Batch run.** With `--batch-dir`, the page shows a batch run's live
+  status and latest frame and steps or plays through its saved frames.
+
+The POST regressions also save single frames, which are not the panel. The
+image below is the last video frame of the EGA machine at the stop point (POST checkpoint 3Ch), captured in simulation
 from the card's monitor connector (active area only, 640 x 350) and
 written by `scripts/run_post_ega.sh` as `work/post_ega/frame.png`:
 
@@ -71,6 +106,66 @@ Reproduce it with `sh system/ibm_pc_at_5170/scripts/run_post_vga.sh "$ROM"`
 VGA ROM's own font; again one picture, not a recording.
 
 ## Run
+
+### Web front end
+
+From the repository root on the Docker host (the Docker image
+`ai-hw-engineer:latest`; publish the port):
+
+```sh
+docker run --rm -it -p 8286:8286 -v "$PWD":/work -w /work ai-hw-engineer:latest \
+    sh system/ibm_pc_at_5170/scripts/run_web.sh system/ibm_pc_at_5170/work/software/atbios.bin 8286
+```
+
+then open http://localhost:8286/. `run_web.sh BIOS [PORT] [--ext-kb N]
+[--batch-dir DIR] [--script FILE]` checks the BIOS's SHA-256, rebuilds and
+hash-checks the 8042 firmware, fetches and hash-checks the VGA ROM (as
+`run_post_card.sh` does), builds the simulator with `scripts/build_host.sh`
+(about 1.5 minutes) and starts the server. The page starts with the
+machine off; **Power on** starts it running. The BIOS image is obtained with
+`scripts/get_bios.sh` (see below) and never committed.
+
+The simulation is slow: about 450,000 processor clocks per second, 1.9 %
+of real time on the AT19 time base. The memory count appears after about
+1 minute, the POST error lines after about 9 minutes, and the BIOS's F1
+prompt after about 2 hours (about 3 billion processor clocks).
+
+### Batch runs and scripted keys
+
+```sh
+sh system/ibm_pc_at_5170/scripts/run_batch.sh BIOS CLOCKS OUT_DIR \
+    [--ext-kb=N] [--script=FILE] [--save-every=N] [--until-script]
+```
+
+runs CLOCKS processor clocks with no browser. Every `--save-every` clocks
+(default 50,000,000) it writes `OUT_DIR/status.json`, `latest.png` and
+`screen.txt` (the screen read with the VGA ROM's font), adds the frame to
+`OUT_DIR/frames/` when it changed (listed in `frames.json`), and at the end
+writes `frame.ppm` for `scripts/check_frame.py`. Watch it, or replay it
+later, with `run_web.sh BIOS 8286 --batch-dir OUT_DIR`.
+
+A key script has one rule per line; the rules fire in order, each armed
+when the previous one has fired, and the batch saves a frame when a rule
+fires:
+
+```
+# comment
+at 3000000000 F1                # at processor clock N
+when "RESUME" F1                # when the screen text contains TEXT
+wait 50000000 "dir\n"           # N clocks after the previous rule
+when "A>" Ctrl+Alt+Del
+```
+
+Keys: names (`F1`-`F10`, `Esc`, `Enter`, `Tab`, `Space`, `Backspace`,
+`Ctrl`, `Alt`, `Shift`, `RShift`, `CapsLock`, `NumLock`, `ScrollLock`,
+`SysRq`, `KP0`-`KP9`, `KP.`, `KP+`, `KP-`, `KP*`, `Home`, `End`, `Up`,
+`Down`, `Left`, `Right`, `PgUp`, `PgDn`, `Ins`, `Del`), a two-digit hex
+set 2 code, `A+B+C` held together, or `"text"` typed with Shift as needed
+(`\n` is Enter). Key events are applied 30 ms apart (AT23).
+
+`--ext-kb=1408` gives a 2 MB machine (640 KB plus 1,408 KB from 1 MB).
+
+### POST regressions
 
 From the repository root, inside the `ai-hw-engineer` tool image:
 

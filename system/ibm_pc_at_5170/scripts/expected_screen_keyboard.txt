@@ -1,0 +1,10 @@
+# Text on the VGA screen when the BIOS asks for F1, with the AT keyboard
+# model on the keyboard connector (scripts/run_keyboard_test.sh). Compared
+# with tb/expected_screen_vga.txt (no keyboard), the line
+# " 301-Keyboard Error" is gone: the 8042 and the keyboard completed the
+# BIOS's keyboard reset and stuck-key tests. The diskette error remains,
+# because no diskette adapter is modeled, so the BIOS waits for F1.
+00640 KB OK
+ 601-Diskette Error
+
+ (RESUME = "F1" KEY)
