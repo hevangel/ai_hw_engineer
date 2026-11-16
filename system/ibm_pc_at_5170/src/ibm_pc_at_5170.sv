@@ -78,14 +78,28 @@ module ibm_pc_at_5170 #(
     output logic        irq8_o,            // MC146818 IRQ through U107 (to IRQ 8)
     output logic        intr_o,            // master 8259A INT, the 80286 INTR pin
     output logic        inta_cycle_o,      // an interrupt-acknowledge bus cycle is active
-    output logic        mem_cycle_o        // a memory cycle is in its command phase
+    output logic        mem_cycle_o,       // a memory cycle is in its command phase
+    // DMA (sheets 14, 15, 20, 21). The I/O channel's DRQ0-DRQ3 (8-bit
+    // channels; 1 = request) and, during a DMA -IOR, the byte the
+    // requesting device drives on SD0-SD7.
+    input  logic [3:0]  dma_drq_i,
+    input  logic [7:0]  dma_io_rdata_i,
+    // A DMA memory transfer commits at the next rising clock edge: address_o
+    // holds its 24-bit address (not A20-gated) and the host performs it like
+    // a CPU byte access: for a write (dma_mem_write_o) it stores data_o's
+    // byte; for a read it supplies the byte on mem_rdata_i (lane by A0),
+    // which the board passes to the device on data_o.
+    output logic        dma_mem_o, dma_mem_write_o,
+    // Channel side of a DMA transfer: -IOR/-IOW, AEN, -DACK0-3 and T/C.
+    output logic        dma_ior_n_o, dma_iow_n_o, aen_o, tc_o,
+    output logic [3:0]  dack_n_o
 );
     logic mem_status;
     logic cod_inta, m_io, s1, s0, status_oe, hold, detect, refresh_n;
     logic io_req, io_accept, io_write;
     logic [7:0] io_wdata, map_data;
     logic [23:0] cpu_address;
-    logic [15:0] cpu_data;
+    logic [15:0] cpu_data, cpu_wdata;
     logic timer_sel, timer_valid, port61_sel, port61_valid;
     logic dma_sel, dma_ctrl2, dma_valid, page_sel, page_valid;
     logic kbc_sel, kbc_valid, rtc_sel, rtc_as, rtc_ds, rtc_valid;
@@ -141,12 +155,20 @@ module ibm_pc_at_5170 #(
         end else if (word_io && conv == 2'd1) conv <= 2'd2;
     end
     assign io_write = data_oe_o;
-    assign io_wdata = io_addr[0] ? data_o[15:8] : data_o[7:0];
+    assign io_wdata = io_addr[0] ? cpu_wdata[15:8] : cpu_wdata[7:0];
 
     // A20 gate, sheet 1: U129 (74F257) selects the CPU's A20 while A20 GATE
     // (8042 P21) is high and ground while it is low. Its output floats
     // during HLDA; the DMA/refresh address path is not modeled here.
-    assign address_o = {cpu_address[23:21], cpu_address[20] & a20_gate_o, cpu_address[19:0]};
+    // During a DMA transfer the system address bus carries the DMA address
+    // (see "DMA and pages" below) and the data bus the transferred byte on
+    // both lanes.
+    logic dma_bus;
+    logic [23:0] dma_address;
+    logic [7:0] dma_byte;
+    assign address_o = dma_bus ? dma_address :
+                       {cpu_address[23:21], cpu_address[20] & a20_gate_o, cpu_address[19:0]};
+    assign data_o = dma_bus ? {dma_byte, dma_byte} : cpu_wdata;
 
     // One device at a time drives the CPU's data pins during an I/O read;
     // memory reads come from the host.
@@ -252,7 +274,7 @@ module ibm_pc_at_5170 #(
         .ready_n_i(cpu_ready_n), .cenl_i(1'b1), .cen_i(1'b1), .cmdly_i(1'b0),
         .hold_i(hold), .intr_i(intr_o), .nmi_i(1'b0), .busy_i(1'b0),
         .error_n_i(1'b1), .pereq_i(1'b0), .peack_n_o(peack_n_unused),
-        .data_i(cpu_data), .data_o(data_o), .data_oe_o(data_oe_o),
+        .data_i(cpu_data), .data_o(cpu_wdata), .data_oe_o(data_oe_o),
         .address_o(cpu_address), .address_oe_o(address_oe_o),
         .bhe_n_o(bhe_n_o), .cod_inta_o(cod_inta), .m_io_o(m_io),
         .s1_o(s1), .s0_o(s0), .status_oe_o(status_oe), .hlda_o(hlda_o),
@@ -262,7 +284,10 @@ module ibm_pc_at_5170 #(
     );
     intel_80286_at_refresh_path refresh_path (
         .reset_n_i(!reset_i), .sys_clk_i(clk_2x_i), .dma_clk_n_i(dma_clk_n_i),
-        .timer_out1_i(timer_out[1]), .dma_request_i(1'b0), .cpu_hlda_i(hlda_o),
+        // Sheet 21: U122's HRQ (HRQ1) requests the bus beside refresh; the
+        // arbiter's DMA grant is U122's HLDA (HLDA1).
+        .timer_out1_i(timer_out[1]), .dma_request_i(dma2_hrq), .cpu_hlda_i(hlda_o),
+        .dma_hlda_o(dma2_hlda),
         .hold_permit_i(hold_permit_i), .io_ready_i(refresh_ready_i), .cpu_hold_o(hold),
         .refresh_o(refresh_o), .refresh_n_o(refresh_n), .detect_o(detect),
         .refresh_row_o(refresh_row_o), .refresh_row_oe_o(refresh_row_oe_o),
@@ -367,24 +392,109 @@ module ibm_pc_at_5170 #(
     );
 
     // ------------------------------------------------------ DMA and pages
-    intel_80286_at_dma dma (
-        .clk(clk_i), .rst_n(!reset_i), .io_req_i(io_req), .io_ready_i(io_accept),
-        .io_write_i(io_write), .io_addr_i(io_addr), .io_wdata_i(io_wdata),
-        .selected_o(dma_sel), .controller2_o(dma_ctrl2),
-        .rdata_valid_o(dma_valid), .rdata_o(dma_rdata)
+    // Sheet 14: two 8237A-5. U111 (controller 1) serves the 8-bit channels
+    // 0-3: A0-A3 = XA0-XA3, DREQ0-3 = DRQ0-DRQ3 (DRQ1-3 from the I/O
+    // channel, sheet 20; DRQ0 from the 16-bit extension, sheet 19), DACK0-3
+    // to the channel (sheets 15, 19, 20), its EOP and U122's EOP are
+    // combined by U96 into T/C on the channel (sheet 20), AEN through U94 is
+    // -AEN1, and ADSTB loads latch U101 with XA8-XA15 from XD0-XD7.
+    // U122 (controller 2) serves channels 4-7 with A0-A3 = XA1-XA4 (so it
+    // answers at even addresses 0C0h-0DEh); its HRQ goes to the refresh /
+    // DMA arbiter of sheet 21 (HRQ1) and its HLDA is that arbiter's DMA
+    // grant (HLDA1). U111's HRQ is U122's DREQ0 (channel 4 is the cascade)
+    // and U122's DACK0 (-DACK4), inverted by U121, is U111's HLDA.
+    // The select decode is the same as the 286 design's register fixture
+    // (intel_80286_at_dma.sv), which this replaces on the board.
+    // ASSUMPTION AT25 (see spec): both controllers are clocked by the
+    // processor clock, not the 3 MHz DMA CLK of sheet 3, and RDY (DMA RDY,
+    // sheet 15) is tied ready: no wait states are added to DMA cycles.
+    // ASSUMPTION AT26 (see spec): only controller 1's channels move data.
+    // DRQ5-7 (16-bit channels, sheet 19) are taken as inactive; no 16-bit
+    // DMA device is modeled, so U122 only cascades.
+    logic dma1_sel, dma2_sel, dma1_acc, dma2_acc, dma1_oe, dma2_oe;
+    logic [7:0] dma1_rdata, dma2_rdata;
+    logic dma1_hrq, dma2_hrq, dma1_hlda, dma2_hlda, dma1_eop_n, dma2_eop_n;
+    logic [3:0] dma1_dack, dma2_dack;
+    logic [15:0] dma1_addr, dma2_addr_unused;
+    logic dma1_aen, dma1_memr_n, dma1_memw_n, dma1_ior_n, dma1_iow_n, dma1_valid;
+    logic [1:0] dma1_channel;
+    logic dma2_aen, dma2_memr_n, dma2_memw_n, dma2_ior_n, dma2_iow_n, dma2_valid;
+    logic [1:0] dma2_channel;
+    logic dma2_addr_oe, dma2_adstb, dma1_addr_oe, dma1_adstb, dma2_eop_out_n_unused;
+    assign dma1_sel = io_req && io_addr[15:4] == 12'h000;
+    assign dma2_sel = io_req && io_addr[15:5] == 11'h006 && !io_addr[0];
+    assign dma_sel = dma1_sel || dma2_sel;
+    assign dma_ctrl2 = dma2_sel;
+    assign dma1_acc = dma1_sel && io_accept;
+    assign dma2_acc = dma2_sel && io_accept;
+    assign dma_valid = dma1_oe || dma2_oe;
+    assign dma_rdata = dma1_oe ? dma1_rdata : dma2_rdata;
+    // U121: U122's -DACK4 inverted is U111's HLDA. The DACK polarity is the
+    // command register's bit 7; the BIOS leaves it 0 (active low).
+    assign dma1_hlda = !dma2_dack[0];
+    intel_8237 dma1 (
+        .clk(clk_i), .rst_n(!reset_i), .cs_n(!dma1_acc),
+        .ior_n(!(dma1_acc && !io_write)), .iow_n(!(dma1_acc && io_write)),
+        .reg_addr(io_addr[3:0]), .data_i(io_wdata),
+        .data_o(dma1_rdata), .data_oe(dma1_oe), .dreq(dma_drq_i),
+        .dack(dma1_dack), .hrq(dma1_hrq), .hlda(dma1_hlda), .ready(1'b1), .eop_n(1'b1),
+        .eop_out_n(dma1_eop_n), .dma_addr(dma1_addr), .addr_oe(dma1_addr_oe),
+        .adstb(dma1_adstb), .aen(dma1_aen), .memr_n(dma1_memr_n), .memw_n(dma1_memw_n),
+        .dma_ior_n(dma1_ior_n), .dma_iow_n(dma1_iow_n),
+        .transfer_valid(dma1_valid), .transfer_channel(dma1_channel)
     );
+    intel_8237 dma2 (
+        .clk(clk_i), .rst_n(!reset_i), .cs_n(!dma2_acc),
+        .ior_n(!(dma2_acc && !io_write)), .iow_n(!(dma2_acc && io_write)),
+        .reg_addr(io_addr[4:1]), .data_i(io_wdata),
+        .data_o(dma2_rdata), .data_oe(dma2_oe), .dreq({3'b000, dma1_hrq}),
+        .dack(dma2_dack), .hrq(dma2_hrq), .hlda(dma2_hlda), .ready(1'b1), .eop_n(1'b1),
+        .eop_out_n(dma2_eop_out_n_unused), .dma_addr(dma2_addr_unused), .addr_oe(dma2_addr_oe),
+        .adstb(dma2_adstb), .aen(dma2_aen), .memr_n(dma2_memr_n), .memw_n(dma2_memw_n),
+        .dma_ior_n(dma2_ior_n), .dma_iow_n(dma2_iow_n),
+        .transfer_valid(dma2_valid), .transfer_channel(dma2_channel)
+    );
+    assign dma2_eop_n = 1'b1;   // U122 never transfers (AT26)
+
+    // A controller-1 transfer owns the system bus while the 8237 is in
+    // S1-S4 (its AEN). Address: A0-A15 from U111 and latch U101, XA16 and
+    // LA17-LA23 from the 74LS612 page map (sheets 13 and 15). The page map
+    // drives the address during HLDA, ahead of the A20 gate of sheet 1, so a
+    // DMA address is never gated by the 8042's A20 GATE.
+    assign dma_bus = dma1_aen;
+    assign dma_address = {page_a23_a17_o, page_xa16_o, dma1_addr};
+    // One DMA memory transfer commits at the clock edge where the 8237's
+    // S4 completes (its transfer_valid) with -MEMR or -MEMW active. A verify
+    // transfer (mode 00) drives no strobe and is not a memory cycle.
+    assign dma_mem_o = dma1_valid && (!dma1_memr_n || !dma1_memw_n);
+    assign dma_mem_write_o = !dma1_memw_n;
+    // Data: for an I/O-to-memory transfer the channel device drives the
+    // byte during -IOR (dma_io_rdata_i); for memory-to-I/O the memory's
+    // byte (from the host on mem_rdata_i, lane by A0) goes to the device.
+    assign dma_byte = !dma1_memw_n ? dma_io_rdata_i :
+                      (dma_address[0] ? mem_rdata_i[15:8] : mem_rdata_i[7:0]);
+    assign dma_ior_n_o = dma1_ior_n;
+    assign dma_iow_n_o = dma1_iow_n;
+    assign aen_o = dma_bus;
+    assign dack_n_o = dma1_dack | {4{!dma1_hlda}};
+    // U96: T/C is the OR of both controllers' EOP outputs (sheets 14, 20).
+    assign tc_o = !dma1_eop_n || !dma2_eop_n;
     intel_80286_at_page page (
         .clk(clk_i), .rst_n(!reset_i), .io_req_i(io_req), .io_ready_i(io_accept),
         .io_write_i(io_write), .io_addr_i(io_addr), .io_wdata_i(io_wdata),
         .map_index_i(page_map_index_o), .selected_o(page_sel),
         .rdata_valid_o(page_valid), .rdata_o(page_rdata), .map_data_o(map_data)
     );
-    // ASSUMPTION AT4: no DMA channel requests service yet, so every DACK
-    // is inactive and only refresh selects a page-map slot.
+    // Sheets 13 and 15: the DACK lines select the page-map slot (-DACK4 is
+    // active during every controller-1 transfer, so channel 2 maps to
+    // register 81h, channel 3 to 82h, channel 1 to 83h and channel 0 to
+    // 87h); -AEN1 enables the XA16 buffer U79. -MASTER is not driven by any
+    // card (pulled up).
     intel_80286_at_page_map page_map (
-        .refresh_n_i(refresh_n), .dack0_n_i(1'b1), .dack2_n_i(1'b1), .dack3_n_i(1'b1),
-        .dack4_n_i(1'b1), .dack6_n_i(1'b1), .dack7_n_i(1'b1),
-        .hlda_i(hlda_o), .master_n_i(1'b1), .aen1_n_i(1'b1), .map_data_i(map_data),
+        .refresh_n_i(refresh_n), .dack0_n_i(dma1_dack[0]), .dack2_n_i(dma1_dack[2]),
+        .dack3_n_i(dma1_dack[3]), .dack4_n_i(dma2_dack[0]), .dack6_n_i(dma2_dack[2]),
+        .dack7_n_i(dma2_dack[3]),
+        .hlda_i(hlda_o), .master_n_i(1'b1), .aen1_n_i(!dma1_aen), .map_data_i(map_data),
         .map_index_o(page_map_index_o), .a23_a17_o(page_a23_a17_o),
         .a23_a17_oe_o(page_a23_a17_oe_o), .xa16_o(page_xa16_o), .xa16_valid_o(page_xa16_valid_o)
     );
@@ -457,6 +567,10 @@ module ibm_pc_at_5170 #(
 
     logic unused;
     assign unused = ^{dma_ctrl2, port61_control[3:1], kbc_oe, peack_n_unused, pic1_oe, pic2_oe,
+                      dma1_addr_oe, dma1_adstb, dma1_channel,
+                      dma2_addr_unused, dma2_addr_oe, dma2_adstb, dma2_aen, dma2_memr_n, dma2_memw_n,
+                      dma2_ior_n, dma2_iow_n, dma2_valid, dma2_channel, dma2_eop_out_n_unused,
+                      dma2_dack[3:1],
                       chan_irq_i[13], chan_irq_i[8], chan_irq_i[2:0],
                       rtc_oe, rtc_sqw, rtc_dbg};
 endmodule

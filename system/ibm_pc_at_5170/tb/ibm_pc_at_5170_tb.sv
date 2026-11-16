@@ -32,6 +32,7 @@ module ibm_pc_at_5170_tb #(
     output logic [7:0]  kbc_wr_data_o,
     output logic [10:0] kbc_retire_pc_o,
     output logic [7:0]  kbc_status_o, kbc_p2_o,
+    output logic        dma_mem_o, dma_mem_write_o,
     output logic        retire_o,
     output logic [23:0] retire_pc_o,
     output logic [7:0]  retire_opcode_o,
@@ -49,7 +50,9 @@ module ibm_pc_at_5170_tb #(
         .io_unclaimed_o, .io_read_undriven_o, .io_port_o, .post_code_o,
         .kbd_unlocked_i, .display_mono_i, .mfg_jumper_i, .ram_512k_i, .kbd_clk_i, .kbd_data_i,
         .kbd_clk_o, .kbd_data_o, .a20_gate_o, .rc_n_o, .kbc_obf_o, .cpu_reset_o, .kbc_illegal_o,
-        .nmi_enable_o, .irq8_o, .chan_irq_i, .intr_o, .inta_cycle_o
+        .nmi_enable_o, .irq8_o, .chan_irq_i, .intr_o, .inta_cycle_o,
+        // The slots are empty: no DMA request, an undriven data bus.
+        .dma_drq_i(4'b0000), .dma_io_rdata_i(8'hff), .dma_mem_o, .dma_mem_write_o
     );
     /* verilator lint_on PINMISSING */
     assign cpu_data_o = board.cpu_data;

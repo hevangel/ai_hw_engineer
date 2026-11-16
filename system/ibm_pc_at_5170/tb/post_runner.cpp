@@ -72,6 +72,10 @@ using Dut = Vibm_pc_at_5170_vga_tb;
 using Dut = Vibm_pc_at_5170_tb;
 #endif
 #include "verilated.h"
+#ifdef AT_CARD
+#include "at_diskette_media.hpp"
+#endif
+#include <chrono>
 #include <algorithm>
 #include <cstdint>
 #include <cstdio>
@@ -84,6 +88,8 @@ using Dut = Vibm_pc_at_5170_tb;
 
 namespace {
 constexpr uint32_t kRamEnd = 0xa0000;
+// Expansion RAM from 100000h (--ext-kb): end of it, 100000h when none.
+uint32_t g_ext_end = 0x100000;
 // ASSUMPTION AT14 (see spec): value read from a memory address no device
 // drives.
 constexpr uint8_t kOpenBus = 0xff;
@@ -95,7 +101,55 @@ constexpr uint64_t kCycleLimit = 6000000000ull;
 // Must match the parameters of ibm_pc_at_5170_ega.
 [[maybe_unused]] constexpr uint64_t kVidHz = 24000000, kOscHz = 14318180;
 bool is_rom(uint32_t a) { return (a >= 0x0f0000 && a <= 0x0fffff) || a >= 0xff0000; }
-bool is_ram(uint32_t a) { return a < kRamEnd; }
+bool is_ram(uint32_t a) { return a < kRamEnd || (a >= 0x100000 && a < g_ext_end); }
+
+// Bench stimulus, not a keyboard model: it presses and releases F1 once at
+// the 8042's keyboard connector, as an AT keyboard sends it (Technical
+// Reference, keyboard interface: the device drives the clock; each frame is
+// a 0 start bit, eight data bits LSB first, an odd parity bit and a 1 stop
+// bit; the host samples data while the clock is low). The bytes are scan
+// code set 2: F1 make 05h, break F0h 05h; the 8042 translates them for the
+// BIOS (command byte bit 6). A frame starts only after both lines have been
+// released by the host for kIdle clocks; if the host pulls the clock low
+// during a frame the byte is sent again. It answers no host command.
+struct F1Stimulus {
+    // Half a keyboard clock period: 240 processor clocks, 40 us on the
+    // board's 6 MHz time base of the 8042 (AT1), a 12.5 kHz keyboard clock.
+    static constexpr unsigned kHalf = 240, kIdle = 6000;
+    const uint8_t bytes[3] = {0x05, 0xf0, 0x05};
+    unsigned next = 0, bit = 0, phase = 0, count = 0, idle = 0;
+    bool armed = false, framing = false;
+    bool clk = true, data = true;   // what the stimulus drives (1 = released)
+    uint64_t sent = 0, retries = 0;
+    bool done() const { return next == 3; }
+    void tick(bool clk_line, bool data_line) {
+        if (!armed || done()) { clk = data = true; return; }
+        if (!framing) {
+            clk = data = true;
+            idle = (clk_line && data_line) ? idle + 1 : 0;
+            if (idle >= kIdle) { framing = true; bit = 0; phase = 0; count = 0; }
+            return;
+        }
+        // While the stimulus releases the clock, a low clock line is the
+        // host inhibiting: abandon the frame.
+        if (clk && !clk_line && bit < 10) {
+            framing = false; idle = 0; clk = data = true; ++retries; return;
+        }
+        const uint8_t b = bytes[next];
+        const bool parity = !(__builtin_popcount(b) & 1);
+        const bool level = bit == 0 ? false : bit <= 8 ? ((b >> (bit - 1)) & 1) : bit == 9 ? parity : true;
+        data = level;
+        clk = phase == 0;
+        if (++count >= kHalf) {
+            count = 0;
+            if (phase == 0) phase = 1;
+            else {
+                phase = 0;
+                if (++bit == 11) { framing = false; idle = 0; clk = data = true; ++next; ++sent; }
+            }
+        }
+    }
+};
 
 std::string hex(uint32_t v, int width) {
     char buf[16];
@@ -116,6 +170,11 @@ int main(int argc, char** argv) {
 #endif
         uint64_t cycle_limit = kCycleLimit;
         std::string frame_path;
+        std::string fd_path[2];
+        bool fd_ro[2] = {false, false}, write_back = false;
+        std::string fd_type[2] = {"1.2", ""};
+        int f1_post = -1;
+        uint64_t ext_kb = 0;
         while (argc > 5 && std::string(argv[argc - 1]).rfind("--", 0) == 0) {
             const std::string opt = argv[--argc];
             if (opt.rfind("--stop-post=", 0) == 0) stop_post = std::stoi(opt.substr(12), nullptr, 16);
@@ -123,16 +182,34 @@ int main(int argc, char** argv) {
             else if (opt == "--empty-slots") empty_slots = true;
             else if (opt.rfind("--stop-at=", 0) == 0) stop_at = std::stol(opt.substr(10), nullptr, 16);
             else if (opt.rfind("--max-cycles=", 0) == 0) cycle_limit = std::stoull(opt.substr(13));
+            else if (opt.rfind("--fda=", 0) == 0) fd_path[0] = opt.substr(6);
+            else if (opt.rfind("--fdb=", 0) == 0) fd_path[1] = opt.substr(6);
+            else if (opt == "--fda-ro") fd_ro[0] = true;
+            else if (opt == "--fdb-ro") fd_ro[1] = true;
+            else if (opt.rfind("--fda-type=", 0) == 0) fd_type[0] = opt.substr(11);
+            else if (opt.rfind("--fdb-type=", 0) == 0) fd_type[1] = opt.substr(11);
+            else if (opt == "--write-back") write_back = true;
+            else if (opt.rfind("--f1-at-post=", 0) == 0) f1_post = std::stoi(opt.substr(13), nullptr, 16);
+            else if (opt.rfind("--ext-kb=", 0) == 0) ext_kb = std::stoull(opt.substr(9));
             else throw std::runtime_error("unknown option " + opt);
         }
+        if (ext_kb > 15 * 1024) throw std::runtime_error("--ext-kb above 15360");
+        g_ext_end = 0x100000 + uint32_t(ext_kb * 1024);
+#ifndef AT_CARD
+        if (!fd_path[0].empty() || !fd_path[1].empty())
+            throw std::runtime_error("the bare board has no diskette adapter");
+#endif
         if (argc < 5 || argc > 7)
             throw std::runtime_error(
                 "usage: post_runner ROM TRACE wait half_period [KBC_LOG [RTC_LOG]]");
         std::ifstream file(argv[1], std::ios::binary);
         std::vector<uint8_t> rom((std::istreambuf_iterator<char>(file)), {});
         if (rom.size() != 65536) throw std::runtime_error("expected a 64 KiB BIOS image");
-        std::ofstream trace(argv[2]);
-        if (!trace) throw std::runtime_error("cannot open trace");
+        // TRACE "-" writes no trace (for speed measurements).
+        const bool tracing = std::string(argv[2]) != "-";
+        std::ofstream trace;
+        if (tracing) trace.open(argv[2]);
+        if (tracing && !trace) throw std::runtime_error("cannot open trace");
         std::ofstream klog;
         if (argc >= 6) {
             klog.open(argv[5]);
@@ -154,12 +231,18 @@ int main(int argc, char** argv) {
         // ASSUMPTION AT6: RAM powers up as zero. Real DRAM contents are
         // undefined; the BIOS writes RAM before reading it in the code
         // reached so far.
-        std::vector<uint8_t> ram(kRamEnd, 0);
+        // Base RAM 000000-09FFFF and expansion RAM 100000h-g_ext_end; the
+        // vector also spans the unpopulated A0000-FFFFF, which is_ram()
+        // excludes.
+        std::vector<uint8_t> ram(std::max<uint32_t>(kRamEnd, g_ext_end), 0);
+        uint64_t dma_writes = 0, dma_reads = 0, dma_open = 0;
+        const auto wall_start = std::chrono::steady_clock::now();
         uint64_t retired = 0, rom_writes = 0, open_reads = 0, open_writes = 0, cpu_resets = 0;
         uint64_t halt_clocks = 0, inta_cycles = 0, chan_writes = 0;
         bool inta_active = false;
         uint8_t inta_byte = 0;
         bool was_reset = true;   // the power-on reset is not counted
+        bool was_a20 = true;     // the 8042 output port resets to FFh: A20 GATE high
         uint16_t cur_cs = 0xf000, cur_ip = 0xfff0;
         unsigned refresh_cycles = 0;
         std::string stop;
@@ -196,6 +279,37 @@ int main(int argc, char** argv) {
         };
 #endif
         d.vid_clk_i = 0;
+        // The diskette drives on the adapter's cable. Their time base is the
+        // adapter's CLK_HZ, 6 MHz of processor clock (ASSUMPTION AT27).
+        at_diskette::Diskettes fd(6000000);
+        for (unsigned u = 0; u < 2; u++) {
+            if (fd_type[u].empty() && !fd_path[u].empty()) fd_type[u] = "1.2";
+            if (fd_type[u] == "1.2") fd.drive[u].type = at_diskette::DriveType::HighCapacity;
+            else if (fd_type[u] == "360") fd.drive[u].type = at_diskette::DriveType::DoubleDensity;
+            else if (!fd_type[u].empty()) throw std::runtime_error("drive type must be 1.2 or 360");
+            if (!fd_path[u].empty()) fd.mount(u, fd_path[u], fd_ro[u]);
+        }
+        at_diskette::DriveLines fdl;
+        auto apply_drive_lines = [&]() {
+            d.fd_track0_i = fdl.track0; d.fd_write_protect_i = fdl.write_protect;
+            d.fd_change_i = fdl.change; d.fd_index_i = fdl.index; d.fd_header_i = fdl.header;
+            d.fd_c_i = fdl.c; d.fd_h_i = fdl.h; d.fd_r_i = fdl.r; d.fd_n_i = fdl.n;
+            d.fd_byte_valid_i = fdl.byte_valid; d.fd_byte_i = fdl.byte;
+            d.fd_end_i = fdl.end; d.fd_slot_i = fdl.slot;
+        };
+        apply_drive_lines();
+        auto drive_tick = [&]() {
+            at_diskette::AdapterLines a;
+            a.select = d.fd_select_o; a.motor = d.fd_motor_o; a.step = d.fd_step_o;
+            a.direction = d.fd_direction_o; a.head = d.fd_head_o; a.rate = d.fd_rate_o;
+            a.active = d.fd_active_o; a.writing = d.fd_write_o; a.formatting = d.fd_format_o;
+            a.sector_begin = d.fd_sector_begin_o; a.tx_valid = d.fd_tx_valid_o;
+            a.tx_byte = d.fd_tx_byte_o; a.sector_r = d.fd_sector_r_o;
+            fdl = fd.tick(a);
+            apply_drive_lines();
+        };
+        uint64_t irq6_rises = 0;
+        bool was_irq6 = false;
         std::vector<std::vector<uint32_t>> lines(1), last_frame;
         uint64_t frames = 0;
         bool was_hsync = false, was_vsync = false;
@@ -246,6 +360,7 @@ int main(int argc, char** argv) {
         for (int i = 0; i < 16; i++) { half_clock(true); half_clock(false); }
         d.reset_i = 0;
 
+        F1Stimulus f1;
         uint64_t cycle = 0;
         for (; cycle < cycle_limit && stop.empty(); cycle++) {
             d.ready_n_i = wait ? (cycle % 5 != 4) : 0;
@@ -254,9 +369,18 @@ int main(int argc, char** argv) {
             timer_acc += 2 * (kOscHz / 12);
             if (timer_acc >= kVidHz) { timer_acc -= kVidHz; timer_level = !timer_level; }
             d.timer_clk_i = timer_level ? 7 : 0;
+            drive_tick();
+            if (d.fd_irq6_o && !was_irq6) ++irq6_rises;
+            was_irq6 = d.fd_irq6_o;
 #else
             d.timer_clk_i = ((cycle / half) & 1) ? 7 : 0;
 #endif
+            if (f1_post >= 0 && !f1.armed && d.post_code_o == f1_post && !d.cpu_reset_o && cycle > 64)
+                f1.armed = true;
+            f1.tick(d.kbd_clk_o, d.kbd_data_o);
+            if (klog.is_open() && (d.kbd_clk_i != f1.clk || d.kbd_data_i != f1.data))
+                klog << "K " << kbc_started << ' ' << unsigned(f1.clk) << ' ' << unsigned(f1.data) << '\n';
+            d.kbd_clk_i = f1.clk; d.kbd_data_i = f1.data;
             d.eval();
             if (d.refresh_o) d.refresh_ready_i = ++refresh_cycles >= 3;
             else { refresh_cycles = 0; d.refresh_ready_i = 0; }
@@ -280,7 +404,9 @@ int main(int argc, char** argv) {
             };
             // The host's data for this cycle: memory, or the undriven bus of
             // an I/O read that no board device answers.
-            d.mem_rdata_i = d.io_cycle_o ? uint16_t(kOpenBus | (kOpenBus << 8))
+            // During HLDA the address is a DMA (or refresh) address and
+            // memory answers it.
+            d.mem_rdata_i = (d.io_cycle_o && !d.hlda_o) ? uint16_t(kOpenBus | (kOpenBus << 8))
                                          : uint16_t(byte(base) | (byte(base + 1) << 8));
             const uint32_t port = d.io_port_o;
             const bool empty_slot = d.io_unclaimed_o && port >= 0x100;
@@ -311,6 +437,24 @@ int main(int argc, char** argv) {
             }
             d.eval();
 
+            // A DMA memory transfer commits at this edge. Its record:
+            //   D <addr> <byte> <write>   write = 1: DMA stored the byte in
+            //   memory; 0: DMA read it from memory (for the device).
+            // It is written in time order among the processor's B records.
+            if (d.dma_mem_o) {
+                const uint8_t value = d.dma_mem_write_o ? uint8_t(d.data_o) : byte(a);
+                if (d.dma_mem_write_o) {
+                    if (is_ram(a)) ram[a] = value; else ++dma_open;
+                    ++dma_writes;
+                } else {
+                    if (!is_ram(a)) ++dma_open;
+                    ++dma_reads;
+                }
+                if (tracing)
+                    trace << "D " << std::hex << a << ' ' << unsigned(value) << ' '
+                          << unsigned(d.dma_mem_write_o) << std::dec << '\n';
+            }
+
             if (d.completed_bytes_o) {
                 const bool io = d.io_cycle_o, write = d.data_oe_o, fetch = d.fetch_cycle_o;
                 for (unsigned b = 0; b < d.completed_bytes_o; b++) {
@@ -334,7 +478,7 @@ int main(int argc, char** argv) {
                     // MC146818 data port (sheet 18): odd addresses 071h-07Fh.
                     if (rlog.is_open() && io && !write && (x & 0x3f1) == 0x071)
                         rlog << "V " << rtc_ticks << ' ' << unsigned(value) << '\n';
-                    if (!fetch)
+                    if (!fetch && tracing)
                         trace << "B " << std::hex << x << ' ' << unsigned(value) << ' ' << write << ' '
                               << io << std::dec << '\n';
                 }
@@ -351,11 +495,16 @@ int main(int argc, char** argv) {
             } else if (inta_active) {
                 inta_active = false;
                 ++inta_cycles;
-                trace << "A " << std::hex << unsigned(inta_byte) << std::dec << '\n';
+                if (tracing) trace << "A " << std::hex << unsigned(inta_byte) << std::dec << '\n';
             }
             if (d.cpu_reset_o && !was_reset) {
                 ++cpu_resets;
-                trace << "Z\n";
+                if (tracing) trace << "Z\n";
+            }
+            // The 8042's A20 GATE output (P21) changed: G <level>.
+            if (d.a20_gate_o != was_a20) {
+                was_a20 = d.a20_gate_o;
+                if (tracing) trace << "G " << unsigned(was_a20) << '\n';
             }
             halt_clocks = (d.halted_o && !(d.flags_o & 0x200)) ? halt_clocks + 1 : 0;
             was_reset = d.cpu_reset_o;
@@ -384,10 +533,12 @@ int main(int argc, char** argv) {
                 ++retired;
                 cur_cs = uint16_t(d.segs_o >> 16);
                 cur_ip = d.ip_o;
+                if (tracing) {
                 trace << "R " << std::hex << d.retire_pc_o << ' ' << unsigned(d.retire_opcode_o) << ' '
                       << cur_cs << ' ' << d.ip_o << ' ' << d.flags_o << ' ' << d.segs_o;
                 for (unsigned r = 0; r < 8; r++) trace << ' ' << uint16_t(d.regs_o[r / 2] >> ((r % 2) * 16));
                 trace << std::dec << '\n';
+                }
             }
             VID_AFTER();
             d.clk_2x_i = 0;
@@ -402,8 +553,11 @@ int main(int argc, char** argv) {
             }
         }
         if (stop.empty()) stop = "kind=cycle-limit at=" + hex(cur_cs, 4) + ":" + hex(cur_ip, 4);
-        trace.flush();
-        if (!trace) throw std::runtime_error("trace write failed");
+        if (tracing) {
+            trace.flush();
+            if (!trace) throw std::runtime_error("trace write failed");
+        }
+        const double wall = std::chrono::duration<double>(std::chrono::steady_clock::now() - wall_start).count();
         if (klog.is_open()) {
             klog.flush();
             if (!klog) throw std::runtime_error("8042 log write failed");
@@ -412,7 +566,21 @@ int main(int argc, char** argv) {
                   << " cycles=" << cycle << " kbc_retired=" << kbc_retired << " slot_writes=" << slot_writes << " slot_reads=" << slot_reads << " rom_writes=" << rom_writes << " open_reads=" << open_reads
                   << " open_writes=" << open_writes << " cpu_resets=" << cpu_resets << " inta_cycles=" << inta_cycles << " wait=" << wait
                   << " half=" << half << '\n';
+        std::cout << "DMA mem_writes=" << dma_writes << " mem_reads=" << dma_reads
+                  << " unpopulated=" << dma_open << " ext_kb=" << ext_kb << '\n';
+        std::cout << "SPEED wall_seconds=" << wall << " clocks_per_second="
+                  << uint64_t(wall > 0 ? double(cycle) / wall : 0) << " trace=" << (tracing ? 1 : 0)
+                  << '\n';
 #ifdef AT_CARD
+        std::cout << "DISKETTE ids=" << fd.ids << " media_reads=" << fd.media_reads
+                  << " media_writes=" << fd.media_writes << " steps=" << fd.steps
+                  << " irq6=" << irq6_rises << " f1_bytes=" << f1.sent << " f1_retries=" << f1.retries
+                  << " head_a=" << fd.drive[0].position << " head_b=" << fd.drive[1].position << '\n';
+        for (unsigned u = 0; u < 2; u++)
+            if (write_back && !fd_path[u].empty() && fd.drive[u].dirty) {
+                fd.save(u, fd_path[u]);
+                std::cout << "DISKETTE wrote " << fd_path[u] << '\n';
+            }
         std::cout << "VIDEO frames=" << frames << " chan_mem_writes=" << chan_writes;
         if (!last_frame.empty()) {
             size_t width = 0;
