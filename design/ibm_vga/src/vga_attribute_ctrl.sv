@@ -44,6 +44,7 @@ module vga_attribute_ctrl (
     output logic        blank,
     output logic        de,
     output logic        de_out,
+    output logic [5:0]  last_pix,       // DAC address bits 5-0 of the last dot, 0 in blanking
     // registers
     output logic [5:0]  idx,
     output logic        ff,
@@ -205,6 +206,7 @@ module vga_attribute_ctrl (
             cur_idx <= '0; nxt_idx <= '0;
             de_out <= 1'b0; blank_q <= 1'b0; hs_q <= 1'b0; vs_q <= 1'b0;
             pix_en <= 1'b0; hsync <= 1'b0; vsync <= 1'b0; blank <= 1'b0; de <= 1'b0;
+            last_pix <= 6'h00;
         end else begin
             pix_en <= dot_ce;
             if (char_ce) begin
@@ -220,6 +222,9 @@ module vga_attribute_ctrl (
                 vsync <= vs_c ^ vpol;
                 blank <= dac_blank;
                 de    <= de_c;
+                // ASSUMPTION V16: the status tap is zero in blanking but
+                // not affected by Screen Off (that acts on the DAC blank)
+                last_pix <= blank_c ? 6'h00 : dac_addr[5:0];
             end
         end
     end

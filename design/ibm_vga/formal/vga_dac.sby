@@ -1,0 +1,25 @@
+# Video DAC alone (palette = one shadow entry at an anyconst address):
+# address/sub-index state machine for every access order (including the
+# cross-direction accesses of V20), DAC state readback, R-G-B read order of
+# the entry, the entry holds the last completed triple, blanked dots are
+# black (abc pdr, unbounded); covers (smtbmc yices).
+[tasks]
+prove
+cover
+
+[options]
+prove: mode prove
+cover: mode cover
+cover: depth 16
+
+[engines]
+prove: abc pdr
+cover: smtbmc yices
+
+[script]
+prove: read -formal -DFORMAL vga_dac.sv
+cover: read -formal -DFORMAL -DFORMAL_COVER vga_dac.sv
+prep -top vga_dac
+
+[files]
+../src/vga_dac.sv

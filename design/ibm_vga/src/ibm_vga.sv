@@ -249,6 +249,7 @@ module ibm_vga #(
     logic        attr_ff, de_out, dac_blank;
     logic [95:0] pal_flat;
     logic [7:0]  amode, overscan, attr_ri, attr_rd, dac_addr;
+    logic [5:0]  last_pix;
     logic [3:0]  pan, colsel, w_now;
     logic [4:0]  blink;
     assign w_now = char_ce ? (w8 ? 4'd8 : 4'd9) : char_w;
@@ -267,7 +268,7 @@ module ibm_vga #(
         .screen_off, .hpol(misc[6]), .vpol(misc[7]),
         .dac_addr, .dac_blank,
         .pix_en(pix_en_o), .hsync(hsync_o), .vsync(vsync_o), .blank(blank_o), .de(de_o),
-        .de_out, .idx(attr_idx), .ff(attr_ff), .pal_flat, .mode(amode), .overscan, .cpe,
+        .de_out, .last_pix, .idx(attr_idx), .ff(attr_ff), .pal_flat, .mode(amode), .overscan, .cpe,
         .pan, .colsel, .blink);
 
     // ------------------------------------------------------------- DAC
@@ -288,9 +289,22 @@ module ibm_vga #(
         .addr(dac_a), .sub(dac_sub), .rmode(dac_rmode), .hold_r, .hold_g);
 
     // --------------------------------------------------------- slot outputs
+    // ASSUMPTION V16: the EGA's video status multiplexer (EGA TR p.17/p.60,
+    // EGA E11) on Input Status 1 bits 5-4, selected by Color Plane Enable
+    // bits 5-4: 00 {P2,P0}, 01 {P3,P1}, 10 {P5,P4}, 11 none. HITR calls the
+    // bits reserved; the POST (C000:0270-029B) needs settings 00-10.
+    logic [1:0] diag;
+    always_comb begin
+        unique case (cpe[5:4])
+            2'b00: diag = {last_pix[2], last_pix[0]};
+            2'b01: diag = {last_pix[3], last_pix[1]};
+            2'b10: diag = {last_pix[5], last_pix[4]};
+            2'b11: diag = 2'b00;
+        endcase
+    end
     logic [7:0] isr1;
     // p.2-45: bit 3 vertical retrace, bit 0 = 1 while display enable is off
-    assign isr1 = {4'h0, vs_line, 2'b00, !de_out};
+    assign isr1 = {2'b00, diag, vs_line, 2'b00, !de_out};
 
     logic io_rd, mem_rd;
     assign io_rd  = !s_ior && (d_attr || d_attr_rd || d_c2 || d_seq || d_pelmask ||

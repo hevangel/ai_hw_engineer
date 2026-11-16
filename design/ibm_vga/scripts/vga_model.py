@@ -112,6 +112,7 @@ class VGA:
         self.de_out = self.blank_out = self.hs_out = self.vs_out = 0
         self.rgb = (0, 0, 0)
         self.last_j = 0
+        self.last_p = 0
         self.out = []
 
     # ------------------------------------------------------- derived regs
@@ -362,7 +363,15 @@ class VGA:
             return self.crtc[self.crtc_idx] if self.crtc_idx < 25 else 0
         if p == 'xa':
             self.attr_ff = 0                             # p.2-89
-            return (self.vsl << 3) | (1 - self.de_out)  # p.2-45
+            # ASSUMPTION V16: EGA video status mux (EGA E11) on bits 5-4
+            m = (self.areg[0x12] >> 4) & 3
+            c = self.last_pixel()
+            diag = {0: (bit(c, 2) << 1) | bit(c, 0), 1: (bit(c, 3) << 1) | bit(c, 1),
+                    2: (bit(c, 5) << 1) | bit(c, 4), 3: 0}[m]
+            self.c('diag_mux_%d' % m)
+            if diag:
+                self.c('diag_nonzero_%d' % m)
+            return (diag << 4) | (self.vsl << 3) | (1 - self.de_out)   # p.2-45
         if p == 'pos':
             return self.pos102
         return None
@@ -780,15 +789,24 @@ class VGA:
 
     def dot(self, j):
         blank = self.blank_out or bit(self.seq[1], 5)    # p.2-49 screen off
-        if blank:
-            rgb = (0, 0, 0)
-        else:
-            rgb = self.dac[self.dac_address(j) & self.pelmask]   # ASSUMPTION V19
+        # ASSUMPTION V16: the status tap sees the attribute output (0 in
+        # blanking); Screen Off blanks only the DAC
+        a = 0 if self.blank_out else self.dac_address(j)
+        self.last_p = a
+        rgb = (0, 0, 0) if blank else self.dac[a & self.pelmask]   # ASSUMPTION V19
         self.rgb = rgb
         hs = self.hs_out ^ bit(self.misc, 6)
         vs = self.vs_out ^ bit(self.misc, 7)
         return (rgb[0] | (rgb[1] << 6) | (rgb[2] << 12) | (hs << 18) | (vs << 19)
                 | (blank << 20) | (self.de_out << 21))
+
+    def last_pixel(self):
+        """DAC address of the last dot, 0 when it was blanked."""
+        if not self.fast:
+            return self.last_p
+        if self.blank_out:
+            return 0
+        return self.dac_address(self.last_j)
 
     def fast_rgb(self):
         blank = self.blank_out or bit(self.seq[1], 5)
