@@ -487,6 +487,24 @@ def mode13_pixels(s):
 
 
 @test
+def doubleword_high_address(s):
+    # Figure 2-65: doubleword output {MA13-0, MA13-12}; with V15 the CPU
+    # byte at chain-4 offset 5000h (map 0, plane address 5001h) is the first
+    # PEL of a frame that starts at Start Address 1400h
+    c = list(TINY_CRTC)
+    c[0x0C], c[0x0D] = 0x14, 0x00
+    c[0x14] = 0x40                                       # doubleword
+    tiny(s, crtc=c, amode=0x41, seq4=0x0E, gcmode=0x40)
+    s.mw(0xA5000, 0x12).mw(0xA5001, 0x34)
+    s.dac(0x12, 1, 2, 3).dac(0x34, 4, 5, 6)
+    s('XMEM 0 5001 12', 'XMEM 1 5001 34')
+    run_seq(s)
+    s('T %d' % FRAME, 'T %d' % FRAME)                    # start address loads at the restart
+    s('XPIX %d 03ffff %06x' % (dot_index(2, 0), rgbv(1, 2, 3)))
+    s('XPIX %d 03ffff %06x' % (dot_index(2, 2), rgbv(4, 5, 6)))
+
+
+@test
 def text_glyphs(s):
     # alphanumeric: maps 0/1 code/attribute, map 2 font {table, code, row}
     tiny(s, amode=0x00, gcmisc=0x0E, seq1=0x00, seq4=0x02)

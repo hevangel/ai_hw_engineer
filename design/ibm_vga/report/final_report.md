@@ -33,7 +33,36 @@ HITR Figures 99-104 (timing set #1: 31.778 us lines, 3.813 us horizontal
 sync, 0.064 ms vertical sync, 14.268/16.683 ms frames, vertical blanking and
 porches per size, horizontal blanking and porches with/without border).
 
-GEOMETRY_TABLE
+| Entry | Mode | Dot clock MHz | Chars x dots = dots/line | Lines/frame | HSYNC dots | Displayed | Line us | Frame ms | Line kHz | Frame Hz | VBlank / VFP / VBP lines | HBlank / HFP / HBP us | VSYNC/HSYNC polarity, border |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 00 | 0 | 25.175 /2 | 50 x 8 = 400 | 449 | 56 | 320x400 | 31.778 | 14.268 | 31.47 | 70.09 | 35 / 6 / 27 | 5.084 / 0.000 / 0.636 | +-, no border |
+| 01 | 1 | 25.175 /2 | 50 x 8 = 400 | 449 | 56 | 320x400 | 31.778 | 14.268 | 31.47 | 70.09 | 35 / 6 / 27 | 5.084 / 0.000 / 0.636 | +-, no border |
+| 02 | 2 | 25.175 | 100 x 8 = 800 | 449 | 96 | 640x400 | 31.778 | 14.268 | 31.47 | 70.09 | 35 / 6 / 27 | 5.720 / 0.318 / 1.589 | +-, border |
+| 03 | 3 | 25.175 | 100 x 8 = 800 | 449 | 96 | 640x400 | 31.778 | 14.268 | 31.47 | 70.09 | 35 / 6 / 27 | 5.720 / 0.318 / 1.589 | +-, border |
+| 04 | 4 | 25.175 /2 | 50 x 8 = 400 | 449 | 56 | 320x400 | 31.778 | 14.268 | 31.47 | 70.09 | 35 / 6 / 27 | 5.084 / 0.000 / 0.636 | +-, no border |
+| 05 | 5 | 25.175 /2 | 50 x 8 = 400 | 449 | 56 | 320x400 | 31.778 | 14.268 | 31.47 | 70.09 | 35 / 6 / 27 | 5.084 / 0.000 / 0.636 | +-, no border |
+| 06 | 6 | 25.175 | 100 x 8 = 800 | 449 | 96 | 640x400 | 31.778 | 14.268 | 31.47 | 70.09 | 35 / 6 / 27 | 5.720 / 0.318 / 1.589 | +-, border |
+| 07 | 7 | 28.322 | 100 x 9 = 900 | 449 | 108 | 720x350 | 31.777 | 14.268 | 31.47 | 70.09 | 87 / 32 / 53 | 5.720 / 0.318 / 1.589 | -+, border |
+| 08 | (8) | 25.175 | 100 x 8 = 800 | 449 | 96 | 640x400 | 31.778 | 14.268 | 31.47 | 70.09 | - | - | not a mode of this 256 KB card: registers only |
+| 0A | (A) | 25.175 | 60 x 9 = 540 | 262 | 36 | 360x200 | 21.450 | 5.620 | 46.62 | 177.94 | - | - | not a mode of this 256 KB card: registers only |
+| 0B | (B) | 25.175 /2 | 100 x 8 = 800 | 449 | 96 | 640x400 | 63.555 | 28.536 | 15.73 | 35.04 | - | - | not a mode of this 256 KB card: registers only |
+| 0C | (C) | 25.175 /2 | 100 x 8 = 800 | 449 | 96 | 640x400 | 63.555 | 28.536 | 15.73 | 35.04 | - | - | not a mode of this 256 KB card: registers only |
+| 0D | D | 25.175 /2 | 50 x 8 = 400 | 449 | 56 | 320x400 | 31.778 | 14.268 | 31.47 | 70.09 | 35 / 6 / 27 | 5.084 / 0.000 / 0.636 | +-, no border |
+| 0E | E | 25.175 | 100 x 8 = 800 | 449 | 96 | 640x400 | 31.778 | 14.268 | 31.47 | 70.09 | 35 / 6 / 27 | 5.720 / 0.318 / 1.589 | +-, border |
+| 0F | F (64K) | 25.175 | 101 x 8 = 808 | 370 | 128 | 640x350 | 32.095 | 11.875 | 31.16 | 84.21 | - | - | not a mode of this 256 KB card: registers only |
+| 10 | 10 (64K) | 28.322 | 96 x 8 = 768 | 366 | 80 | 640x350 | 27.117 | 9.925 | 36.88 | 100.76 | - | - | not a mode of this 256 KB card: registers only |
+| 11 | F | 25.175 | 100 x 8 = 800 | 449 | 96 | 640x350 | 31.778 | 14.268 | 31.47 | 70.09 | 87 / 32 / 53 | 5.720 / 0.318 / 1.589 | -+, border |
+| 12 | 10 | 25.175 | 100 x 8 = 800 | 449 | 96 | 640x350 | 31.778 | 14.268 | 31.47 | 70.09 | 87 / 32 / 53 | 5.720 / 0.318 / 1.589 | -+, border |
+| 13 | 0* | 25.175 /2 | 50 x 8 = 400 | 449 | 56 | 320x350 | 31.778 | 14.268 | 31.47 | 70.09 | 87 / 32 / 53 | 5.084 / 0.000 / 0.636 | -+, no border |
+| 14 | 1* | 25.175 /2 | 50 x 8 = 400 | 449 | 56 | 320x350 | 31.778 | 14.268 | 31.47 | 70.09 | 87 / 32 / 53 | 5.084 / 0.000 / 0.636 | -+, no border |
+| 15 | 2* | 25.175 | 100 x 8 = 800 | 449 | 96 | 640x350 | 31.778 | 14.268 | 31.47 | 70.09 | 87 / 32 / 53 | 5.720 / 0.318 / 1.589 | -+, border |
+| 16 | 3* | 25.175 | 100 x 8 = 800 | 449 | 96 | 640x350 | 31.778 | 14.268 | 31.47 | 70.09 | 87 / 32 / 53 | 5.720 / 0.318 / 1.589 | -+, border |
+| 17 | 0+/1+ | 28.322 /2 | 50 x 9 = 450 | 449 | 63 | 360x400 | 31.777 | 14.268 | 31.47 | 70.09 | 35 / 6 / 27 | 5.084 / 0.000 / 0.636 | +-, no border |
+| 18 | 2+/3+ | 28.322 | 100 x 9 = 900 | 449 | 108 | 720x400 | 31.777 | 14.268 | 31.47 | 70.09 | 35 / 6 / 27 | 5.720 / 0.318 / 1.589 | +-, border |
+| 19 | 7+ | 28.322 | 100 x 9 = 900 | 449 | 108 | 720x400 | 31.777 | 14.268 | 31.47 | 70.09 | 35 / 6 / 27 | 5.720 / 0.318 / 1.589 | +-, border |
+| 1A | 11 | 25.175 | 100 x 8 = 800 | 525 | 96 | 640x480 | 31.778 | 16.683 | 31.47 | 59.94 | 29 / 3 / 24 | 5.720 / 0.318 / 1.589 | --, border |
+| 1B | 12 | 25.175 | 100 x 8 = 800 | 525 | 96 | 640x480 | 31.778 | 16.683 | 31.47 | 59.94 | 29 / 3 / 24 | 5.720 / 0.318 / 1.589 | --, border |
+| 1C | 13 | 25.175 | 100 x 8 = 800 | 449 | 96 | 640x400 | 31.778 | 14.268 | 31.47 | 70.09 | 35 / 6 / 27 | 5.720 / 0.318 / 1.589 | +-, border |
 
 The horizontal pipeline depths (V14) were chosen from entries 18h (mode
 3+) and 1Bh (mode 12h); the other 20 display entries are checks. For the
@@ -53,7 +82,39 @@ resolves DX-parameter helpers at all their call sites (nine helpers, for
 example 1201h "OUT DX,AX with index AL, data from the table" with 9
 callers, 2B30h with 16) and lists every reachable port:
 
-AUDIT_TABLE
+| Port | Dir | Card |
+|---|---|---|
+| 0040 | in/out | not the card: PIT counter 0 (system board), frame-time measurement in POST |
+| 0042 | out | not the card: PIT counter 2 (system board), speaker tone for error beeps |
+| 0043 | out | not the card: PIT mode register (system board) |
+| 0061 | in/out | not the card: system port B (speaker gate) for error beeps |
+| 0102 | out | decoded: pos |
+| 0103 | out | not the card: high byte of the word OUT 102h,AX (C000:00A3): POS register 3, which HITR p.10 says the video subsystem does not use |
+| 03B4 | out | decoded: crtca |
+| 03B5 | in/out | decoded: crtcd |
+| 03B8 | out | not the card: MDA mode control: POST test of a second (monochrome) adapter |
+| 03BA | in/out | decoded: xa |
+| 03C0 | in/out | decoded: attr |
+| 03C1 | in | decoded: attr_data |
+| 03C2 | in/out | decoded: c2 |
+| 03C4 | in/out | decoded: seqa |
+| 03C5 | in/out | decoded: seqd |
+| 03C6 | in/out | decoded: pelmask |
+| 03C7 | in/out | decoded: dac_ra |
+| 03C8 | in/out | decoded: dac_wa |
+| 03C9 | in/out | decoded: dac_data |
+| 03CA | in | decoded: fcr_rd |
+| 03CC | in | decoded: misc_rd |
+| 03CE | in/out | decoded: gca |
+| 03CF | in/out | decoded: gcd |
+| 03D4 | in/out | decoded: crtca |
+| 03D5 | in/out | decoded: crtcd |
+| 03D8 | out | not the card: CGA mode control: POST test of a second (colour) adapter |
+| 03DA | in/out | decoded: xa |
+| 46E8 | out | decoded: vse |
+| 46E9 | out | not the card: high byte of the word OUT 46E8h,AX (C000:009C/00AA): a second byte cycle, not decoded by the 8-bit card (the enable register is 46E8h alone) |
+| 4AE8 | out | not the card: 8514/A Advanced Function Control (another IBM adapter): the POST writes 0 so an 8514/A passes VGA video through (C000:00AB-00B0) |
+| 4AE9 | out | not the card: high byte of the word OUT 4AE8h,AX (8514/A register, another adapter) |
 
 Every port is decoded by the card or is a system-board port (PIT 40h/42h/
 43h, port 61h), another adapter's port the POST deliberately probes (MDA
@@ -78,7 +139,19 @@ I/O, 0.5 us per card memory cycle). The recorded scripts (1.2-1.5 million
 bus lines each) are then replayed on the full model (every read value is an
 expectation) and on the RTL (trace equal to the model's).
 
-EXEC_TABLE
+| Scenario | Load | POST result (BIOS data area) | Bus lines replayed | Ports used | Picture |
+|---|---|---|---|---|---|
+| exec_post_color | colour (111b) | no error beep; 40:87h=60h, 40:88h=09h, 40:89h=11h, equipment 0020h (80x25 colour), mode 03h | 1.23 M | 22 | mode 3 (9x16) text screen 720 x 400 equals the rebuilt image |
+| exec_post_mono | mono (010b) | no error beep; 40:87h=62h, 40:88h=0Bh, 40:89h=17h, equipment 0030h (monochrome), mode 07h | 1.27 M | 23 | not checked |
+| exec_post_none | none (000b) | no error beep; same BIOS data area as mono (the BIOS's no-display path ends in the monochrome set-up) | 1.27 M | 23 | not checked |
+| exec_mode12 | colour | as colour, then INT 10h AX=0012h | 1.54 M | 22 | 640 x 480, 16 bands, equals the rebuilt image |
+| exec_mode13 | colour | as colour, then INT 10h AX=0013h | 1.45 M | 22 | 640 x 400 dots (320 x 200 PELs), 256-colour ramp, equals the rebuilt image |
+
+Every read value the model returned to the executing BIOS was met again by the
+full-detail model in the replay, and the RTL trace equals the model's for all
+five scripts. The ports actually used (102h, 103h, 3B4h/3B5h/3BAh, 3C0h,
+3C2h, 3C4h/3C5h, 3C6h-3C9h, 3CCh, 3CEh/3CFh, 3D4h/3D5h/3DAh, 46E8h/46E9h,
+4AE8h/4AE9h) are a subset of the static audit's list.
 
 The POST measures the frame time with the PIT (two frames, 400 lines,
 C000:01E5-0259), tests 64 KB of video memory, the DAC (all 768 bytes

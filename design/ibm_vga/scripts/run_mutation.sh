@@ -26,7 +26,7 @@ if s.count(a) != 1:
 open(path, 'w').write(s.replace(a, b))
 PYEOF
     if [ "${6:-}" = bios ]; then skip=""; else skip=1; fi
-    if VGA_SRC="$d/src" VGA_WORK_DIR="$d" VGA_NO_COVERAGE_GATE=1 VGA_SKIP_BIOS=$skip \
+    if VGA_SRC="$d/src" VGA_WORK_DIR="$d" VGA_NO_COVERAGE_GATE=1 VGA_SKIP_RATIO=1 VGA_SKIP_BIOS=$skip \
         sh "$ROOT/scripts/run_sim.sh" 4 300 >"$d.log" 2>&1; then
         echo "FAIL: mutant $1 ($3) survived"
         exit 1

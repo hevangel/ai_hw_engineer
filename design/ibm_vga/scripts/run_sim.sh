@@ -82,6 +82,7 @@ if [ -z "${VGA_SKIP_BIOS:-}" ]; then
     done <"$WORK/bios/exec_list.txt"
 fi
 
+if [ -z "${VGA_SKIP_RATIO:-}" ]; then
 echo "== clock-enable ratio: clk at 29.0 and 47.3 MHz, oscillator enables from phase accumulators"
 # The card needs clk >= the fastest selected oscillator (one enable per clk
 # at most) and no fixed ratio: rerun runs whose model traces exist with
@@ -101,6 +102,7 @@ for mhz in 29.0 47.3; do
     done
 done
 echo "PASS: $nr runs identical with irregular oscillator enables"
+fi
 
 echo "== coverage gate (directed + random + BIOS runs, model counters)"
 if [ -n "${VGA_NO_COVERAGE_GATE:-}" ]; then
