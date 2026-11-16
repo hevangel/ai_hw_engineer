@@ -435,6 +435,24 @@ def check(rom, base):
         fails.append('colour load: equipment video bits %02x, expected 20h (80x25 colour)' % (post['410'] & 0x30))
     if load == 2 and (post['410'] & 0x30) != 0x30:
         fails.append('mono load: equipment video bits %02x, expected 30h (monochrome)' % (post['410'] & 0x30))
+    # every port the executed BIOS used is decoded by the card or is one the
+    # static audit lists as another device's (scripts/rom_io_audit.py)
+    import rom_io_audit as AU
+    card = VM.VGA()
+    used = set()
+    for ln in open(script):
+        t = ln.split()
+        if t and t[0] in ('OW', 'OR'):
+            used.add(int(t[1], 16))
+    for p in sorted(used):
+        names = set()
+        for misc in (0, 1):
+            for vse in (0x08, 0x18):
+                card.misc, card.vse, card.pos102 = misc, vse, 1
+                names |= {card.io_port(p, 'r'), card.io_port(p, 'w')} - {None}
+        if not names and p not in AU.ALLOWED_FOREIGN:
+            fails.append('executed BIOS used port %04x, neither decoded nor in the audit list' % p)
+    msg += '; %d ports used (%s), all decoded or audited' % (len(used), ' '.join('%x' % p for p in sorted(used)))
     dac, mask = dac_from_script(script)
     exp = expected_image(rom, name, dac, mask)
     if exp is not None:

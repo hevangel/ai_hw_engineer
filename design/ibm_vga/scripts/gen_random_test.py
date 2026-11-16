@@ -56,7 +56,7 @@ def main():
                 r.randint(0, vt + 1), r.choice([0x10, 0x10, 0x00, 0x30, 0x1F, 0x05]) | r.randint(0, 15),
                 r.randint(0, vt), r.randint(0, 40), r.randint(0, 0x7F),
                 r.randint(0, vt + 1) if r.random() < 0.8 else r.randint(0, 255),
-                r.randint(0, 255), r.randint(0, 255) | 0x80, r.randint(0, vt + 2)]
+                r.randint(0, 255), r.randint(0, 255) | (0x80 if r.random() < 0.9 else 0), r.randint(0, vt + 2)]
         for i, v in enumerate(vals):
             if i == 0x11:
                 v &= 0x7F
@@ -183,7 +183,8 @@ def main():
             seqs = [['OW 46e8 00', 'OR 3c2', 'MW a0000 77', 'OW 3c2 00', 'OW 46e8 0e'],
                     ['OW 46e8 16', 'OR 102', 'OW 102 00', 'OR 3c2', 'OW 102 01', 'OR 3c9',
                      'OW 46e8 0e'],
-                    ['OW 46e8 1e', 'OR 3c8', 'OR 3c4', 'OW 46e8 0e']]
+                    ['OW 46e8 1e', 'OR 3c8', 'OR 3c4', 'OW 46e8 0e'],
+                    ['OW 46e8 %02x' % (r.randint(0, 255) | 0x08), 'OR 3cc', 'OR 3c6', 'OW 46e8 0e']]
             L.extend(r.choice(seqs))
         elif k < 0.925:
             L.append('LOAD %x' % r.choice([0, 2, 7, r.randint(0, 7)]))

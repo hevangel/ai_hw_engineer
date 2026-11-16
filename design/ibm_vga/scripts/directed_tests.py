@@ -381,6 +381,21 @@ def tiny_frame_timing(s):
 
 
 @test
+def retrace_disable(s):
+    # Mode Control bit 7 = 0 (p.2-74): both retrace outputs inactive, the
+    # counters keep running (display enable and blanking unchanged)
+    c = list(TINY_CRTC)
+    c[0x17] = 0x63
+    tiny(s, crtc=c)
+    run_seq(s)
+    s('T %d' % FRAME)
+    s('XPIX %d 0c0000 000000' % dot_index(4, 3))            # would be horizontal retrace
+    s('XPIX %d 0c0000 000000' % dot_index(4 * CPL + 2, 3))  # would be vertical retrace
+    s('XPIX %d 200000 200000' % dot_index(2, 3))             # display enable unchanged
+    s('XDOTS %d' % FRAME)
+
+
+@test
 def graphics_pixels(s):
     tiny(s)
     # planar 16 colours (p.2-22): map n = C(n); palette identity; DAC n

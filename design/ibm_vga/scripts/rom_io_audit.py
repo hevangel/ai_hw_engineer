@@ -44,7 +44,13 @@ ALLOWED_FOREIGN = {
     0x61: 'system port B (speaker gate) for error beeps',
     0x3B8: 'MDA mode control: POST test of a second (monochrome) adapter',
     0x3D8: 'CGA mode control: POST test of a second (colour) adapter',
-    0x3B5: None, 0x3D5: None,     # decoded (placeholders replaced below)
+    0x46E9: 'high byte of the word OUT 46E8h,AX (C000:009C/00AA): a second byte cycle, '
+            'not decoded by the 8-bit card (the enable register is 46E8h alone)',
+    0x0103: 'high byte of the word OUT 102h,AX (C000:00A3): POS register 3, which HITR '
+            'p.10 says the video subsystem does not use',
+    0x4AE8: '8514/A Advanced Function Control (another IBM adapter): the POST writes 0 '
+            'so an 8514/A passes VGA video through (C000:00AB-00B0)',
+    0x4AE9: 'high byte of the word OUT 4AE8h,AX (8514/A register, another adapter)',
 }
 # Ports that are reachable only as values passed to the error-beep routine
 # (C000:0590 takes DH = long beeps, DL = short beeps in DX, it is not a port)
