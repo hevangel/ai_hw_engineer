@@ -29,8 +29,8 @@ module vga_crtc (
     output logic [15:0] disp_addr,
     output logic [4:0]  rs,
     output logic        vint,
-    output logic        vrtc_start,     // pulse: vertical retrace started
-    output logic        lc_hit,         // pulse: line compare matched
+    output logic        vrtc_start,     // with char_ce: vertical retrace starts now
+    output logic        lc_hit,         // with char_ce: line compare matches now
     output logic [1:0]  de_skew,
     output logic [1:0]  cur_skew,
     output logic [1:0]  hr_delay,
@@ -167,6 +167,11 @@ module vga_crtc (
         vs_n = (vc_n == vrs) || (vs_line && (vc_n[3:0] != regs[5'h11][3:0]));
     end
 
+    // combinational so that the attribute controller's blink counter and
+    // panning reset take effect for the character of this boundary
+    assign vrtc_start = rst_n && !reset_drv && char_ce && go_line && vs_n && !vs_line;
+    assign lc_hit     = rst_n && !reset_drv && char_ce && go_line && lc_now;
+
     assign hc_n = (hc == {1'b0, regs[0]} + 9'd4) ? 9'd0 : hc + 9'd1;   // HT+5 (p.2-56)
     always_comb begin
         if (hc_n == 9'd0)                       ma_n = go_line ? rs_row_n : row_start;
@@ -176,8 +181,6 @@ module vga_crtc (
     end
 
     always_ff @(posedge clk) begin
-        vrtc_start <= 1'b0;
-        lc_hit <= 1'b0;
         if (!rst_n || reset_drv) begin
             // ASSUMPTION V2 (EGA E2): RESET DRV holds the counters
             hc <= 9'd0; vc <= 10'd0; rs <= 5'd0;
@@ -197,9 +200,7 @@ module vga_crtc (
                         dphase <= dphase_n;
                         vb_q <= vb_n;
                         vs_line <= vs_n;
-                        if (lc_now) lc_hit <= 1'b1;
                         if (vs_n && !vs_line) begin
-                            vrtc_start <= 1'b1;
                             if (!regs[5'h11][5] && regs[5'h11][4]) vint <= 1'b1;
                         end
                     end
@@ -294,7 +295,7 @@ module vga_crtc (
             if (rs != $past(rs)) assert ($past(char_ce && go_line && (rs_tick || restart)));
 `ifdef FORMAL_COVER
             cover ($past(vc) == vt + 10'd1 && vc == 10'd0 && $past(go_line));
-            cover (vrtc_start && vint);
+            cover ($past(vrtc_start) && vint);
             cover (regs[9][7] && rs == 5'd1 && vc == 10'd3);
 `endif
         end

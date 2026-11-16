@@ -105,21 +105,29 @@ module vga_attribute_ctrl (
 
     always_ff @(posedge clk) begin
         if (!rst_n) blink <= 5'd0;
-        else if (vrtc_start) blink <= blink + 5'd1;
+        else        blink <= blink_n;
     end
 
     // p.2-92: panning compatibility forces panning to 0 from a line
     // compare match until the next vertical retrace
-    logic pan_lc;
+    logic pan_lc, pan_lc_n;
+    always_comb begin
+        if (vrtc_start)             pan_lc_n = 1'b0;
+        else if (lc_hit && mode[5]) pan_lc_n = 1'b1;
+        else                        pan_lc_n = pan_lc;
+    end
     always_ff @(posedge clk) begin
-        if (!rst_n)                  pan_lc <= 1'b0;
-        else if (vrtc_start)         pan_lc <= 1'b0;
-        else if (lc_hit && mode[5])  pan_lc <= 1'b1;
+        if (!rst_n) pan_lc <= 1'b0;
+        else        pan_lc <= pan_lc_n;
     end
 
     // ---------------------------------------------- index formation
-    logic blink_off;
-    assign blink_off = blink[4];
+    // the blink count of this boundary (incremented when vertical retrace
+    // starts at it)
+    logic [4:0] blink_n;
+    logic       blink_off;
+    assign blink_n   = vrtc_start ? blink + 5'd1 : blink;
+    assign blink_off = blink_n[4];
 
     function automatic logic [35:0] form(input logic [7:0] attr, input logic [2:0] code_hi,
                                          input logic [7:0] font,
@@ -142,7 +150,7 @@ module vga_attribute_ctrl (
                 bg = mode[3] ? {1'b0, at[6:4]} : at[7:4];
                 if (mode[1] && ul && ((at & 8'h77) == 8'h01)) g = 1'b1;   // EGA E22
                 if (mode[3] && at[7] && blink_off) g = 1'b0;
-                if (cur && !blink[3]) g = 1'b1;                           // EGA E23
+                if (cur && !blink_n[3]) g = 1'b1;                           // EGA E23
                 o[4*j +: 4] = g ? fg : bg;
             end
         end
@@ -176,7 +184,7 @@ module vga_attribute_ctrl (
     logic [5:0] p0;
     logic [3:0] p1;
     always_comb begin
-        pv = pan_lc ? 4'd0 : pan;
+        pv = pan_lc_n ? 4'd0 : pan;
         if (w_now == 4'd9) sh = (pv >= 4'd8) ? 5'd0 : {1'b0, pv} + 5'd1;   // Figure 2-88, EGA E24
         else               sh = {2'b00, pv[2:0]};
         s  = {1'b0, dot_idx} + sh;
