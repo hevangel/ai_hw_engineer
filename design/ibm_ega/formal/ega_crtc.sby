@@ -1,0 +1,25 @@
+# CRT controller alone. Registers are arbitrary constants (no reset under
+# FORMAL, no data writes). prove (abc pdr, unbounded, with HT <= 70,
+# VT <= 40 and retraces that do not wrap): retrace widths equal the TR
+# algorithms, counter bounds, vertical interrupt latch rules. cover
+# (smtbmc yices, HT and VT <= 3): a complete frame, an interrupt.
+[tasks]
+prove
+cover
+
+[options]
+prove: mode prove
+cover: mode cover
+cover: depth 60
+
+[engines]
+prove: abc pdr
+cover: smtbmc yices
+
+[script]
+prove: read -formal -DFORMAL -DFORMAL_PROVE ega_crtc.sv
+cover: read -formal -DFORMAL ega_crtc.sv
+prep -top ega_crtc
+
+[files]
+../src/ega_crtc.sv

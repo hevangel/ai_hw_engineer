@@ -190,12 +190,14 @@ module ibm_ega #(
     logic [7:0]  dbg_pdata [0:3];
     logic [7:0]  wd [0:3];
     logic [1:0]  wr_valid;
+    logic [3:0]  plane_we;
 
     for (genvar p = 0; p < 4; p++) begin : g_plane
         logic [7:0] b_q;
+        assign plane_we[p] = memw_ev && d_ram && plane_we_mask[p] && wr_valid[p/2];
         ega_plane_ram u_ram (
             .clk, .a_addr(cpu_paddr),
-            .a_we(memw_ev && d_ram && plane_we_mask[p] && wr_valid[p/2]),
+            .a_we(plane_we[p]),
             .a_wdata(wd[p]), .a_rdata(a_rdata[p]),
             .b_addr, .b_rdata(b_q),
             .dbg_addr(dbg_mem_addr_i), .dbg_rdata(dbg_pdata[p]));
@@ -399,4 +401,74 @@ module ibm_ega #(
         else if (dbg_reg_addr_i == 8'h79) dbg_reg_data_o = {4'd0, gc2_idx};
     end
     assign dbg_mem_data_o = dbg_pdata[dbg_plane_i];
+`ifdef FORMAL
+    // Formal checks (formal/ibm_ega.sby): plane RAMs and ROM are black
+    // boxes (their outputs are unconstrained), all slot and board inputs
+    // are free.
+    logic f_init = 1'b1;
+    always_ff @(posedge clk) f_init <= 1'b0;
+    always_comb if (f_init) assume (!rst_n);
+
+    logic [7:0] f_x;          // B0 or D0 by Misc Output bit 0
+    logic       f_io_dec;     // U16 condition on the current address
+    assign f_x = misc[0] ? 8'hD0 : 8'hB0;
+    assign f_io_dec = !s_aen && s_a[9] && (s_p3 ? s_a[8] : !s_a[8]);
+
+    always_comb begin
+        if (rst_n && !f_init) begin
+            // register access rules: only Input Status 0 (3C2), Input
+            // Status 1 (3xA) and the CRTC data port (3x5) drive an I/O read
+            if (d_oe_o && !s_ior)
+                assert (f_io_dec && (s_a[7:0] == 8'hC2 || s_a[7:0] == (f_x | 8'h0A) ||
+                                     s_a[7:0] == (f_x | 8'h05)));
+            // memory reads drive only the ROM or the enabled RAM window
+            if (d_oe_o && !s_memr && s_ior)
+                assert (s_dack0 && (s_a[19:14] == 6'b110000 ||
+                        (misc[1] && s_a[19:17] == 3'b101)));
+            // nothing drives without a read strobe
+            if (s_ior && s_memr) assert (!d_oe_o);
+            // decode exclusivity: one I/O select at most; ROM and RAM disjoint
+            assert ($onehot0({d_attr, d_c2, d_seq, d_gc2pos, d_gc1pos, d_gc, d_crtc,
+                              d_xa, d_lpclr, d_lpset}));
+            assert (!(d_rom && d_ram));
+            // an I/O address never decodes as memory and vice versa:
+            // I/O selects need A9 and !AEN; memory needs A19-A17 = 101/110
+            // (both can be true only for different strobes)
+            if (d_rom) assert (dec_a[19:14] == 6'b110000);
+            // map-mask gating (TR p.21, p.23): a plane is written only on
+            // a memory write event in the RAM window with its map mask bit
+            // set and, in odd/even mode, the matching address parity
+            for (int p = 0; p < 4; p++)
+                if (plane_we[p]) begin
+                    assert (memw_ev && d_ram && seq_regs[16 + p]);
+                    if (!seq_regs[34]) assert (d_off[0] == ((p & 1) != 0));
+                end
+            // IRQ 2 driver enable follows VRE bit 5 (E9)
+            assert (irq2_oe_o == !crtc_regs[8*8'h11 + 5]);
+        end
+    end
+
+    always_ff @(posedge clk) begin
+        if ($past(rst_n) && rst_n && !f_init && !$past(f_init)) begin
+            // attribute address/data flip-flop (TR p.56-57)
+            if ($past(ior_ev && d_xa))
+                assert (!attr_ff);
+            else if ($past(iow_ev && d_attr))
+                assert (attr_ff == !$past(attr_ff));
+            else
+                assert (attr_ff == $past(attr_ff));
+        end
+    end
+
+    // each processor write mode reaches the planes
+    always_comb begin
+        if (rst_n) begin
+            cover (gc1_regs[41:40] == 2'd0 && plane_we[0]);
+            cover (gc1_regs[41:40] == 2'd1 && plane_we[1]);
+            cover (gc1_regs[41:40] == 2'd2 && plane_we[2]);
+            cover (memw_ev && d_ram && gc1_regs[41:40] == 2'd3);
+            cover (ior_ev && d_xa && attr_ff);
+        end
+    end
+`endif
 endmodule

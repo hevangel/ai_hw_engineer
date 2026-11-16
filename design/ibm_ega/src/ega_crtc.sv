@@ -71,7 +71,9 @@ module ega_crtc (
     always_ff @(posedge clk) begin
         if (!rst_n) begin
             idx <= 5'd0;
+`ifndef FORMAL
             for (int i = 0; i < 25; i++) regs[i] <= 8'h00;
+`endif
         end else begin
             if (addr_we) idx <= wdata[4:0];
             if (data_we && idx <= 5'd24) regs[idx] <= wdata;
@@ -196,4 +198,87 @@ module ega_crtc (
             if (lpff && !lp_prev) lp <= ma;
         end
     end
+`ifdef FORMAL
+    // Formal checks (formal/ega_crtc.sby). Registers are arbitrary
+    // constants: rst_n does not clear them under FORMAL and no data write
+    // happens. Bounds keep the counters small (see plans/formal_plan.md).
+    logic f_init = 1'b1;
+    always_ff @(posedge clk) f_init <= 1'b0;
+    always_comb begin
+        if (f_init) assume (!rst_n);
+        assume (!data_we);
+        assume (!reset_drv);
+    end
+    logic [8:0] f_ht2;
+    logic [5:0] f_hw;
+    logic [4:0] f_vw;
+    assign f_ht2 = {1'b0, regs[0]} + 9'd2;
+    assign f_hw  = ((regs[5][4:0] - regs[4][4:0]) == 5'd0) ? 6'd32
+                 : {1'b0, regs[5][4:0] - regs[4][4:0]};
+    assign f_vw  = ((regs[5'h11][3:0] - vrs[3:0]) == 4'd0) ? 5'd16
+                 : {1'b0, regs[5'h11][3:0] - vrs[3:0]};
+
+`ifdef FORMAL_PROVE
+    // horizontal retrace never wraps the line; vertical retrace never
+    // wraps the frame; counters bounded
+    always_comb begin
+        assume (regs[0] <= 8'd70);
+        assume ({1'b0, regs[4]} + 9'd33 <= f_ht2);
+        assume (vt <= 9'd40);
+        assume (vrs + 9'd17 <= vt);
+        assume (!regs[5'h17][2]);
+    end
+`else
+    always_comb begin
+        assume (regs[0] <= 8'd3);
+        assume (vt <= 9'd3);
+    end
+`endif
+
+    // width of the horizontal retrace in characters (TR p.29 algorithm)
+    logic [6:0] f_hcnt;
+    logic [5:0] f_vcnt;
+    always_ff @(posedge clk) begin
+        if (!rst_n) begin
+            f_hcnt <= 7'd0;
+            f_vcnt <= 6'd0;
+        end else if (char_ce) begin
+            if (hs_cur) f_hcnt <= (hs_q ? f_hcnt : 7'd0) + 7'd1;
+            if (go_line) begin
+                if (vs_n) f_vcnt <= (vs_line ? f_vcnt : 6'd0) + 6'd1;
+            end
+        end
+    end
+
+    always_comb begin
+        if (rst_n && !f_init) begin
+            assert (hc <= f_ht2);
+`ifdef FORMAL_PROVE
+            assert (hc < f_ht2);
+            assert (vc <= {1'b0, vt} + 10'd1);
+            // a retrace that ends had exactly the programmed width
+            if (char_ce && hs_q && !hs_cur) assert (f_hcnt == {1'b0, f_hw});
+            if (char_ce && go_line && vs_line && !vs_n) assert (f_vcnt == {1'b0, f_vw});
+            assert (f_hcnt <= 7'd32);
+`endif
+            // the interrupt latch is held clear by VRE bit 4 = 0 (TR p.37)
+            if (!regs[5'h11][4]) assert (!vint);
+        end
+    end
+
+    always_ff @(posedge clk) begin
+        if ($past(rst_n) && rst_n && !f_init) begin
+            // the latch only rises at the start of vertical retrace, enabled
+            if (vint && !$past(vint))
+                assert ($past(vs_n && !vs_line && go_line && char_ce) && !$past(regs[5'h11][5]));
+            // vertical retrace starts only on the programmed line
+            if (vs_line && !$past(vs_line)) assert (vc == {1'b0, vrs});
+`ifndef FORMAL_PROVE
+            // a complete frame: the counter wraps after the last line
+            cover ($past(vc) == {1'b0, vt} + 10'd1 && vc == 10'd0 && $past(go_line));
+            cover (vrtc_start && vint);
+`endif
+        end
+    end
+`endif
 endmodule

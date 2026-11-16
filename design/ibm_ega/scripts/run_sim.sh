@@ -11,7 +11,7 @@ WORKROOT=${EGA_WORK_DIR:-$ROOT/work}
 WORK=$WORKROOT/sim
 SRC=${EGA_SRC:-$ROOT/src}
 SEEDS=${1:-32}
-OPS=${2:-400}
+OPS=${2:-600}
 PY=${PYTHON:-python3}
 S=$ROOT/scripts
 FW=$ROOT/work/firmware
@@ -61,11 +61,6 @@ while [ "$s" -le "$SEEDS" ]; do
     s=$((s + 1))
 done
 echo "PASS: $SEEDS seeds identical ($lines trace lines, $dots dots compared)"
-if [ -n "${EGA_NO_COVERAGE_GATE:-}" ]; then
-    "$PY" "$S/report_coverage.py" "$WORK"/random/*.cov "$WORK"/directed/*.cov | tail -1
-else
-    "$PY" "$S/report_coverage.py" "$WORK"/random/*.cov "$WORK"/directed/*.cov --require
-fi
 
 if [ -z "${EGA_SKIP_BIOS:-}" ]; then
     echo "== BIOS VIDEO_PARMS geometry (every table entry; RTL vs model; IBM rates)"
@@ -80,5 +75,14 @@ if [ -z "${EGA_SKIP_BIOS:-}" ]; then
         lockstep "$WORK/bios/$name.txt" "$WORK/bios/$name"
         "$PY" "$S/bios_replay.py" check "$FW/ega_u44.bin" "$WORK/bios/$name"
     done
+fi
+
+echo "== coverage gate (directed + random + BIOS runs, model counters)"
+if [ -n "${EGA_NO_COVERAGE_GATE:-}" ]; then
+    "$PY" "$S/report_coverage.py" "$WORK"/random/*.cov "$WORK"/directed/*.cov | tail -1
+elif [ -n "${EGA_SKIP_BIOS:-}" ]; then
+    "$PY" "$S/report_coverage.py" "$WORK"/random/*.cov "$WORK"/directed/*.cov --require
+else
+    "$PY" "$S/report_coverage.py" "$WORK"/random/*.cov "$WORK"/directed/*.cov         "$WORK"/bios/*.cov --bios-dir "$WORK/bios" --require
 fi
 echo "PASS: simulation"

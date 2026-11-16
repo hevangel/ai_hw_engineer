@@ -159,4 +159,62 @@ module ega_graphics_ctrl (
 
     assign e_ser = ser(e_p0, e_p1, e_odd);
     assign n_ser = ser(n_p0, n_p1, n_odd);
+`ifdef FORMAL
+    // Formal checks (formal/ega_graphics_ctrl.sby). Write-mode data
+    // equations of TR p.47-55 on one anyconst bit slice, written with
+    // index arithmetic independently of the shift expressions above; the
+    // read path; the stored register widths.
+    (* anyconst *) logic [2:0] f_b;
+    logic f_init = 1'b1;
+    always_ff @(posedge clk) f_init <= 1'b0;
+    always_comb if (f_init) assume (!rst_n);
+
+    function automatic logic f_wbit(input logic q, input logic [7:0] lat);
+        logic [2:0] n;
+        logic src, alu;
+        n = {pos, q};
+        if (wm == 2'd2)                                   src = cpu_d[n];
+        else if (!n[2] && regs[1][n[1:0]])                src = regs[0][n[1:0]];
+        else                                              src = cpu_d[f_b + regs[3][2:0]];
+        unique case (regs[3][4:3])
+            2'd0: alu = src;
+            2'd1: alu = src & lat[f_b];
+            2'd2: alu = src | lat[f_b];
+            2'd3: alu = src ^ lat[f_b];
+        endcase
+        if (wm == 2'd1) f_wbit = lat[f_b];
+        else            f_wbit = regs[8][f_b] ? alu : lat[f_b];
+    endfunction
+
+    always_comb begin
+        if (rst_n) begin
+            assert (wd0[f_b] == f_wbit(1'b0, lat0));
+            assert (wd1[f_b] == f_wbit(1'b1, lat1));
+            assert (wr_valid == (regs[5][1:0] != 2'd3));
+            if (regs[5][3]) begin
+                assert (rd_drive);
+                assert (rd_data[f_b] ==
+                        ((!fbit(regs[7], pos, 1'b0) || (rd0[f_b] == fbit(regs[2], pos, 1'b0))) &&
+                         (!fbit(regs[7], pos, 1'b1) || (rd1[f_b] == fbit(regs[2], pos, 1'b1)))));
+            end else begin
+                assert (rd_drive == ((regs[5][4] ? regs[4][2:1] : regs[4][2:1]) == pos));
+                assert (rd_data == ((regs[5][4] ? a0 : regs[4][0]) ? rd1 : rd0));
+            end
+            assert (regs[0][7:4] == 4'd0 && regs[1][7:4] == 4'd0 && regs[2][7:4] == 4'd0);
+            assert (regs[3][7:5] == 3'd0 && regs[4][7:3] == 5'd0 && regs[5][7:6] == 2'd0);
+            assert (regs[6][7:4] == 4'd0 && regs[7][7:4] == 4'd0);
+        end
+    end
+
+    // each write mode and both read modes reachable by register writes
+    always_comb begin
+        if (rst_n) begin
+            cover (regs[5][1:0] == 2'd0 && regs[1][0] && regs[3][2:0] != 3'd0);
+            cover (regs[5][1:0] == 2'd1);
+            cover (regs[5][1:0] == 2'd2 && regs[3][4:3] == 2'd3);
+            cover (regs[5][1:0] == 2'd3);
+            cover (regs[5][3] && regs[7][1:0] == 2'b11 && rd_data == 8'hA5);
+        end
+    end
+`endif
 endmodule
