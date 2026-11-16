@@ -171,13 +171,13 @@ The I/O decode uses only A9-A0: U16 (LS27) gives `!AEN & A9 & (P3 ? A8 :
 !A8)` to PROM U34 together with Misc Output bit 0 (MONO MONITOR) and A7-A0.
 **A15-A10 are not decoded, so every port repeats every 400h** (for example
 3D4h, 7D4h, 0BD4h ... and 0FFD4h all reach the CRTC address register). U34's
-contents are not printed; the decoded ports below are those TR documents
-(E3). `x` = B when Misc Output bit 0 is 0, D when it is 1; with P3 at 2XX
+contents are not printed; the decoded ports below are those TR documents,
+plus 3C1 as a second attribute write port, which the BIOS listing pins (E3). `x` = B when Misc Output bit 0 is 0, D when it is 1; with P3 at 2XX
 the first digit is 2.
 
 | Port | Write (LS138 U25) | Read (LS138 U28) |
 |---|---|---|
-| 3C0 | ATRIOW: attribute address/data (flip-flop) | not decoded |
+| 3C0, 3C1 | ATRIOW: attribute address/data (flip-flop); 3C1 is the BIOS's OUT_DX data port (E3) | not decoded |
 | 3C2 | MODE IOW: Miscellaneous Output | STATUS: Input Status 0 |
 | 3C4 / 3C5 | SEQIOW: sequencer address / data (A0) | not decoded |
 | 3CA | GRAPHIC: GC 2 position | not decoded |
@@ -380,7 +380,7 @@ bits of its own planes; planes 4-7 select no controller, which reads FFh
 |---|---|---|---|
 | E1 | `rst_n` clears every register, latch, counter and flip-flop to 0 (GC positions both 0, sequencer halted) | Power-on state is not documented | Directed `power_on` |
 | E2 | RESET DRV (synchronously sampled) holds Misc Output and Feature Control at 0 (sheet 9 CLR), and holds the CRTC counters, pipeline flags and interrupt latch at 0. CRTC and other registers keep their values | Sheet 3 wires RESET to the CRTC RESET pin; what it resets is not described | `reset_drv` |
-| E3 | The I/O decode PROM U34 decodes exactly the TR ports listed above, fully on A7-A0; nothing else in 3C0-3CF/3x0-3xF responds | U34 contents not printed. A7-A0, MONO and the U16 output are its only inputs (sheet 4) | `io_decode_aliases`, formal |
+| E3 | The I/O decode PROM U34 decodes the TR ports listed above fully on A7-A0, and 3C1 writes as attribute writes (same as 3C0); nothing else in 3C0-3CF/3x0-3xF responds | U34 contents not printed; A7-A0, MONO and the U16 output are its only inputs (sheet 4). The 3C1 alias is pinned by the BIOS: its OUT_DX helper (C000:0D15) writes the index to DX and the data to DX+1, and the POST dot test calls it with DX = 3C0 (C000:0403-0416, listing lines 1307-1318). The register section (p.56) names only 3C0. Found as an escaped defect (failure_notes/2026-11-16-ibm-ega-attribute-3c1.md) | `bios_dot_test_attribute_writes`, `io_decode_aliases`, mutant m15, formal |
 | E4 | Readable ports: 3C2, 3xA, 3x5. A read of 3x5 with an index other than 0C-11h, and Input Status bits no device drives (ISR0 3-0, ISR1 7-6), read 1 | Only three read strobes exist (U28); the BD bus pull-ups U38 | `registers_readback` |
 | E5 | LP CLR is port 3xB and LP SET is 3xC | U25 has LP SET/LP CLR outputs; the BIOS light-pen routine clears at ADDR_6845+7 = 3xB (listing line 3264). 3xC follows the CGA/MDA convention | `light_pen` |
 | E6 | Sequencer halted (Reset bits 1-0 != 11): no dots, CRTC frozen, dot phase cleared. Asynchronous reset (bit 0 = 0) also clears Character Map Select (p.23). CPU memory access is unaffected | p.19 "clear and halt" | `sequencer_reset` |
@@ -434,6 +434,7 @@ writes: 3C4/3C5 index 0 = 01h; indices 1-4; 3C2; index 0 = 03h; CRTC 0-18h;
 | ROM image | CPU sees 55AA at C0000 | stores reversed dump, reverses at load | accepts either | EPROM order + inverted address (wiring) |
 | Vertical total | "number of scans" (p.30) | `vert_total + 1` | `+2` | +2 (E8) |
 | Input Status 0 bits 3-0 | not used | 0 | 0 | 1 (pull-ups, E4) |
+| Attribute writes to 3C1 | only 3C0 named (p.56); the BIOS writes data to 3C1 (C000:0403-0416) | 3C1 not handled | 3C0 and 3C1 | 3C0 and 3C1 (E3) |
 
 ## Not modeled
 

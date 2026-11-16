@@ -164,7 +164,7 @@ class EGA:
             return None
         lo = a & 0xFF                               # A15-A10 not decoded
         x = 0xD0 if self.misc & 1 else 0xB0         # MONO MONITOR (misc bit 0)
-        fixed = {0xC0: 'attr', 0xC2: 'c2', 0xC4: 'seqa', 0xC5: 'seqd',
+        fixed = {0xC0: 'attr', 0xC1: 'attr', 0xC2: 'c2', 0xC4: 'seqa', 0xC5: 'seqd',
                  0xCA: 'gc2pos', 0xCC: 'gc1pos', 0xCE: 'gca', 0xCF: 'gcd'}
         if lo in fixed:
             return fixed[lo]
@@ -183,6 +183,8 @@ class EGA:
             self.c('io_write_undecoded')
             return
         self.c('io_w_' + p)
+        if p == 'attr' and a & 1:
+            self.c('attr_write_3c1')      # ASSUMPTION E3: 3C1 = 3C0 for writes
         if p == 'attr':
             self.attr_write(d)
         elif p == 'c2':

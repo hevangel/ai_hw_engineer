@@ -233,6 +233,34 @@ def attribute_flipflop(s):
 
 
 @test
+def bios_dot_test_attribute_writes(s):
+    # Escaped defect regression (failure_notes/2026-11-16-ibm-ega-attribute-3c1.md).
+    # POST dot test, C000:0401-0446 (listing lines 1307-1318): IN status
+    # (flip-flop reset), then the OUT_DX helper (C000:0D15: OUT DX,AH;
+    # INC DX; OUT DX,AL) with DX = 3C0: 3C0=0Fh, 3C1=3Fh (palette 0Fh = 3Fh,
+    # address bit 5 = 0), then 3C0=32h, 3C1=0Fh (Color Plane Enable = 0Fh,
+    # address bit 5 = 1 turns the palette back on); the loop repeats the
+    # second pair with 1Fh and 2Fh (video status mux 01, 10) and polls
+    # Input Status 1 bits 5-4 for 1s, then 0s. All planes FFh -> index 0Fh.
+    tiny(s)
+    for a in range(3):
+        planes_fill(s, a, [0xFF, 0xFF, 0xFF, 0xFF])
+    run_seq(s)
+    s('OR 3da').ow(0x3C0, 0x0F).ow(0x3C1, 0x3F).ow(0x3C0, 0x32).ow(0x3C1, 0x0F)
+    s('XREG 4f 3f', 'XREG 52 0f', 'XREG 54 32', 'XREG 55 00')
+    s('T %d' % (dot(0, 2) + 1))
+    # colour 3Fh displayed; mux 00 -> bit 5 = R = 1, bit 4 = B = 1; display
+    # on (bit 0 = 0); LP switch open (bit 2 = 1): F4h
+    s('OR 3da f4')
+    for cpe in (0x1F, 0x2F):
+        s.ow(0x3C0, 0x32).ow(0x3C1, cpe)
+        s('XREG 52 %02x' % cpe, 'XREG 55 00')
+        s('OR 3da f4')                     # mux 01: B', G = 1; mux 10: R', G' = 1
+    s('T 24')                             # 41 dots: output char 5 of line 0 is
+    s('OR 3da c5')                        # blanked: colour 0 -> diag 00, display off
+
+
+@test
 def sequencer_registers(s):
     # TR p.18-23
     for i, v, want in ((0, 0xFF, 0x03), (1, 0xFF, 0x0F), (2, 0xFF, 0x0F),

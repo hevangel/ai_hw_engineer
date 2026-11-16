@@ -30,7 +30,7 @@
    font load and mode set replayed for modes 3, 3* and 7 and the screen
    checked against one rebuilt from the ROM font (`bios_replay.py`).
 6. **Formal, mutation, synthesis, run_all.** SBY proofs and covers for the
-   graphics controller, the CRTC and the card top; 14 planted faults;
+   graphics controller, the CRTC and the card top; 15 planted faults;
    Yosys `synth` with RAM/ROM black-boxed, `check -assert`, no latches;
    `run_all.sh` from a clean work directory.
 7. **Documentation and tracking.** README, spec, plans, report, design

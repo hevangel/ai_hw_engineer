@@ -26,6 +26,10 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-11-16 - IBM EGA dropped attribute-controller writes to port 3C1](2026-11-16-ibm-ega-attribute-3c1.md)
+  The real EGA BIOS on the AT failed its POST dot test: its OUT_DX helper writes
+  index/data to 3C0/3C1, the decode accepted only 3C0, and the BIOS replay had
+  skipped the self-test paths that use the helper.
 - [2026-11-12 - 80286 defects found by the PCE-286 oracle](2026-11-12-intel80286-pce-oracle-defects.md)
   An emulator comparison found a wrong handler SP after incoming-task faults,
   a task-gate fault class, a non-restartable PUSHA and two untested rules.

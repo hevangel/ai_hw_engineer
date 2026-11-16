@@ -1,4 +1,4 @@
-# IBM EGA verification report: 2026-11-15
+# IBM EGA verification report: 2026-11-16
 
 ## Result
 
@@ -25,15 +25,15 @@ sh design/ibm_ega/scripts/run_all.sh
 |---|---|---|
 | ROM | `scripts/get_rom.py` | 86Box dump SHA-256 `bf1583dd...dbbf9c`, SHA-1 `3af56105...6b25`, CRC32 `2f2fbc40`; reversed (EPROM order) = MAME `6277356.u44` CRC `dc146448`; header 55 AA 20, checksum 00; sign-on and VIDEO_PARMS entry 0 equal the zoomed listing |
 | Lint | `scripts/run_lint.sh` | `verilator --lint-only -Wall` clean for `ibm_ega` and for each of the 9 sub-modules alone; no waivers (1 s) |
-| Formal | `scripts/run_formal.sh` | abc pdr PASS (unbounded) for the graphics controller, the CRTC (horizontal and vertical tasks) and the card top; smtbmc yices covers 5 + 2 + 7 reached (95 s) |
-| Directed | `scripts/run_sim.sh` | 39 of 39: the model meets every hand-derived expectation; RTL trace identical |
-| Random | `scripts/run_sim.sh` | 32 seeds x 600 operations: 37,851 trace lines and 1,401,555 dots identical, plus 32 x 256 KB plane dumps |
+| Formal | `scripts/run_formal.sh` | abc pdr PASS (unbounded) for the graphics controller, the CRTC (horizontal and vertical tasks) and the card top; smtbmc yices covers 5 + 2 + 7 reached (94 s) |
+| Directed | `scripts/run_sim.sh` | 40 of 40: the model meets every hand-derived expectation; RTL trace identical |
+| Random | `scripts/run_sim.sh` | 32 seeds x 600 operations: 37,828 trace lines and 1,401,555 dots identical, plus 32 x 256 KB plane dumps |
 | BIOS mode tables | `scripts/bios_modes.py` | all 23 VIDEO_PARMS entries identical RTL/model; line and frame lengths equal the registers; displayed area equals TR p.5-7 for every documented mode; rates within 2% of TR's display figures (table below) |
 | BIOS replay | `scripts/bios_replay.py` | modes 3 (640x200), 3* (640x350) and 7 (720x350): every displayed pixel equals the screen rebuilt from the ROM font and table; switch reads assemble INFO_3 = 7, 9, B as listing lines 584-596 expect |
 | Coverage gate | `scripts/report_coverage.py --require` | PASS: 61 registers written, all 770 documented register-bit values written as 0 and 1, every write/read mode, read map select 0-7, memory map x odd/even, chain variants, skews, panning 1-15, CRTC features, all 23 BIOS entries |
-| Mutation | `scripts/run_mutation.sh` | 14 of 14 mutants killed by a trace difference (51 s) |
-| Synthesis | `scripts/run_synth.sh` | Yosys `synth -flatten`, `check -assert` clean, 5,811 generic cells, 845 flip-flops; the 4 plane RAMs and the ROM are black boxes; no `Latch inferred` (270 s) |
-| Whole flow | `scripts/run_all.sh` | PASS in 528 s from a clean work directory (`work/refs`, `work/firmware` kept) |
+| Mutation | `scripts/run_mutation.sh` | 15 of 15 mutants killed by a trace difference (90 s) |
+| Synthesis | `scripts/run_synth.sh` | Yosys `synth -flatten`, `check -assert` clean, 5,845 generic cells, 845 flip-flops; the 4 plane RAMs and the ROM are black boxes; no `Latch inferred` (276 s) |
+| Whole flow | `scripts/run_all.sh` | PASS in 572 s from a clean work directory (`work/refs`, `work/firmware` kept) |
 
 ## BIOS mode-table geometry
 
@@ -106,10 +106,26 @@ mutant was killed.
 | m12 | A10 decoded (no 400h aliases) | `io_decode_aliases` |
 | m13 | Input Status 1 also at 3xB | `io_decode_aliases` |
 | m14 | odd/even write plane select inverted | `odd_even_and_chain` |
+| m15 | attribute writes to 3C1 dropped (the escaped defect) | `bios_dot_test_attribute_writes` |
 
 The proofs are not vacuous: with a function-select fault the graphics
 controller proof fails, with m7 the CRTC vertical proof fails, and with the
 map mask removed from the plane write enable the card-top proof fails.
+
+## Escaped defect: attribute writes to 3C1 (2026-11-16)
+
+Running the unchanged EGA BIOS on the 80286 of the IBM PC AT system model,
+the POST dot test failed (BL = 10h): the BIOS's OUT_DX helper writes the
+attribute index to 3C0 and the data to 3C1 (C000:0403-0416), and the decode
+accepted only 3C0. The model shared the assumption (E3 read "exactly the TR
+ports"), and the BIOS replay had run SET_REGS (which writes 3C0 twice) but
+not the self tests that use the helper. Fixed in `ega_io_decode.sv` and the
+model; E3 now cites the BIOS. Regression: directed test
+`bios_dot_test_attribute_writes` (the dot test's exact port sequence),
+coverage item `attr_write_3c1`, mutant m15. A byte scan of every
+`CALL 0D15h` in the ROM shows OUT_DX is otherwise used only with DX = 3C4,
+3CE and the CRTC base 3B4/3D4, whose DX+1 ports are decoded. Post-mortem:
+[failure_notes/2026-11-16-ibm-ega-attribute-3c1.md](../../../failure_notes/2026-11-16-ibm-ega-attribute-3c1.md).
 
 ## Findings in the sources
 
@@ -123,14 +139,16 @@ map mask removed from the plane write enable the card-top proof fails.
   in retrace; the VGA reference and the EGA BIOS's own CGA-style polling
   (C000:1719) use 1 (E10). TR p.54 says Color Don't Care 1 = don't care; the
   VGA reference says 1 = compared and the BIOS loads 0Fh in graphics modes
-  (E15). TR p.60 misprints the panning register index as 12h.
+  (E15). TR p.60 misprints the panning register index as 12h. TR p.56 names
+  only 3C0 for the attribute controller; the BIOS also writes it at 3C1 (E3).
 - **Switch numbering.** The BIOS (C000:009B) puts the reading taken with
   clock select 00 into INFO_3 bit 3, which TR p.15 calls switch 4 (E31);
   that differs from the usual DIP pin numbering of SW1 on sheet 9.
 - **Emulators.** MAME follows TR's text for ISR0 bit 7, uses VT + 1 lines
   and swaps the video status mux pairs for settings 01 and 10 relative to
   TR's table; 86Box toggles status bits to pass the BIOS self test, uses
-  1 = compare for Color Don't Care and VT + 2 lines. See the spec table.
+  1 = compare for Color Don't Care and VT + 2 lines. MAME handles
+  attribute writes only at 3C0; 86Box accepts 3C0 and 3C1. See the spec table.
 
 ## Limitations
 

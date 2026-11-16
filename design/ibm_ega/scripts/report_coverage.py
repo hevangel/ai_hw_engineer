@@ -35,7 +35,8 @@ REQUIRED = (
     ['ram_read_map%d' % m for m in range(4)] + ['chain_0'] +
     ['io_r_isr0', 'io_r_isr1', 'io_r_crtc', 'crtc_read_0c', 'crtc_read_0d',
      'crtc_read_0e', 'crtc_read_0f', 'crtc_read_lp', 'crtc_read_wo',
-     'io_read_writeonly', 'io_write_undecoded', 'mem_dack0_blocked', 'rom_read'] +
+     'io_read_writeonly', 'io_write_undecoded', 'mem_dack0_blocked', 'rom_read',
+     'attr_write_3c1'] +
     ['sw_read_%d_%d' % (k, v) for k in range(4) for v in range(2)] +
     ['diag_mux_%d' % m for m in range(4)] +
     ['amode_text', 'amode_gfx', 'amode_bit1', 'amode_bit2', 'amode_bit3',

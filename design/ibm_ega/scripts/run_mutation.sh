@@ -69,4 +69,5 @@ mutate m13_isr1_alias ega_io_decode.sv "I/O decode: Input Status 1 also at 3xB" 
     "io_xa     = u16 && (lo == (xb | 8'h0A));" "io_xa     = u16 && (lo[7:1] == (xb[7:1] | 7'h05));"
 mutate m14_oddeven_write ega_sequencer.sv "write path: odd/even plane select inverted" \
     "(cpu_off[0] ? 4'b1010 : 4'b0101)" "(cpu_off[0] ? 4'b0101 : 4'b1010)"
+mutate m15_attr_3c1_dropped ega_io_decode.sv "I/O decode: 3C1 attribute writes dropped (escaped defect 2026-11-16)"     "io_attr   = u16 && (lo[7:1] == 7'h60);" "io_attr   = u16 && (lo == 8'hC0);"
 echo "PASS: $n of $n mutants killed"

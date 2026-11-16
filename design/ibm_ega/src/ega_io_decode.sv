@@ -4,7 +4,9 @@
 // I/O: U16 gives !AEN & A9 & (P3 normal ? A8 : !A8). A15-A10 are not
 // decoded, so every port repeats every 400h. PROM U34 sees that signal,
 // MONO MONITOR (Misc Output bit 0) and A7-A0; its contents are not printed.
-// ASSUMPTION E3: it decodes exactly the ports the TR documents. ASSUMPTION
+// ASSUMPTION E3: it decodes the ports the TR documents plus 3C1 as a second
+// attribute-controller write port (the BIOS's OUT_DX helper writes the
+// attribute index to 3C0 and the data to 3C1, C000:0403-0416). ASSUMPTION
 // E5: LP CLR = 3xB, LP SET = 3xC.
 //
 // Memory: PROM U48 (A19-A13, Enable RAM, memory map) is disabled while
@@ -19,7 +21,7 @@ module ega_io_decode (
     input  logic        ram_en,      // Misc Output bit 1
     input  logic [1:0]  mem_map,     // Graphics Miscellaneous bits 3-2
     // I/O selects (combine with -IOW / -IOR outside)
-    output logic        io_attr,     // 3C0
+    output logic        io_attr,     // 3C0/3C1 write (attribute address/data)
     output logic        io_c2,       // 3C2: Misc Output (W), Input Status 0 (R)
     output logic        io_seq,      // 3C4/3C5 (A0 selects)
     output logic        io_gc2pos,   // 3CA
@@ -43,7 +45,7 @@ module ega_io_decode (
     assign xb  = mono_n ? 8'hD0 : 8'hB0;
 
     always_comb begin
-        io_attr   = u16 && (lo == 8'hC0);
+        io_attr   = u16 && (lo[7:1] == 7'h60);          // C0, C1 (E3)
         io_c2     = u16 && (lo == 8'hC2);
         io_seq    = u16 && (lo[7:1] == 7'h62);          // C4, C5
         io_gc2pos = u16 && (lo == 8'hCA);
