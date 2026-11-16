@@ -99,7 +99,7 @@ Every 80286 instruction of all three runs (two bare-board scenarios and the
 EGA machine) matches Unicorn, in the system BIOS and, for the EGA machine,
 in the EGA BIOS. The 8042 and the MC146818 match their reference models in
 all three. The display is checked as the text of one frame against the
-ROM's own font. The board synthesizes to 87,161 generic cells and the EGA
+ROM's own font. The board synthesizes to 86,864 generic cells and the EGA
 machine to 94,169 (the card's plane RAMs and ROM are black boxes).
 
 Limits:
