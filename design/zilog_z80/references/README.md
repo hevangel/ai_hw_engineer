@@ -95,3 +95,20 @@ why the undocumented-F3/F5 work cannot be signed off with ZEXDOC alone.
 Nothing is vendored or downloaded by this specification milestone. Each artifact
 above is added with a SHA-256 in this file at the moment it is first used, and
 the harness refuses to run a binary whose hash does not match.
+
+## Software run through the CP/M harness
+
+Binaries are downloaded into the ignored `work/cpm/` directory and checked with
+these SHA-256 values before a run:
+
+| Image | Source | SHA-256 | Result |
+|---|---|---|---|
+| `prelim.com` | [superzazu/z80 `roms/`](https://github.com/superzazu/z80) (test image, own licence) | `3b3578f19030a4df7e25ce852f763af26053b12582a576c4dffb014aa7c590d1` | PASS |
+| `8080pre.com` | [Altair Clone CPU test archive](https://altairclone.com/downloads/cpu_tests/) | `18eb3c79cba42c0718f160be6a1853cb64cdce7aa47d65780189a57bdd98c4e0` | PASS |
+| `tst8080.com` | same archive (Microcosm Associates, 1980) | `9561c6fb6c99efe3de00eb77e4044fd102151058b39ac2d7bce10483838a08e7` | Fails on a Z80 by design (P/V vs parity) |
+| `zexdoc.com` | [agn453/ZEXALL](https://github.com/agn453/ZEXALL), GPL-2.0 | `34923a7ed82285d3038b2d54bd64899e12173eebb61f9d07b4fc72e78af2ae8f` | Entered; full run is ~5.7e9 instructions |
+| `zexall.com` | same, GPL-2.0 | `6e2da55147a04f28d303d5da6a1e6b771557ac244653590a0f24a2d39c8537e8` | Not run (same size as ZEXDOC) |
+
+The two 8080 diagnostics use the same hashes already recorded by the
+`intel_8080` design, which is a useful cross-check on the downloads. GPL binaries
+stay in `work/` and are never committed.

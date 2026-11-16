@@ -64,10 +64,29 @@ the index pages.
 | Synthesis | **PASS** (generic cells; no timing or area target set) | `scripts/run_synth.sh generic` |
 | Native timing comparison | Not run | native engine not started |
 
-The `scripts/` directory also holds `run_alu.sh`, `run_instr.sh` and
-`run_int.sh`, which are the gates above; `run_all.sh`, `run_formal.sh`,
-`run_sim.sh`, `run_coverage.sh` and `run_synth.sh` are the repository scaffold
-entry points.
+### Real historical software
+
+`tb/cpm_harness.cpp` + `scripts/run_cpm.sh` load a CP/M-80 `.com` at 0x0100,
+trap the BDOS entry at 0x0005 (functions 2 and 9 only) and the warm boot at
+0x0000, and capture console output. Binaries live in the ignored `work/cpm/`
+directory; SHA-256 values are recorded in [references/README.md](../references/README.md).
+
+| Image | Result | Instructions |
+|---|---|---|
+| `prelim.com` (Z80 preliminary exerciser) | **PASS** — prints `Preliminary tests complete` | 898 |
+| `8080pre.com` (8080 preliminary test) | **PASS** — prints `8080 Preliminary tests complete` | 1,060 |
+| `tst8080.com` (Microcosm 8080 diagnostic) | **fails at 0x01FB, as expected on a Z80** — the test branches on parity after `ADD A,70`, but on a Z80 bit 2 is P/V (overflow for arithmetic) rather than the 8080's parity | 106 |
+| `zexdoc.com` (Frank D. Cringle, GPL) | starts and enters its first subtest; a full run is ~5.7e9 instructions | — |
+
+The TST8080 result is a genuine ISA difference, not a core defect: the Z80
+replaces the 8080's always-parity bit 2 with P/V. It is recorded here so the
+difference is not mistaken for a regression later.
+
+The gate scripts are `run_alu.sh`, `run_instr.sh`, `run_int.sh` and `run_cpm.sh`;
+`run_all.sh`, `run_formal.sh`, `run_sim.sh`, `run_coverage.sh` and `run_synth.sh`
+are the repository scaffold entry points.
+
+
 
 ## 4. Known issues and limitations
 
