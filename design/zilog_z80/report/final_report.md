@@ -60,10 +60,11 @@ the index pages.
 | Formal prove | **PASS** by k-induction | `sby -f formal/zilog_z80.sby prove` |
 | Synthesis (generic) | **PASS**, 27,378 cells, 373 flops | `scripts/run_synth.sh generic`, Yosys 0.69 |
 | Synthesis (iCE40 target) | **PASS**, 3,803 LUT4 + 369 flops | `scripts/run_synth.sh ice40` |
+| Native engine timing (bus-cycle-exact subset) | **PASS**, 16/16 instructions | `scripts/run_native.sh` |
 | ZEXDOC / ZEXALL / z80test | Not run | needs the CP/M harness; ZEXALL is ~5.8e9 instructions |
 | Historical software | Not run | needs a CP/M BDOS harness |
 | Synthesis | **PASS** (generic cells; no timing or area target set) | `scripts/run_synth.sh generic` |
-| Native timing comparison | Not run | native engine not started |
+| Native timing, internal T-states | Not modelled | `zilog_z80_native` reproduces M1/memory/I-O cycle shapes and totals for the bus-cycle-exact subset; instructions with internal T-states (INC (HL), JR, PUSH, CALL, block groups) need per-opcode internal cycles |
 
 ### Real historical software
 
