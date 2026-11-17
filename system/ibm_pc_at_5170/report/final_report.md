@@ -38,8 +38,7 @@ Each card machine is checked in one scenario (no added wait states).
 `run_post_ega.sh` and `run_post_vga.sh` are wrappers. `run_post_ega.sh` takes
 about 35 minutes (15 of simulation and screen and device checks, 20 for the
 Unicorn replay); `run_all.sh` does not run either. The bare-board
-regression (`run_post.sh`) was last run for M4a and not rerun on this
-branch; its inputs are unchanged since M4a except `tb/post_runner.cpp`.
+regression (`run_post.sh`) was rerun on the VGA branch and is unchanged.
 
 Details, findings and limits:
 [M4b part 1 report](2026-11-16-m4b-vga.md) and the

@@ -187,8 +187,8 @@ full POST remain.
   720 x 400 VGA text. Result: 16,294,929 instructions, the same stop at
   `F000:1454`, the same three screen lines, 8042, MC146818 and Unicorn all
   pass; the machine synthesizes to 129,054 generic cells. The EGA machine's
-  results are unchanged. The bare-board regression was not rerun on this
-  branch. See [the M4b part 1 report](../report/2026-11-16-m4b-vga.md).
+  results are unchanged. The bare-board regression, rerun on this
+  branch, is unchanged in both scenarios. See [the M4b part 1 report](../report/2026-11-16-m4b-vga.md).
   The VGA ROM is a legally fetched input; it could not be cross-checked
   against an IBM listing.
 - Keyboard device on the 8042's keyboard connector, with scan codes from

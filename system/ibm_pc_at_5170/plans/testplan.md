@@ -134,9 +134,9 @@ regression (`scripts/run_post_card.sh ega|vga`).
   - Synthesis of `ibm_pc_at_5170_vga` (129,054 generic cells, plane RAMs
     and ROM black-boxed).
   - Not checked: graphics modes and the DAC in the machine (only the
-    card's own suite covers them), the VGA ROM against an IBM listing, the
-    bare-board regression (last run for M4a), and the M4a "not checked"
-    items.
+    card's own suite covers them), the VGA ROM against an IBM listing, and
+    the M4a "not checked" items. The bare-board regression was rerun on
+    the VGA branch and is unchanged.
 - Keyboard and web host (2026-11-17), `scripts/run_keyboard_test.sh`:
   One batch run of about 10 minutes (passed 2026-11-16, 579 s):
   - the BIOS's keyboard reset reaches the keyboard (FFh received, FAh and
