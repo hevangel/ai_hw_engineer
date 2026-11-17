@@ -18,7 +18,8 @@ FW=$ROOT/work/firmware
 mkdir -p "$WORK/directed" "$WORK/random" "$WORK/bios"
 
 echo "== ROM: fetch and verify IBM 6277356"
-"$PY" "$S/get_rom.py" "$ROOT/work" | tail -1
+"$PY" "$S/get_rom.py" "$ROOT/work" > "$WORK/get_rom.log"
+tail -1 "$WORK/get_rom.log"
 
 echo "== build lockstep bench"
 verilator --cc --exe --build -O2 -j 4 --x-assign 0 --x-initial 0 -Wno-fatal \
@@ -79,7 +80,8 @@ fi
 
 echo "== coverage gate (directed + random + BIOS runs, model counters)"
 if [ -n "${EGA_NO_COVERAGE_GATE:-}" ]; then
-    "$PY" "$S/report_coverage.py" "$WORK"/random/*.cov "$WORK"/directed/*.cov | tail -1
+    "$PY" "$S/report_coverage.py" "$WORK"/random/*.cov "$WORK"/directed/*.cov > "$WORK/coverage.log"
+    tail -1 "$WORK/coverage.log"
 elif [ -n "${EGA_SKIP_BIOS:-}" ]; then
     "$PY" "$S/report_coverage.py" "$WORK"/random/*.cov "$WORK"/directed/*.cov --require
 else
