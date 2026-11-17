@@ -100,9 +100,12 @@ port 80h manufacturing checkpoint convention.
 
 | Function | Tracking |
 |---|---|
-| AT fixed-disk controller (port 1F0h) | Not tracked yet; the BIOS probes it first, and its status read at 1F7h is the M3 stop |
-| Keyboard (a device on the 8042's keyboard connector) | Not tracked yet; with none attached the BIOS reports error 301 |
-| Diskette adapter (8272 and AT logic) | Not tracked yet; the BIOS reports error 601 |
+| AT fixed-disk controller and drive (port 1F0h) | Not tracked yet; the display machines have only the idle task file of the combined adapter (AT37); the bare board's run still stops at its status read at 1F7h |
+| Keyboard (a device on the 8042's keyboard connector) | Branch `system/ibm-pc-at-5170-web`; with none attached the BIOS reports error 301 (the batch runner's F1 bench stimulus gets past the prompt) |
+
+The diskette adapter row is no longer missing: see "Diskette adapter"
+(the 8272 on the IBM Fixed Disk and Diskette Drive Adapter, since the
+diskette milestone; no separate issue exists for it).
 | 80287 (optional) | ai_engineer#238 |
 
 The video adapter rows are no longer missing: the EGA is in the machine
@@ -404,10 +407,18 @@ From the Technical Reference section "Fixed Disk and Diskette Adapter":
 - The drive cable (PDF 633) carries drive selects, motor on, direction,
   step, write data/gate, track 0, write protect, read data, side select and
   diskette change; there is no Ready line (AT31).
-- The fixed-disk function (task file 1F0h-1F7h, fixed disk register 3F6h,
-  IRQ 14) is not modeled: none of its ports is decoded, so in the display
-  machines they read as an empty slot (FFh) and the BIOS's probe of 1F7h
-  is unchanged.
+- The fixed-disk function is not modeled beyond the task-file registers
+  1F1h-1F7h of an idle controller with no drive (AT37). They are needed:
+  at checkpoint 3Ch the REV1 BIOS (F000:1453-147C) reads 1F7h until busy
+  clears and then writes and reads back 55h and AAh at 1F4h; only if that
+  works does it set HF_CNTRL bit 0 ("dual", 40:8Fh), and only with that
+  flag does the diskette BIOS select the data rate per medium and use the
+  change line (DSKETTE listing PDF 228-229). A first version without the
+  task file (as the brief for this work proposed) booted nothing: the BIOS
+  took the card for the diskette-only adapter, read at 250 kbit/s and found
+  no ID on the 1.2 MB diskette (ST0 40h, ST1 05h). The data register 1F0h,
+  the fixed disk register 3F6h, commands and IRQ 14 are not modeled; the
+  CMOS images declare no fixed disk.
 - The REV1 BIOS supports 320/360 KB and 1.2 MB diskettes and drives only
   (DSKETTE listing, PDF 227: "320/360K DISKETTE DRIVES AND 1.2M DISKETTE
   DRIVES SUPPORTED"); 720 KB and 1.44 MB are not modeled.
@@ -577,6 +588,22 @@ waveform.
   is set; the change line is active at power-on and after a medium change
   and is cleared by a step pulse to the selected drive while a medium is
   inserted.
+- ASSUMPTION AT36: the 80287 socket is empty. On sheet 1 (PDF page 79)
+  the socket's ERROR (26), BUSY (25), PEACK (36) and PEREQ (24) pins are
+  wired to the 80286's ERROR, BUSY, PEACK and PEREQ; -BUSY 286 comes from
+  PAL U130 (sheet 3) and BUSY/ERROR have 10K pull-ups (AT17, RN4). No
+  pull-down on PEREQ is legible on the scan, so with the socket empty
+  PEREQ is taken as inactive (low): an ESC instruction's operand never
+  moves. Reads of F8h-FFh return the undriven bus (FFh, AT14); the runner
+  counts accesses to F8h-FFh (`npx_port_accesses`) instead of stopping.
+- ASSUMPTION AT37: the fixed-disk function with no drive attached is an
+  idle controller after its power-on diagnostics: status 1F7h reads 00h
+  (not busy, drive not ready, no seek complete, no error), the error
+  register 1F1h reads 01h (diagnostic code "no errors", PDF 602-603),
+  1F2h-1F6h read back what was written, and commands, the
+  write-precompensation register, the data register 1F0h, the fixed disk
+  register 3F6h and IRQ 14 have no effect. The real controller's status
+  with no drive cabled was not found in the documents.
 - ASSUMPTION AT35: expansion RAM (runner option `--ext-kb`) is plain RAM
   from 100000h, served by the host like base RAM, powering up as zero
   (AT6); it stands for an IBM memory expansion card, whose own timing and
@@ -602,6 +629,12 @@ it. On this board the same read was the M1 stop; the 8042 now supplies it.
 The board's "undriven read" flag fired during the wait states of a read
 whose device had not yet driven data (an M1 defect); it is now checked when
 the read completes.
+Since the diskette milestone the board also claims F8h-FFh (the empty
+80287 socket, AT17/AT36: writes have no effect, reads return the undriven
+bus, and the runner counts them), and in the display machines the
+diskette adapter answers 3F2h, 3F4h, 3F5h, 3F7h and the idle fixed-disk
+task file 1F1h-1F7h (AT37). A DMA memory transfer outside RAM is counted
+by the runner and rejected by the Unicorn replay.
 
 ## Open decisions
 

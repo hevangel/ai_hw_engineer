@@ -13,9 +13,11 @@
 // (DSKETTE listing, PDF 228, "DATA TRANSFER RATE FOR THIS DRIVE"; it writes
 // it to 3F7h).
 //
-// Only the diskette function is modeled. The fixed-disk function (task file
-// 1F0h-1F7h, fixed disk register 3F6h, IRQ 14) is absent: none of its ports
-// is decoded, so on this machine they read as an empty slot.
+// The diskette function is modeled. Of the fixed-disk function only the
+// task-file registers 1F1h-1F7h of an idle controller with no drive are
+// present (see "fixed-disk task file" below: the BIOS needs them to treat
+// the card as the combined adapter); the data register 1F0h, the fixed disk
+// register 3F6h, commands and IRQ 14 are not modeled.
 //
 // The adapter's logic diagrams (PDF 635-642) were not traced; every gate
 // level detail below that the prose does not state is an assumption with a
@@ -156,6 +158,44 @@ module at_diskette_adapter #(
     assign drq2_o = fdc_drq && dor[3];
     assign irq6_o = fdc_irq && dor[3];
 
+    // ------------------------------------- fixed-disk task file, no drive
+    // The adapter is one card with both functions (PDF 601: task file at
+    // 1F0h-1F7h, PDF 602 register map). The BIOS tells this combined card
+    // from the diskette-only adapter by its task file: after reading the
+    // status register 1F7h until busy (bit 7) clears, it writes 55h and AAh
+    // to the cylinder-low register 1F4h and reads each back (REV1 BIOS at
+    // F000:1453-147C, POST checkpoint 3Ch); only then does it set HF_CNTRL
+    // "dual" (40:8F), which the diskette BIOS needs to choose the data rate
+    // per drive and medium and to use the change line (DSKETTE listing,
+    // PDF 228-229, "DUAL"). Without it a 1.2 MB diskette cannot be read.
+    // So the registers are here although no fixed disk is attached.
+    // ASSUMPTION AT37 (see spec): with no fixed disk drive attached and its
+    // power-on diagnostics finished, the fixed-disk function is idle: status
+    // 1F7h reads 00h (not busy, drive not ready, no seek complete, no
+    // error), the error register 1F1h reads 01h (diagnostic code "no
+    // errors", PDF 602-603), 1F2h-1F6h read back what was written, a
+    // command written to 1F7h, the write-precompensation write to 1F1h, the
+    // data register 1F0h and the fixed disk register 3F6h have no effect,
+    // and IRQ 14 is never raised. Commands are not executed.
+    logic sel_hd;
+    logic [7:0] hd_reg [2:6];
+    assign sel_hd = !aen_i && a_i[9:3] == 7'h3e && a_i[2:0] != 3'd0;   // 1F1h-1F7h
+    always_ff @(posedge clk_i) begin
+        if (reset_drv_i) begin
+            for (int i = 2; i <= 6; i++) hd_reg[i] <= 8'h00;
+        end else if (iow_q && !iow_n_i && sel_hd && a_i[2:0] >= 3'd2 && a_i[2:0] <= 3'd6) begin
+            hd_reg[a_i[2:0]] <= d_i;
+        end
+    end
+    logic [7:0] hd_live;
+    always_comb begin
+        case (a_i[2:0])
+            3'd1: hd_live = 8'h01;
+            3'd7: hd_live = 8'h00;
+            default: hd_live = hd_reg[a_i[2:0] == 3'd0 ? 3'd2 : a_i[2:0]];
+        endcase
+    end
+
     // Digital input register (PDF 611-612): bit 7 = Diskette Change of the
     // selected drive; bits 6-0 belong to the fixed-disk function.
     // ASSUMPTION AT33 (see spec): bit 7 reads 1 while the selected drive's
@@ -166,8 +206,8 @@ module at_diskette_adapter #(
     // controller advances its result pointer at the strobe's leading edge.
     logic [7:0] live, held;
     logic reading;
-    assign reading = !ior_n_i && (sel_dir || sel_fdc || (!dack2_n_i && fdc_oe));
-    assign live = sel_dir ? {disk_change_i, 7'h7f} : fdc_d;
+    assign reading = !ior_n_i && (sel_dir || sel_fdc || sel_hd || (!dack2_n_i && fdc_oe));
+    assign live = sel_dir ? {disk_change_i, 7'h7f} : sel_hd ? hd_live : fdc_d;
     always_ff @(posedge clk_i) if (ior_q && !ior_n_i) held <= live;
     assign d_o = ior_q ? live : held;
     assign d_oe_o = reading;

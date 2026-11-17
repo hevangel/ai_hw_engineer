@@ -302,7 +302,7 @@ int main(int argc, char** argv) {
         // vector also spans the unpopulated A0000-FFFFF, which is_ram()
         // excludes.
         std::vector<uint8_t> ram(std::max<uint32_t>(kRamEnd, g_ext_end), 0);
-        uint64_t dma_writes = 0, dma_reads = 0, dma_open = 0;
+        uint64_t dma_writes = 0, dma_reads = 0, dma_open = 0, npx_accesses = 0;
         const auto wall_start = std::chrono::steady_clock::now();
         uint64_t retired = 0, rom_writes = 0, open_reads = 0, open_writes = 0, cpu_resets = 0;
         uint64_t halt_clocks = 0, inta_cycles = 0, chan_writes = 0;
@@ -538,6 +538,8 @@ int main(int argc, char** argv) {
                         !chan_driven)
                         ++open_reads;
                     if (io && write && empty_slot_write) ++slot_writes;
+                    // The empty 80287 socket's ports F8h-FFh (AT17, AT36): counted.
+                    if (io && (x & 0x3f8) == 0x0f8) ++npx_accesses;
                     if (io && !write && empty_slot && !chan_driven) ++slot_reads;
                     // The 8042 select (sheets 13/18): even addresses 060h-06Eh.
                     if (klog.is_open() && io && !write && (x & 0x3f1) == 0x060)
@@ -638,7 +640,8 @@ int main(int argc, char** argv) {
                   << " open_writes=" << open_writes << " cpu_resets=" << cpu_resets << " inta_cycles=" << inta_cycles << " wait=" << wait
                   << " half=" << half << '\n';
         std::cout << "DMA mem_writes=" << dma_writes << " mem_reads=" << dma_reads
-                  << " unpopulated=" << dma_open << " ext_kb=" << ext_kb << '\n';
+                  << " unpopulated=" << dma_open << " ext_kb=" << ext_kb
+                  << " npx_port_accesses=" << npx_accesses << '\n';
         std::cout << "SPEED wall_seconds=" << wall << " clocks_per_second="
                   << uint64_t(wall > 0 ? double(cycle) / wall : 0) << " trace=" << (tracing ? 1 : 0)
                   << '\n';
