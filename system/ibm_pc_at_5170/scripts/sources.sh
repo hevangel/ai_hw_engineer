@@ -8,7 +8,7 @@ BOARD_RTL="$CPU_DIR/src/*.sv
  $REPO_DIR/design/intel_8253_8254/src/intel_8253_8254.sv
  $REPO_DIR/design/intel_8237/src/intel_8237.sv
  $REPO_DIR/design/intel_8259/src/intel_8259.sv
- $CPU_DIR/tb/intel_80286_at_timer.sv $CPU_DIR/tb/intel_80286_at_dma.sv
+ $CPU_DIR/tb/intel_80286_at_timer.sv
  $CPU_DIR/tb/intel_80286_at_page.sv $CPU_DIR/tb/intel_80286_at_page_map.sv
  $CPU_DIR/tb/intel_80286_at_port61.sv $CPU_DIR/tb/intel_80286_at_refresh_request.sv
  $CPU_DIR/tb/intel_80286_at_refresh_arbiter.sv $CPU_DIR/tb/intel_80286_at_refresh_detect.sv
@@ -19,7 +19,8 @@ BOARD_RTL="$CPU_DIR/src/*.sv
  $SYS_DIR/src/ibm_pc_at_5170.sv"
 # The I/O channel and the cards fitted by the machine tops.
 EGA_DIR=$REPO_DIR/design/ibm_ega
-CHANNEL_RTL="$SYS_DIR/src/at_io_channel.sv"
+CHANNEL_RTL="$SYS_DIR/src/at_io_channel.sv $SYS_DIR/src/at_diskette_adapter.sv
+ $SYS_DIR/src/at_system_unit.sv $REPO_DIR/design/intel_8272/src/intel_8272.sv"
 EGA_RTL="$EGA_DIR/src/*.sv"
 VGA_DIR=$REPO_DIR/design/ibm_vga
 VGA_RTL="$VGA_DIR/src/*.sv"

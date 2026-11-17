@@ -1,9 +1,10 @@
 // IBM PC AT 5170 with an IBM Enhanced Graphics Adapter in an expansion slot.
 //
-// The system board (ibm_pc_at_5170) is unchanged. This level adds the I/O
-// channel's 8-bit device cycles (at_io_channel) and one card, the IBM EGA
-// (design/ibm_ega), and wires the card's IRQ2 to the board's IRQ 9 (on the
-// AT the channel's IRQ 2 pin is IRQ 9, Technical Reference sheet 16).
+// The system unit (at_system_unit: the board, the I/O channel's 8-bit
+// device cycles and the diskette adapter in a slot) and one more card, the
+// IBM EGA (design/ibm_ega), whose IRQ2 goes to the board's IRQ 9 (on the
+// AT the channel's IRQ 2 pin is IRQ 9, Technical Reference sheet 16). The
+// diskette drive cable and DMA memory transfers are ports of this top.
 //
 // Clocks: the board runs on clk_i/clk_2x_i. The card is a clock-enable
 // design on vid_clk_i, which must be an integer multiple of clk_i with
@@ -50,6 +51,21 @@ module ibm_pc_at_5170_ega #(
     output logic [7:0]  post_code_o,
     output logic        a20_gate_o, rc_n_o, kbc_obf_o, cpu_reset_o, kbc_illegal_o,
     output logic        nmi_enable_o, irq8_o, intr_o, inta_cycle_o,
+    // DMA memory transfers (see ibm_pc_at_5170) and the diskette drive
+    // cable with its decoded media (see at_diskette_adapter).
+    output logic        dma_mem_o, dma_mem_write_o,
+    output logic [1:0]  fd_select_o, fd_motor_o,
+    output logic        fd_step_o, fd_direction_o, fd_head_o,
+    output logic [1:0]  fd_rate_o,
+    input  logic        fd_track0_i, fd_write_protect_i, fd_change_i,
+    output logic        fd_active_o, fd_write_o, fd_format_o, fd_mfm_o,
+    input  logic        fd_index_i, fd_header_i,
+    input  logic [7:0]  fd_c_i, fd_h_i, fd_r_i, fd_n_i,
+    input  logic        fd_byte_valid_i,
+    input  logic [7:0]  fd_byte_i,
+    input  logic        fd_end_i, fd_slot_i,
+    output logic        fd_sector_begin_o, fd_sector_end_o, fd_tx_valid_o,
+    output logic [7:0]  fd_tx_byte_o, fd_sector_r_o,
     // I/O channel activity, for the bench.
     output logic        chan_sel_o,        // the current cycle belongs to the channel
     output logic        chan_driven_o,     // a card drove SD0-SD7 in the command phase
@@ -58,54 +74,37 @@ module ibm_pc_at_5170_ega #(
     output logic [5:0]  video_o,
     output logic        hsync_o, vsync_o, blank_o, de_o
 );
-    logic mem_cycle, chan_ready;
-    logic [15:0] chan_rdata;
     logic [19:0] sa;
     logic [7:0]  sd_out, card_d;
     logic        card_d_oe, smemr_n, smemw_n, ior_n, iow_n;
     logic        card_irq2, card_irq2_oe;
-    logic [15:0] chan_irq;
-
-    always_comb begin
-        chan_irq = chan_irq_i;
-        if (card_irq2_oe && card_irq2) chan_irq[9] = 1'b1;
-    end
 
     /* verilator lint_off PINMISSING */
-    ibm_pc_at_5170 #(
+    at_system_unit #(
         .KBC_ROM_FILE(KBC_ROM_FILE), .RTC_NVRAM_FILE(RTC_NVRAM_FILE), .CPU_HZ(CPU_HZ)
-    ) board (
-        .clk_i, .clk_2x_i, .reset_i,
-        .ready_n_i(ready_n_i || (chan_sel_o && !chan_ready)),
-        .dma_clk_n_i, .hold_permit_i, .refresh_ready_i, .timer_clk_i,
-        .mem_rdata_i(chan_sel_o ? chan_rdata : mem_rdata_i),
+    ) unit (
+        .clk_i, .clk_2x_i, .reset_i, .ready_n_i,
+        .dma_clk_n_i, .hold_permit_i, .refresh_ready_i, .timer_clk_i, .mem_rdata_i,
         .kbd_unlocked_i, .display_mono_i, .mfg_jumper_i, .ram_512k_i, .kbd_clk_i, .kbd_data_i,
-        .chan_irq_i(chan_irq),
+        .chan_irq_i,
         .kbd_clk_o, .kbd_data_o, .address_o, .data_o, .data_oe_o, .address_oe_o, .bhe_n_o,
         .io_cycle_o, .fetch_cycle_o, .completed_bytes_o, .hlda_o, .cycle_active_o,
         .protocol_error_o, .halted_o, .shutdown_o, .fault_o, .refresh_o,
         .refresh_ras_trigger_o, .refresh_memr_n_o, .refresh_memr_oe_o,
         .io_unclaimed_o, .io_read_undriven_o, .io_port_o, .post_code_o,
         .a20_gate_o, .rc_n_o, .kbc_obf_o, .cpu_reset_o, .kbc_illegal_o,
-        .nmi_enable_o, .irq8_o, .intr_o, .inta_cycle_o, .mem_cycle_o(mem_cycle)
+        .nmi_enable_o, .irq8_o, .intr_o, .inta_cycle_o, .dma_mem_o, .dma_mem_write_o,
+        .chan_sel_o, .chan_driven_o,
+        .sa_o(sa), .sd_o(sd_out), .vid_d_i(card_d), .vid_d_oe_i(card_d_oe),
+        .smemr_n_o(smemr_n), .smemw_n_o(smemw_n), .ior_n_o(ior_n), .iow_n_o(iow_n),
+        .vid_irq2_i(card_irq2_oe && card_irq2),
+        .fd_select_o, .fd_motor_o, .fd_step_o, .fd_direction_o, .fd_head_o, .fd_rate_o,
+        .fd_track0_i, .fd_write_protect_i, .fd_change_i,
+        .fd_active_o, .fd_write_o, .fd_format_o, .fd_mfm_o, .fd_index_i, .fd_header_i,
+        .fd_c_i, .fd_h_i, .fd_r_i, .fd_n_i, .fd_byte_valid_i, .fd_byte_i, .fd_end_i, .fd_slot_i,
+        .fd_sector_begin_o, .fd_sector_end_o, .fd_tx_valid_o, .fd_tx_byte_o, .fd_sector_r_o
     );
     /* verilator lint_on PINMISSING */
-
-    at_io_channel channel (
-        .clk_i, .reset_i,
-        .mem_cycle_i(mem_cycle), .io_unclaimed_i(io_unclaimed_o),
-        .address_i(address_o), .io_port_i(io_port_o), .bhe_n_i(bhe_n_o),
-        .write_i(data_oe_o), .wdata_i(data_o),
-        .sel_o(chan_sel_o), .ready_o(chan_ready), .rdata_o(chan_rdata),
-        .sa_o(sa), .sd_o(sd_out), .sd_i(card_d), .sd_oe_i(card_d_oe),
-        .smemr_n_o(smemr_n), .smemw_n_o(smemw_n), .ior_n_o(ior_n), .iow_n_o(iow_n)
-    );
-
-    // A card drove the bus at some point of the current channel cycle.
-    always_ff @(posedge clk_i) begin
-        if (reset_i || !chan_sel_o) chan_driven_o <= 1'b0;
-        else if (card_d_oe) chan_driven_o <= 1'b1;
-    end
 
     // Oscillator clock enables on vid_clk_i.
     logic [31:0] osc_acc, xtal_acc;

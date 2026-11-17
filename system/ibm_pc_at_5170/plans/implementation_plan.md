@@ -173,8 +173,8 @@ board's regression is unchanged. See
 
 ## M4b: VGA, keyboard input and diskette; full POST
 
-Part 1 (VGA) is done; the keyboard device, the diskette adapter and the
-full POST remain.
+Part 1 (VGA) is done; the diskette adapter with DMA is done; the keyboard
+device and the full POST remain.
 
 - VGA card (part 1, done): `src/ibm_pc_at_5170_vga.sv` puts `design/ibm_vga`
   (IBM PS/2 Display Adapter, 256 KB, DAC, adapter BIOS in the 32 KB window
@@ -192,22 +192,33 @@ full POST remain.
   The VGA ROM is a legally fetched input; it could not be cross-checked
   against an IBM listing.
 - Keyboard device on the 8042's keyboard connector, with scan codes from
-  the host. Without it the BIOS reports error 301 and waits at
-  `(RESUME = "F1" KEY)` (checkpoint 3Fh in the exploratory run).
-  Done on 2026-11-17 for the web/batch host: `host/at_keyboard.hpp`
-  (assumptions AT20-AT24), checked against the real 8042 by
-  `scripts/run_keyboard_test.sh`; see
-  [the web front end and keyboard report](../report/2026-11-17-web-front-end-and-keyboard.md).
-  Still to do: attach it in `tb/post_runner.cpp` so that the regression's
-  expected screen loses the 301 line (left to the branch that owns the
-  runner).
+  the host (done 2026-11-17 for the web/batch host:
+  `host/at_keyboard.hpp`, assumptions AT20-AT24, checked against the
+  real 8042 by `scripts/run_keyboard_test.sh`; see
+  [the web front end and keyboard report](../report/2026-11-17-web-front-end-and-keyboard.md)).
+  Without it in `tb/post_runner.cpp`, POST reports error 301 and waits
+  at `(RESUME = "F1" KEY)` (checkpoint 3Fh); the batch runner's bench
+  stimulus `--f1-at-post=3F` sends F1 on the keyboard lines (see the
+  diskette report).
 - Web front end and batch host (done 2026-11-17, same report): persistent
   simulator, page with monitor, controls, keyboard and Surfer waveform,
   unattended batch runs with saved frames and scripted keys, and memory
-  size chosen at start (`--ext-kb`, for the 2 MB OS/2 machine). The
-  diskette branch hooks its media model into `host/simulator.cpp` at the
-  marked `AT_DISKETTE` integration point.
-- AT diskette adapter with the 8272 (error 601 today).
+  size chosen at start (`--ext-kb`, for the 2 MB machine). Integrated with
+  `tb/at_diskette_media.hpp` at `AT_DISKETTE` in `host/simulator.cpp`.
+- AT diskette adapter with the 8272 and real DMA (done; see
+  [the diskette report](../report/2026-11-17-diskette-adapter-and-dma.md)):
+  the board's 8237s move data (cascade, page map, arbiter grant, T/C),
+  `src/at_diskette_adapter.sv` is the diskette function of the IBM Fixed
+  Disk and Diskette Drive Adapter in both display machines
+  (`src/at_system_unit.sv`), `tb/at_diskette_media.hpp` is the drive and
+  media backend, and `scripts/run_boot_diskette.sh` boots a script-built
+  1.2 MB diskette whose boot program reads the whole image, writes a
+  sector and prints PASS. Error 601 is gone. Expansion RAM above 1 MB
+  (`--ext-kb`) and the A20 gate are handled by the runners and the
+  Unicorn replay.
+- Remaining after merging the web host and diskette branches: fixed-disk
+  adapter (1F0h-1F7h) and booting an operating system (PC DOS; the MS
+  OS/2 1.0 1.2 MB install diskette on a 2 MB machine is next).
 - The fixed disk at 1F0h–1F7h comes first in the BIOS's order; the
   regression's stop is the read of 1F7h. Either fit the controller (M5) or
   decide how far the regression should run past it.

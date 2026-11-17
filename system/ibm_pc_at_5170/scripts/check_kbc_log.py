@@ -27,9 +27,15 @@ applies each access after stepping <n> instructions. A CPU read between an
 access taking effect and the next 8042 instruction sees the new flags, so
 the expected value overlays the accesses not yet applied to the model.
 
-Board wiring assumed (sheet 17): no keyboard attached, so T0 = NOT P26 and
-T1 = P27; the port 1 pins all read 1 except P16 when the display switch
-selects colour.
+Board wiring assumed (sheet 17): T0 = NOT P26 AND the keyboard's clock
+line, T1 = P27 AND the keyboard's data line (open-collector lines with
+pull-ups); with no keyboard attached both keyboard lines are released (1).
+The port 1 pins all read 1 except P16 when the display switch selects
+colour. A bench stimulus on the keyboard connector (the runner's F1 key)
+is logged as
+  K <n> <clk> <data> the keyboard's own drive of its clock and data lines
+                     changed (1 = released) before instruction start n+1;
+                     the model applies it like a host access.
 
 usage: check_kbc_log.py KBC_ROM LOG [P1_PINS_HEX]
 """
@@ -52,7 +58,8 @@ def main():
     m.p1_ext = p1_pins
     steps = 0
     queue = deque()              # host accesses not yet applied: (n, kind, a0, data)
-    counts = {'I': 0, 'W': 0, 'X': 0, 'S': 0}
+    counts = {'I': 0, 'W': 0, 'X': 0, 'S': 0, 'K': 0}
+    keyboard = [1, 1]            # the keyboard's drive of clock and data
     replies = []
 
     def apply_due():
@@ -60,6 +67,8 @@ def main():
             _, kind, a0, data = queue.popleft()
             if kind == 'W':
                 m.host_write(a0, data)
+            elif kind == 'K':
+                keyboard[:] = [a0, data]
             else:
                 m.host_read(0)
 
@@ -72,11 +81,13 @@ def main():
                 queue.append((int(tok[1], 16), 'W', int(tok[2], 16), int(tok[3], 16)))
             elif kind == 'X':
                 queue.append((int(tok[1], 16), 'X', 0, 0))
+            elif kind == 'K':
+                queue.append((int(tok[1], 16), 'K', int(tok[2], 16), int(tok[3], 16)))
             elif kind == 'I':
                 apply_due()
-                # No keyboard: the lines follow the board's own drivers.
-                m.t0 = (~m.p2_out() >> 6) & 1
-                m.t1 = (m.p2_out() >> 7) & 1
+                # The lines are the board's drivers wired-AND with the keyboard's.
+                m.t0 = (~m.p2_out() >> 6) & 1 & keyboard[0]
+                m.t1 = (m.p2_out() >> 7) & 1 & keyboard[1]
                 rec = m.step()
                 steps += 1
                 want = int(tok[1], 16)
@@ -95,7 +106,7 @@ def main():
                 for _, k, wa0, _ in queue:
                     if k == 'W':
                         ibf, f1 = 1, wa0
-                    else:
+                    elif k == 'X':
                         obf = 0
                 if a0:
                     want = (m.status() & 0xF4) | (f1 << 3) | (ibf << 1) | obf

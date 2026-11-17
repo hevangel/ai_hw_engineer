@@ -38,6 +38,21 @@ module ibm_pc_at_5170_ega_tb #(
     output logic [7:0]  kbc_wr_data_o,
     output logic [10:0] kbc_retire_pc_o,
     output logic [7:0]  kbc_status_o, kbc_p2_o,
+    // DMA memory transfers and the diskette drive cable (see at_system_unit).
+    output logic        dma_mem_o, dma_mem_write_o,
+    output logic [1:0]  fd_select_o, fd_motor_o,
+    output logic        fd_step_o, fd_direction_o, fd_head_o,
+    output logic [1:0]  fd_rate_o,
+    input  logic        fd_track0_i, fd_write_protect_i, fd_change_i,
+    output logic        fd_active_o, fd_write_o, fd_format_o, fd_mfm_o,
+    input  logic        fd_index_i, fd_header_i,
+    input  logic [7:0]  fd_c_i, fd_h_i, fd_r_i, fd_n_i,
+    input  logic        fd_byte_valid_i,
+    input  logic [7:0]  fd_byte_i,
+    input  logic        fd_end_i, fd_slot_i,
+    output logic        fd_sector_begin_o, fd_sector_end_o, fd_tx_valid_o,
+    output logic [7:0]  fd_tx_byte_o, fd_sector_r_o,
+    output logic        fd_irq6_o, fd_drq2_o, fd_tc_o,
     output logic        retire_o,
     output logic [23:0] retire_pc_o,
     output logic [7:0]  retire_opcode_o,
@@ -58,36 +73,46 @@ module ibm_pc_at_5170_ega_tb #(
         .io_unclaimed_o, .io_read_undriven_o, .io_port_o, .post_code_o,
         .kbd_unlocked_i, .display_mono_i, .mfg_jumper_i, .ram_512k_i, .kbd_clk_i, .kbd_data_i,
         .kbd_clk_o, .kbd_data_o, .a20_gate_o, .rc_n_o, .kbc_obf_o, .cpu_reset_o, .kbc_illegal_o,
-        .nmi_enable_o, .irq8_o, .chan_irq_i, .intr_o, .inta_cycle_o
+        .nmi_enable_o, .irq8_o, .chan_irq_i, .intr_o, .inta_cycle_o,
+        .dma_mem_o, .dma_mem_write_o,
+        .fd_select_o, .fd_motor_o, .fd_step_o, .fd_direction_o, .fd_head_o, .fd_rate_o,
+        .fd_track0_i, .fd_write_protect_i, .fd_change_i,
+        .fd_active_o, .fd_write_o, .fd_format_o, .fd_mfm_o, .fd_index_i, .fd_header_i,
+        .fd_c_i, .fd_h_i, .fd_r_i, .fd_n_i, .fd_byte_valid_i, .fd_byte_i, .fd_end_i, .fd_slot_i,
+        .fd_sector_begin_o, .fd_sector_end_o, .fd_tx_valid_o, .fd_tx_byte_o, .fd_sector_r_o
     );
     /* verilator lint_on PINMISSING */
-    assign cpu_data_o = machine.board.cpu_data;
-    assign kbc_retire_o = machine.board.kbc.retire_o;
-    assign kbc_retire_pc_o = machine.board.kbc.retire_pc_o;
+    // Diskette adapter lines, for the bench's logs.
+    assign fd_irq6_o = machine.unit.fdc_irq;
+    assign fd_drq2_o = machine.unit.fdc_drq;
+    assign fd_tc_o = machine.unit.tc;
+    assign cpu_data_o = machine.unit.board.cpu_data;
+    assign kbc_retire_o = machine.unit.board.kbc.retire_o;
+    assign kbc_retire_pc_o = machine.unit.board.kbc.retire_pc_o;
     // MC146818 events: an oscillator period, and the clock edges at which
     // an address strobe, a write and a read take effect (rtc_ad_o is the
     // bus value the chip sampled for the strobe or write).
-    assign rtc_tick_o = machine.board.rtc_tick;
-    assign rtc_as_fall_o = machine.board.rtc.as_fall;
-    assign rtc_wr_end_o = machine.board.rtc.wr_end;
-    assign rtc_rd_end_o = machine.board.rtc.rd_end;
-    assign rtc_ad_o = machine.board.rtc.ad_q;
+    assign rtc_tick_o = machine.unit.board.rtc_tick;
+    assign rtc_as_fall_o = machine.unit.board.rtc.as_fall;
+    assign rtc_wr_end_o = machine.unit.board.rtc.wr_end;
+    assign rtc_rd_end_o = machine.unit.board.rtc.rd_end;
+    assign rtc_ad_o = machine.unit.board.rtc.ad_q;
     // An 8042 instruction (or interrupt vector) starts in a machine cycle
     // whose sequencer state is S_FETCH (encoding 0); host-bus effects apply
     // at the clock edge where wr_end/rd_end are high.
-    assign kbc_start_o = machine.board.kbc_ce && machine.board.kbc.core.state == 2'd0;
-    assign kbc_wr_end_o = machine.board.kbc.core.wr_end;
-    assign kbc_rd_end_o = machine.board.kbc.core.rd_end;
-    assign kbc_wr_a0_o = machine.board.kbc.core.wr_a0_q;
-    assign kbc_rd_a0_o = machine.board.kbc.core.rd_a0_q;
-    assign kbc_wr_data_o = machine.board.kbc.core.wr_d_q;
-    assign kbc_status_o = machine.board.kbc.core.sts;
-    assign kbc_p2_o = machine.board.kbc.p2_o;
-    assign retire_o = machine.board.cpu.core.retire_o;
-    assign retire_pc_o = machine.board.cpu.core.retire_pc_o;
-    assign retire_opcode_o = machine.board.cpu.core.retire_opcode_o;
-    assign regs_o = machine.board.cpu.core.regs_o;
-    assign segs_o = machine.board.cpu.core.segs_o;
-    assign ip_o = machine.board.cpu.core.ip_o;
-    assign flags_o = machine.board.cpu.core.flags_o;
+    assign kbc_start_o = machine.unit.board.kbc_ce && machine.unit.board.kbc.core.state == 2'd0;
+    assign kbc_wr_end_o = machine.unit.board.kbc.core.wr_end;
+    assign kbc_rd_end_o = machine.unit.board.kbc.core.rd_end;
+    assign kbc_wr_a0_o = machine.unit.board.kbc.core.wr_a0_q;
+    assign kbc_rd_a0_o = machine.unit.board.kbc.core.rd_a0_q;
+    assign kbc_wr_data_o = machine.unit.board.kbc.core.wr_d_q;
+    assign kbc_status_o = machine.unit.board.kbc.core.sts;
+    assign kbc_p2_o = machine.unit.board.kbc.p2_o;
+    assign retire_o = machine.unit.board.cpu.core.retire_o;
+    assign retire_pc_o = machine.unit.board.cpu.core.retire_pc_o;
+    assign retire_opcode_o = machine.unit.board.cpu.core.retire_opcode_o;
+    assign regs_o = machine.unit.board.cpu.core.regs_o;
+    assign segs_o = machine.unit.board.cpu.core.segs_o;
+    assign ip_o = machine.unit.board.cpu.core.ip_o;
+    assign flags_o = machine.unit.board.cpu.core.flags_o;
 endmodule

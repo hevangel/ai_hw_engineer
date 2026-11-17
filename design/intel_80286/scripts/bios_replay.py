@@ -19,13 +19,40 @@ A ROM read always returns the image byte, also after a write to it.
 
 Two event records are also accepted:
   A <byte>  an interrupt-acknowledge cycle; a hardware interrupt between two
-            instructions is a pair of them, the second carrying the vector,
-            followed by the entry transfers. No R record is emitted for the
-            event; its transfers precede the handler's first R record.
+            instructions (or between elements of a repeated string
+            instruction, 210498-005 3.7.2) is a pair of them, the second
+            carrying the vector, followed by the entry transfers. No R record
+            is emitted for the event; if a repeated string instruction was
+            interrupted, its completed elements precede A without an R record
+            and IP stays on the string instruction so IRET resumes it.
   Z         a processor reset with memory kept (8042 reset pulse or
             shutdown); the next R record must be the reset-vector far jump.
 An exception is likewise not retired: the faulting instruction has no R
 record, and its entry transfers precede the handler's first R record.
+
+Two board records describe what other bus masters and the A20 gate did
+(written by the IBM PC AT system's runner; the 286 fixtures emit neither):
+  D <addr> <byte> <write>  a DMA memory transfer: write = 1, the DMA
+            controller stored the byte at physical address addr; write = 0,
+            it read the byte there for a device. A DMA cycle happens while
+            the CPU holds HLDA, between two of its bus cycles, so it can fall
+            inside an instruction. Ordering rule: a D record belongs to the
+            instruction whose R record follows it and is applied to the
+            oracle's memory before that instruction executes (a read is
+            compared with the oracle's memory there). This is exact unless
+            that instruction made a memory transfer at the same address
+            before the D record (in trace order); such a trace is rejected,
+            not approximated. The address must be RAM (DMA memory is RAM).
+  G <level> the 8042's A20 GATE output changed (1 = A20 passes, 0 = the
+            board forces A20 low). The change applies from the instruction
+            whose R record follows; a trace where that instruction made a
+            memory transfer before the G record is rejected. While the gate
+            is closed, an oracle access with address bit 20 set is folded
+            onto the address with bit 20 clear, as the board does: its read
+            sees that byte, its write lands there, and the bus record is
+            compared with bit 20 clear; the oracle's memory at the high
+            address is left unchanged.
+Expansion RAM from 100000h (ext_ram_kb) is RAM like the base 640 KiB.
 
 Unicorn has no interrupt pin and does not vector INT n or exceptions (it
 reports them through UC_HOOK_INTR), so event entry is performed on its state
@@ -135,6 +162,9 @@ def strip_oracle_accessed(bus):
 
 
 class _Replay:
+    def is_ram(self, address):
+        return address < RAM_END or 0x100000 <= address < self.ext_end
+
     def rom_byte(self, address):
         """The ROM byte at address, or None where no ROM is fitted."""
         if is_bios_rom(address):
@@ -154,9 +184,25 @@ class _Replay:
         comparison fails. A ROM byte is reset to the image in case this
         instruction wrote it. Generator's recorder then logs the transfer.
         """
+        shadow = self.g.shadow
+        if not self.a20:
+            # A20 forced low: the byte at the folded address is what the
+            # board returns; keep the high address's own value to restore.
+            for a in range(address, address + size):
+                if a & 0x100000:
+                    low = a & ~0x100000
+                    if low >= RAM_END and self.rom_byte(low) is None:
+                        raise ValueError(f'folded read {a:06x} -> {low:06x} outside RAM and ROM is not supported')
+                    if a not in self.folded:
+                        self.folded[a] = shadow.get(a, 0)
+                    byte = shadow.get(low, 0)
+                    if shadow.get(a, 0) != byte:
+                        uc.mem_write(a, bytes([byte]))
+                        shadow[a] = byte
         if address + size > RAM_END:
-            shadow = self.g.shadow
             for a in range(max(address, RAM_END), address + size):
+                if self.is_ram(a) or (not self.a20 and a & 0x100000):
+                    continue
                 byte = self.rom_byte(a)
                 if byte is None:
                     if not self.device_reads or self.device_reads[0][0] != a:
@@ -169,7 +215,62 @@ class _Replay:
                     shadow[a] = byte
         recorder(uc, access, address, size, value, data)
 
-    def __init__(self, rom, adapter_roms=()):
+    def unfold(self):
+        """After an instruction with A20 forced low: move its writes to the
+        folded addresses, restore the high addresses and fold the bus."""
+        if not self.folded and self.a20:
+            return
+        g, uc, shadow = self.g, self.uc, self.g.shadow
+        for index, (address, value, write, io) in enumerate(g.bus):
+            if io or not address & 0x100000 or self.a20:
+                continue
+            low = address & ~0x100000
+            if write:
+                if not self.is_ram(low):
+                    raise ValueError(f'folded write {address:06x} -> {low:06x} outside RAM is not supported')
+                uc.mem_write(low, bytes([value]))
+                shadow[low] = value
+                uc.ctl_remove_cache(low, low + 1)
+                if address not in self.folded:
+                    self.folded[address] = None
+            g.bus[index] = (low, value, write, io)
+            self.stats['a20_folded'] = self.stats.get('a20_folded', 0) + 1
+        for address, old in self.folded.items():
+            if old is None:
+                old = 0
+            uc.mem_write(address, bytes([old]))
+            shadow[address] = old
+        self.folded = {}
+
+    def apply_board_records(self, pending, dma, gates, where):
+        """Apply D and G records before the instruction that follows them."""
+        uc, shadow = self.uc, self.g.shadow
+        for index, address, value, write in dma:
+            if any(not io and a == address for a, _, _, io in pending[:index]):
+                raise ValueError(f'DMA transfer at {address:06x} follows a CPU access there in one instruction {where}')
+            if not self.is_ram(address):
+                raise ValueError(f'DMA transfer outside RAM at {address:06x} {where}')
+            if write:
+                uc.mem_write(address, bytes([value]))
+                shadow[address] = value
+                uc.ctl_remove_cache(address, address + 1)
+                self.stats['dma_writes'] = self.stats.get('dma_writes', 0) + 1
+            else:
+                if shadow.get(address, 0) != value:
+                    raise ValueError(f'DMA read {address:06x}={value:02x} but the oracle holds '
+                                     f'{shadow.get(address, 0):02x} {where}')
+                self.stats['dma_reads'] = self.stats.get('dma_reads', 0) + 1
+        for index, level in gates:
+            if any(not io for _, _, _, io in pending[:index]):
+                raise ValueError(f'A20 gate change inside an instruction after its memory transfers {where}')
+            self.a20 = bool(level)
+            self.stats['a20_changes'] = self.stats.get('a20_changes', 0) + 1
+
+    def __init__(self, rom, adapter_roms=(), ext_ram_kb=0, no_coprocessor=False):
+        self.ext_end = 0x100000 + ext_ram_kb * 1024
+        self.no_coprocessor = no_coprocessor
+        self.a20 = True
+        self.folded = {}
         g = self.g = Generator(None)
         uc = self.uc = g.uc
         uc.mem_map(0x200000, 0xe00000)  # the 286's full 16 MiB physical space
@@ -453,6 +554,8 @@ class _Replay:
         valid_flags = 0x8fd5
         pending = []
         acks = []
+        dma = []
+        gates = []
         steps = 0
         last_pc = None
         expect_reset = True
@@ -473,9 +576,21 @@ class _Replay:
                         raise ValueError('malformed interrupt-acknowledge record')
                     acks.append((len(pending), int(fields[1], 16)))
                     continue
+                if kind == 'D':
+                    if len(fields) != 4 or fields[3] not in ('0', '1'):
+                        raise ValueError('malformed DMA record')
+                    dma.append((len(pending), int(fields[1], 16), int(fields[2], 16), fields[3] == '1'))
+                    continue
+                if kind == 'G':
+                    if len(fields) != 2 or fields[1] not in ('0', '1'):
+                        raise ValueError('malformed A20 gate record')
+                    gates.append((len(pending), int(fields[1])))
+                    continue
                 if kind == 'Z':
                     if len(fields) != 1 or pending or acks:
                         raise ValueError(f'processor reset inside an instruction after step {steps}')
+                    self.apply_board_records(pending, dma, gates, f'before the reset after step {steps}')
+                    dma, gates = [], []
                     stats['resets'] += 1
                     self.reset_cpu()
                     ip = 0xe05b
@@ -488,6 +603,8 @@ class _Replay:
                 values = [int(value, 16) for value in fields[1:]]
                 pc, op, next_cs, next_ip, actual_flags, actual_segs, *actual_regs = values
                 steps += 1
+                self.apply_board_records(pending, dma, gates, f'at step {steps}')
+                dma, gates = [], []
                 if expect_reset:
                     if (pc, op, next_cs, next_ip, actual_flags, actual_segs, actual_regs, pending, acks) != \
                             RESET_RECORD + ([], []):
@@ -502,7 +619,7 @@ class _Replay:
                 # in order by read_hook. These records cover the faulting
                 # instruction (if any), the event entry and this instruction.
                 self.device_reads = deque((address, value) for address, value, write, io in pending
-                                          if not write and not io and address >= RAM_END and
+                                          if not write and not io and not self.is_ram(address) and
                                           self.rom_byte(address) is None)
                 self.device_unserved = []
                 # This firmware uses one byte input per instruction. Reject a
@@ -522,11 +639,51 @@ class _Replay:
                 if acks:
                     # A hardware interrupt between the previous instruction and
                     # this one: INTA, INTA (vector), entry transfers, then this
-                    # (the handler's first) instruction's own transfers.
-                    if len(acks) != 2 or acks[0][0] or acks[1][0]:
+                    # (the handler's first) instruction's own transfers. A
+                    # repeated string instruction may be interrupted between
+                    # elements (210498-005 3.7.2): its completed elements
+                    # precede INTA without an R record, and IP stays on the
+                    # instruction so IRET resumes it.
+                    if len(acks) != 2 or acks[0][0] != acks[1][0]:
                         raise ValueError(f'interrupt acknowledge not at an instruction boundary {where}')
                     if not uc.reg_read(UC_X86_REG_EFLAGS) & 0x200 or inhibit:
                         raise ValueError(f'interrupt taken with IF clear or in an interrupt shadow {where}')
+                    ack_at = acks[0][0]
+                    if ack_at:
+                        rep_pc = self.cs_base + ip
+                        rep_dec = decode(uc, rep_pc, extended=True)
+                        rep_pfx = (bytes(uc.mem_read(rep_pc, 10 - len(rep_dec[1])))
+                                   if rep_dec is not None else b'')
+                        if rep_dec is None or not any(b in (0xf2, 0xf3) for b in rep_pfx) or not uc.reg_read(REGS[1]):
+                            raise ValueError(f'interrupt acknowledge not at an instruction boundary {where}')
+                        g.bus.clear()
+                        g.seen.clear()
+                        self.intr.clear()
+                        while len(g.bus) < ack_at:
+                            uc.emu_start(cs*16 + ip, 0, count=1)
+                            if (self.intr or uc.reg_read(UC_X86_REG_CS)*16 + uc.reg_read(UC_X86_REG_IP) != cs*16 + ip
+                                    or not uc.reg_read(REGS[1])):
+                                raise ValueError(f'interrupted repeat at {rep_pc:06x} ended before INTA {where}')
+                        self.unfold()
+                        if self.device_unserved:
+                            raise ValueError(f'device-memory read mismatch in interrupted repeat at {rep_pc:06x}: '
+                                             f'oracle read {[f"{a:06x}" for a in self.device_unserved[:8]]}')
+                        if g.bus != pending[:ack_at]:
+                            raise ValueError(f'interrupted repeat bus mismatch {where}: '
+                                             f'CPU {pending[:ack_at][:8]}, oracle {g.bus[:8]}')
+                        if rep_dec[0] in (0xa6, 0xa7, 0xae, 0xaf):
+                            valid_flags |= 0x8d5
+                        for address, value, write, io in pending[:ack_at]:
+                            if write and not io and not self.is_ram(address):
+                                byte = self.rom_byte(address)
+                                if byte is not None:
+                                    stats['rom_writes'] += 1
+                                    uc.mem_write(address, bytes([byte]))
+                                    g.shadow[address] = byte
+                                else:
+                                    stats['unpopulated_writes'] += 1
+                        pending = pending[ack_at:]
+                        stats['interrupted_rep'] = stats.get('interrupted_rep', 0) + 1
                     vector = acks[1][1]
                     expected, flag_addresses = self.deliver(vector, uc.reg_read(UC_X86_REG_IP), None, False)
                     actual, cpu_writes = strip_cpu_accessed(pending)
@@ -615,13 +772,45 @@ class _Replay:
                     g.bus[:0] = [(ss*16 + ((sp + n) & 0xffff), g.shadow.get(ss*16 + ((sp + n) & 0xffff), 0), 0, 0)
                                  for n in range(4)]
                     repetitions = 1
-                while op not in (0xca, 0xcb):
+                escape = 0xd8 <= op <= 0xdf and self.no_coprocessor
+                if 0xd8 <= op <= 0xdf and not self.no_coprocessor:
+                    raise ValueError(f'ESC at {pc:06x} without no_coprocessor is not supported')
+                if escape:
+                    # No 80287 is fitted (IBM PC AT system, assumption
+                    # AT17). On the 286 an ESC instruction with MSW EM and TS
+                    # clear hands the opcode to the processor extension
+                    # through I/O cycles at ports 00F8h-00FFh and then moves
+                    # operand words only when the extension asserts PEREQ
+                    # (210498-005 sections 1.4/11 and Appendix B ESC); with
+                    # no extension nothing else happens and the instruction
+                    # changes no register or memory. Unicorn emulates an x87
+                    # instead, so it does not execute the instruction: the
+                    # oracle advances IP by the instruction's length and
+                    # accepts only I/O writes to 00F8h-00FFh as its
+                    # transfers. Their values (the 286's processor-extension
+                    # protocol) are not judged by Unicorn; they are counted.
+                    if uc.reg_read(UC_X86_REG_CR0) & 0xc:
+                        raise ValueError(f'ESC at {pc:06x} with MSW EM or TS set is not supported')
+                    modrm = raw[1]
+                    mod, rm = modrm >> 6, modrm & 7
+                    disp = 2 if mod == 2 or (mod == 0 and rm == 6) else 1 if mod == 1 else 0
+                    length = (10 - len(raw)) + 2 + disp
+                    if not actual or any(not (t[2] and t[3] and 0xf8 <= t[0] <= 0xff) for t in actual):
+                        raise ValueError(f'ESC at {pc:06x} without an 80287: CPU transfers {actual[:8]} are not '
+                                         'only processor-extension port writes')
+                    uc.reg_write(UC_X86_REG_IP, (ip + length) & 0xffff)
+                    g.bus[:] = list(actual)
+                    g.seen[:] = [(pc, length)]
+                    repetitions = 1
+                    stats['esc_without_coprocessor'] = stats.get('esc_without_coprocessor', 0) + 1
+                while op not in (0xca, 0xcb) and not escape:
                     uc.emu_start(cs*16 + ip, 0, count=1)
                     repetitions += 1
                     if not repeated or uc.reg_read(UC_X86_REG_CS)*16 + uc.reg_read(UC_X86_REG_IP) != cs*16 + ip:
                         break
                     if repetitions > 65536:
                         raise ValueError(f'oracle repeat at {pc:06x} did not finish within the CX range')
+                self.unfold()
                 if len(g.seen) != repetitions or any(address != pc for address, _ in g.seen):
                     raise ValueError(f'oracle synchronization error at {pc:06x}')
                 if self.device_unserved or self.device_reads:
@@ -676,6 +865,9 @@ class _Replay:
                     valid_flags = (valid_flags | 0x801) & ~0xd4
                 if op in (0xf6, 0xf7) and (raw[1] >> 3) & 7 in (6, 7):
                     valid_flags &= ~0x8d5  # DIV/IDIV leave all six undefined
+                if op in (0xd4, 0xd5):
+                    # AAM and AAD define SF/ZF/PF; OF/AF/CF are undefined (210498-005 Appendix B).
+                    valid_flags = (valid_flags | 0xc4) & ~0x811
                 if 0x40 <= op <= 0x4f or op in (0xfe, 0xff) and (raw[1] >> 3) & 7 in (0, 1):
                     valid_flags |= 0x8d4  # INC/DEC define OF/SF/ZF/AF/PF, CF unchanged
                 if op in (0xc0, 0xc1, 0xd0, 0xd1, 0xd2, 0xd3):
@@ -789,7 +981,7 @@ class _Replay:
                     uc.reg_write(REGS[raw[2] & 7], actual_regs[raw[2] & 7])
                 # Writes outside RAM do not change memory on this board.
                 for address, value, write, io in pending:
-                    if write and not io and address >= RAM_END:
+                    if write and not io and not self.is_ram(address):
                         byte = self.rom_byte(address)
                         if byte is not None:
                             stats['rom_writes'] += 1
@@ -803,6 +995,8 @@ class _Replay:
                 if on_step:
                     on_step(pc, next_ip, inputs)
                 last_pc = pc
+        if (dma or gates) and not allow_trailing:
+            raise ValueError('trace ends with board records after the last retirement')
         if acks or expect_reset and steps:
             raise ValueError('trace ends inside an event')
         if pending and not allow_trailing:
@@ -810,7 +1004,8 @@ class _Replay:
         return steps, last_pc, pending
 
 
-def replay(rom_path, trace_path, on_step=None, allow_trailing=False, stats=None, adapter_roms=()):
+def replay(rom_path, trace_path, on_step=None, allow_trailing=False, stats=None, adapter_roms=(),
+           ext_ram_kb=0, no_coprocessor=False):
     """Compare the trace with Unicorn.
 
     on_step(pc, next_ip, inputs) is called after each compared instruction,
@@ -818,13 +1013,16 @@ def replay(rom_path, trace_path, on_step=None, allow_trailing=False, stats=None,
     allow_trailing, data records after the last retirement (an instruction
     the run stopped inside) are returned instead of rejected. If stats is a
     dict it receives the event and non-oracle counters. adapter_roms is a
-    sequence of (base address, image bytes) for ROMs on adapter cards.
+    sequence of (base address, image bytes) for ROMs on adapter cards;
+    ext_ram_kb is the expansion RAM from 100000h in KiB. With no_coprocessor
+    (a board with no 80287), ESC instructions are judged as the 286 runs them
+    without a processor extension (see run).
     Returns (steps, last_pc, trailing_records).
     """
     rom = Path(rom_path).read_bytes()
     if len(rom) != 65536 or hashlib.sha256(rom).hexdigest() != ROM_SHA256:
         raise ValueError('unrecognized IBM AT BIOS')
-    state = _Replay(rom, adapter_roms)
+    state = _Replay(rom, adapter_roms, ext_ram_kb, no_coprocessor)
     try:
         return state.run(trace_path, on_step, allow_trailing)
     finally:

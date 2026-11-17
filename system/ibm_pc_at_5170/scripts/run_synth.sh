@@ -1,6 +1,8 @@
 #!/bin/sh
-# Synthesize the IBM PC AT 5170 board top, and the machine with the EGA
-# card, with Yosys (generic cells) and require a clean `check -assert`.
+# Synthesize the IBM PC AT 5170 board top, the diskette adapter, and the
+# machines with the EGA and the VGA
+# card (each with the diskette adapter), with Yosys (generic cells) and
+# require a clean `check -assert`.
 # External memory stays outside the top;
 # the 8042's program ROM is left unloaded (no KBC_ROM_FILE).
 set -eu
@@ -23,6 +25,19 @@ if grep 'Latch inferred' "$WORK_DIR/synth/ibm_pc_at_5170.log" | grep -v 'refresh
 fi
 grep -E '^ +[0-9]+ cells$' "$WORK_DIR/synth/ibm_pc_at_5170.log" | tail -1
 echo "PASS: ibm_pc_at_5170 synthesized; log $WORK_DIR/synth/ibm_pc_at_5170.log"
+
+# The diskette adapter on its own (with the 8272), for its cell count; the
+# machines below contain it.
+echo "== synth: at_diskette_adapter"
+yosys -Q -l "$WORK_DIR/synth/at_diskette_adapter.log" -p "read_verilog -sv \
+    $REPO_DIR/design/intel_8272/src/intel_8272.sv $SYS_DIR/src/at_diskette_adapter.sv; \
+    hierarchy -check -top at_diskette_adapter; synth -top at_diskette_adapter; check -assert; stat" > /dev/null
+if grep 'Latch inferred' "$WORK_DIR/synth/at_diskette_adapter.log"; then
+    echo "FAIL: unexpected latch inferred" >&2
+    exit 1
+fi
+grep -E '^ +[0-9]+ cells$' "$WORK_DIR/synth/at_diskette_adapter.log" | tail -1
+echo "PASS: at_diskette_adapter synthesized; log $WORK_DIR/synth/at_diskette_adapter.log"
 
 # The machine with the EGA card: the card's four 64 KB plane RAMs and its
 # ROM are black boxes, as in the card's own synthesis.
