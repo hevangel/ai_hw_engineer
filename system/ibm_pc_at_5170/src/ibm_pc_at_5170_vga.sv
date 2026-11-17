@@ -1,8 +1,9 @@
 // IBM PC AT 5170 with an IBM PS/2 Display Adapter (VGA) in an expansion slot.
 //
-// The same arrangement as ibm_pc_at_5170_ega: the unchanged system board,
-// the I/O channel's 8-bit device cycles (at_io_channel) and one card, here
-// the IBM VGA (design/ibm_vga). The card's IRQ2 goes to the board's IRQ 9.
+// The same arrangement as ibm_pc_at_5170_ega: the system unit
+// (at_system_unit: board, I/O channel and diskette adapter) and one more
+// card, here the IBM VGA (design/ibm_vga). The card's IRQ2 goes to the
+// board's IRQ 9.
 //
 // Clocks: the card is a clock-enable design on vid_clk_i and needs a clock
 // at least as fast as its 28.322 MHz oscillator, so vid_clk_i is twice the

@@ -47,6 +47,29 @@
 //   --stop-at=ADDR    stop after the instruction at physical address ADDR (hex) retires
 //   --max-cycles=N    give the run up after N processor clocks
 //   --frame=FILE      (EGA build) write the last complete video frame as a PPM
+//   --fda=IMG, --fdb=IMG   (card builds) insert a raw sector image in drive A/B
+//                     of the diskette adapter (tb/at_diskette_media.hpp)
+//   --fda-type=1.2|360, --fdb-type=1.2|360   drive type (A: 1.2 by default;
+//                     B: none unless an image or a type is given)
+//   --fda-ro, --fdb-ro     write-protect the inserted diskette
+//   --write-back      on exit, write a diskette the run changed back to its file
+//   --f1-at-post=XX   when port 80h first holds XX, press and release F1 on the
+//                     keyboard connector (bench stimulus F1Stimulus, below)
+//   --ext-kb=N        fit N KiB of expansion RAM from 100000h (ASSUMPTION AT35)
+//   --progress=N      print a PROGRESS line to stderr every N processor clocks
+// TRACE "-" writes no trace.
+//
+// More trace records:
+//   D <addr> <byte> <write>   a DMA memory transfer (write = 1: stored)
+//   G <level>                 the 8042's A20 GATE output changed
+// and an optional 8042 log record:
+//   K <n> <clk> <data>        the keyboard stimulus's drive of the keyboard
+//                             lines changed (1 = released) after n 8042
+//                             instruction starts
+//
+// The runner prints, besides the STOP and VIDEO lines: DMA (memory
+// transfers), SPEED (wall time, processor clocks per second, whether a
+// trace was written) and, in the card builds, DISKETTE (drive activity).
 //
 // Built with -DAT_VGA the machine is ibm_pc_at_5170_vga (IBM PS/2 Display
 // Adapter; the frame holds its DAC outputs). Built with -DAT_EGA the
@@ -111,21 +134,60 @@ bool is_ram(uint32_t a) { return a < kRamEnd || (a >= 0x100000 && a < g_ext_end)
 // code set 2: F1 make 05h, break F0h 05h; the 8042 translates them for the
 // BIOS (command byte bit 6). A frame starts only after both lines have been
 // released by the host for kIdle clocks; if the host pulls the clock low
-// during a frame the byte is sent again. It answers no host command.
+// during a frame the byte is sent again.
+// Once armed it also acknowledges host commands, because the BIOS's
+// keyboard routine (INT 16h) sends Set LEDs (EDh) while it waits for a key
+// and, with no acknowledgement, consumes the next byte from the keyboard as
+// the failed reply: on a host request to send (data low, clock released) it
+// clocks the host's frame in (ten clocks, data read while the clock is
+// high), drives the line-control bit low on an eleventh clock, and queues
+// FAh (acknowledge) before any F1 byte not yet sent; after FFh (reset) it
+// queues FAh AAh, after EEh (echo) EEh. It keeps no other keyboard state.
 struct F1Stimulus {
     // Half a keyboard clock period: 240 processor clocks, 40 us on the
     // board's 6 MHz time base of the 8042 (AT1), a 12.5 kHz keyboard clock.
     static constexpr unsigned kHalf = 240, kIdle = 6000;
-    const uint8_t bytes[3] = {0x05, 0xf0, 0x05};
-    unsigned next = 0, bit = 0, phase = 0, count = 0, idle = 0;
-    bool armed = false, framing = false;
+    std::vector<uint8_t> queue{0x05, 0xf0, 0x05};
+    unsigned bit = 0, phase = 0, count = 0, idle = 0, low_data = 0;
+    bool armed = false, framing = false, receiving = false;
     bool clk = true, data = true;   // what the stimulus drives (1 = released)
-    uint64_t sent = 0, retries = 0;
-    bool done() const { return next == 3; }
+    uint16_t rx = 0;
+    uint64_t sent = 0, retries = 0, commands = 0, f1_sent = 0;
+    bool done() const { return queue.empty(); }
+    void receive_tick(bool data_line) {
+        // Bits 0-9 (data, parity, stop) are read in the high half of their
+        // clock; bit 10 is the line-control bit the device drives low.
+        clk = phase == 1;
+        data = !(bit == 10);
+        if (++count >= kHalf) {
+            count = 0;
+            if (phase == 0) phase = 1;
+            else {
+                if (bit < 10) rx |= uint16_t(data_line) << bit;
+                phase = 0;
+                if (++bit == 11) {
+                    receiving = false; idle = 0; clk = data = true; ++commands;
+                    const uint8_t c = uint8_t(rx);
+                    std::vector<uint8_t> reply = c == 0xff ? std::vector<uint8_t>{0xfa, 0xaa}
+                                               : c == 0xee ? std::vector<uint8_t>{0xee}
+                                                           : std::vector<uint8_t>{0xfa};
+                    queue.insert(queue.begin(), reply.begin(), reply.end());
+                }
+            }
+        }
+    }
     void tick(bool clk_line, bool data_line) {
-        if (!armed || done()) { clk = data = true; return; }
+        if (!armed) { clk = data = true; return; }
+        if (receiving) { receive_tick(data_line); return; }
         if (!framing) {
             clk = data = true;
+            // A host request to send: data held low with the clock released.
+            low_data = (clk_line && !data_line) ? low_data + 1 : 0;
+            if (low_data >= kHalf) {
+                receiving = true; bit = 0; phase = 0; count = 0; rx = 0; low_data = 0;
+                return;
+            }
+            if (done()) return;
             idle = (clk_line && data_line) ? idle + 1 : 0;
             if (idle >= kIdle) { framing = true; bit = 0; phase = 0; count = 0; }
             return;
@@ -135,7 +197,7 @@ struct F1Stimulus {
         if (clk && !clk_line && bit < 10) {
             framing = false; idle = 0; clk = data = true; ++retries; return;
         }
-        const uint8_t b = bytes[next];
+        const uint8_t b = queue.front();
         const bool parity = !(__builtin_popcount(b) & 1);
         const bool level = bit == 0 ? false : bit <= 8 ? ((b >> (bit - 1)) & 1) : bit == 9 ? parity : true;
         data = level;
@@ -145,7 +207,11 @@ struct F1Stimulus {
             if (phase == 0) phase = 1;
             else {
                 phase = 0;
-                if (++bit == 11) { framing = false; idle = 0; clk = data = true; ++next; ++sent; }
+                if (++bit == 11) {
+                    framing = false; idle = 0; clk = data = true; ++sent;
+                    if (queue.front() == 0x05) ++f1_sent;
+                    queue.erase(queue.begin());
+                }
             }
         }
     }
@@ -174,7 +240,7 @@ int main(int argc, char** argv) {
         bool fd_ro[2] = {false, false}, write_back = false;
         std::string fd_type[2] = {"1.2", ""};
         int f1_post = -1;
-        uint64_t ext_kb = 0;
+        uint64_t ext_kb = 0, progress = 0;
         while (argc > 5 && std::string(argv[argc - 1]).rfind("--", 0) == 0) {
             const std::string opt = argv[--argc];
             if (opt.rfind("--stop-post=", 0) == 0) stop_post = std::stoi(opt.substr(12), nullptr, 16);
@@ -191,6 +257,7 @@ int main(int argc, char** argv) {
             else if (opt == "--write-back") write_back = true;
             else if (opt.rfind("--f1-at-post=", 0) == 0) f1_post = std::stoi(opt.substr(13), nullptr, 16);
             else if (opt.rfind("--ext-kb=", 0) == 0) ext_kb = std::stoull(opt.substr(9));
+            else if (opt.rfind("--progress=", 0) == 0) progress = std::stoull(opt.substr(11));
             else throw std::runtime_error("unknown option " + opt);
         }
         if (ext_kb > 15 * 1024) throw std::runtime_error("--ext-kb above 15360");
@@ -545,6 +612,10 @@ int main(int argc, char** argv) {
             if (VID_SECOND) VID_FALL();
             d.eval();
             half_clock(false);
+            if (progress && cycle % progress == 0)
+                std::cerr << "PROGRESS cycles=" << cycle << " post=" << hex(d.post_code_o, 2) << " at=" << hex(cur_cs, 4)
+                          << ":" << hex(cur_ip, 4) << " retired=" << retired << " dma_writes=" << dma_writes
+                          << std::endl;
             if ((stop_post >= 0 && d.post_code_o == stop_post && !d.cpu_reset_o && cycle > 64) ||
                 (stop_at >= 0 && d.retire_o && long(d.retire_pc_o) == stop_at)) {
                 stop = (stop_at >= 0 ? "kind=stop-at at=" : "kind=post-code at=") + hex(cur_cs, 4) + ":" + hex(cur_ip, 4);
@@ -574,7 +645,7 @@ int main(int argc, char** argv) {
 #ifdef AT_CARD
         std::cout << "DISKETTE ids=" << fd.ids << " media_reads=" << fd.media_reads
                   << " media_writes=" << fd.media_writes << " steps=" << fd.steps
-                  << " irq6=" << irq6_rises << " f1_bytes=" << f1.sent << " f1_retries=" << f1.retries
+                  << " irq6=" << irq6_rises << " kbd_bytes_sent=" << f1.sent << " kbd_commands_acked=" << f1.commands << " kbd_retries=" << f1.retries
                   << " head_a=" << fd.drive[0].position << " head_b=" << fd.drive[1].position << '\n';
         for (unsigned u = 0; u < 2; u++)
             if (write_back && !fd_path[u].empty() && fd.drive[u].dirty) {

@@ -18,10 +18,13 @@
 // decodes, so a run stops at the first missing device instead of reading a
 // guessed value.
 //
-// Not yet modeled: both 8259 interrupt controllers (INTR is tied low, so
-// the 8042's output-buffer-full line and the clock's IRQ 8 are only
-// outputs here, and the NMI mask has nothing to mask), DMA requests and transfers, DRAM, video, diskette
-// and fixed disk.
+// The two 8237s move data for the 8-bit channels: a DMA memory transfer is
+// served by the host like a CPU byte access (dma_mem_o, address_o, data_o,
+// mem_rdata_i), and the channel side (DRQ, -DACK, -IOR/-IOW, AEN, T/C) is
+// brought out for the I/O channel.
+//
+// Not modeled: DRAM, 16-bit DMA, video, diskette and fixed disk (the cards
+// are in the machine tops), parity and NMI sources.
 module ibm_pc_at_5170 #(
     // $readmemh image of the 8042 firmware (IBM 1503033), one byte per line.
     parameter KBC_ROM_FILE = "",

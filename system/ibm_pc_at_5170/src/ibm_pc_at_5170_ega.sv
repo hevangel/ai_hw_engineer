@@ -1,9 +1,10 @@
 // IBM PC AT 5170 with an IBM Enhanced Graphics Adapter in an expansion slot.
 //
-// The system board (ibm_pc_at_5170) is unchanged. This level adds the I/O
-// channel's 8-bit device cycles (at_io_channel) and one card, the IBM EGA
-// (design/ibm_ega), and wires the card's IRQ2 to the board's IRQ 9 (on the
-// AT the channel's IRQ 2 pin is IRQ 9, Technical Reference sheet 16).
+// The system unit (at_system_unit: the board, the I/O channel's 8-bit
+// device cycles and the diskette adapter in a slot) and one more card, the
+// IBM EGA (design/ibm_ega), whose IRQ2 goes to the board's IRQ 9 (on the
+// AT the channel's IRQ 2 pin is IRQ 9, Technical Reference sheet 16). The
+// diskette drive cable and DMA memory transfers are ports of this top.
 //
 // Clocks: the board runs on clk_i/clk_2x_i. The card is a clock-enable
 // design on vid_clk_i, which must be an integer multiple of clk_i with

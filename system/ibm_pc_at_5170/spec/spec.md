@@ -338,6 +338,88 @@ the channel are those of the EGA machine.
   not exercised by the POST run, and the VGA ROM image could not be
   cross-checked against an IBM listing (see the card's README).
 
+### DMA
+
+Added with the diskette adapter. Source: `src/ibm_pc_at_5170.sv` ("DMA
+and pages"). The board's two 8237A-5 are `design/intel_8237` instances
+that move data; before, the 286 design's register-only fixture
+(`intel_80286_at_dma.sv`) stood there and every DMA request was inactive.
+Wiring, from the logic diagrams:
+
+- Sheet 14 (PDF page 92): U111 (controller 1) serves the 8-bit channels
+  0-3 with A0-A3 = XA0-XA3; U122 (controller 2) serves channels 4-7 with
+  A0-A3 = XA1-XA4. U111's HRQ goes to U122's DREQ0 (channel 4 is the
+  cascade) and U122's -DACK0 (-DACK4), inverted by U121, is U111's HLDA.
+  U122's HRQ is HRQ1, its HLDA is HLDA1 (sheet 21). U101 latches XA8-XA15
+  from XD0-XD7 on U111's ADSTB; U94 makes -AEN1 from U111's AEN; U96 ORs
+  the two controllers' -EOP into T/C (sheet 20). The select decode is the
+  fixture's (controller 1 at 000h-00Fh, controller 2 at the even addresses
+  0C0h-0DEh).
+- Sheet 21: HRQ1 enters the refresh/DMA arbiter (U69, U90) beside the
+  refresh request; the arbiter holds the 80286 (HOLD/HLDA) and gives the
+  DMA grant HLDA1. This arbiter is the 286 design's
+  `intel_80286_at_refresh_arbiter`, whose `dma_request_i`/`dma_hlda_o`
+  were tied off until now.
+- Sheets 13 and 15: the page map (74LS612) selects its register from the
+  DACK lines and -REFRESH; during a controller-1 transfer -DACK4 is active,
+  so channel 2 uses register 81h, channel 3 82h, channel 1 83h and channel
+  0 87h, as the BIOS programs them. The register's bits drive XA16 (through
+  U79, enabled by -AEN1) and LA17-LA23. The page map drives the address
+  during HLDA, ahead of the A20 gate of sheet 1, so a DMA address is not
+  gated by the 8042's A20 GATE.
+- Sheet 20: DRQ1-DRQ3, -DACK1-3, T/C and AEN are on the I/O channel; DRQ2
+  is the diskette adapter's (Technical Reference, Fixed Disk and Diskette
+  Adapter, PDF 628: "DMA request is level 2").
+
+Host interface of a DMA transfer (new ports of `ibm_pc_at_5170`):
+`dma_drq_i[3:0]` (DRQ0-DRQ3), `dma_io_rdata_i[7:0]` (the byte a device
+drives during a DMA -IOR), `dma_mem_o` and `dma_mem_write_o` (a memory
+transfer commits at the next rising clock edge: `address_o` holds its
+24-bit address, `data_o` the byte to store on both lanes, or the host
+supplies the byte on `mem_rdata_i` as for a CPU read), and the channel
+side `dma_ior_n_o`, `dma_iow_n_o`, `aen_o`, `tc_o`, `dack_n_o[3:0]`. The
+host performs a DMA memory transfer exactly like a CPU byte access (same
+RAM, ROM and 640 KB map, and expansion RAM when fitted). Timing:
+assumption AT25; scope: AT26.
+
+### Diskette adapter
+
+Added with the DMA. Source: `src/at_diskette_adapter.sv`, the diskette
+function of the IBM Personal Computer AT Fixed Disk and Diskette Drive
+Adapter, in a slot of both display machines (`src/at_system_unit.sv`).
+From the Technical Reference section "Fixed Disk and Diskette Adapter":
+
+| Port | Read | Write | Source |
+|---|---|---|---|
+| 3F2h | (none) | Digital output register: bit 0 drive select (0 = A), bit 2 -diskette function reset, bit 3 enable diskette interrupts and DMA, bit 4/5 drive A/B motor; cleared by a channel reset | PDF 611 |
+| 3F4h | NEC uPD765 / Intel 8272 main status | (none) | PDF 612-613 |
+| 3F5h | controller data (results) | controller data (commands) | PDF 612 |
+| 3F7h | digital input register: bit 7 diskette change; bits 6-0 fixed disk | diskette control register: data rate, 00 = 500, 01 = 300, 10 = 250 kbit/s | PDF 611-612, 628; rate codes from the BIOS listing, PDF 228 |
+
+- Interrupt level 6 and DMA level 2 (PDF 628). On the board IRQ 6 is the
+  master 8259A's IR6 through the I/O channel (sheet 20, sheet 16).
+- The controller is `design/intel_8272` with its decoded-media interface
+  brought out to the drives; the drives and media are the host's
+  (`tb/at_diskette_media.hpp`, assumption AT34).
+- The drive cable (PDF 633) carries drive selects, motor on, direction,
+  step, write data/gate, track 0, write protect, read data, side select and
+  diskette change; there is no Ready line (AT31).
+- The fixed-disk function (task file 1F0h-1F7h, fixed disk register 3F6h,
+  IRQ 14) is not modeled: none of its ports is decoded, so in the display
+  machines they read as an empty slot (FFh) and the BIOS's probe of 1F7h
+  is unchanged.
+- The REV1 BIOS supports 320/360 KB and 1.2 MB diskettes and drives only
+  (DSKETTE listing, PDF 227: "320/360K DISKETTE DRIVES AND 1.2M DISKETTE
+  DRIVES SUPPORTED"); 720 KB and 1.44 MB are not modeled.
+- CMOS byte 10h of `tb/cmos_ega.hex` declares drive A as high capacity
+  (1.2 MB) and no drive B; the drive configuration the runner fits must
+  agree with it.
+
+The display machines' top modules keep their names and ports and add the
+DMA and drive ports (`dma_mem_o`, `dma_mem_write_o`, `fd_*`); the board,
+the I/O channel and the adapter are instantiated once, in
+`at_system_unit`.
+
 ## Host interface
 
 Follow the PC/XT pattern: Verilator simulator, Python web server, browser
@@ -360,8 +442,9 @@ waveform.
   to the signals the BIOS observes. DRAM decay is not modeled.
 - ASSUMPTION AT3: diskette and fixed-disk media are decoded sectors, as in
   the XT system (XT2).
-- ASSUMPTION AT4: no DMA channel requests service yet, so every DACK is
-  inactive and only refresh selects a page-map slot.
+- ASSUMPTION AT4 (retired with the diskette adapter): no DMA channel
+  requested service, so every DACK was inactive and only refresh selected
+  a page-map slot. The DACK lines now drive the page map (see "DMA").
 - ASSUMPTION AT5: during a refresh grant the other bus masters release
   -MEMR/-MEMW and pull-ups hold them high (inherited from the 286 native
   BIOS fixture).
@@ -434,6 +517,63 @@ waveform.
   slowly and miscounts (224 of 350). The 8042 and the MC146818 keep the
   board's processor-clock ratios (AT1), so they run four times fast
   relative to video. Nothing here is IBM AT physical timing.
+- (AT20-AT24 are reserved for the keyboard and web front end, on another
+  branch.)
+- ASSUMPTION AT25: both 8237s are clocked by the processor clock, not the
+  half-rate DMA CLK of sheet 3, and their READY (DMA RDY, sheet 15) is tied
+  active, so a DMA transfer is the 8237 core's S1-S4 states (S1 only after a
+  low-byte carry) plus arbitration, with no wait states; the board's I/O
+  and memory command timing for DMA cycles is not modeled. A transfer
+  commits in one clock (`dma_mem_o`), at which the host performs the
+  memory side. The arbiter of sheet 21 is the existing model (AT5).
+- ASSUMPTION AT26: only controller 1 moves data. No 16-bit DMA device is
+  modeled, so DRQ5-DRQ7 are inactive and controller 2 only cascades;
+  DRQ0, DRQ1 and DRQ3 have no device either. DMA to the I/O channel's
+  memory (A0000h-DFFFFh) is not routed; a DMA transfer outside RAM is
+  counted and ignored by the runner and rejected by the oracle.
+- ASSUMPTION AT27: the diskette adapter's controller and the drives keep
+  time on the board's 6 MHz processor-clock base, like the 8042 and the
+  MC146818 (AT1, `CLK_HZ` = 6,000,000): a controller microsecond is six
+  processor clocks, a 1.2 MB drive turns once per 1,000,000 clocks
+  (360 rpm), a 360 KB drive once per 1,200,000 (300 rpm), and a byte at
+  500, 300 and 250 kbit/s takes 96, 160 and 192 clocks. Against video
+  (AT19) the diskette therefore runs four times fast, and the BIOS's
+  software timing loops, which the slower processor model stretches, see a
+  drive about four times faster than a real one. The controller's timers
+  use the Intel 8 MHz values (CLOCK_SCALE 1) at every data rate; the
+  Technical Reference's doubled HLT/HUT/SRT units for the 250 kbit/s drive
+  (PDF 615) are not modeled.
+- ASSUMPTION AT28: the adapter decodes SA0-SA9 with AEN low; its ports
+  alias every 400h.
+- ASSUMPTION AT29: RESET DRV also clears the data-rate register
+  (500 kbit/s); bits 7-2 of a 3F7h write are ignored.
+- ASSUMPTION AT30: a drive's select line on the cable is active when the
+  DOR selects it and its motor enable bit is set (as on the IBM PC
+  diskette adapter); the BIOS always sets both together.
+- ASSUMPTION AT31: with no Ready line on the cable (PDF 633) the
+  controller's READY input is always active, as on the IBM PC adapter; its
+  two-side and fault inputs are inactive. The selected drive's track 0 and
+  write-protect lines reach the controller for every unit number, and any
+  unit's step pulse steps the selected drive.
+- ASSUMPTION AT32: DRQ2 and IRQ 6 are the controller's DRQ and INT gated by
+  DOR bit 3; a gated line is inactive (low, AT16). The controller's TC is
+  the channel's T/C while -DACK2 is active. The adapter's logic diagrams
+  (PDF 635-642) were not traced at a readable resolution.
+- ASSUMPTION AT33: digital-input bit 7 reads 1 while the selected drive's
+  change line is active; with no fixed-disk function, bits 6-0 read 1.
+- ASSUMPTION AT34: the drives and media of `tb/at_diskette_media.hpp`:
+  decoded sectors (AT3), IDs 1..SPT in order with N = 2 and no CRC
+  errors, readable only at the medium's data rate (1.2 MB medium in a
+  1.2 MB drive at 500 kbit/s, 360 KB medium in a 1.2 MB drive at 300, in
+  a 360 KB drive at 250); a 360 KB medium in a 1.2 MB drive has its tracks
+  at the even head positions; the disk is at speed as soon as its motor bit
+  is set; the change line is active at power-on and after a medium change
+  and is cleared by a step pulse to the selected drive while a medium is
+  inserted.
+- ASSUMPTION AT35: expansion RAM (runner option `--ext-kb`) is plain RAM
+  from 100000h, served by the host like base RAM, powering up as zero
+  (AT6); it stands for an IBM memory expansion card, whose own timing and
+  parity are not modeled.
 
 ## Strict decoding
 

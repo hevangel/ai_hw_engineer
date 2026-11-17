@@ -157,8 +157,9 @@ Limits:
   screen also shows `(RESUME = "F1" KEY)` and the BIOS waits for the F1
   key; the bare board with readable empty slots also reaches 3Fh.
 
-The VGA card is done (M4b part 1). The rest of M4b is keyboard input,
-diskette and a complete POST; see the [implementation plan](plans/implementation_plan.md).
+The VGA card is done (M4b part 1). The diskette adapter and real DMA are
+done (see "Diskette and DMA" below). The rest of M4b is keyboard input and
+a complete POST; see the [implementation plan](plans/implementation_plan.md).
 Tracking issue: https://github.com/hevangel/ai_hw_engineer/issues/254.
 
 - [Specification](spec/spec.md)
