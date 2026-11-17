@@ -15,11 +15,22 @@ with the DMA transfers applied as device inputs, and an independent model
 of the adapter and the 765/8272 protocol agrees with every result byte,
 status read, change-line read and DMA byte and with the written-back image.
 
-RESULTS_TABLE
+| Check | Command | Result |
+|---|---|---|
+| Boot 1.2 MB diskette (640 KB) | `scripts/run_boot_diskette.sh "$ROM"` | Pass: `kind=halt at=0000:7EEC post=43`; 27,368,206 instructions, 417,466,520 clocks; 1,209,344 DMA writes, 512 DMA reads, 16 empty-80287 port accesses; 3,735 IDs, 196 IRQ 6s, 243 steps; 1,149 video frames; screen `AT DISKETTE BOOT TEST` / `READ OK` / `WRITE OK` / `PASS`; boot sector at `7C00h` and LBA 2399 write-back verified |
+| Diskette/controller model (640 KB) | same (`check_fdc_log.py`) | Pass: 833 result bytes, 1,209,344 DMA bytes read, 512 written, 4,981 status reads, 84 digital input reads, 2 resets (83 reads, 5 recalibrate, 105 seek, 21 sense drive, 112 sense interrupt, 2 specify, 1 write); written-back image identical |
+| 8042 and MC146818 (640 KB boot) | same | Pass: 14,417,787 8042 instructions (41,025 CPU reads, replies `55 FF 3B BB 02 FA AA`); 36,916 RTC strobes (36,889 reads, `12:00:28`) |
+| 80286 Unicorn oracle (640 KB boot) | same (`check_post_trace.py`) | Pass (3,408 s wall): 27,368,206 instruction states and data transfers match up to `0000:7EEC`; `dma_writes=1209344`, `dma_reads=512`, `esc_without_coprocessor=2`, `interrupted_rep=1`, `hardware_interrupts=404` (`08r`: 207, `09r`: 1, `0er`: 196), 13 of 13 POST checkpoints |
+| Boot 1.2 MB diskette (2 MB) | `scripts/run_boot_diskette.sh "$ROM" --ext-kb=1024` | Pass: `kind=halt at=0000:7EEC post=43`; 39,749,282 instructions, 591,466,611 clocks; 1,209,344 DMA writes, 512 DMA reads, `ext_kb=1024`, 16 empty-80287 port accesses; 1,645 video frames; screen, `7C00h` boot sector, LBA 2399 write-back and `check_fdc_log.py` identical |
+| 8042 and MC146818 (2 MB boot) | same | Pass: 20,872,359 8042 instructions (41,026 CPU reads, replies `55 FF 3B BB 02 FA AA`); 5,083 RTC strobes (5,056 reads, `12:00:57`) |
+| 80286 Unicorn oracle (2 MB boot) | same (`check_post_trace.py`) | Pass (4,740 s wall): 39,749,282 instruction states and data transfers match up to `0000:7EEC`; `accessed_writes=3091`, `dma_writes=1209344`, `dma_reads=512`, `esc_without_coprocessor=2`, `interrupted_rep=1`, `hardware_interrupts=402`, 13 of 13 POST checkpoints |
+| D/G record self-tests | `scripts/test_board_records.py` | Pass: 8 of 8 on 640 KB trace and 10 of 10 on 2 MB trace (including `gate-clean` and `gate`) |
+| VGA POST | `scripts/run_post_vga.sh "$ROM"` | Pass (2,797 s wall + oracle rerun): `kind=stop-at after=F1453 at=F000:1454 post=3C`; 16,610,979 instructions, 225,013,662 clocks; screen `00640 KB OK` / `301-Keyboard Error` (no `601`); 8042 (8,002,515), MC146818 (53,511) and Unicorn (13/13) pass |
+| EGA POST | `scripts/run_post_ega.sh "$ROM"` | Pass (3,114 s wall + oracle rerun): `kind=stop-at after=F1453 at=F000:1454 post=3C`; 18,029,214 instructions, 273,013,658 clocks; screen `00640 KB OK` / `301-Keyboard Error` (no `601`); 8042 (9,787,012), MC146818 (31,922) and Unicorn (13/13) pass |
+| Bare-board POST (two scenarios) | `scripts/run_post.sh "$ROM"` | Pass (4,710 s wall + oracle rerun): both stop at `F000:1453` (`1F7h`, POST `3C`); 16,688,169 and 16,586,155 instructions match Unicorn (13/13); 8042 (7,777,553 and 10,543,228) and MC146818 (22,855 and 14,538) pass |
+| Synthesis | `scripts/run_synth.sh` | Pass (4,157 s wall): `ibm_pc_at_5170` 86,879 cells, `at_diskette_adapter` 6,920, `ibm_pc_at_5170_ega` 100,510, `ibm_pc_at_5170_vga` 136,117; `check -assert` clean; only the refresh arbiter latch |
 
-All runs were made on 2026-11-17 in the `ai-hw-engineer` image (Verilator
-5.052) in container `claude-at-fdc`, several in parallel on a 32-thread
-host; wall times are those of the scripts' own `date` stamps.
+All Verilator and Yosys runs were made on 2026-11-17 in the `ai-hw-engineer` image (Verilator 5.052) in container `claude-at-fdc`, several in parallel on a 32-thread host; the final `check_post_trace.py` runs (after extending `bios_replay.py` and `generate_firmware_trace.py` for mid-`REP` interrupts, `AAD`/`AAM`, and `ESC` decoding) ran in `claude-at-fdc` and the final `test_board_records.py` runs via `uv` (`unicorn==2.1.4`) on the Windows host.
 
 ## What was built
 
@@ -130,9 +141,20 @@ line changes (K records).
   already made a memory transfer); with the gate closed an oracle access
   with bit 20 set is folded onto the low address. Expansion RAM is RAM.
   ESC instructions with no 80287: IP advances, only port F8h-FFh writes
-  are accepted, counted as `esc_without_coprocessor`.
+  are accepted, counted as `esc_without_coprocessor` (`generate_firmware_trace.py`
+  `decode(..., extended=True)` also accepts `D4 0A`/`D5 0A` (`AAM`/`AAD`,
+  with `OF`/`AF`/`CF` cleared from `valid_flags` in `bios_replay.py`) and
+  `D8`-`DF` for `no_coprocessor=True`). Hardware interrupts taken between
+  elements of a repeated string instruction (`REP STOSW` at `C000:07F0` in the
+  640 KB boot run and `REP MOVSB` at `C000:0EBA` in the 2 MB boot run) replay
+  the completed elements in Unicorn before vectoring (`interrupted_rep=1`).
   `scripts/test_board_records.py` replays cuts of the boot trace with one
-  record corrupted: RECORD_TESTS
+  record corrupted: 8 of 8 cases pass on the 640 KB trace and 10 of 10 on the
+  2 MB trace (`boot-clean`, `order-clean`, `dma-read-clean` and `gate-clean`
+  pass; `boot-byte` and `boot-dropped` rejected at `0f1ba8`, `dma-outside` at
+  step `12357878`/`24739025`, `order` at step `12536361`/`24917500`,
+  `dma-read` at step `27300552`/`39681628`, and `gate` at `0f08f5` where the
+  oracle folds `100000h` to `000000h`).
 - **Diskette model** (`scripts/check_fdc_log.py`), written from the
   Technical Reference adapter section and the 8272A data sheet: commands,
   results, the SIS event queue after reset and seeks, MT head switching and
@@ -147,7 +169,17 @@ line changes (K records).
 
 ## Simulation speed
 
-SPEED_TEXT
+- VGA machine, no trace (`work/try_vga/run0.log`, `run2.log`): `356,257`
+  processor clocks/s to checkpoint `3Ch` (`225,013,662` clocks in `631.6 s`)
+  and `344,112` clocks/s to checkpoint `40h` (`204,991,238` clocks in
+  `595.7 s`).
+- VGA machine with trace: `284,150` clocks/s alone (`417,466,520` clocks in
+  `1,469.2 s`, `work/try_vga/run6.log`); `206,428` clocks/s (`2,022.3 s`)
+  and `225,173` clocks/s (`2,626.7 s`) when running 640 KB and 2 MB boot
+  simulations in parallel (`work/boot/run.log`, `work/boot_2mb/run.log`).
+- POST regressions with trace in parallel: `267,122` clocks/s (`post_vga`),
+  `287,876` clocks/s (`post_ega`), `334,555` and `276,067` clocks/s (`post`
+  wait0 and wait1).
 
 ## Assumptions
 
@@ -175,7 +207,9 @@ retired and AT17 extended.
   branch's work.
 - One scenario (no added wait states) for each machine.
 - No comparison with an independent whole-machine emulator.
-- The 2 MB machine: see the results table for how far it was run.
+- The 2 MB (`--ext-kb=1024`) machine: completes POST with `tb/cmos_vga_2mb.hex`
+  and passes the full 1.2 MB boot-diskette read/write/verify regression
+  (`39,749,282` instructions, Unicorn pass).
 
 ## Reproduce
 

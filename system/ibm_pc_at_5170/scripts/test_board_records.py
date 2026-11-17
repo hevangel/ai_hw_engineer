@@ -30,26 +30,11 @@ from pathlib import Path
 from bios_replay import replay
 
 
-def lines_of(path):
-    with open(path) as f:
-        return f.readlines()
-
-
-def cut_after(lines, index, extra_instructions):
-    """The trace up to `extra_instructions` R records after line `index`."""
-    seen = 0
-    for n in range(index, len(lines)):
-        if lines[n][0] == 'R':
-            seen += 1
-            if seen == extra_instructions:
-                return lines[:n + 1]
-    raise SystemExit('trace too short for the cut')
-
-
 def run_case(args):
     name, rom, adapter, ext_kb, path = args
     try:
-        replay(rom, path, allow_trailing=True, adapter_roms=adapter, ext_ram_kb=ext_kb)
+        replay(rom, path, allow_trailing=True, adapter_roms=adapter, ext_ram_kb=ext_kb,
+               no_coprocessor=True)
         return name, None
     except (ValueError, SystemExit) as error:
         return name, str(error)[:160]
@@ -63,80 +48,140 @@ def main():
     adapter = [(int(base, 16), Path(path).read_bytes())]
     trace = sys.argv[3]
     ext_kb = int(sys.argv[4]) if len(sys.argv) == 5 else 0
-    lines = lines_of(trace)
+
+    first_boot = start = base_end = None
+    first_boot_line = order_line = read_line = None
+    stored = set()
+    order_at = order_end = None
+    read_at = read_end = None
+    last_r = store = prev = gate_end = None
+    base_seen = order_seen = read_seen = gate_seen = 0
+
+    with open(trace) as f:
+        for n, l in enumerate(f):
+            is_r = l[0] == 'R'
+            if ext_kb and store is None:
+                if l[0] == 'B':
+                    _, a, _, w, io = l.split()
+                    if w == '1' and io == '0' and 0x100000 <= int(a, 16) < 0x100000 + ext_kb * 1024:
+                        store = n
+                        prev = last_r
+            if ext_kb and store is not None and gate_end is None and is_r:
+                gate_seen += 1
+                if gate_seen == 2:
+                    gate_end = n
+            if is_r:
+                last_r = n
+
+            if first_boot is None:
+                if l.startswith('D 7c00 '):
+                    first_boot = n
+                    first_boot_line = l
+                else:
+                    continue
+
+            if start is None and l.startswith('R 7c00 '):
+                start = n
+            if start is not None and base_end is None and is_r:
+                base_seen += 1
+                if base_seen == 20:
+                    base_end = n
+
+            if order_at is None:
+                if l[0] == 'D' and l.split()[3] == '1':
+                    stored.add(int(l.split()[1], 16))
+                elif l[0] == 'B':
+                    _, a, _, w, io = l.split()
+                    if io == '0' and w == '0' and int(a, 16) in stored and int(a, 16) >= 0x10000:
+                        order_at = n
+                        order_line = l
+                        stored.clear()
+            if order_at is not None and order_end is None and is_r:
+                order_seen += 1
+                if order_seen == 3:
+                    order_end = n
+
+            if read_at is None and l[0] == 'D' and l.split()[3] == '0':
+                read_at = n
+                read_line = l
+            if read_at is not None and read_end is None and is_r:
+                read_seen += 1
+                if read_seen == 3:
+                    read_end = n
+
+            if (base_end is not None and order_end is not None and read_end is not None
+                    and (not ext_kb or gate_end is not None)):
+                break
+
+    if first_boot is None or start is None or base_end is None:
+        raise SystemExit('trace too short for boot cut')
+    if order_at is None or order_end is None:
+        raise SystemExit('no CPU read of DMA-stored data in the trace')
+    if read_at is None or read_end is None:
+        raise SystemExit('no DMA memory read in the trace')
+    if ext_kb and (store is None or prev is None or gate_end is None):
+        raise SystemExit('no store above 1 MB in the trace')
+
     out = Path(trace).parent / 'record_tests'
     out.mkdir(exist_ok=True)
-    cases = {}
-
-    first_boot = next(n for n, l in enumerate(lines) if l.startswith('D 7c00 '))
-    boot_end = cut_after(lines, first_boot, 0) if False else None
-    # The first instructions of the boot program (it begins at 7C00).
-    start = next(n for n in range(first_boot, len(lines)) if lines[n].startswith('R 7c00 '))
-    base_cut = cut_after(lines, start, 20)
-    cases['boot-clean'] = (base_cut, True)
-    bad = list(base_cut)
-    _, a, v, w = bad[first_boot].split()
-    bad[first_boot] = f'D {a} {int(v, 16) ^ 0x01:x} {w}\n'
-    cases['boot-byte'] = (bad, False)
-    cases['boot-dropped'] = ([l for n, l in enumerate(base_cut)
-                              if not (l[0] == 'D' and 0x7c00 <= int(l.split()[1], 16) < 0x7e00)], False)
-
-    # Ordering: the first CPU read of a byte that DMA stored (the sum loop).
-    stored = set()
-    order_at = None
-    for n in range(first_boot, len(lines)):
-        l = lines[n]
-        if l[0] == 'D' and l.split()[3] == '1':
-            stored.add(int(l.split()[1], 16))
-        elif l[0] == 'B':
-            _, a, v, w, io = l.split()
-            if io == '0' and w == '0' and int(a, 16) in stored and int(a, 16) >= 0x10000:
-                order_at = n
-                break
-    if order_at is None:
-        raise SystemExit('no CPU read of DMA-stored data in the trace')
-    _, a, v, _, _ = lines[order_at].split()
-    order_cut = cut_after(lines, order_at, 3)
-    clean_order = list(order_cut)
-    cases['order-clean'] = (clean_order, True)
-    cases['order'] = (order_cut[:order_at + 1] + [f'D {a} {v} 1\n'] + order_cut[order_at + 1:], False)
-
-    # DMA memory reads (the write test).
-    read_at = next((n for n in range(first_boot, len(lines)) if lines[n][0] == 'D' and
-                    lines[n].split()[3] == '0'), None)
-    if read_at is None:
-        raise SystemExit('no DMA memory read in the trace')
-    read_cut = cut_after(lines, read_at, 3)
-    cases['dma-read-clean'] = (list(read_cut), True)
-    bad = list(read_cut)
-    _, a, v, w = bad[read_at].split()
-    bad[read_at] = f'D {a} {int(v, 16) ^ 0x80:x} {w}\n'
-    cases['dma-read'] = (bad, False)
-    bad = list(base_cut)
-    bad[first_boot] = f'D a0000 {int(lines[first_boot].split()[2], 16):x} 1\n'
-    cases['dma-outside'] = (bad, False)
-
+    specs = [
+        ('boot-clean', True, base_end),
+        ('boot-byte', False, base_end),
+        ('boot-dropped', False, base_end),
+        ('dma-outside', False, base_end),
+        ('order-clean', True, order_end),
+        ('order', False, order_end),
+        ('dma-read-clean', True, read_end),
+        ('dma-read', False, read_end),
+    ]
     if ext_kb:
-        store = next((n for n, l in enumerate(lines) if l[0] == 'B' and l.split()[3] == '1' and
-                      l.split()[4] == '0' and 0x100000 <= int(l.split()[1], 16) < 0x100000 + ext_kb * 1024),
-                     None)
-        if store is None:
-            raise SystemExit('no store above 1 MB in the trace')
-        # Insert before the store's instruction (after the previous R).
-        prev = max(n for n in range(store) if lines[n][0] == 'R')
-        gate_cut = cut_after(lines, store, 2)
-        cases['gate-clean'] = (list(gate_cut), True)
-        cases['gate'] = (gate_cut[:prev + 1] + ['G 0\n'] + gate_cut[prev + 1:], False)
+        specs.extend([('gate-clean', True, gate_end), ('gate', False, gate_end)])
 
-    jobs = []
-    for name, (content, _) in cases.items():
-        p = out / f'{name}.txt'
-        p.write_text(''.join(content))
-        jobs.append((name, rom, adapter, ext_kb, str(p)))
+    cases = {name: want for name, want, _ in specs}
+    jobs = [(name, rom, adapter, ext_kb, str(out / f'{name}.txt')) for name, _, _ in specs]
+
+    _, fb_a, fb_v, fb_w = first_boot_line.split()
+    boot_byte_line = f'D {fb_a} {int(fb_v, 16) ^ 0x01:x} {fb_w}\n'
+    dma_outside_line = f'D a0000 {int(fb_v, 16):x} 1\n'
+    _, oa_a, oa_v, _, _ = order_line.split()
+    order_ins_line = f'D {oa_a} {oa_v} 1\n'
+    _, rd_a, rd_v, rd_w = read_line.split()
+    dma_read_line = f'D {rd_a} {int(rd_v, 16) ^ 0x80:x} {rd_w}\n'
+
+    max_end = max(end for _, _, end in specs)
+    files = {name: (out / f'{name}.txt').open('w') for name, _, _ in specs}
+    try:
+        with open(trace) as src:
+            for n, l in enumerate(src):
+                if n > max_end:
+                    break
+                if n <= base_end:
+                    files['boot-clean'].write(l)
+                    files['boot-byte'].write(boot_byte_line if n == first_boot else l)
+                    if not (l[0] == 'D' and 0x7c00 <= int(l.split()[1], 16) < 0x7e00):
+                        files['boot-dropped'].write(l)
+                    files['dma-outside'].write(dma_outside_line if n == first_boot else l)
+                if n <= order_end:
+                    files['order-clean'].write(l)
+                    files['order'].write(l)
+                    if n == order_at:
+                        files['order'].write(order_ins_line)
+                if n <= read_end:
+                    files['dma-read-clean'].write(l)
+                    files['dma-read'].write(dma_read_line if n == read_at else l)
+                if ext_kb and n <= gate_end:
+                    files['gate-clean'].write(l)
+                    files['gate'].write(l)
+                    if n == prev:
+                        files['gate'].write('G 0\n')
+    finally:
+        for fh in files.values():
+            fh.close()
+
     failures = 0
     with ProcessPoolExecutor(max_workers=len(jobs)) as pool:
         for name, error in pool.map(run_case, jobs):
-            want_pass = cases[name][1]
+            want_pass = cases[name]
             ok = (error is None) == want_pass
             failures += not ok
             verdict = 'passes' if error is None else f'rejected: {error}'
