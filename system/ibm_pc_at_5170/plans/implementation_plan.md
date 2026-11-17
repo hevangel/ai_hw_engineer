@@ -240,6 +240,7 @@ full POST remain.
   M1 runs about 12 cycles per instruction; measure host speed once the
   BIOS runs longer and plan checkpointing if needed. Measured on
   2026-11-17: about 450,000 processor clocks per second (single thread;
-  `--threads 4` was far slower), so 3 billion clocks take about 2 hours.
+  `--threads 4` was far slower), so 3 billion clocks take about 2 hours;
+  with the keyboard the F1 prompt comes after 210 million clocks.
   Long boots run as unattended batch runs (`scripts/run_batch.sh`);
   save/restore checkpoints are not implemented yet.

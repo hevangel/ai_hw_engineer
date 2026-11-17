@@ -45,7 +45,24 @@ DAC, 24 KB adapter BIOS) in the VGA machine.
 
 ## Web interface and waveform
 
-WEB_SCREENSHOT_PLACEHOLDER
+![IBM PC AT 5170 web interface: the VGA monitor at the BIOS F1 prompt and a 4,096-clock processor-bus capture in Surfer](assets/web-interface-waveform.jpg)
+
+A real browser capture (headless Chrome 1280 x 1720 on the Docker host,
+cropped, then converted to JPEG) of the page served by
+`scripts/run_web.sh` on 2026-11-16. The machine, keyboard model attached,
+had run 6,762,711,998 processor clocks (482.9 million instructions, 281.8
+s of machine time at about 410,000 clocks per second) and waits at the
+BIOS's prompt after POST checkpoint 3Fh: the monitor shows `00640 KB OK`,
+` 601-Diskette Error` and ` (RESUME = "F1" KEY)` (the cursor is in its
+blink-off phase). No 301-Keyboard Error. The Surfer view is the
+**Processor bus** preset of capture 1, 4,096 processor clocks from clock
+6,762,707,902 in the BIOS's F1 wait loop at `F000:3xxx`; capturing paused
+the machine. To reproduce: start the page, **Power on**, wait for the
+prompt (about 210 million clocks, 8 minutes, with the machine alone on
+the host), choose 4,096 clocks and press **Capture**. Pressing F1 on the
+host keyboard with the display focused then resumes POST (the keyboard
+sends 05h, F0h 05h; the BIOS reads 3Bh, BBh), and the machine stops at
+checkpoint 40h on the 80287 probe (see Verification and boundaries).
 
 The page (`host/web/`, served by `host/server.py`) drives the VGA machine
 through a persistent Verilator simulator (`host/simulator.cpp`):
@@ -125,10 +142,11 @@ hash-checks the 8042 firmware, fetches and hash-checks the VGA ROM (as
 machine off; **Power on** starts it running. The BIOS image is obtained with
 `scripts/get_bios.sh` (see below) and never committed.
 
-The simulation is slow: about 450,000 processor clocks per second, 1.9 %
-of real time on the AT19 time base. The memory count appears after about
-1 minute, the POST error lines after about 9 minutes, and the BIOS's F1
-prompt after about 2 hours (about 3 billion processor clocks).
+The simulation is slow: about 430,000-450,000 processor clocks per
+second, 1.8 % of real time on the AT19 time base. The memory count starts
+after about 1 minute; the diskette error and the BIOS's F1 prompt appear
+after about 210 million clocks, 8 minutes. (Without a keyboard the
+exploratory EGA run needed about 3 billion clocks to reach the prompt.)
 
 ### Batch runs and scripted keys
 

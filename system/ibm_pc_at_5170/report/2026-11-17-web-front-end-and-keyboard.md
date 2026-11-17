@@ -25,7 +25,7 @@ existing regressions' inputs are unchanged; they were not rerun.
 | Screen at the F1 prompt | same (`check_frame.py` with the VGA ROM's font) | `00640 KB OK` / ` 601-Diskette Error` / ` (RESUME = "F1" KEY)`, equal to `scripts/expected_screen_keyboard.txt`; no 301 |
 | Waveform capture leaves the machine unchanged | `python3 scripts/test_capture.py SIM BIOS VGA_ROM DIR` | Pass: CAPTURE of 1,024, 4,096 and 65,536 clocks gives the same state as RUN (CPU, counters, keyboard, BIOS data area) |
 | Speed | batch runs below | 425,000-440,000 processor clocks per second alone (1.8 % of real time on the AT19 time base); about 370,000 with two simulations running |
-| Web page in a real browser | headless Chrome on the host, see README | SCREENSHOT_RESULT |
+| Web page in a real browser | headless Chrome on the host, see README | Real screenshot `assets/web-interface-waveform.jpg`: monitor at the F1 prompt and a populated Surfer capture; F1 then typed in the in-app browser pane (a real key event) reached the BIOS: keyboard sent `05 F0 05`, port 60h read `3B BB`, POST 40h |
 
 All runs were made on 2026-11-16/17 (host clock) in container
 `claude-at-web` from image `ai-hw-engineer:latest` (Verilator 5.052).
@@ -59,6 +59,29 @@ All runs were made on 2026-11-16/17 (host clock) in container
 - Scripts: `build_host.sh`, `run_web.sh`, `run_batch.sh`,
   `run_keyboard_test.sh`, `test_capture.py`,
   `expected_screen_keyboard.txt`.
+
+## Fixes made during the work
+
+- A waveform capture after a power-on crashed the simulator (segmentation
+  fault in Verilator 5.052 when tracing a second model in the shared
+  context). Each power-on now creates its own `VerilatedContext`; the
+  server also starts a new simulator process if one has exited when the
+  user powers on. `scripts/test_capture.py` checks captures after a
+  power-on.
+
+## Browser evidence
+
+- Headless Chrome on the Docker host (no package installed) rendered the
+  page for `assets/web-interface-waveform.jpg` after a capture made with
+  the page's own Capture button in the in-app browser pane.
+- In the in-app browser pane, clicking the display and pressing F1 sent
+  key down and key up to the server; after Run the state showed the
+  keyboard's sent bytes `AA FA AA 05 F0 05`, port 60h reads ending
+  `... 3B BB` and POST 40h, then the known stop
+  `io-write port=00F8 at=F000:15EF`.
+- The batch panel showed the keyboard test's run (status, 6 saved
+  frames) and stepped back to the saved frame at clock 200,000,000
+  (`00640 KB OK`, ` 601-Diskette Error`).
 
 ## Speed
 

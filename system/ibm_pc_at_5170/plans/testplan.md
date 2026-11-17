@@ -138,15 +138,19 @@ regression (`scripts/run_post_card.sh ega|vga`).
     bare-board regression (last run for M4a), and the M4a "not checked"
     items.
 - Keyboard and web host (2026-11-17), `scripts/run_keyboard_test.sh`:
-  - Stage 1: with the keyboard model attached the BIOS's keyboard reset
-    reaches the keyboard (FFh received, FAh and AAh sent) and the frame,
-    read with the VGA ROM's font by `check_frame.py`, equals
-    `scripts/expected_screen_keyboard.txt` (no 301-Keyboard Error).
-  - Stage 2 (about 2 hours, skipped with `quick`): at the BIOS's
-    `(RESUME = "F1" KEY)` prompt the script presses F1 through the
-    keyboard model; the keyboard sends 05h, F0h 05h, port 60h delivers
-    3Bh then BBh (the 8042's translation to set 1) and the prompt goes
-    away.
+  One batch run of about 10 minutes (passed 2026-11-16, 579 s):
+  - the BIOS's keyboard reset reaches the keyboard (FFh received, FAh and
+    AAh sent);
+  - the frame when the F1 prompt appears, read with the VGA ROM's font by
+    `check_frame.py`, equals `scripts/expected_screen_keyboard.txt` (no
+    301-Keyboard Error);
+  - the script presses F1 through the keyboard model; the keyboard sends
+    05h, F0h 05h, port 60h delivers 3Bh then BBh (the 8042's translation
+    to set 1), the prompt goes away and POST reaches checkpoint 40h,
+    where the run ends at the expected stop on the 80287 probe (port
+    0F8h).
+  - `scripts/test_capture.py`: a waveform capture leaves the machine as
+    an ordinary run would (passed).
   - The web page itself (monitor, controls, keyboard capture, waveform)
     is checked by a real headless-browser screenshot; it has no automated
     regression.
