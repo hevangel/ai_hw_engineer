@@ -47,6 +47,7 @@ recorded as an assumption; see open decision D1.
 | Schematic | [IBM 5170 type-1 system board schematic](https://www.minuszerodegrees.net/misc/schematic_5170_motherboard_type_1.pdf) | Already cited by the 286 AT fixtures |
 | BIOS | PCjs `machines/pcx86/ibm/5170/rom/bios/1984-01-10/ATBIOS-REV1.json5` at commit `1a91d38eb12e5fdf91116b21ad9ef1935710a496`; archive SHA-256 `3b1a6c8c…b2bde6`, extracted ROM SHA-256 `74e7b36b4ec0adc5ac3277a887579996c1d2aa755b9892ef3afe7485c10ce04f` | Pinned by `design/intel_80286/scripts/prepare_software.py`; downloaded into ignored `work/`, never committed |
 | Keyboard controller firmware | IBM 8042 firmware part 1503033 for the 5170, rebuilt by `design/intel_mcs48/intel_8042/scripts/rebuild_1503033.py`; SHA-1 `0100f8789fb4de74706ae7f9473a12ec2b9bd729`, matching MAME's `1503033.bin` | Hash-verified; the image is written to an ignored work folder, never committed |
+| PC DOS 3.00 Disk 1 | PCjs `pcx86/sys/dos/ibm/3.00/PCDOS300-DISK1.json` at commit `cd3433748b09837a4c60ca7066f3642772b2d711`; blob SHA-1 `db4c0627c37d8e7ecd33b56dcdb1960a0c4da4c1`, 368,640-byte image SHA-256 `b3682877c0db8e2757b3c4d0b4a30af69e3f3827782f0fe5a385b9a1bde7d93f` | Pinned by `scripts/get_dos.py`; downloaded into ignored `work/`, never committed |
 | OS/2 media | MS OS/2 1.0 install image and OS/2 SDK 1.00 Samples disk used by the PCjs baseline | Provenance recorded in the PCjs report; stays outside tracked paths |
 
 Technical reference pages confirmed so far (PDF page numbers):

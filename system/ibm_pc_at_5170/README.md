@@ -324,8 +324,10 @@ Limits:
 The VGA card is done (M4b part 1), the web front end, batch host and
 keyboard model (`host/at_keyboard.hpp`) are integrated with the diskette
 adapter, real DMA and empty 80287 socket: `scripts/run_host_boot.sh`
-boots the 1.2 MB test diskette with zero POST errors and writes back the
-test sector. Next: fixed disk and operating system boot; see the
+boots the 1.2 MB test diskette with zero POST errors, and
+`scripts/run_dos_boot.sh` boots pinned IBM PC DOS 3.00 (`scripts/get_dos.py`),
+runs `DIR`, writes `TEST.TXT`, warm-reboots via `Ctrl+Alt+Del`, and reads
+the file back. Next: fixed disk (1F0h-1F7h) and MS OS/2 1.0; see the
 [implementation plan](plans/implementation_plan.md).
 Tracking issue: https://github.com/hevangel/ai_hw_engineer/issues/254.
 

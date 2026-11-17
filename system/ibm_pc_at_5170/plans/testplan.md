@@ -186,7 +186,13 @@ regression (`scripts/run_post_card.sh ega|vga`).
     multiple drives.
 - M4b (remaining): POST completes with no error text; screen text matches
   86Box; keyboard input reaches the BIOS buffer.
-- M5: PC DOS boot, DIR, file write and readback, reboot and readback.
+- M5 (diskette part, done): `scripts/run_dos_boot.sh` fetches pinned IBM
+  PC DOS 3.00 Disk 1 (`scripts/get_dos.py`), boots drive A in
+  `host/simulator.cpp` (`460,000,000` clocks, `29,043,745` instructions),
+  answers Date and Time, runs `DIR`, writes `TEST.TXT`, warm-reboots with
+  `Ctrl+Alt+Del`, answers Date and Time again, and verifies `TYPE TEST.TXT`
+  prints `HELLO` and `TEST.TXT` (`HELLO\r\n`, cluster 255) in the
+  written-back FAT12 image. Fixed-disk controller and hard-disk boot remain.
 - M6: OS/2 1.0 prompt and the CPGREP output line.
 
 ## Every milestone

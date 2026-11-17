@@ -228,7 +228,9 @@ device and the full POST remain.
 
 ## M5: PC DOS
 
-- Boot PC DOS from diskette, run DIR, write and read back a file.
+- Boot PC DOS from diskette, run DIR, write and read back a file (done for
+  PC DOS 3.00 via `scripts/get_dos.py` and `scripts/run_dos_boot.sh`,
+  including `Ctrl+Alt+Del` warm reboot and readback).
 - AT fixed-disk controller at 1F0h (new design), then boot from it.
 
 ## M6: OS/2 1.0 and CPGREP
