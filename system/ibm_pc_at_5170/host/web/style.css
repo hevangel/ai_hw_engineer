@@ -39,3 +39,4 @@ summary{cursor:pointer;font-weight:600}summary span{font-weight:400;color:var(--
 .waveform-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 #surfer_frame{width:100%;height:520px;border:1px solid var(--line);margin-top:8px;background:#fff}
 #error{color:#a00;font-weight:600}
+[hidden]{display:none !important}

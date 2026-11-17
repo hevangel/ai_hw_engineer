@@ -230,7 +230,14 @@ inputs are unchanged since M4a except `tb/post_runner.cpp`.
 
 Limits:
 
-- No keyboard device, diskette adapter, fixed-disk adapter or 80287; NMI is
+- The keyboard device exists only in the web/batch host
+  (`host/at_keyboard.hpp`, AT20-AT24); the POST runner has none, so the
+  regressions still expect ` 301-Keyboard Error`. With the keyboard the
+  BIOS reaches its F1 prompt at about 210 million clocks and, after F1,
+  stops at its 80287 probe: `FNINIT` writes port 0F8h, which no board
+  device decodes (AT17); see the
+  [web and keyboard report](report/2026-11-17-web-front-end-and-keyboard.md).
+- No diskette adapter, fixed-disk adapter or 80287; NMI is
   not connected; only the timer interrupt (IRQ 0) has been taken, and the
   8259s are checked only by the BIOS's own tests and by the vectors and
   in-service values seen.
@@ -252,8 +259,9 @@ Limits:
   screen also shows `(RESUME = "F1" KEY)` and the BIOS waits for the F1
   key; the bare board with readable empty slots also reaches 3Fh.
 
-The VGA card is done (M4b part 1). The rest of M4b is keyboard input,
-diskette and a complete POST; see the [implementation plan](plans/implementation_plan.md).
+The VGA card is done (M4b part 1), and the web front end, batch host and
+keyboard model exist (2026-11-17). The rest of M4b is the diskette, the
+80287-port decision and a complete POST; see the [implementation plan](plans/implementation_plan.md).
 Tracking issue: https://github.com/hevangel/ai_hw_engineer/issues/254.
 
 - [Specification](spec/spec.md)
@@ -264,4 +272,5 @@ Tracking issue: https://github.com/hevangel/ai_hw_engineer/issues/254.
 - [M3 report](report/2026-11-15-m3-interrupts-and-protected-mode.md)
 - [M4a report](report/2026-11-16-m4a-io-channel-and-ega.md)
 - [M4b part 1 report](report/2026-11-16-m4b-vga.md)
+- [Web front end and keyboard report](report/2026-11-17-web-front-end-and-keyboard.md)
 - [Verification report](report/final_report.md)

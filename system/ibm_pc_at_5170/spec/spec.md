@@ -101,7 +101,7 @@ port 80h manufacturing checkpoint convention.
 | Function | Tracking |
 |---|---|
 | AT fixed-disk controller (port 1F0h) | Not tracked yet; the BIOS probes it first, and its status read at 1F7h is the M3 stop |
-| Keyboard (a device on the 8042's keyboard connector) | Not tracked yet; with none attached the BIOS reports error 301 |
+| Keyboard (a device on the 8042's keyboard connector) | Modeled in the web/batch host only (`host/at_keyboard.hpp`, 2026-11-17); the POST runner still has none, so its runs report error 301 |
 | Diskette adapter (8272 and AT logic) | Not tracked yet; the BIOS reports error 601 |
 | 80287 (optional) | ai_engineer#238 |
 
@@ -578,7 +578,8 @@ the read completes.
 4. Lint, chip regressions, system simulation and synthesis pass, and the
    README shows a real panel and waveform screenshot. Met so far: lint,
    the 8042 and MC146818 checks, system simulation of POST to checkpoint
-   3Ch (bare board, EGA machine and VGA machine) and synthesis. Not met: POST does not
-   complete (no keyboard, diskette or fixed disk), no 86Box or PCjs
-   comparison has been made, and there is no panel or waveform; the README
-   shows one captured POST frame only.
+   3Ch (bare board, EGA machine and VGA machine) and synthesis; a web panel
+   with waveform capture exists for the VGA machine (2026-11-17). Not met:
+   POST does not complete (no diskette or fixed disk; with the keyboard
+   model it stops at the 80287 probe, port 0F8h), and no 86Box or PCjs
+   comparison has been made.
