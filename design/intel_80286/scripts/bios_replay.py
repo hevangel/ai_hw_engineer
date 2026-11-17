@@ -19,9 +19,12 @@ A ROM read always returns the image byte, also after a write to it.
 
 Two event records are also accepted:
   A <byte>  an interrupt-acknowledge cycle; a hardware interrupt between two
-            instructions is a pair of them, the second carrying the vector,
-            followed by the entry transfers. No R record is emitted for the
-            event; its transfers precede the handler's first R record.
+            instructions (or between elements of a repeated string
+            instruction, 210498-005 3.7.2) is a pair of them, the second
+            carrying the vector, followed by the entry transfers. No R record
+            is emitted for the event; if a repeated string instruction was
+            interrupted, its completed elements precede A without an R record
+            and IP stays on the string instruction so IRET resumes it.
   Z         a processor reset with memory kept (8042 reset pulse or
             shutdown); the next R record must be the reset-vector far jump.
 An exception is likewise not retired: the faulting instruction has no R
@@ -636,11 +639,51 @@ class _Replay:
                 if acks:
                     # A hardware interrupt between the previous instruction and
                     # this one: INTA, INTA (vector), entry transfers, then this
-                    # (the handler's first) instruction's own transfers.
-                    if len(acks) != 2 or acks[0][0] or acks[1][0]:
+                    # (the handler's first) instruction's own transfers. A
+                    # repeated string instruction may be interrupted between
+                    # elements (210498-005 3.7.2): its completed elements
+                    # precede INTA without an R record, and IP stays on the
+                    # instruction so IRET resumes it.
+                    if len(acks) != 2 or acks[0][0] != acks[1][0]:
                         raise ValueError(f'interrupt acknowledge not at an instruction boundary {where}')
                     if not uc.reg_read(UC_X86_REG_EFLAGS) & 0x200 or inhibit:
                         raise ValueError(f'interrupt taken with IF clear or in an interrupt shadow {where}')
+                    ack_at = acks[0][0]
+                    if ack_at:
+                        rep_pc = self.cs_base + ip
+                        rep_dec = decode(uc, rep_pc, extended=True)
+                        rep_pfx = (bytes(uc.mem_read(rep_pc, 10 - len(rep_dec[1])))
+                                   if rep_dec is not None else b'')
+                        if rep_dec is None or not any(b in (0xf2, 0xf3) for b in rep_pfx) or not uc.reg_read(REGS[1]):
+                            raise ValueError(f'interrupt acknowledge not at an instruction boundary {where}')
+                        g.bus.clear()
+                        g.seen.clear()
+                        self.intr.clear()
+                        while len(g.bus) < ack_at:
+                            uc.emu_start(cs*16 + ip, 0, count=1)
+                            if (self.intr or uc.reg_read(UC_X86_REG_CS)*16 + uc.reg_read(UC_X86_REG_IP) != cs*16 + ip
+                                    or not uc.reg_read(REGS[1])):
+                                raise ValueError(f'interrupted repeat at {rep_pc:06x} ended before INTA {where}')
+                        self.unfold()
+                        if self.device_unserved:
+                            raise ValueError(f'device-memory read mismatch in interrupted repeat at {rep_pc:06x}: '
+                                             f'oracle read {[f"{a:06x}" for a in self.device_unserved[:8]]}')
+                        if g.bus != pending[:ack_at]:
+                            raise ValueError(f'interrupted repeat bus mismatch {where}: '
+                                             f'CPU {pending[:ack_at][:8]}, oracle {g.bus[:8]}')
+                        if rep_dec[0] in (0xa6, 0xa7, 0xae, 0xaf):
+                            valid_flags |= 0x8d5
+                        for address, value, write, io in pending[:ack_at]:
+                            if write and not io and not self.is_ram(address):
+                                byte = self.rom_byte(address)
+                                if byte is not None:
+                                    stats['rom_writes'] += 1
+                                    uc.mem_write(address, bytes([byte]))
+                                    g.shadow[address] = byte
+                                else:
+                                    stats['unpopulated_writes'] += 1
+                        pending = pending[ack_at:]
+                        stats['interrupted_rep'] = stats.get('interrupted_rep', 0) + 1
                     vector = acks[1][1]
                     expected, flag_addresses = self.deliver(vector, uc.reg_read(UC_X86_REG_IP), None, False)
                     actual, cpu_writes = strip_cpu_accessed(pending)
@@ -730,6 +773,8 @@ class _Replay:
                                  for n in range(4)]
                     repetitions = 1
                 escape = 0xd8 <= op <= 0xdf and self.no_coprocessor
+                if 0xd8 <= op <= 0xdf and not self.no_coprocessor:
+                    raise ValueError(f'ESC at {pc:06x} without no_coprocessor is not supported')
                 if escape:
                     # No 80287 is fitted (IBM PC AT system, assumption
                     # AT17). On the 286 an ESC instruction with MSW EM and TS
@@ -820,6 +865,9 @@ class _Replay:
                     valid_flags = (valid_flags | 0x801) & ~0xd4
                 if op in (0xf6, 0xf7) and (raw[1] >> 3) & 7 in (6, 7):
                     valid_flags &= ~0x8d5  # DIV/IDIV leave all six undefined
+                if op in (0xd4, 0xd5):
+                    # AAM and AAD define SF/ZF/PF; OF/AF/CF are undefined (210498-005 Appendix B).
+                    valid_flags = (valid_flags | 0xc4) & ~0x811
                 if 0x40 <= op <= 0x4f or op in (0xfe, 0xff) and (raw[1] >> 3) & 7 in (0, 1):
                     valid_flags |= 0x8d4  # INC/DEC define OF/SF/ZF/AF/PF, CF unchanged
                 if op in (0xc0, 0xc1, 0xd0, 0xd1, 0xd2, 0xd3):
