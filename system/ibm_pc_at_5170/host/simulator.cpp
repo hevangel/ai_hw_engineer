@@ -66,6 +66,13 @@
 // DMA host interface), and main() hands --fda/--fdb to diskette_options().
 #ifdef AT_DISKETTE
 #include "at_diskette_media.hpp"
+
+struct DisketteConfig {
+    std::array<std::string, 2> path;
+    std::array<std::string, 2> type = {"1.2", ""};
+    std::array<bool, 2> ro = {false, false};
+    bool write_back = false;
+};
 #endif
 
 using Dut = Vibm_pc_at_5170_vga_host;
@@ -73,6 +80,7 @@ using Dut = Vibm_pc_at_5170_vga_host;
 namespace {
 constexpr uint32_t kBaseEnd = 0xa0000, kExtBase = 0x100000;
 constexpr uint8_t kOpenBus = 0xff;   // ASSUMPTION AT14
+constexpr unsigned kHaltWait = 2000000;
 // Must match ibm_pc_at_5170_vga and post_runner.cpp (AT19).
 constexpr uint64_t kVidHz = 24000000, kOscHz = 14318180;
 // Processor clock on the AT19 time base, for real-time fractions.
@@ -325,6 +333,13 @@ public:
     uint64_t cycle = 0, retired = 0, frames = 0, cpu_resets = 0, inta_cycles = 0;
     uint64_t open_reads = 0, open_writes = 0, rom_writes = 0, slot_reads = 0, slot_writes = 0;
     uint64_t chan_writes = 0, port60_reads = 0, halt_clocks = 0, power_ons = 0;
+    uint64_t dma_writes = 0, dma_reads = 0, dma_open = 0, npx_accesses = 0, irq6_rises = 0;
+#ifdef AT_DISKETTE
+    DisketteConfig fd_cfg;
+    std::unique_ptr<at_diskette::Diskettes> fd;
+    at_diskette::DriveLines fdl;
+    bool was_irq6 = false;
+#endif
     int last_port60 = -1;
     std::vector<uint8_t> port60_log;   // the last 32 values the processor read from port 60h
     uint16_t cs = 0xf000, ip = 0xfff0;
@@ -338,12 +353,67 @@ public:
     std::deque<std::pair<uint8_t, bool>> key_queue;
     uint64_t next_key = 0;
 
-    Machine(std::vector<uint8_t> bios, const std::vector<uint8_t>& vga_rom, unsigned ext_kb, std::string fst)
-        : rom(std::move(bios)), ext(size_t(ext_kb) * 1024, 0), screen(vga_rom), fst_path(std::move(fst)) {
+    Machine(std::vector<uint8_t> bios, const std::vector<uint8_t>& vga_rom, unsigned ext_kb, std::string fst
+#ifdef AT_DISKETTE
+            , DisketteConfig disk_cfg = {}
+#endif
+            )
+        : rom(std::move(bios)), ext(size_t(ext_kb) * 1024, 0),
+#ifdef AT_DISKETTE
+          fd_cfg(std::move(disk_cfg)),
+#endif
+          screen(vga_rom), fst_path(std::move(fst)) {
         if (rom.size() != 65536) throw std::runtime_error("expected a 64 KiB BIOS image");
         if (ext_kb > 14336) throw std::runtime_error("--ext-kb is at most 14336 (to EFFFFFh)");
         power_on();
     }
+
+#ifdef AT_DISKETTE
+    void apply_drive_lines() {
+        d->fd_track0_i = fdl.track0; d->fd_write_protect_i = fdl.write_protect;
+        d->fd_change_i = fdl.change; d->fd_index_i = fdl.index; d->fd_header_i = fdl.header;
+        d->fd_c_i = fdl.c; d->fd_h_i = fdl.h; d->fd_r_i = fdl.r; d->fd_n_i = fdl.n;
+        d->fd_byte_valid_i = fdl.byte_valid; d->fd_byte_i = fdl.byte;
+        d->fd_end_i = fdl.end; d->fd_slot_i = fdl.slot;
+    }
+
+    void mount_diskettes() {
+        fd = std::make_unique<at_diskette::Diskettes>(6000000);
+        for (unsigned u = 0; u < 2; u++) {
+            std::string t = fd_cfg.type[u];
+            if (t.empty() && !fd_cfg.path[u].empty()) t = "1.2";
+            if (t == "1.2") fd->drive[u].type = at_diskette::DriveType::HighCapacity;
+            else if (t == "360") fd->drive[u].type = at_diskette::DriveType::DoubleDensity;
+            else if (t == "none") fd->drive[u].type = at_diskette::DriveType::None;
+            else if (!t.empty()) throw std::runtime_error("drive type must be 1.2, 360 or none");
+            if (!fd_cfg.path[u].empty()) fd->mount(u, fd_cfg.path[u], fd_cfg.ro[u]);
+        }
+        fdl = at_diskette::DriveLines();
+        was_irq6 = false;
+        apply_drive_lines();
+    }
+
+    void drive_tick() {
+        at_diskette::AdapterLines a;
+        a.select = d->fd_select_o; a.motor = d->fd_motor_o; a.step = d->fd_step_o;
+        a.direction = d->fd_direction_o; a.head = d->fd_head_o; a.rate = d->fd_rate_o;
+        a.active = d->fd_active_o; a.writing = d->fd_write_o; a.formatting = d->fd_format_o;
+        a.sector_begin = d->fd_sector_begin_o; a.tx_valid = d->fd_tx_valid_o;
+        a.tx_byte = d->fd_tx_byte_o; a.sector_r = d->fd_sector_r_o;
+        fdl = fd->tick(a);
+        apply_drive_lines();
+    }
+
+    void save_diskettes() {
+        if (!fd || !fd_cfg.write_back) return;
+        for (unsigned u = 0; u < 2; u++) {
+            if (!fd_cfg.path[u].empty() && fd->drive[u].dirty) {
+                fd->save(u, fd_cfg.path[u]);
+                fd->drive[u].dirty = false;
+            }
+        }
+    }
+#endif
 
     // Power-on: a fresh model (as at the start of post_runner), RAM zero
     // (ASSUMPTION AT6), the keyboard's power-on reset. The MC146818 starts
@@ -362,7 +432,7 @@ public:
         key_queue.clear();
         cycle = retired = frames = cpu_resets = inta_cycles = 0;
         open_reads = open_writes = rom_writes = slot_reads = slot_writes = chan_writes = 0;
-        port60_reads = halt_clocks = 0;
+        port60_reads = halt_clocks = dma_writes = dma_reads = dma_open = npx_accesses = irq6_rises = 0;
         last_port60 = -1;
         port60_log.clear();
         cs = 0xf000; ip = 0xfff0;
@@ -382,6 +452,9 @@ public:
         d->kbd_unlocked_i = 1; d->display_mono_i = 1; d->mfg_jumper_i = 0; d->ram_512k_i = 1;
         d->kbd_clk_i = 1; d->kbd_data_i = 1;
         d->chan_irq_i = 0;
+#ifdef AT_DISKETTE
+        mount_diskettes();
+#endif
         d->eval();
         for (int i = 0; i < 16; i++) { half_clock(true); half_clock(false); }
         d->reset_i = 0;
@@ -468,7 +541,18 @@ public:
           << ",\"kbdFlags\":\"" << hex(ram[0x417], 2) << hex(ram[0x418], 2) << "\",\"kbdHead\":\""
           << hex(ram[0x41a] | (ram[0x41b] << 8), 4) << "\",\"kbdTail\":\"" << hex(ram[0x41c] | (ram[0x41d] << 8), 4)
           << "\",\"kbdBuffer\":\"" << [&] { std::string h; for (unsigned i = 0x41e; i < 0x43e; i++) h += hex(ram[i], 2); return h; }()
-          << "\",\"captureStart\":" << capture_start << ",\"captureClocks\":" << capture_clocks
+          << "\",\"dmaWrites\":" << dma_writes << ",\"dmaReads\":" << dma_reads
+          << ",\"dmaOpen\":" << dma_open << ",\"npxAccesses\":" << npx_accesses
+#ifdef AT_DISKETTE
+          << ",\"diskette\":{\"ids\":" << (fd ? fd->ids : 0)
+          << ",\"mediaReads\":" << (fd ? fd->media_reads : 0)
+          << ",\"mediaWrites\":" << (fd ? fd->media_writes : 0)
+          << ",\"steps\":" << (fd ? fd->steps : 0)
+          << ",\"irq6\":" << irq6_rises
+          << ",\"headA\":" << (fd ? fd->drive[0].position : 0)
+          << ",\"headB\":" << (fd ? fd->drive[1].position : 0) << "}"
+#endif
+          << ",\"captureStart\":" << capture_start << ",\"captureClocks\":" << capture_clocks
           << ",\"captureVersion\":" << capture_version << "}";
         return s.str();
     }
@@ -535,6 +619,11 @@ private:
         timer_acc += 2 * (kOscHz / 12);
         if (timer_acc >= kVidHz) { timer_acc -= kVidHz; timer_level = !timer_level; }
         d->timer_clk_i = timer_level ? 7 : 0;
+#ifdef AT_DISKETTE
+        drive_tick();
+        if (d->fd_irq6_o && !was_irq6) ++irq6_rises;
+        was_irq6 = d->fd_irq6_o;
+#endif
         d->eval();
         if (d->refresh_o) d->refresh_ready_i = ++refresh_cycles >= 3;
         else { refresh_cycles = 0; d->refresh_ready_i = 0; }
@@ -542,14 +631,15 @@ private:
 
         const std::string where = hex(cs, 4) + ":" + hex(ip, 4);
         if (d->protocol_error_o) stop = "protocol-error at=" + where;
+        else if (halt_clocks > kHaltWait) stop = "halt at=" + where;
         else if (d->fault_o) stop = "fault at=" + where;
         else if (d->kbc_illegal_o) stop = "kbc-illegal-opcode at=" + where;
         if (!stop.empty()) return;
 
         const uint32_t a = d->address_o;
         const uint32_t base = a & ~1u;
-        d->mem_rdata_i = d->io_cycle_o ? uint16_t(kOpenBus | (kOpenBus << 8))
-                                       : uint16_t(byte(base) | (byte(base + 1) << 8));
+        d->mem_rdata_i = (d->io_cycle_o && !d->hlda_o) ? uint16_t(kOpenBus | (kOpenBus << 8))
+                                                       : uint16_t(byte(base) | (byte(base + 1) << 8));
         const uint32_t port = d->io_port_o;
         const bool empty_slot = d->io_unclaimed_o && port >= 0x100;
         // The slots are readable (post_runner's AT_CARD default).
@@ -584,6 +674,7 @@ private:
                 if (!write && !io && !fetch && !is_ram(x) && !is_rom(x) && !d->inta_cycle_o && !chan_driven)
                     ++open_reads;
                 if (io && write && empty_slot) ++slot_writes;
+                if (io && (x & 0x3f8) == 0x0f8) ++npx_accesses;
                 if (io && !write && empty_slot && !chan_driven) ++slot_reads;
                 if (io && !write && x == 0x60) {
                     ++port60_reads; last_port60 = value;
@@ -593,7 +684,16 @@ private:
             }
         }
 #ifdef AT_DISKETTE
-        diskette_service(*this);   // DISKETTE: DMA host interface, once per clock
+        if (d->dma_mem_o) {
+            if (d->dma_mem_write_o) {
+                if (is_ram(a)) ram_byte(a) = uint8_t(d->data_o);
+                else ++dma_open;
+                ++dma_writes;
+            } else {
+                if (!is_ram(a)) ++dma_open;
+                ++dma_reads;
+            }
+        }
 #endif
         if (d->inta_cycle_o) inta_active = true;
         else if (inta_active) { inta_active = false; ++inta_cycles; }
@@ -801,6 +901,20 @@ int main(int argc, char** argv) {
         uint64_t batch_clocks = 0, save_every = 50000000;
         std::string out_dir, script_path, fst = "cpu-waveform.fst";
         bool until_script = false;
+#ifdef AT_DISKETTE
+        DisketteConfig fd_cfg;
+        auto diskette_options = [&](const std::string& o) -> bool {
+            if (o.rfind("--fda=", 0) == 0) fd_cfg.path[0] = o.substr(6);
+            else if (o.rfind("--fdb=", 0) == 0) fd_cfg.path[1] = o.substr(6);
+            else if (o == "--fda-ro") fd_cfg.ro[0] = true;
+            else if (o == "--fdb-ro") fd_cfg.ro[1] = true;
+            else if (o.rfind("--fda-type=", 0) == 0) fd_cfg.type[0] = o.substr(11);
+            else if (o.rfind("--fdb-type=", 0) == 0) fd_cfg.type[1] = o.substr(11);
+            else if (o == "--write-back") fd_cfg.write_back = true;
+            else return false;
+            return true;
+        };
+#endif
         for (int i = 3; i < argc; i++) {
             const std::string o = argv[i];
             auto val = [&](const char* p) { return o.substr(std::string(p).size()); };
@@ -816,13 +930,21 @@ int main(int argc, char** argv) {
 #endif
             else throw std::runtime_error("unknown option " + o);
         }
-        Machine m(read_file(argv[1]), read_file(argv[2]), ext_kb, fst);
+        Machine m(read_file(argv[1]), read_file(argv[2]), ext_kb, fst
+#ifdef AT_DISKETTE
+                  , std::move(fd_cfg)
+#endif
+                  );
         if (!m.screen.ok()) throw std::runtime_error("8 x 16 font not found in the VGA ROM");
         Script script;
         if (!script_path.empty()) script.rules = read_script(script_path);
         if (batch_clocks) {
             if (out_dir.empty()) throw std::runtime_error("--batch needs --out=DIR");
-            return batch(m, script, batch_clocks, save_every, out_dir, until_script);
+            const int rc = batch(m, script, batch_clocks, save_every, out_dir, until_script);
+#ifdef AT_DISKETTE
+            m.save_diskettes();
+#endif
+            return rc;
         }
         auto t_last = std::chrono::steady_clock::now();
         double rate = 0;
@@ -893,6 +1015,9 @@ int main(int argc, char** argv) {
             (void)t_last;
         }
         m.d->final();
+#ifdef AT_DISKETTE
+        m.save_diskettes();
+#endif
         return 0;
     } catch (const std::exception& e) {
         std::cerr << "FAIL: " << e.what() << '\n';

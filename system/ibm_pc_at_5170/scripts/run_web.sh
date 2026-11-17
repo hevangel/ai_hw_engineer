@@ -2,7 +2,14 @@
 # Web front end of the IBM PC AT 5170 with the VGA card.
 #
 # Usage: scripts/run_web.sh /path/to/atbios.bin [port] [server options]
-#   server options: --ext-kb N     expansion RAM from 1 MB (1408 = 2 MB machine)
+#   server options: --ext-kb N     expansion RAM from 1 MB (1024 = 2 MB machine)
+#                   --fda PATH     mount a 1.2 MB or 360 KB image in drive A
+#                   --fdb PATH     mount a diskette image in drive B
+#                   --fda-type T   drive A type: 1.2 (default), 360 or none
+#                   --fdb-type T   drive B type: 1.2, 360 or none (default)
+#                   --fda-ro       write-protect drive A
+#                   --fdb-ro       write-protect drive B
+#                   --write-back   save written sectors to the image on exit
 #                   --batch-dir D  also show a batch run's progress and frames
 #                   --script F     scripted key input (see the README)
 # Checks the BIOS hash, rebuilds/fetches and hash-checks the 8042 and VGA

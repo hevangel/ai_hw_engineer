@@ -7,8 +7,9 @@
 #
 # One batch run with the key script
 #     when "RESUME" F1        # press F1 when the BIOS asks for it
-#     wait 150000000          # then let the BIOS go on
-# (at most 1,000,000,000 processor clocks; about 15 minutes). Checks:
+#     wait 10000000           # then let POST go on past checkpoint 40h
+# (with --fda-type=none so drive A fails POST and triggers the 601 / F1
+# prompt cleanly without 301-Keyboard Error; at most 1,000,000,000 clocks). Checks:
 #   1. The keyboard received the BIOS's Reset command (FFh) and answered
 #      ACK (FAh) and the BAT completion code (AAh).
 #   2. The screen when the F1 rule fired, read with the VGA ROM's own font
@@ -19,8 +20,8 @@
 #   3. Pressing F1 through the keyboard model: the keyboard sent its set 2
 #      make and break (05h, F0h 05h), the processor read the 8042's set 1
 #      translation 3Bh and then BBh at port 60h, and the BIOS went on (the
-#      prompt is gone and the POST checkpoint is no longer 3Fh).
-# The run ends early at the BIOS's 80287 probe (see KNOWN_STOP below).
+#      prompt is gone, POST leaves checkpoint 3Fh and probes the empty 80287
+#      socket without stopping).
 # Output: $IBM_PC_AT_WORK_DIR (default work)/keyboard_test/
 set -eu
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -43,23 +44,23 @@ json() {   # json EXPR: a Python expression on the final status file as s
 
 cat > "$OUT/f1.script" <<'EOF'
 when "RESUME" F1
-wait 150000000
+wait 10000000
 EOF
 echo "== run: press F1 at the BIOS prompt (at most 1,000,000,000 clocks)"
 start=$(date +%s)
 rc=0
-"$SIM" "$ROM" "$VGA" --batch=1000000000 --save-every=50000000 --until-script \
+"$SIM" "$ROM" "$VGA" --fda-type=none --batch=1000000000 --save-every=50000000 --until-script \
     "--script=$OUT/f1.script" "--out=$OUT/run" "--fst=$OUT/unused.fst" 2> "$OUT/run.log" || rc=$?
 echo "wall time $(( $(date +%s) - start )) s; $(tail -n 1 "$OUT/run.log")"
-# After F1 the BIOS probes for an 80287 (checkpoint 40h): FNINIT makes the
-# 80286 write coprocessor port 0F8h, which no board device decodes (AT17),
-# so the machine stops there as the POST runner would. That stop is the
-# expected end of this run; any other stop or failure is not.
-KNOWN_STOP='io-write port=00F8 at=F000:15EF'
-if [ "$rc" -eq 3 ] && [ "$(json "s['state']['stopped']")" = "$KNOWN_STOP" ]; then
-    echo "machine stopped as expected after F1: $KNOWN_STOP"
-elif [ "$rc" -ne 0 ]; then
+# After F1 the BIOS leaves checkpoint 3Fh and probes for an 80287 at ports
+# 0F8h-0FFh (checkpoint 40h); the empty coprocessor socket (AT36) lets POST
+# continue without stopping.
+if [ "$rc" -ne 0 ]; then
     echo "FAIL: the run ended with status $rc: $(json "s['state']['stopped']")" >&2
+    status=1
+fi
+if [ "$(json "s['state']['npxAccesses'] >= 2")" != True ]; then
+    echo "FAIL: POST did not reach the 80287 probe after F1 (npxAccesses=$(json "s['state']['npxAccesses']"))" >&2
     status=1
 fi
 echo "script: $(json "s['scriptLog']")"

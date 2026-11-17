@@ -39,6 +39,9 @@ operating system has been booted yet.
 | VGA diskette boot (640 KB) | `scripts/run_boot_diskette.sh` | Pass: halts at `0000:7EEC` (`27,368,206` instructions, `417,466,520` clocks); screen `AT DISKETTE BOOT TEST / READ OK / WRITE OK / PASS`; `1,209,344` DMA writes, `512` DMA reads; `check_fdc_log.py`, `check_kbc_log.py` (`14,417,787`), `check_rtc_log.py` (`36,916`) and Unicorn (`13/13` checkpoints) pass |
 | VGA diskette boot (2 MB) | `scripts/run_boot_diskette.sh --ext-kb=1024` | Pass: halts at `0000:7EEC` (`39,749,282` instructions, `591,466,611` clocks); screen, DMA, `check_fdc_log.py`, `check_kbc_log.py` (`20,872,359`), `check_rtc_log.py` (`5,083`) and Unicorn (`13/13` checkpoints) pass |
 | D/G record self-tests | `scripts/test_board_records.py` | Pass: 8 of 8 on 640 KB trace and 10 of 10 on 2 MB trace |
+| Host wrapper & capture | `scripts/build_host.sh` + `scripts/test_capture.py` | Clean lint on `ibm_pc_at_5170_vga_host`; waveform captures of `1,024`, `4,096` and `65,536` clocks match ordinary runs |
+| Keyboard against 8042 | `scripts/run_keyboard_test.sh` | Pass (`--fda-type=none`, `187,000,000` clocks): reset `FF` -> `AA FA AA`, no `301`, F1 (`3B`/`BB`) resumes POST past `3Fh` and the `0F8h` probe to `43` |
+| Web/batch host diskette boot (AT keyboard) | `scripts/run_host_boot.sh` | Pass (`962 s` wall, `423,466,672` clocks, `27,788,811` instructions): cold power-on without `301` or `601` halts at `0000:7EEC`, screen matches `tb/expected_screen_boot.txt`, DMA `1,209,344`/`512`, `LBA 2399` written back |
 
 Each card machine is checked in one scenario (no added wait states).
 `run_post_card.sh ega|vga` is the one regression for either card;
@@ -58,8 +61,7 @@ Exploratory, not part of the regression: a longer run of the EGA machine
 checkpoint 3Fh and waits at `(RESUME = "F1" KEY)`; the bare board with
 readable empty slots (`--empty-slots`) also reaches checkpoint 3Fh.
 
-Not yet modeled: a keyboard on the connector (other branch), fixed disk and the
-80287. VGA graphics modes and the DAC are not exercised by the POST run, and
+Not yet modeled: fixed disk and the 80287 (empty 80287 socket AT36 and idle fixed-disk task file AT37 are present on the display machines; the AT keyboard model `host/at_keyboard.hpp` runs in `host/simulator.cpp`, while `tb/post_runner.cpp` still uses its F1 bench stimulus). VGA graphics modes and the DAC are not exercised by the POST run, and
 the VGA ROM image could not be cross-checked against an IBM listing. NMI is not connected. Channel timing is not the real
 board's (AT18), DMA/diskette timing is not the real board's (AT25, AT27), and the video and processor clocks keep a virtual ratio
 (AT19). The 8259s are checked only by the BIOS's own tests and by the

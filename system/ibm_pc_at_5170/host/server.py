@@ -35,6 +35,20 @@ class Simulator:
         self.log = (work / f'simulator-{args.port}.log').open('w')
         self.cmd = [args.simulator, args.bios, args.vga_rom, f'--fst={self.waveform_path}',
                     f'--ext-kb={args.ext_kb}']
+        if args.fda:
+            self.cmd.append(f'--fda={args.fda}')
+        if args.fdb:
+            self.cmd.append(f'--fdb={args.fdb}')
+        if args.fda_type:
+            self.cmd.append(f'--fda-type={args.fda_type}')
+        if args.fdb_type:
+            self.cmd.append(f'--fdb-type={args.fdb_type}')
+        if args.fda_ro:
+            self.cmd.append('--fda-ro')
+        if args.fdb_ro:
+            self.cmd.append('--fdb-ro')
+        if args.write_back:
+            self.cmd.append('--write-back')
         if args.script:
             self.cmd.append(f'--script={args.script}')
         self.start()
@@ -109,6 +123,13 @@ def main():
     parser.add_argument('vga_rom')
     parser.add_argument('--port', type=int, default=8286)
     parser.add_argument('--ext-kb', type=int, default=0)
+    parser.add_argument('--fda')
+    parser.add_argument('--fdb')
+    parser.add_argument('--fda-type')
+    parser.add_argument('--fdb-type')
+    parser.add_argument('--fda-ro', action='store_true')
+    parser.add_argument('--fdb-ro', action='store_true')
+    parser.add_argument('--write-back', action='store_true')
     parser.add_argument('--batch-dir')
     parser.add_argument('--script')
     args = parser.parse_args()

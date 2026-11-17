@@ -67,10 +67,12 @@ blink-off phase). No 301-Keyboard Error. The Surfer view is the
 6,762,707,902 in the BIOS's F1 wait loop at `F000:3xxx`; capturing paused
 the machine. To reproduce: start the page, **Power on**, wait for the
 prompt (about 210 million clocks, 8 minutes, with the machine alone on
-the host), choose 4,096 clocks and press **Capture**. Pressing F1 on the
-host keyboard with the display focused then resumes POST (the keyboard
-sends 05h, F0h 05h; the BIOS reads 3Bh, BBh), and the machine stops at
-checkpoint 40h on the 80287 probe (see Verification and boundaries).
+the host), choose 4,096 clocks and press **Capture**. On that pre-diskette
+revision, pressing F1 resumed POST and stopped at checkpoint 40h on the
+unmodeled 80287 probe; after merging the diskette adapter and empty
+80287 socket (`AT36`), POST passes checkpoint 40h cleanly (and with a boot
+diskette in drive A via `--fda=IMG`, boots without an F1 prompt; use
+`--fda-type=none` to reproduce the 601/F1 prompt).
 
 The page (`host/web/`, served by `host/server.py`) drives the VGA machine
 through a persistent Verilator simulator (`host/simulator.cpp`):
@@ -143,7 +145,9 @@ docker run --rm -it -p 8286:8286 -v "$PWD":/work -w /work ai-hw-engineer:latest 
 ```
 
 then open http://localhost:8286/. `run_web.sh BIOS [PORT] [--ext-kb N]
-[--batch-dir DIR] [--script FILE]` checks the BIOS's SHA-256, rebuilds and
+[--fda PATH] [--fdb PATH] [--fda-type 1.2|360|none] [--fdb-type 1.2|360|none]
+[--fda-ro] [--fdb-ro] [--write-back] [--batch-dir DIR] [--script FILE]`
+checks the BIOS's SHA-256, rebuilds and
 hash-checks the 8042 firmware, fetches and hash-checks the VGA ROM (as
 `run_post_card.sh` does), builds the simulator with `scripts/build_host.sh`
 (about 1.5 minutes) and starts the server. The page starts with the
@@ -152,15 +156,18 @@ machine off; **Power on** starts it running. The BIOS image is obtained with
 
 The simulation is slow: about 430,000-450,000 processor clocks per
 second, 1.8 % of real time on the AT19 time base. The memory count starts
-after about 1 minute; the diskette error and the BIOS's F1 prompt appear
-after about 210 million clocks, 8 minutes. (Without a keyboard the
-exploratory EGA run needed about 3 billion clocks to reach the prompt.)
+after about 1 minute; with `--fda-type=none`, the diskette error and F1
+prompt appear around 177-210 million clocks (about 7-8 minutes), while
+booting the 1.2 MB test diskette with `--fda=IMG` reaches halt at about
+423 million clocks (about 16 minutes). (Without a keyboard the exploratory
+EGA run needed about 3 billion clocks to reach the prompt.)
 
 ### Batch runs and scripted keys
 
 ```sh
 sh system/ibm_pc_at_5170/scripts/run_batch.sh BIOS CLOCKS OUT_DIR \
-    [--ext-kb=N] [--script=FILE] [--save-every=N] [--until-script]
+    [--ext-kb=N] [--fda=IMG] [--fdb=IMG] [--fda-type=T] [--fdb-type=T] \
+    [--fda-ro] [--fdb-ro] [--write-back] [--script=FILE] [--save-every=N] [--until-script]
 ```
 
 runs CLOCKS processor clocks with no browser. Every `--save-every` clocks
@@ -315,9 +322,11 @@ Limits:
   key; the bare board with readable empty slots also reaches 3Fh.
 
 The VGA card is done (M4b part 1), the web front end, batch host and
-keyboard model exist (2026-11-17), and the diskette adapter and real DMA
-are done (see "Diskette and DMA" below). The rest of M4b integrates them
-to complete POST with the real keyboard; see the [implementation plan](plans/implementation_plan.md).
+keyboard model (`host/at_keyboard.hpp`) are integrated with the diskette
+adapter, real DMA and empty 80287 socket: `scripts/run_host_boot.sh`
+boots the 1.2 MB test diskette with zero POST errors and writes back the
+test sector. Next: fixed disk and operating system boot; see the
+[implementation plan](plans/implementation_plan.md).
 Tracking issue: https://github.com/hevangel/ai_hw_engineer/issues/254.
 
 - [Specification](spec/spec.md)

@@ -30,12 +30,27 @@ module ibm_pc_at_5170_vga_host #(
     output logic [15:0] data_o, cpu_data_o,
     output logic        data_oe_o, bhe_n_o, io_cycle_o, fetch_cycle_o,
     output logic [1:0]  completed_bytes_o,
+    output logic        hlda_o, dma_mem_o, dma_mem_write_o,
     output logic        protocol_error_o, halted_o, fault_o, refresh_o,
     output logic        io_unclaimed_o, io_read_undriven_o,
     output logic [15:0] io_port_o,
     output logic [7:0]  post_code_o,
     output logic        kbc_obf_o, cpu_reset_o, kbc_illegal_o, intr_o, inta_cycle_o,
     output logic        chan_sel_o, chan_driven_o,
+    // Diskette drive cable.
+    output logic [1:0]  fd_select_o, fd_motor_o,
+    output logic        fd_step_o, fd_direction_o, fd_head_o,
+    output logic [1:0]  fd_rate_o,
+    input  logic        fd_track0_i, fd_write_protect_i, fd_change_i,
+    output logic        fd_active_o, fd_write_o, fd_format_o, fd_mfm_o,
+    input  logic        fd_index_i, fd_header_i,
+    input  logic [7:0]  fd_c_i, fd_h_i, fd_r_i, fd_n_i,
+    input  logic        fd_byte_valid_i,
+    input  logic [7:0]  fd_byte_i,
+    input  logic        fd_end_i, fd_slot_i,
+    output logic        fd_sector_begin_o, fd_sector_end_o, fd_tx_valid_o,
+    output logic [7:0]  fd_tx_byte_o, fd_sector_r_o,
+    output logic        fd_irq6_o, fd_drq2_o, fd_tc_o,
     // Monitor connector.
     output logic        pix_en_o, hsync_o, vsync_o, de_o,
     output logic [5:0]  r_o, g_o, b_o,
@@ -54,19 +69,28 @@ module ibm_pc_at_5170_vga_host #(
         .pix_en_o, .r_o, .g_o, .b_o, .hsync_o, .vsync_o, .de_o,
         .clk_i, .clk_2x_i, .reset_i, .ready_n_i, .dma_clk_n_i, .hold_permit_i,
         .refresh_ready_i, .timer_clk_i, .mem_rdata_i, .address_o, .data_o,
-        .data_oe_o, .bhe_n_o, .io_cycle_o, .fetch_cycle_o, .completed_bytes_o,
+        .data_oe_o, .bhe_n_o, .io_cycle_o, .fetch_cycle_o, .completed_bytes_o, .hlda_o,
         .protocol_error_o, .halted_o, .fault_o, .refresh_o,
         .io_unclaimed_o, .io_read_undriven_o, .io_port_o, .post_code_o,
         .kbd_unlocked_i, .display_mono_i, .mfg_jumper_i, .ram_512k_i, .kbd_clk_i, .kbd_data_i,
         .kbd_clk_o, .kbd_data_o, .kbc_obf_o, .cpu_reset_o, .kbc_illegal_o,
-        .chan_irq_i, .intr_o, .inta_cycle_o
+        .chan_irq_i, .intr_o, .inta_cycle_o,
+        .dma_mem_o, .dma_mem_write_o,
+        .fd_select_o, .fd_motor_o, .fd_step_o, .fd_direction_o, .fd_head_o, .fd_rate_o,
+        .fd_track0_i, .fd_write_protect_i, .fd_change_i,
+        .fd_active_o, .fd_write_o, .fd_format_o, .fd_mfm_o, .fd_index_i, .fd_header_i,
+        .fd_c_i, .fd_h_i, .fd_r_i, .fd_n_i, .fd_byte_valid_i, .fd_byte_i, .fd_end_i, .fd_slot_i,
+        .fd_sector_begin_o, .fd_sector_end_o, .fd_tx_valid_o, .fd_tx_byte_o, .fd_sector_r_o
     );
     /* verilator lint_on PINMISSING */
-    assign cpu_data_o = machine.board.cpu_data;
-    assign retire_o = machine.board.cpu.core.retire_o;
+    assign cpu_data_o = machine.unit.board.cpu_data;
+    assign retire_o = machine.unit.board.cpu.core.retire_o;
 
-    assign cs_o = machine.board.cpu.core.segs_o[31:16];
-    assign ip_o = machine.board.cpu.core.ip_o;
-    assign flags_o = machine.board.cpu.core.flags_o;
-    assign kbc_p2_o = machine.board.kbc.p2_o;
+    assign cs_o = machine.unit.board.cpu.core.segs_o[31:16];
+    assign ip_o = machine.unit.board.cpu.core.ip_o;
+    assign flags_o = machine.unit.board.cpu.core.flags_o;
+    assign kbc_p2_o = machine.unit.board.kbc.p2_o;
+    assign fd_irq6_o = machine.unit.fdc_irq;
+    assign fd_drq2_o = machine.unit.fdc_drq;
+    assign fd_tc_o = machine.unit.tc;
 endmodule

@@ -43,7 +43,8 @@ echo "== build host simulator (threads $THREADS)" >&2
 # shellcheck disable=SC2086
 if ! verilator --cc --exe --build -j 8 -O3 -Wall -Wno-SYNCASYNCNET --timescale-override 1ns/1ps \
     --threads "$THREADS" --trace-fst --trace-depth 1 \
-    -CFLAGS "-std=c++17" -LDFLAGS "-lz" -MAKEFLAGS "OPT_FAST=$OPT OPT_GLOBAL=$OPT" \
+    -CFLAGS "-std=c++17 -DAT_DISKETTE -I$SYS_DIR/tb" -LDFLAGS "-lz" \
+    -MAKEFLAGS "OPT_FAST=$OPT OPT_GLOBAL=$OPT" \
     "-GKBC_ROM_FILE=\"$OUT_DIR/kbc_1503033.hex\"" \
     "-GRTC_NVRAM_FILE=\"$SYS_DIR/tb/cmos_ega.hex\"" \
     "-GVGA_ROM_FILE=\"$VGA_HEX\"" \

@@ -172,3 +172,24 @@ then, neither the web front end nor a batch run gets past checkpoint 40h.
 - Expansion RAM is host memory standing for a memory card; the CMOS image
   still says 640 KB.
 - Waveform time axis: 41.67 ns per processor clock (AT19), not physical.
+
+## Integration with diskette adapter, DMA and empty 80287 socket
+
+After merging `origin/main` and `system/ibm-pc-at-5170-fdc` into
+`system/ibm-pc-at-5170-web`, `host/ibm_pc_at_5170_vga_host.sv` was updated
+for the `machine.unit` hierarchy and wired to `hlda_o`, `dma_mem_o`,
+`dma_mem_write_o` and the diskette adapter ports; `host/simulator.cpp` was
+compiled with `-DAT_DISKETTE`, servicing DMA memory transfers (`dmaWrites`,
+`dmaReads`, `dmaOpen`), ticking `at_diskette::Diskettes(6000000)` with
+`--fda`/`--fdb`/`--fda-type`/`--fdb-type`/`--fda-ro`/`--fdb-ro`/`--write-back`,
+counting empty 80287 socket accesses (`npxAccesses`), and matching
+`tb/post_runner.cpp`'s `kHaltWait` (`2,000,000` clocks). `host/server.py`
+and `scripts/run_web.sh` forward the diskette flags.
+
+Post-merge integrated checks in `ai-hw-engineer:latest` (Verilator 5.052):
+
+| Check | Command | Result |
+|---|---|---|
+| Host wrapper lint + capture invariant | `verilator --lint-only -Wall -Wno-SYNCASYNCNET --top-module ibm_pc_at_5170_vga_host` + `scripts/test_capture.py` | Clean lint; `test_capture.py` passed (`1,024`, `4,096` and `65,536` clocks match ordinary runs) |
+| Integrated 1.2 MB diskette boot (AT keyboard, no F1 bench stimulus) | `scripts/run_host_boot.sh work/software/atbios.bin` | Pass (`962 s` wall, `423,466,672` clocks, `27,788,811` instructions, `440,646` clocks/s): `halt at=0000:7EEC`, keyboard `AA FA AA`, `dmaWrites=1209344`, `dmaReads=512`, `dmaOpen=0`, `npxAccesses=16`; `check_frame.py` matches `tb/expected_screen_boot.txt` (`AT DISKETTE BOOT TEST / READ OK / WRITE OK / PASS`, no `301` or `601`); written-back `LBA 2399` verified |
+| Keyboard reset and F1 path (`--fda-type=none`) | `scripts/run_keyboard_test.sh work/software/atbios.bin` | Pass (`187,000,000` clocks): reset `FF` -> `AA FA AA`, F1 `05 F0 05` -> `3B BB` at port 60h, screen without `301` matches `scripts/expected_screen_keyboard.txt`, POST advances past checkpoint `3Fh` and the `0F8h` probe (`npxAccesses >= 2`) to `43` |
