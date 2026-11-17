@@ -22,6 +22,9 @@
  * parameters at offset 62.
  */
     .code16
+    /* 80286 instructions only: as then relaxes a far conditional jump into
+       a short jump around a near JMP instead of the 386 form 0F 8x. */
+    .arch i286
     .intel_syntax noprefix
     .text
     /* working variables, below the program in RAM (0000:0500) */
