@@ -64,7 +64,7 @@ the index pages.
 | ZEXDOC / ZEXALL / z80test | Not run | needs the CP/M harness; ZEXALL is ~5.8e9 instructions |
 | Historical software | Not run | needs a CP/M BDOS harness |
 | Synthesis | **PASS** (generic cells; no timing or area target set) | `scripts/run_synth.sh generic` |
-| Native timing, internal T-states | Not modelled | `zilog_z80_native` reproduces M1/memory/I-O cycle shapes and totals for the bus-cycle-exact subset; instructions with internal T-states (INC (HL), JR, PUSH, CALL, block groups) need per-opcode internal cycles |
+| Native timing, internal T-states | Not modelled | `zilog_z80_native` reproduces M1/memory/I-O cycle shapes and totals for the bus-cycle-exact subset. An attempt to add a per-opcode internal-T table (INC (HL), JR, PUSH, CALL, EX (SP),HL, block groups) was reverted: the extra T-states land after the core's retire pulse, so measuring them needed a repeated-instruction average, and the resulting totals still carried a one-cycle artefact from the wrapper's request handshake. Getting this right needs the internal cycles injected inside the last bus cycle (or a core-level timing output), not after retirement |
 
 ### Real historical software
 
