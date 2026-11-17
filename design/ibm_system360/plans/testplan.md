@@ -4,7 +4,7 @@ Scope: the shared engine in `src/` and the self-checking testbench in `tb/`.
 Later increments extend this plan; a test that does not exist yet is listed as
 planned, never as passing.
 
-## Exit criteria (current increment, M2)
+## Exit criteria (current increment, M3)
 
 1. `scripts/run_lint.sh` clean under `verilator --lint-only -Wall` for both the
    RTL and the testbench.
@@ -46,6 +46,18 @@ by the handler.
 | Privileged operation | `LPSW` to problem state, then `SSM` | code 2; old PSW keeps the problem-state bit and stores IA 0x10C |
 | Fixed-point overflow | `LA 2,0x10; SPM; L 4,0x7FFFFFFF; A 4,1` | code 8; old PSW CC 3, ILC 2, program mask 1, IA 0x10E; R4 = 0x8000_0000 |
 | Specification | `LPSW 0x72` (unaligned) | code 6; IA 0x104; PSW not loaded |
+
+### 2.1 Fixed-point completion and supervisor call (M3)
+
+| Test | Program | Checked |
+|---|---|---|
+| Halfword group | `LH 1,0x200; AH 1,0x202; STH 1,0x204; CH 1,0x206; LA 2,7; MH 2,0x208` | R1 = -1 + 2 = 1; R2 = 7 × -2 = 0xFFFF_FFF2; the stored halfword lands in the high half of the word; CH sets CC 1 |
+| Multiply / divide | `LA 4,6; L 3,-7; MR 2,4; ST 2/3; LA 6,0; LA 7,42; LA 8,42; DR 6,8` | 64-bit product 6 × -7 = 0xFFFF_FFFF_FFFF_FFD6 split across the pair; quotient 1 and remainder 0 in the pair |
+| Divide exception | `LA 4,1; LA 6,1; DR 4,1` (dividend 2^32) | code 9, dividend registers unchanged, old PSW IA 0x10A |
+| Shifts | `LA 2,5; SLA 2,1; SRA 2,1; LA 3,4; SLA 3,31` | R2 back to 5; R3 = 0 with CC 3 and the overflow flag; no interruption with mask bit 36 clear |
+| Supervisor call | `SVC 42` | supervisor old PSW at `0x20`: bits 24-31 = 42, bits 16-23 zero; new PSW from `0x60`; handler runs |
+| Odd halfword address | `LH 1,0x201` | code 6, IA 0x104, ILC 2 |
+| Odd pair register | `MR 3,1` | code 6, IA 0x102, ILC 1 |
 
 Suppressed checks also assert that the handler at `0x300` runs, which proves
 the new PSW was fetched from `0x68` and made current.

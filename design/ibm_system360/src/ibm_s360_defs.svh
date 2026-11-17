@@ -55,39 +55,58 @@ typedef enum logic [1:0] {
   FMT_SS    = 2'b11   // three halfwords
 } s360_fmt_e;
 
-// Operation selectors implemented by the M1 core.
-typedef enum logic [4:0] {
-  OP_ILLEGAL = 5'd0,
-  // RR format
-  OP_BCR  = 5'd1,   // 07
-  OP_LTR  = 5'd2,   // 12
-  OP_NR   = 5'd3,   // 14
-  OP_CLR  = 5'd4,   // 15
-  OP_OR   = 5'd5,   // 16
-  OP_XR   = 5'd6,   // 17
-  OP_LR   = 5'd7,   // 18
-  OP_CR   = 5'd8,   // 19
-  OP_AR   = 5'd9,   // 1A
-  OP_SR   = 5'd10,  // 1B
-  // RX format
-  OP_LA   = 5'd11,  // 41
-  OP_BC   = 5'd12,  // 47
-  OP_ST   = 5'd13,  // 50
-  OP_N    = 5'd14,  // 54
-  OP_CL   = 5'd15,  // 55
-  OP_O    = 5'd16,  // 56
-  OP_X    = 5'd17,  // 57
-  OP_L    = 5'd18,  // 58
-  OP_C    = 5'd19,  // 59
-  OP_A    = 5'd20,  // 5A
-  OP_S    = 5'd21,  // 5B
+// Operation selectors implemented by the core. Six bits are needed because the
+// fixed-point group alone contributes more than 32 distinct operations.
+typedef enum logic [5:0] {
+  OP_ILLEGAL = 6'd0,
+  // RR format, fixed point and branching
+  OP_BCR  = 6'd1,   // 07
+  OP_LTR  = 6'd2,   // 12
+  OP_NR   = 6'd3,   // 14
+  OP_CLR  = 6'd4,   // 15
+  OP_OR   = 6'd5,   // 16
+  OP_XR   = 6'd6,   // 17
+  OP_LR   = 6'd7,   // 18
+  OP_CR   = 6'd8,   // 19
+  OP_AR   = 6'd9,   // 1A
+  OP_SR   = 6'd10,  // 1B
+  // RX format, fixed point
+  OP_LA   = 6'd11,  // 41
+  OP_BC   = 6'd12,  // 47
+  OP_ST   = 6'd13,  // 50
+  OP_N    = 6'd14,  // 54
+  OP_CL   = 6'd15,  // 55
+  OP_O    = 6'd16,  // 56
+  OP_X    = 6'd17,  // 57
+  OP_L    = 6'd18,  // 58
+  OP_C    = 6'd19,  // 59
+  OP_A    = 6'd20,  // 5A
+  OP_S    = 6'd21,  // 5B
   // SI format
-  OP_MVI  = 5'd22,  // 92
-  OP_CLI  = 5'd23,  // 95
-  OP_SSM  = 5'd24,  // 80
-  OP_LPSW = 5'd25,  // 82
-  // RR format, status switching
-  OP_SPM  = 5'd26   // 04
+  OP_MVI  = 6'd22,  // 92
+  OP_CLI  = 6'd23,  // 95
+  OP_SSM  = 6'd24,  // 80
+  OP_LPSW = 6'd25,  // 82
+  // RR format, status switching and supervisor call
+  OP_SPM  = 6'd26,  // 04
+  OP_SVC  = 6'd27,  // 0A
+  // RX format, halfword group (pp. 26-30)
+  OP_LH   = 6'd28,  // 48
+  OP_STH  = 6'd29,  // 40
+  OP_AH   = 6'd30,  // 4A
+  OP_SH   = 6'd31,  // 4B
+  OP_CH   = 6'd32,  // 49
+  OP_MH   = 6'd33,  // 4C
+  // RR/RX multiply and divide (pp. 30-31)
+  OP_MR   = 6'd34,  // 1C
+  OP_M    = 6'd35,  // 5C
+  OP_DR   = 6'd36,  // 1D
+  OP_D    = 6'd37,  // 5D
+  // RS format shifts (pp. 32-34)
+  OP_SLA  = 6'd38,  // 8B
+  OP_SRA  = 6'd39,  // 8A
+  OP_SLDA = 6'd40,  // 8F
+  OP_SRDA = 6'd41   // 8E
 } s360_op_e;
 
 typedef struct packed {
@@ -170,8 +189,26 @@ function automatic s360_dec_t s360_decode(input logic [7:0] opcode);
     8'h95: d.op = OP_CLI;
     // ---- Status switching, pp. 72-74 --------------------------------------
     8'h04: d.op = OP_SPM;
+    8'h0A: d.op = OP_SVC;
     8'h80: d.op = OP_SSM;
     8'h82: d.op = OP_LPSW;
+    // ---- Fixed-point halfword group, pp. 26-30 ----------------------------
+    8'h40: d.op = OP_STH;
+    8'h48: d.op = OP_LH;
+    8'h49: d.op = OP_CH;
+    8'h4A: d.op = OP_AH;
+    8'h4B: d.op = OP_SH;
+    8'h4C: d.op = OP_MH;
+    // ---- Multiply and divide, pp. 30-31 -----------------------------------
+    8'h1C: d.op = OP_MR;
+    8'h1D: d.op = OP_DR;
+    8'h5C: d.op = OP_M;
+    8'h5D: d.op = OP_D;
+    // ---- Shifts, pp. 32-34 ------------------------------------------------
+    8'h8A: d.op = OP_SRA;
+    8'h8B: d.op = OP_SLA;
+    8'h8E: d.op = OP_SRDA;
+    8'h8F: d.op = OP_SLDA;
     default: begin
       d.valid = 1'b0;
       d.op    = OP_ILLEGAL;

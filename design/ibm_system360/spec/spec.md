@@ -1,6 +1,6 @@
-# IBM System/360 — architecture specification (M2)
+# IBM System/360 — architecture specification (M3)
 
-Status: **second functional increment**. This document fixes the architecture
+Status: **third functional increment**. This document fixes the architecture
 that `src/` implements, records every deliberate deviation, and lists the
 assumptions that must be validated before any compatibility claim. It is *not*
 the full S/360 specification: the instruction-set and model option matrix is
@@ -21,14 +21,19 @@ In scope and implemented:
   length recording, the PSW, and 24-bit address arithmetic (M1);
 - 26 instructions: the M1 fixed-point/logical/branching subset plus
   `LPSW`, `SSM` and `SPM` (M2);
+- the rest of the fixed-point group — halfword `LH`/`STH`/`AH`/`SH`/`CH`/`MH`,
+  `MR`/`M`, `DR`/`D`, and the shifts `SLA`/`SRA`/`SLDA`/`SRDA` — and `SVC` with
+  the supervisor-call interruption (M3);
 - **program interruptions** with the causes operation (1), privileged
   operation (2), specification (6) and fixed-point overflow (8), the program
   old PSW at storage `0x28`, the program new PSW at `0x68`, and problem-state
   enforcement (M2);
 - the wait state as a state in which no instruction is fetched (M2).
 
-Out of scope (each has its own issue or milestone): halfword, multiply/divide,
-shift, decimal and floating-point operations; SS-format instructions;
+Out of scope (each has its own issue or milestone): decimal and floating-point
+operations; SS-format instructions; the character/logical group not yet in the
+table (`TR`, `TRT`, `ED`, `EDMK`, `IC`, `STC`, `TM`, `NC`/`OC`/`XC`, `MVC`/`CLC`);
+`EXECUTE`;
 protection keys, storage protection and DAT; supervisor-call, external, I/O and
 machine-check interruptions; addressing exceptions; channel I/O; `EXECUTE`;
 timing and microarchitecture.
@@ -131,12 +136,39 @@ Branching instructions never change the condition code.
 | `04` | SPM | RR | no | register bits 2-3 replace CC, bits 4-7 replace the program mask; other register bits are ignored and the register is unchanged |
 | `80` | SSM | SI | yes | the byte at the operand address replaces PSW bits 0-7 (system mask); CC unchanged |
 | `82` | LPSW | SI | yes | the doubleword at the operand address replaces the PSW; CC comes from its bits 34-35; problem and wait state come from bits 15 and 14; the operand address must have its three low-order bits zero |
+| `0A` | SVC | RR | no | supervisor-call interruption with the instruction's bits 8-15 placed in old-PSW bits 24-31 and bits 16-23 zeroed; old/new PSWs at `0x20`/`0x60` |
 
 `LPSW` is the only instruction that can enter the problem or wait state
 (p. 73). The new PSW is not checked for exceptions during the load; the checks
 happen when the next instruction is executed (p. 73 and p. 71).
 
-### 2.7 Program interruptions (pp. 15-16, 71-72)
+### 2.7 Fixed-point group completed in M3 (pp. 26-34)
+
+| Operation | Operand | Result | CC | Exceptions |
+|---|---|---|---|---|
+| LH | halfword in storage, sign-extended | R1 | unchanged | specification (odd address) |
+| STH | R1 low halfword | storage halfword | unchanged | specification (odd address) |
+| AH / SH | halfword, sign-extended | R1 | add/subtract rules | specification, overflow |
+| CH | halfword, sign-extended | — | compare rules | specification |
+| MH | halfword × R1 | low 32 bits of the product | unchanged | specification |
+| MR / M | R1 pair (multiplicand in the odd register) × multiplier | 64-bit product replaces the pair | unchanged | specification (odd R1) |
+| DR / D | R1 pair as a 64-bit dividend ÷ 32-bit divisor | quotient in R1, remainder in R1+1 | unchanged | specification (odd R1), divide (code 9) |
+| SLA / SLDA | shift count from the low six bits of the second-operand address | R1 (or the pair); sign bit fixed | 0/1/2, 3 on overflow | specification (SLDA odd R1), overflow |
+| SRA / SRDA | same | R1 (or the pair) with sign fill | 0/1/2 | specification (SRDA odd R1) |
+
+Notes that the implementation depends on:
+
+- the second-operand address of a shift is **not** used to address storage and
+  is not checked for addressing exceptions (p. 34);
+- a halfword operand must lie on a 16-bit boundary and a 64-bit pair register
+  must be even, otherwise the instruction is suppressed with code 6 (p. 34);
+- `MR`/`M` cannot overflow, and `MH` gives no overflow indication (p. 32);
+- a divide whose quotient does not fit 32 bits, including division by zero, is
+  suppressed and leaves the dividend registers unchanged (pp. 31, 34);
+- `SLDA`/`SLA` overflow when a bit unlike the sign leaves the integer field;
+  the result is stored with the sign unchanged and CC is set to 3 (pp. 33-34).
+
+### 2.8 Program interruptions (pp. 15-16, 71-72)
 
 Every interruption stores the current PSW as an old PSW and makes the new PSW
 current. The program old PSW is at `0x28`, the program new PSW at `0x68`
@@ -177,7 +209,7 @@ Storage timing, interleaving, protection and channel contention are not
 modelled. Word operands must be aligned; apart from the `LPSW` doubleword
 check, unaligned operands are not detected.
 
-## 4. Implemented instruction set (26 operations)
+## 4. Implemented instruction set (41 operations)
 
 | Opcode | Mnemonic | Format | Operation | CC |
 |---|---|---|---|---|
@@ -205,6 +237,21 @@ check, unaligned operands are not detected.
 | `5B` | S | RX | subtract | set |
 | `80` | SSM | SI | set system mask | unchanged |
 | `82` | LPSW | SI | load PSW | loaded |
+| `0A` | SVC | RR | supervisor call | unchanged |
+| `1C` | MR | RR | multiply | unchanged |
+| `1D` | DR | RR | divide | unchanged |
+| `40` | STH | RX | store halfword | unchanged |
+| `48` | LH | RX | load halfword | unchanged |
+| `49` | CH | RX | compare halfword | set |
+| `4A` | AH | RX | add halfword | set |
+| `4B` | SH | RX | subtract halfword | set |
+| `4C` | MH | RX | multiply halfword | unchanged |
+| `5C` | M | RX | multiply | unchanged |
+| `5D` | D | RX | divide | unchanged |
+| `8A` | SRA | RS | shift right single | set |
+| `8B` | SLA | RS | shift left single | set |
+| `8E` | SRDA | RS | shift right double | set |
+| `8F` | SLDA | RS | shift left double | set |
 | `92` | MVI | SI | move immediate byte | unchanged |
 | `95` | CLI | SI | compare logical immediate byte | set |
 
@@ -239,8 +286,14 @@ These are deliberate and must not be presented as architectural behaviour.
    byte plus fixed decode/execute/commit cycles, and five cycles per
    interruption. No storage access timing, overlap, prefetch or model-specific
    microarchitecture is modelled.
-7. **No `EXECUTE`, `SVC`, halfword, multiply/divide, decimal, floating-point or
-   SS operations.** They raise code 1 as described above.
+7. **No `EXECUTE`, decimal, floating-point, SS or character/logical
+   operations.** They raise code 1 as described above.
+8. **Divide and supervisor-call old-PSW addresses.** For the divide exception
+   and for `SVC` the core stores the *updated* instruction address and the ILC
+   of the instruction, matching the suppressed-check rule of p. 72. The manual
+   states the update rule explicitly only for the suppressed operation,
+   protection, addressing and specification cases; this choice is recorded as
+   assumption A-6.
 
 ## 6. Assumption ledger
 
@@ -251,6 +304,7 @@ These are deliberate and must not be presented as architectural behaviour.
 | A-3 | An implemented-length but unassigned/unimplemented operation raises code 1 with the instruction address advanced by the ILC. | The manual defines code 1 for *unassigned* opcodes (p. 16); it does not define how a partially implemented machine should report a missing instruction. | Must disappear as the instruction set is completed; tracked by #384. |
 | A-4 | Byte operands are read from the aligned word and word operands must be aligned. | The storage port returns an aligned word. | Re-check when specification exceptions are complete. |
 | A-5 | The interruption sequence is treated as atomic (no priority nesting). | The manual describes priority ordering between classes (p. 16); with only program interruptions there is no competing request. | Re-check when I/O and external interruptions exist. |
+| A-6 | Divide-exception and supervisor-call interruptions store an old PSW whose instruction address is advanced by the instruction length. | The manual states that rule for suppressed program checks (p. 72) and says division is suppressed (p. 34), but does not spell out the address for these two classes. | Re-check against an independent emulator (#383) and IBM diagnostics (#441). |
 
 ## 7. Model option matrix
 
@@ -280,3 +334,4 @@ microarchitecture.
 - [../plans/formal_plan.md](../plans/formal_plan.md)
 - [../report/2026-11-05-m1-core.md](../report/2026-11-05-m1-core.md)
 - [../report/2026-11-08-m2-status-switching.md](../report/2026-11-08-m2-status-switching.md)
+- [../report/2026-11-17-m3-fixedpoint.md](../report/2026-11-17-m3-fixedpoint.md)
