@@ -265,8 +265,10 @@ length and raises interruption code 1.
 These are deliberate and must not be presented as architectural behaviour.
 
 1. **Assigned but unimplemented instructions raise code 1.** A real S/360
-   executes, for example, `MR`, `SH`, `MVC`, `TR` and `SVC`; this core decodes
-   them as an operation exception. This is an implementation gap, not
+   executes the SS moves and compares (`MVC`, `CLC`, `NC`, `OC`, `XC`, `MVN`,
+   `MVZ`), `TR`/`TRT`/`ED`/`EDMK`, `IC`/`STC`/`TM`, `PACK`/`UNPK`,
+   `CVB`/`CVD`, `EXECUTE`, decimal and floating-point operations; this core
+   decodes them as an operation exception. This is an implementation gap, not
    architecture, and is the reason no compatibility claim may be made until
    the remaining instruction groups and the external oracle exist.
 2. **Only program interruptions exist.** Supervisor call, external, I/O and
@@ -274,9 +276,11 @@ These are deliberate and must not be presented as architectural behaviour.
    and the other classes) are never generated. Storage protection and
    addressing exceptions are therefore also absent, since no storage limit or
    key is modelled.
-3. **Specification exceptions are partial.** Only the `LPSW` doubleword
-   alignment rule is checked. Odd instruction addresses, unaligned halfword or
-   word operands, and invalid register fields are not detected.
+3. **Specification exceptions are partial.** Checked: the `LPSW` doubleword
+   alignment rule, an odd halfword operand address for `LH`/`STH`/`AH`/`SH`/
+   `CH`/`MH`, and an odd `R1` for the 64-bit pair operations
+   `MR`/`DR`/`SLDA`/`SRDA`. Not checked: odd instruction addresses, unaligned
+   word operands, and invalid register fields outside those cases.
 4. **No protection or DAT.** The protection key field is stored and inert.
 5. **Wait state cannot be left.** With no I/O or external interruption, no new
    PSW can arrive, so `LPSW` with bit 14 set stops the machine permanently.
@@ -287,7 +291,8 @@ These are deliberate and must not be presented as architectural behaviour.
    interruption. No storage access timing, overlap, prefetch or model-specific
    microarchitecture is modelled.
 7. **No `EXECUTE`, decimal, floating-point, SS or character/logical
-   operations.** They raise code 1 as described above.
+   operations.** They raise code 1 as described above. The fixed-point group is
+   complete.
 8. **Divide and supervisor-call old-PSW addresses.** For the divide exception
    and for `SVC` the core stores the *updated* instruction address and the ILC
    of the instruction, matching the suppressed-check rule of p. 72. The manual
