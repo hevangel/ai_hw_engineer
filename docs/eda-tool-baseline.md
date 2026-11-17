@@ -18,7 +18,7 @@ unqualified below.
 | Mode | Headless. The Surfer desktop GUI is built (`surfer --version`) but only exercised through the web viewer served by `surver`/`serve_web.sh` and a real browser. |
 | Network at runtime | Not required by any probe. Image builds need GitHub, GitLab, crates.io, PyPI and the Ubuntu snapshot service. |
 | Resources | Probes ran with Docker Desktop defaults. Large-waveform memory and time are measured in [Surfer](#surfer-waveform-viewer). |
-| Base vs overlay | The base image has no Icarus Verilog. Icarus 12.0-3 is only in `ai-hw-engineer-apple-ii`, built `FROM ai-hw-engineer`. |
+| Base vs overlay | The base image has no Icarus Verilog and no GHDL. Icarus 12.0-3 is in `ai-hw-engineer-apple-ii` and in the extended image `ai-hw-engineer-extended`; GHDL 5.0.1 is only in the extended image. All are built `FROM ai-hw-engineer` and leave the base unchanged. |
 
 ## Pinned tools, sources and licenses
 
@@ -38,7 +38,8 @@ revision, not from memory.
 | Surfer 0.7.0 | `bd749b1f786c1c62cd67893ca71346cbe6983915`, Trunk 0.21.14 | gitlab.com/surfer-project/surfer | EUPL-1.2 | Waveform viewer, `surver` server, web app |
 | Verible v0.0-4296-g0f262651 | release tarball, SHA-256 `8569defb891d2316067613ea00442af28a7a09d405d95b54c0c91f9942d26635` | github.com/chipsalliance/verible | Apache-2.0 | Format, lint, syntax check |
 | UVM reference libraries | submodule `libs/uvm` (`1.1d`, `1.2`, `1800.2-2017`, `1800.2-2020`) | Accellera releases | Apache-2.0 | UVM testbenches (Xezim) |
-| Icarus Verilog 12.0-3 | Ubuntu package `iverilog=12.0-3` (overlay only) | Ubuntu snapshot | GPL-2.0 (distribution package) | Independent four-state simulator, VPI host |
+| Icarus Verilog 12.0-3 | Ubuntu package `iverilog=12.0-3` (Apple II and extended overlays) | Ubuntu snapshot | GPL-2.0 (distribution package) | Independent four-state simulator, VPI host |
+| GHDL 5.0.1 | Ubuntu package `ghdl=5.0.1+dfsg-1ubuntu1` (extended image only), mcode backend | Ubuntu snapshot | GPL-2.0-or-later | VHDL-2008 simulator, second opinion against NVC |
 | Java | Ubuntu `default-jdk-headless` from the same snapshot | Ubuntu snapshot | GPL-2.0 with Classpath Exception (OpenJDK package) | Independent Java oracles ([Java guide](java/README.md)) |
 | Rust 1.99.0 / rustup 1.29.1 | `RUSTUP_INIT_SHA256=dda7234360b7f578ca8b0ddcb80145646fa61a67c1720a5abc7051b35c9fcb71` | static.rust-lang.org | MIT OR Apache-2.0 | Build stage only (Xezim, Surfer) |
 
@@ -46,7 +47,7 @@ Patches applied to upstream tools in this repository:
 
 | Patch | Where | Scope |
 | --- | --- | --- |
-| Remove the stray `0-3` token from the packaged `iverilog-vpi` helper | `system/apple_ii/Dockerfile` | Binary-package workaround for `iverilog=12.0-3`; source-level fix and reproducer in [the root-cause report](iverilog/vpi-prefix-map-root-cause.md) |
+| Remove the stray `0-3` token from the packaged `iverilog-vpi` helper | `system/apple_ii/Dockerfile`, `eda_extended/Dockerfile` | Binary-package workaround for `iverilog=12.0-3`, applied identically in both profiles; source-level fix and reproducer in [the root-cause report](iverilog/vpi-prefix-map-root-cause.md) |
 | Surfer `index.html` readiness probe (HDL Workbench only) | `hdl-workbench/apps/ide/public/surfer/` | Not part of this image; see [Surfer](#surfer-waveform-viewer) |
 
 No other upstream source is patched. Z3, Verible and the Rust installer are

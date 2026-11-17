@@ -1,0 +1,3 @@
+{"kind": "elaborate", "std": "08", "expect": "nonzero",
+ "marker": "no architecture",
+ "notes": "Analysis of a body-less entity succeeds; elaborating a top that needs it must fail."}

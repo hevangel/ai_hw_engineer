@@ -23,6 +23,10 @@ distribution's supported packages, not separately compiled upstream releases.
 | Verible | v0.0-4296-g0f262651, static x86_64 archive | [release](https://github.com/chipsalliance/verible/releases/tag/v0.0-4296-g0f262651) |
 | CMake | 4.4.4, PyPI package in a dedicated virtual environment | [package](https://pypi.org/project/cmake/4.4.4/) |
 | Java JDK | Ubuntu `default-jdk-headless`, resolved from the pinned signed snapshot; compiler and runtime checked at image build | [Project usage](java/README.md) |
+| NVC (extended image) | `r1.23.1`, `fab54a9e96964b431050d837e163c22282a1df6c` | [release](https://github.com/nickg/nvc/releases/tag/r1.23.1) |
+| SystemC (extended image) | `3.0.2`, `70b0fc8e4a74acc677b0fc73cea08f940c2115d5` | [release](https://github.com/accellera-official/systemc/releases/tag/3.0.2) |
+| GHDL (extended image) | Ubuntu `5.0.1+dfsg-1ubuntu1` (mcode backend) | [snapshot](https://snapshot.ubuntu.com/) |
+| Icarus Verilog (extended image) | Ubuntu `iverilog=12.0-3`, same pin as the Apple II overlay | [snapshot](https://snapshot.ubuntu.com/) |
 | UVM bundle | `65a3ded36f7f752356de62669fd84e01f4cb0121` (unchanged upstream HEAD) | [repository](https://github.com/nitronis/UVM) |
 
 Run `./scripts/update_docker.sh --dry-run` to preview release updates, or
