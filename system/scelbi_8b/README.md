@@ -76,16 +76,19 @@ Boundaries: the console card models the byte-level bit-banger protocol
 (SIMH's model), not 110-baud analog timing; the paper-tape reader follows
 SIMH's documented port/flag map but SIMH leaves its own PTR unit unimplemented,
 and SCELBAL's `SAVE`/`LOAD` vectors are stubs in the SC1 ROM, so the reader is
-exercised by a test loader rather than by the interpreter; the SCELBAL
-math-functions and strings supplements are not loaded (the base SC1 ROM has no
-function/array or string capability — `UDEFX: HLT`); there is no FPGA build and
-no physical hardware comparison. See `report/final_report.md` for the full
-results and the open RTL-vs-oracle comparison limit.
+exercised by a test loader rather than by the interpreter
+([details](spec/paper_tape.md)); the SCELBAL math-functions and strings
+supplements are not loaded, and the base SC1 ROM has no function/array or string
+capability, so this is a firmware-provenance limit rather than a board limit
+([details](spec/supplements.md)); there is no FPGA build and no physical
+hardware comparison. See `report/final_report.md` for the full results.
 
 - [Console oracle](oracle/README.md) — independent SIMH-derived model used to
   settle the `LET` and `INP` questions
 
 - [Specification](spec/spec.md)
+- [Paper-tape reader](spec/paper_tape.md) — implementation, verification and limits
+- [SCELBAL supplements](spec/supplements.md) — why the math/strings packages are out of profile
 - [Implementation plan](plans/implementation_plan.md)
 - [Test plan](plans/testplan.md)
 - [Verification report](report/final_report.md)
