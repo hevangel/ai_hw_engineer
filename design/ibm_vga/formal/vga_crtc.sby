@@ -1,0 +1,33 @@
+# CRT controller alone. Registers are arbitrary constants (no reset under
+# FORMAL, no data writes). prove_h (abc pdr, unbounded; HT <= 48, the
+# horizontal retrace does not wrap the line): horizontal counter bound
+# (HT+5 characters) and retrace width equal to the p.2-60 algorithm.
+# prove_v (abc pdr, unbounded; HT <= 2, VT <= 30, the vertical retrace does
+# not wrap the frame): vertical counter bound (VT+2 lines), retrace width
+# (p.2-70), double-scan phase. Both: interrupt latch rules, retrace start
+# line, row scan changes only at row-scan ticks. cover (smtbmc yices): a
+# complete frame, an interrupt, a double-scanned row.
+[tasks]
+prove_h
+prove_v
+cover
+
+[options]
+prove_h: mode prove
+prove_v: mode prove
+cover: mode cover
+cover: depth 60
+
+[engines]
+prove_h: abc pdr
+prove_v: abc pdr
+cover: smtbmc yices
+
+[script]
+prove_h: read -formal -DFORMAL -DFORMAL_PROVE_H vga_crtc.sv
+prove_v: read -formal -DFORMAL -DFORMAL_PROVE_V vga_crtc.sv
+cover: read -formal -DFORMAL -DFORMAL_COVER vga_crtc.sv
+prep -top vga_crtc
+
+[files]
+../src/vga_crtc.sv

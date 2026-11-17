@@ -1,0 +1,38 @@
+# Card top with the plane RAMs and the ROM as black boxes (outputs
+# unconstrained): register access rules (write-only registers never drive
+# the data bus), memory drive rules, decode exclusivity, map-mask and
+# odd/even write gating, attribute flip-flop (abc pdr); covers for each
+# write mode reaching a plane and for a flip-flop reset (smtbmc yices).
+[tasks]
+prove
+cover
+
+[options]
+prove: mode prove
+cover: mode cover
+cover: depth 40
+
+[engines]
+prove: abc pdr
+cover: smtbmc yices
+
+[script]
+read -formal -DFORMAL ega_plane_ram.sv ega_rom.sv ega_io_decode.sv ega_ext_regs.sv
+read -formal -DFORMAL ega_sequencer.sv ega_crtc.sv ega_graphics_ctrl.sv
+read -formal -DFORMAL ega_display_fetch.sv ega_attribute_ctrl.sv ibm_ega.sv
+
+prep -top ibm_ega
+flatten
+
+
+[files]
+../src/ega_plane_ram.sv
+../src/ega_rom.sv
+../src/ega_io_decode.sv
+../src/ega_ext_regs.sv
+../src/ega_sequencer.sv
+../src/ega_crtc.sv
+../src/ega_graphics_ctrl.sv
+../src/ega_display_fetch.sv
+../src/ega_attribute_ctrl.sv
+../src/ibm_ega.sv

@@ -6,7 +6,9 @@ coprocessor-port write); decision D3 is resolved (Option A, below). M3 done
 (coprocessor ports, both 8259As, shutdown-to-reset and the I/O bus
 conversion on the board; stops at the read of fixed-disk status port 1F7h at
 POST checkpoint 3Ch). Every instruction matches Unicorn and the board
-synthesizes. M4 is next.
+synthesizes. M4a done (I/O channel and an IBM EGA in a slot; same stop,
+with a working display). M4b part 1 done (the IBM VGA card on the AT;
+same stop, 720 x 400 display). The rest of M4b is next.
 
 Each milestone ends with a report in `report/` and an update to issue
 https://github.com/hevangel/ai_hw_engineer/issues/254. A milestone is done
@@ -142,17 +144,63 @@ Every instruction state and data transfer of both runs matches Unicorn,
 through protected mode, the interrupts, four exceptions and the resets. See
 [the M3 report](../report/2026-11-15-m3-interrupts-and-protected-mode.md).
 
-## M4: video, keyboard input and diskette; full POST
+## M4a: I/O channel and EGA (done)
 
-- Decide what a read from an empty slot returns, or fit the adapters the
-  BIOS probes. The fixed disk at 1F0h–1F7h comes first in the BIOS's order
-  and is the M3 stop.
-- Video adapter per decision D2. Extract the CGA from the PC system into a
-  reusable module rather than copying it.
-- Keyboard scan codes from the host through the 8042.
-- AT diskette adapter with the 8272.
+- `src/at_io_channel.sv`: 8-bit I/O channel cycles for memory
+  A0000h–DFFFFh and unanswered I/O at 100h and above (AT18). The board
+  gained the output `mem_cycle_o`, and an I/O read that no board device
+  answers now takes its data from the host or channel instead of reading 0.
+- `src/ibm_pc_at_5170_ega.sv`: the board, the channel and the IBM EGA
+  (`design/ibm_ega`, 256 KB, IBM ROM 6277356 at C0000h), card IRQ2 on the
+  board's IRQ 9, the clock arrangement of AT19, and card switches for the
+  Enhanced Color Display in 350-line mode. CMOS image `tb/cmos_ega.hex`.
+- Runner: `-DAT_EGA` build, frame rebuilt from the card's monitor
+  connector, options `--stop-at`, `--stop-post`, `--max-cycles`, `--frame`
+  and `--empty-slots`. `scripts/run_post_ega.sh` checks the stop point, the
+  screen text, the 8042, the MC146818 and every instruction against
+  Unicorn (system BIOS and EGA BIOS). The EGA machine is also synthesized.
+- Finding: integration with the real EGA BIOS found an escaped defect in
+  the card (attribute writes at 3C1 were not decoded), fixed in
+  `design/ibm_ega` with a failure note, and showed that the EGA BIOS's sync
+  test needs the clock arrangement of AT19.
+
+Result: the BIOSes run 18,201,512 instructions and stop at `F000:1454`,
+after the first read of port 1F7h, at POST checkpoint 3Ch. The EGA BIOS's
+own self-test passes (256 KB found) and the last frame reads
+`00640 KB OK`, ` 301-Keyboard Error`, ` 601-Diskette Error`. The bare
+board's regression is unchanged. See
+[the M4a report](../report/2026-11-16-m4a-io-channel-and-ega.md).
+
+## M4b: VGA, keyboard input and diskette; full POST
+
+Part 1 (VGA) is done; the keyboard device, the diskette adapter and the
+full POST remain.
+
+- VGA card (part 1, done): `src/ibm_pc_at_5170_vga.sv` puts `design/ibm_vga`
+  (IBM PS/2 Display Adapter, 256 KB, DAC, adapter BIOS in the 32 KB window
+  at C0000h) in the slot, card IRQ2 on IRQ 9, a colour analog monitor
+  attached, and a card clock of twice the processor clock standing for
+  48 MHz (an extension of AT19). The runner's `-DAT_VGA` build writes the
+  DAC's 6-bit codes scaled to 8 bits per gun. `scripts/run_post_card.sh
+  ega|vga` is now the one regression for either card (`run_post_ega.sh` and
+  `run_post_vga.sh` are wrappers), and `scripts/check_frame.py` reads
+  720 x 400 VGA text. Result: 16,294,929 instructions, the same stop at
+  `F000:1454`, the same three screen lines, 8042, MC146818 and Unicorn all
+  pass; the machine synthesizes to 129,054 generic cells. The EGA machine's
+  results are unchanged. The bare-board regression, rerun on this
+  branch, is unchanged in both scenarios. See [the M4b part 1 report](../report/2026-11-16-m4b-vga.md).
+  The VGA ROM is a legally fetched input; it could not be cross-checked
+  against an IBM listing.
+- Keyboard device on the 8042's keyboard connector, with scan codes from
+  the host. Without it the BIOS reports error 301 and waits at
+  `(RESUME = "F1" KEY)` (checkpoint 3Fh in the exploratory run).
+- AT diskette adapter with the 8272 (error 601 today).
+- The fixed disk at 1F0h–1F7h comes first in the BIOS's order; the
+  regression's stop is the read of 1F7h. Either fit the controller (M5) or
+  decide how far the regression should run past it.
 - Goal: POST completes and the BIOS attempts to boot. Web panel and
-  waveform screenshot in the README.
+  waveform screenshot in the README. Screen text compared with an
+  independent machine (86Box or PCjs).
 
 ## M5: PC DOS
 

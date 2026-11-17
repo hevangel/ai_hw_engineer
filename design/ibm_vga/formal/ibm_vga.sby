@@ -1,0 +1,47 @@
+# Card top with the plane RAMs and ROM as black boxes and the DAC palette
+# as a shadow entry: bus discipline (only readable ports of an enabled card
+# drive an I/O read; 3C3 and 46E8h never; memory reads only ROM or the RAM
+# of an enabled card; nothing drives without a read strobe), a disabled card
+# decodes nothing, setup hides the DAC, decode exclusivity, map-mask /
+# chain-4 / odd-even write gating, attribute flip-flop, RESET DRV disables
+# (abc pdr); covers (smtbmc yices).
+[tasks]
+prove
+cover
+
+[options]
+prove: mode prove
+cover: mode cover
+cover: depth 40
+
+[engines]
+prove: abc pdr
+cover: smtbmc yices
+
+[script]
+read -formal -DFORMAL vga_plane_ram.sv vga_rom.sv vga_io_decode.sv vga_general_regs.sv
+read -formal -DFORMAL vga_sequencer.sv vga_crtc.sv vga_graphics_ctrl.sv
+read -formal -DFORMAL vga_display_fetch.sv vga_attribute_ctrl.sv vga_dac.sv ibm_vga.sv
+prep -top ibm_vga
+flatten
+# out-of-range part selects behind unreachable conditions (for example
+# the flag-history index 0, register-file reads at reserved indices)
+# elaborate to x ($shiftx): map memories and cells, then make those bits
+# free values
+memory_map
+techmap
+opt -fast
+setundef -anyseq
+
+[files]
+../src/vga_plane_ram.sv
+../src/vga_rom.sv
+../src/vga_io_decode.sv
+../src/vga_general_regs.sv
+../src/vga_sequencer.sv
+../src/vga_crtc.sv
+../src/vga_graphics_ctrl.sv
+../src/vga_display_fetch.sv
+../src/vga_attribute_ctrl.sv
+../src/vga_dac.sv
+../src/ibm_vga.sv

@@ -14,6 +14,7 @@ boundary the runner reported, so Unicorn agrees on where the run stopped.
 The BIOS's own POST tests that passed on the way are listed.
 """
 import sys
+from pathlib import Path
 
 from bios_replay import replay
 
@@ -43,8 +44,12 @@ CHECKPOINTS = {
 
 
 def main():
-    if len(sys.argv) != 4:
-        raise SystemExit('usage: check_post_trace.py ROM TRACE STOP_CS:IP')
+    if len(sys.argv) not in (4, 5):
+        raise SystemExit('usage: check_post_trace.py ROM TRACE STOP_CS:IP [ADAPTER_BASE:ADAPTER_ROM]')
+    adapter_roms = []
+    if len(sys.argv) == 5:
+        base, _, path = sys.argv[4].partition(':')
+        adapter_roms.append((int(base, 16), Path(path).read_bytes()))
     stop_cs, stop_ip = (int(part, 16) for part in sys.argv[3].split(':'))
     reached = []
     last_next = None
@@ -58,7 +63,7 @@ def main():
 
     stats = {}
     steps, last_pc, trailing = replay(sys.argv[1], sys.argv[2], on_step, allow_trailing=True,
-                                      stats=stats)
+                                      stats=stats, adapter_roms=adapter_roms)
     # The BIOS stays in segment F000 for all code reached so far, so the
     # stop is checked as F000:IP; a far transfer elsewhere would fail here.
     if stop_cs != 0xf000 or last_next != stop_ip:

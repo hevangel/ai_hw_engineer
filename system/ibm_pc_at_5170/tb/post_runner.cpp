@@ -10,12 +10,14 @@
 // counted (the BIOS sizes memory by finding where a written pattern does not
 // read back), and an instruction fetch from there ends the run. A halt with
 // interrupts disabled or a bus protocol error also ends the run with a STOP
-// line. So does an I/O cycle that no board device
-// decodes, with one exception: a write to an I/O channel address (100h and
-// above; the system board decodes 000h-0FFh, Technical Reference I/O map)
-// is accepted and counted, because the expansion slots are empty and a
-// write to an address no adapter decodes has no effect on the real bus. A
-// read from an empty slot still stops the run: its value is undefined. The board clocks are
+// line. So does an I/O cycle below 100h that no board device decodes (the
+// system board decodes 000h-0FFh, Technical Reference I/O map). The
+// expansion slots are empty, so an I/O channel address (100h and above)
+// is undriven: a write there has no effect and is counted; a read ends
+// the run, or with --empty-slots returns kOpenBus and is counted
+// (ASSUMPTION AT14).
+//
+// The board clocks are
 // virtual (ASSUMPTION AT1), not IBM AT physical timing.
 //
 // Trace records (consumed by scripts/check_post_trace.py):
@@ -37,8 +39,40 @@
 //   W <t> <byte>      data write took effect
 //   V <t> <byte>      value the CPU read from port 71h
 //   R <t>             that read took effect (register C clears on read)
+//
+// Options, after the positional arguments:
+//   --stop-post=XX    stop when port 80h holds XX (hex)
+//   --empty-slots     an I/O read at 100h or above that nothing answers returns
+//                     kOpenBus and is counted, instead of ending the run
+//   --stop-at=ADDR    stop after the instruction at physical address ADDR (hex) retires
+//   --max-cycles=N    give the run up after N processor clocks
+//   --frame=FILE      (EGA build) write the last complete video frame as a PPM
+//
+// Built with -DAT_VGA the machine is ibm_pc_at_5170_vga (IBM PS/2 Display
+// Adapter; the frame holds its DAC outputs). Built with -DAT_EGA the
+// machine is ibm_pc_at_5170_ega: an IBM Enhanced
+// Graphics Adapter sits on the I/O channel and owns memory A0000-DFFFF and
+// the I/O addresses it decodes. A channel read the card does not drive
+// still returns kOpenBus. The picture is rebuilt from the card's monitor
+// connector: one pixel per pix_en_o while display enable is active (the
+// border is left out), a new line at each horizontal sync
+// and a new frame at each vertical sync; the six direct-drive bits
+// {r,g,b,R,G,B} map to 2/3 and 1/3 intensity per gun (Enhanced Color
+// Display, 350-line mode).
+#if defined(AT_EGA)
+#define AT_CARD 1
+#include "Vibm_pc_at_5170_ega_tb.h"
+using Dut = Vibm_pc_at_5170_ega_tb;
+#elif defined(AT_VGA)
+#define AT_CARD 1
+#include "Vibm_pc_at_5170_vga_tb.h"
+using Dut = Vibm_pc_at_5170_vga_tb;
+#else
 #include "Vibm_pc_at_5170_tb.h"
+using Dut = Vibm_pc_at_5170_tb;
+#endif
 #include "verilated.h"
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <fstream>
@@ -56,6 +90,10 @@ constexpr uint8_t kOpenBus = 0xff;
 // Processor clocks a halt with interrupts disabled may last (about a third
 // of a second at 6 MHz) before the run is given up.
 constexpr uint64_t kHaltWait = 2000000;
+// Processor clocks after which a run that has not stopped is given up.
+constexpr uint64_t kCycleLimit = 6000000000ull;
+// Must match the parameters of ibm_pc_at_5170_ega.
+[[maybe_unused]] constexpr uint64_t kVidHz = 24000000, kOscHz = 14318180;
 bool is_rom(uint32_t a) { return (a >= 0x0f0000 && a <= 0x0fffff) || a >= 0xff0000; }
 bool is_ram(uint32_t a) { return a < kRamEnd; }
 
@@ -69,6 +107,24 @@ std::string hex(uint32_t v, int width) {
 int main(int argc, char** argv) {
     Verilated::commandArgs(argc, argv);
     try {
+        int stop_post = -1;
+        long stop_at = -1;
+#ifdef AT_CARD
+        bool empty_slots = true;   // the I/O channel is modeled
+#else
+        bool empty_slots = false;
+#endif
+        uint64_t cycle_limit = kCycleLimit;
+        std::string frame_path;
+        while (argc > 5 && std::string(argv[argc - 1]).rfind("--", 0) == 0) {
+            const std::string opt = argv[--argc];
+            if (opt.rfind("--stop-post=", 0) == 0) stop_post = std::stoi(opt.substr(12), nullptr, 16);
+            else if (opt.rfind("--frame=", 0) == 0) frame_path = opt.substr(8);
+            else if (opt == "--empty-slots") empty_slots = true;
+            else if (opt.rfind("--stop-at=", 0) == 0) stop_at = std::stol(opt.substr(10), nullptr, 16);
+            else if (opt.rfind("--max-cycles=", 0) == 0) cycle_limit = std::stoull(opt.substr(13));
+            else throw std::runtime_error("unknown option " + opt);
+        }
         if (argc < 5 || argc > 7)
             throw std::runtime_error(
                 "usage: post_runner ROM TRACE wait half_period [KBC_LOG [RTC_LOG]]");
@@ -94,13 +150,13 @@ int main(int argc, char** argv) {
         const unsigned half = unsigned(std::stoul(argv[4]));
         if (!half) throw std::runtime_error("zero timer half-period");
 
-        Vibm_pc_at_5170_tb d;
+        Dut d;
         // ASSUMPTION AT6: RAM powers up as zero. Real DRAM contents are
         // undefined; the BIOS writes RAM before reading it in the code
         // reached so far.
         std::vector<uint8_t> ram(kRamEnd, 0);
         uint64_t retired = 0, rom_writes = 0, open_reads = 0, open_writes = 0, cpu_resets = 0;
-        uint64_t halt_clocks = 0, inta_cycles = 0;
+        uint64_t halt_clocks = 0, inta_cycles = 0, chan_writes = 0;
         bool inta_active = false;
         uint8_t inta_byte = 0;
         bool was_reset = true;   // the power-on reset is not counted
@@ -117,20 +173,90 @@ int main(int argc, char** argv) {
         d.kbd_unlocked_i = 1; d.display_mono_i = 1; d.mfg_jumper_i = 0; d.ram_512k_i = 1;
         d.kbd_clk_i = 1; d.kbd_data_i = 1;
         d.chan_irq_i = 0;   // no adapter requests an interrupt
-        uint64_t kbc_retired = 0, kbc_started = 0, slot_writes = 0;
+        uint64_t kbc_retired = 0, kbc_started = 0, slot_writes = 0, slot_reads = 0;
+#ifdef AT_CARD
+#ifdef AT_EGA
+        // Enhanced Color Display as the primary display in its 350-line
+        // mode: SW1 off, SW2 on, SW3 on, SW4 off (1 = off); P1 at pin 2 =
+        // secondary red, P3 at the 3xx port addresses.
+        d.ega_sw_i = 0x9; d.ega_p1_i = 1; d.ega_p3_i = 1;
+        // The six direct-drive bits {r,g,b,R,G,B}: 2/3 and 1/3 intensity.
+        auto pixel = [&]() -> uint32_t {
+            const unsigned v = d.video_o;
+            uint32_t rgb = 0;
+            for (int gun = 2; gun >= 0; gun--)
+                rgb = (rgb << 8) | (0xAA * ((v >> gun) & 1) + 0x55 * ((v >> (gun + 3)) & 1));
+            return rgb;
+        };
+#else
+        // The DAC's 6-bit codes scaled to 8 bits per gun.
+        auto pixel = [&]() -> uint32_t {
+            auto scale = [](unsigned c) { return (c << 2) | (c >> 4); };
+            return (scale(d.r_o) << 16) | (scale(d.g_o) << 8) | scale(d.b_o);
+        };
+#endif
+        d.vid_clk_i = 0;
+        std::vector<std::vector<uint32_t>> lines(1), last_frame;
+        uint64_t frames = 0;
+        bool was_hsync = false, was_vsync = false;
+        // One rising edge of the video clock has just been evaluated.
+        auto video_sample = [&]() {
+            if (!d.pix_en_o) return;
+            if (d.vsync_o && !was_vsync) {
+                if (lines.size() > 1) { last_frame = lines; ++frames; }
+                lines.assign(1, {});
+            } else if (d.hsync_o && !was_hsync) {
+                lines.emplace_back();
+            }
+            was_hsync = d.hsync_o; was_vsync = d.vsync_o;
+            if (d.de_o) lines.back().push_back(pixel());
+        };
+        // ASSUMPTION AT19: the video clock runs at the processor clock's
+        // rate, and the 8254 clock is the channel's OSC / 12 on the same
+        // time base (kOscHz / 12 against kVidHz), as on the real board.
+        uint64_t timer_acc = 0;
+        bool timer_level = false;
+#define VID_RISE() do { d.vid_clk_i = 1; } while (0)
+#define VID_AFTER() do { video_sample(); } while (0)
+#define VID_FALL() do { d.vid_clk_i = 0; } while (0)
+#ifdef AT_VGA
+// The VGA needs a clock faster than its 28.322 MHz oscillator: two video
+// clocks per processor clock (48 MHz on the AT19 time base), the second
+// with the falling edge of clk_i.
+#define VID_SECOND 1
+#else
+#define VID_SECOND 0
+#endif
+#else
+#define VID_SECOND 0
+#define VID_RISE() do { } while (0)
+#define VID_AFTER() do { } while (0)
+#define VID_FALL() do { } while (0)
+#endif
         auto half_clock = [&](bool rising) {
-            d.clk_i = rising; d.clk_2x_i = 1; d.eval();
-            d.clk_2x_i = 0; d.eval();
+            d.clk_i = rising; d.clk_2x_i = 1;
+            if (rising || VID_SECOND) VID_RISE(); else VID_FALL();
+            d.eval();
+            if (rising || VID_SECOND) VID_AFTER();
+            d.clk_2x_i = 0;
+            if (VID_SECOND) VID_FALL();
+            d.eval();
         };
         d.eval();
         for (int i = 0; i < 16; i++) { half_clock(true); half_clock(false); }
         d.reset_i = 0;
 
         uint64_t cycle = 0;
-        for (; cycle < 400000000 && stop.empty(); cycle++) {
+        for (; cycle < cycle_limit && stop.empty(); cycle++) {
             d.ready_n_i = wait ? (cycle % 5 != 4) : 0;
             d.dma_clk_n_i = cycle & 1;
+#ifdef AT_CARD
+            timer_acc += 2 * (kOscHz / 12);
+            if (timer_acc >= kVidHz) { timer_acc -= kVidHz; timer_level = !timer_level; }
+            d.timer_clk_i = timer_level ? 7 : 0;
+#else
             d.timer_clk_i = ((cycle / half) & 1) ? 7 : 0;
+#endif
             d.eval();
             if (d.refresh_o) d.refresh_ready_i = ++refresh_cycles >= 3;
             else { refresh_cycles = 0; d.refresh_ready_i = 0; }
@@ -152,10 +278,14 @@ int main(int argc, char** argv) {
             auto byte = [&](uint32_t x) -> uint8_t {
                 return is_ram(x) ? ram[x] : is_rom(x) ? rom[x & 0xffff] : kOpenBus;
             };
-            if (!d.io_cycle_o) d.mem_rdata_i = uint16_t(byte(base) | (byte(base + 1) << 8));
+            // The host's data for this cycle: memory, or the undriven bus of
+            // an I/O read that no board device answers.
+            d.mem_rdata_i = d.io_cycle_o ? uint16_t(kOpenBus | (kOpenBus << 8))
+                                         : uint16_t(byte(base) | (byte(base + 1) << 8));
             const uint32_t port = d.io_port_o;
-            const bool empty_slot_write = d.io_unclaimed_o && d.data_oe_o && port >= 0x100;
-            if (d.io_unclaimed_o && !empty_slot_write) {
+            const bool empty_slot = d.io_unclaimed_o && port >= 0x100;
+            const bool empty_slot_write = empty_slot && d.data_oe_o;
+            if (d.io_unclaimed_o && !(empty_slot && (empty_slots || d.data_oe_o))) {
                 stop = std::string("kind=io-") + (d.data_oe_o ? "write" : "read") +
                        " port=" + hex(port, 4) + " at=" + where;
                 break;
@@ -164,7 +294,13 @@ int main(int argc, char** argv) {
                 stop = "kind=io-undriven port=" + hex(port, 4) + " at=" + where;
                 break;
             }
-            if (d.completed_bytes_o && !d.io_cycle_o && d.fetch_cycle_o) {
+#ifdef AT_CARD
+            const bool chan_driven = d.chan_sel_o && d.chan_driven_o;
+            const bool chan_mem = d.chan_sel_o && !d.io_cycle_o;
+#else
+            const bool chan_driven = false, chan_mem = false;
+#endif
+            if (d.completed_bytes_o && !d.io_cycle_o && d.fetch_cycle_o && !chan_driven) {
                 // A byte access to an odd address uses only the high lane;
                 // an even access uses the high lane only when BHE# is low.
                 const bool low = !(a & 1), high = (a & 1) || !d.bhe_n_o;
@@ -184,11 +320,14 @@ int main(int argc, char** argv) {
                     if (write && !io) {
                         if (is_ram(x)) ram[x] = value;
                         else if (is_rom(x)) ++rom_writes;
+                        else if (chan_mem) ++chan_writes;
                         else ++open_writes;
                     }
-                    if (!write && !io && !fetch && !is_ram(x) && !is_rom(x) && !d.inta_cycle_o)
+                    if (!write && !io && !fetch && !is_ram(x) && !is_rom(x) && !d.inta_cycle_o &&
+                        !chan_driven)
                         ++open_reads;
                     if (io && write && empty_slot_write) ++slot_writes;
+                    if (io && !write && empty_slot && !chan_driven) ++slot_reads;
                     // The 8042 select (sheets 13/18): even addresses 060h-06Eh.
                     if (klog.is_open() && io && !write && (x & 0x3f1) == 0x060)
                         klog << "S " << ((x >> 2) & 1) << ' ' << unsigned(value) << '\n';
@@ -236,7 +375,7 @@ int main(int argc, char** argv) {
                          << unsigned(d.kbc_wr_data_o) << '\n';
                 if (d.kbc_rd_end_o && !d.kbc_rd_a0_o) klog << "X " << kbc_started << '\n';
             }
-            d.clk_i = 1; d.clk_2x_i = 1; d.eval();
+            d.clk_i = 1; d.clk_2x_i = 1; VID_RISE(); d.eval();
             if (d.kbc_retire_o) {
                 ++kbc_retired;
                 if (klog.is_open()) klog << "I " << unsigned(d.kbc_retire_pc_o) << '\n';
@@ -250,8 +389,17 @@ int main(int argc, char** argv) {
                 for (unsigned r = 0; r < 8; r++) trace << ' ' << uint16_t(d.regs_o[r / 2] >> ((r % 2) * 16));
                 trace << std::dec << '\n';
             }
-            d.clk_2x_i = 0; d.eval();
+            VID_AFTER();
+            d.clk_2x_i = 0;
+            if (VID_SECOND) VID_FALL();
+            d.eval();
             half_clock(false);
+            if ((stop_post >= 0 && d.post_code_o == stop_post && !d.cpu_reset_o && cycle > 64) ||
+                (stop_at >= 0 && d.retire_o && long(d.retire_pc_o) == stop_at)) {
+                stop = (stop_at >= 0 ? "kind=stop-at at=" : "kind=post-code at=") + hex(cur_cs, 4) + ":" + hex(cur_ip, 4);
+                ++cycle;
+                break;
+            }
         }
         if (stop.empty()) stop = "kind=cycle-limit at=" + hex(cur_cs, 4) + ":" + hex(cur_ip, 4);
         trace.flush();
@@ -261,9 +409,31 @@ int main(int argc, char** argv) {
             if (!klog) throw std::runtime_error("8042 log write failed");
         }
         std::cout << "STOP " << stop << " post=" << hex(d.post_code_o, 2) << " retired=" << retired
-                  << " cycles=" << cycle << " kbc_retired=" << kbc_retired << " slot_writes=" << slot_writes << " rom_writes=" << rom_writes << " open_reads=" << open_reads
+                  << " cycles=" << cycle << " kbc_retired=" << kbc_retired << " slot_writes=" << slot_writes << " slot_reads=" << slot_reads << " rom_writes=" << rom_writes << " open_reads=" << open_reads
                   << " open_writes=" << open_writes << " cpu_resets=" << cpu_resets << " inta_cycles=" << inta_cycles << " wait=" << wait
                   << " half=" << half << '\n';
+#ifdef AT_CARD
+        std::cout << "VIDEO frames=" << frames << " chan_mem_writes=" << chan_writes;
+        if (!last_frame.empty()) {
+            size_t width = 0;
+            for (const auto& l : last_frame) width = std::max(width, l.size());
+            size_t first = 0, last = last_frame.size();
+            while (first < last && last_frame[first].empty()) ++first;
+            while (last > first && last_frame[last - 1].empty()) --last;
+            std::cout << " width=" << width << " lines=" << (last - first);
+            if (!frame_path.empty() && width) {
+                std::ofstream ppm(frame_path, std::ios::binary);
+                ppm << "P6\n" << width << ' ' << (last - first) << "\n255\n";
+                for (size_t y = first; y < last; y++)
+                    for (size_t x = 0; x < width; x++) {
+                        const uint32_t v = x < last_frame[y].size() ? last_frame[y][x] : 0;
+                        ppm.put(char(v >> 16)); ppm.put(char(v >> 8)); ppm.put(char(v));
+                    }
+                if (!ppm) throw std::runtime_error("frame write failed");
+            }
+        }
+        std::cout << '\n';
+#endif
         d.final();
         return 0;
     } catch (const std::exception& e) {

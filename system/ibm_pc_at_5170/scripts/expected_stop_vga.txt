@@ -1,0 +1,7 @@
+# Where the VGA machine's run is ended: after the instruction at physical
+# address `after` retires. It is the BIOS's first read of the fixed disk
+# status port 1F7h, the access at which the board without a card stops
+# (scripts/expected_stop.txt); `at` is the next instruction and `post` the
+# last checkpoint written to port 80h. Update only with a report that
+# explains what moved the boundary.
+kind=stop-at after=F1453 at=F000:1454 post=3C

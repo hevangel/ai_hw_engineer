@@ -1,0 +1,8 @@
+# Text on the EGA screen when the run stops (scripts/expected_stop_ega.txt).
+# The BIOS's memory test has counted the 640 KB of base memory. No keyboard
+# is plugged in and the board has no diskette adapter, so the BIOS has
+# reported both; these two lines are the machine's correct answer for this
+# configuration, not a fault of the model.
+00640 KB OK
+ 301-Keyboard Error
+ 601-Diskette Error

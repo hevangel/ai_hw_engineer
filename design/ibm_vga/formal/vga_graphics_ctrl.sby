@@ -1,0 +1,22 @@
+# Graphics controller alone: write modes 0-3 on one anyconst bit/map,
+# both read modes (with chain 4 and odd/even map selection), stored
+# register widths (abc pdr, unbounded); covers (smtbmc yices).
+[tasks]
+prove
+cover
+
+[options]
+prove: mode prove
+cover: mode cover
+cover: depth 20
+
+[engines]
+prove: abc pdr
+cover: smtbmc yices
+
+[script]
+read -formal -DFORMAL vga_graphics_ctrl.sv
+prep -top vga_graphics_ctrl
+
+[files]
+../src/vga_graphics_ctrl.sv

@@ -10,8 +10,9 @@
 // one implementation. The 8042 is design/intel_mcs48/intel_8042 and the
 // MC146818 is design/motorola_mc146818.
 //
-// Memory is external: the host supplies read data for the current memory
-// cycle on mem_rdata_i and performs writes from data_o. address_o is the
+// Memory and the expansion slots are external: the host supplies read data
+// on mem_rdata_i for the current memory cycle, and for an I/O read that no
+// board device answers, and performs writes from data_o. address_o is the
 // system address bus, after the A20 gate. I/O reads are served only by
 // modeled devices. io_unclaimed_o flags an I/O cycle that no modeled device
 // decodes, so a run stops at the first missing device instead of reading a
@@ -76,8 +77,10 @@ module ibm_pc_at_5170 #(
     output logic        nmi_enable_o,      // port 70h bit 7 written 0
     output logic        irq8_o,            // MC146818 IRQ through U107 (to IRQ 8)
     output logic        intr_o,            // master 8259A INT, the 80286 INTR pin
-    output logic        inta_cycle_o       // an interrupt-acknowledge bus cycle is active
+    output logic        inta_cycle_o,      // an interrupt-acknowledge bus cycle is active
+    output logic        mem_cycle_o        // a memory cycle is in its command phase
 );
+    logic mem_status;
     logic cod_inta, m_io, s1, s0, status_oe, hold, detect, refresh_n;
     logic io_req, io_accept, io_write;
     logic [7:0] io_wdata, map_data;
@@ -98,11 +101,16 @@ module ibm_pc_at_5170 #(
         if (cpu_reset_o) begin
             io_cycle_o <= 1'b0;
             fetch_cycle_o <= 1'b0;
+            mem_status <= 1'b0;
         end else if (status_oe) begin
             io_cycle_o <= status == 4'h9 || status == 4'ha;
             fetch_cycle_o <= status == 4'hd;
+            mem_status <= status == 4'h5 || status == 4'h6 || status == 4'hd;
         end
     end
+    // A memory read, write or instruction-fetch cycle in its command phase,
+    // for the I/O channel.
+    assign mem_cycle_o = address_oe_o && !status_oe && mem_status;
 
     // I/O bus conversion. Every device on the system board is 8 bits wide.
     // The 80286 runs a word I/O instruction as one 16-bit cycle; the board
@@ -155,7 +163,7 @@ module ibm_pc_at_5170 #(
                       rtc_valid    ? lane(rtc_rdata) :
                       dma_valid    ? lane(dma_rdata) :
                       page_valid   ? lane(page_rdata) :
-                      io_cycle_o   ? 16'h0000 : mem_rdata_i;
+                      mem_rdata_i;
     assign cpu_data = (word_io && conv == 2'd2) ? {dev_data[15:8], conv_low} : dev_data;
 
     assign io_claimed_o = timer_sel || port61_sel || dma_sel || page_sel || kbc_sel || rtc_sel ||

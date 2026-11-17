@@ -36,8 +36,11 @@ def decode(uc, pc, extended=False):
     operand (SGDT/SIDT/LGDT/LIDT) and /4 with a register operand (SMSW).
     It also accepts EXTENDED_OPS, BOUND (62, memory operand only), ARPL (63),
     LMSW (0F 01 /6), SLDT/STR/LLDT/LTR/VERR/VERW (0F 00 /0-/5) and LAR/LSL
-    (0F 02/03), the forms the BIOS protected-mode tests use, and
-    MUL/IMUL/DIV/IDIV (F6/F7 /4-/7).
+    (0F 02/03), the forms the BIOS protected-mode tests use,
+    MUL/IMUL/DIV/IDIV (F6/F7 /4-/7) and the indirect far CALL FF /3 with a
+    memory operand (the AT BIOS's adapter-ROM scan calls a card ROM's
+    initialization entry this way; the register form is undefined,
+    210498-005 Appendix B CALL).
     """
     raw = bytes(uc.mem_read(pc,10))
     n = 0
@@ -70,6 +73,7 @@ def decode(uc, pc, extended=False):
         if op in (0xc0,0xc1,0xd0,0xd1,0xd2,0xd3) and extension==6: return None
         if op in (0xf6,0xf7) and extension not in ((0,2,3,4,5,6,7) if extended else (0,2,3)): return None
         if op==0xfe and extension not in (0,1): return None
+        if op==0xff and extension==3 and extended: return (op,raw[n:]) if m<0xc0 else None
         if op==0xff and extension not in (0,1,2,4,6): return None
         if op in (0xc6,0xc7,0x8f) and extension!=0: return None
         if op in (0x8c,0x8e) and (extension>3 or op==0x8e and extension==1): return None
