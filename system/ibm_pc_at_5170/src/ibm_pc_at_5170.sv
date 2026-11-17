@@ -372,10 +372,12 @@ module ibm_pc_at_5170 #(
     // No 80287 is fitted: -BUSY and -ERROR are pulled up, IRQ 13 stays
     // inactive, and both writes have no effect.
     // ASSUMPTION AT17 (see spec): the PAL equations are not published; the
-    // writes are decoded at F0h and F1h only.
+    // writes are decoded at F0h and F1h, and -NPCS at F8h-FFh, the 80286's
+    // processor-extension ports (an ESC instruction writes its opcode and
+    // operand pointer there). With no 80287 those writes reach no device.
     logic copro_sel, irq13;
     assign copro_sel = io_req && io_write &&
-                       (io_addr[9:0] == 10'h0f0 || io_addr[9:0] == 10'h0f1);
+                       (io_addr[9:0] == 10'h0f0 || io_addr[9:0] == 10'h0f1 || io_addr[9:3] == 7'h1f);
     assign irq13 = 1'b0;
 
     // ------------------------------------------------- timer and port 61h

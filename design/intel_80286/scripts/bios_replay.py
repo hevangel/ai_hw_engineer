@@ -263,8 +263,9 @@ class _Replay:
             self.a20 = bool(level)
             self.stats['a20_changes'] = self.stats.get('a20_changes', 0) + 1
 
-    def __init__(self, rom, adapter_roms=(), ext_ram_kb=0):
+    def __init__(self, rom, adapter_roms=(), ext_ram_kb=0, no_coprocessor=False):
         self.ext_end = 0x100000 + ext_ram_kb * 1024
+        self.no_coprocessor = no_coprocessor
         self.a20 = True
         self.folded = {}
         g = self.g = Generator(None)
@@ -728,7 +729,36 @@ class _Replay:
                     g.bus[:0] = [(ss*16 + ((sp + n) & 0xffff), g.shadow.get(ss*16 + ((sp + n) & 0xffff), 0), 0, 0)
                                  for n in range(4)]
                     repetitions = 1
-                while op not in (0xca, 0xcb):
+                escape = 0xd8 <= op <= 0xdf and self.no_coprocessor
+                if escape:
+                    # No 80287 is fitted (IBM PC AT system, assumption
+                    # AT17). On the 286 an ESC instruction with MSW EM and TS
+                    # clear hands the opcode to the processor extension
+                    # through I/O cycles at ports 00F8h-00FFh and then moves
+                    # operand words only when the extension asserts PEREQ
+                    # (210498-005 sections 1.4/11 and Appendix B ESC); with
+                    # no extension nothing else happens and the instruction
+                    # changes no register or memory. Unicorn emulates an x87
+                    # instead, so it does not execute the instruction: the
+                    # oracle advances IP by the instruction's length and
+                    # accepts only I/O writes to 00F8h-00FFh as its
+                    # transfers. Their values (the 286's processor-extension
+                    # protocol) are not judged by Unicorn; they are counted.
+                    if uc.reg_read(UC_X86_REG_CR0) & 0xc:
+                        raise ValueError(f'ESC at {pc:06x} with MSW EM or TS set is not supported')
+                    modrm = raw[1]
+                    mod, rm = modrm >> 6, modrm & 7
+                    disp = 2 if mod == 2 or (mod == 0 and rm == 6) else 1 if mod == 1 else 0
+                    length = (10 - len(raw)) + 2 + disp
+                    if not actual or any(not (t[2] and t[3] and 0xf8 <= t[0] <= 0xff) for t in actual):
+                        raise ValueError(f'ESC at {pc:06x} without an 80287: CPU transfers {actual[:8]} are not '
+                                         'only processor-extension port writes')
+                    uc.reg_write(UC_X86_REG_IP, (ip + length) & 0xffff)
+                    g.bus[:] = list(actual)
+                    g.seen[:] = [(pc, length)]
+                    repetitions = 1
+                    stats['esc_without_coprocessor'] = stats.get('esc_without_coprocessor', 0) + 1
+                while op not in (0xca, 0xcb) and not escape:
                     uc.emu_start(cs*16 + ip, 0, count=1)
                     repetitions += 1
                     if not repeated or uc.reg_read(UC_X86_REG_CS)*16 + uc.reg_read(UC_X86_REG_IP) != cs*16 + ip:
@@ -927,7 +957,7 @@ class _Replay:
 
 
 def replay(rom_path, trace_path, on_step=None, allow_trailing=False, stats=None, adapter_roms=(),
-           ext_ram_kb=0):
+           ext_ram_kb=0, no_coprocessor=False):
     """Compare the trace with Unicorn.
 
     on_step(pc, next_ip, inputs) is called after each compared instruction,
@@ -936,13 +966,15 @@ def replay(rom_path, trace_path, on_step=None, allow_trailing=False, stats=None,
     the run stopped inside) are returned instead of rejected. If stats is a
     dict it receives the event and non-oracle counters. adapter_roms is a
     sequence of (base address, image bytes) for ROMs on adapter cards;
-    ext_ram_kb is the expansion RAM from 100000h in KiB.
+    ext_ram_kb is the expansion RAM from 100000h in KiB. With no_coprocessor
+    (a board with no 80287), ESC instructions are judged as the 286 runs them
+    without a processor extension (see run).
     Returns (steps, last_pc, trailing_records).
     """
     rom = Path(rom_path).read_bytes()
     if len(rom) != 65536 or hashlib.sha256(rom).hexdigest() != ROM_SHA256:
         raise ValueError('unrecognized IBM AT BIOS')
-    state = _Replay(rom, adapter_roms, ext_ram_kb)
+    state = _Replay(rom, adapter_roms, ext_ram_kb, no_coprocessor)
     try:
         return state.run(trace_path, on_step, allow_trailing)
     finally:

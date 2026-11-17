@@ -77,7 +77,8 @@ def main():
 
     stats = {}
     steps, last_pc, trailing = replay(argv[1], argv[2], on_step, allow_trailing=True,
-                                      stats=stats, adapter_roms=adapter_roms, ext_ram_kb=ext_kb)
+                                      stats=stats, adapter_roms=adapter_roms, ext_ram_kb=ext_kb,
+                                      no_coprocessor=True)
     # The BIOS stays in segment F000 for all code reached in a POST run, so
     # the stop is checked as F000:IP; a far transfer elsewhere would fail
     # here. A boot run ends in the boot program; its IP is compared.

@@ -496,7 +496,14 @@ waveform.
   on the schematic (sheets 16, 19, 20); with no adapter they are taken as
   inactive (0).
 - ASSUMPTION AT17: the equations of PAL U130 are not published; the
-  coprocessor writes are decoded at F0h and F1h only.
+  coprocessor writes are decoded at F0h and F1h, and (since the diskette
+  milestone, when the BIOS first runs past checkpoint 40h and executes
+  FNINIT) -NPCS at F8h-FFh, the 80286's processor-extension ports, where an
+  ESC instruction writes its opcode and operand pointer. No 80287 is
+  fitted, so those writes reach nothing and no operand moves (PEREQ is
+  never asserted); the BIOS's FNSTCW leaves its memory word unchanged and
+  the BIOS finds no coprocessor. The Unicorn replay treats ESC instructions
+  the same way (no_coprocessor; Unicorn's x87 is not used).
 - ASSUMPTION AT18: I/O channel cycles for 8-bit cards (`at_io_channel.sv`)
   are one clock of address setup, four clocks of command and one clock of
   hold per byte; a word memory access to a card is two such byte cycles,

@@ -111,6 +111,35 @@ scenario, makes the same five checks (stop point in
 8042, MC146818, Unicorn) and writes `work/post_vga/frame.png`. `run_all.sh`
 does not run it either. `run_synth.sh` also synthesizes the VGA machine.
 
+## Diskette and DMA
+
+Both display machines have the diskette function of the IBM Fixed Disk
+and Diskette Drive Adapter in a slot (`src/at_diskette_adapter.sv`, with
+the repository's `intel_8272`), and the board's two 8237s now move data
+(DMA channel 2, page registers, arbitration with refresh, T/C). Drive A is
+a 1.2 MB drive; images are raw sector files (`--fda=IMG`, `--fdb=IMG`,
+`--fda-type=1.2|360`, `--fda-ro`, `--write-back`). The BIOS's diskette test
+passes, so the 601 line is gone from the POST screens. Expansion RAM above
+1 MB is a runner option (`--ext-kb=N`, CMOS image `tb/cmos_vga_2mb.hex`
+for 2 MB).
+
+```sh
+ROM=$(sh system/ibm_pc_at_5170/scripts/get_bios.sh)
+sh system/ibm_pc_at_5170/scripts/run_boot_diskette.sh "$ROM"
+```
+
+`run_boot_diskette.sh` builds test diskettes with
+`scripts/make_test_diskette.py` (no copyrighted content; the boot program
+is `tb/boot_diskette.S`), powers on the VGA machine, presses F1 at the
+BIOS's 301 prompt with a bench stimulus on the keyboard lines (there is no
+keyboard device yet), lets the BIOS boot drive A and checks the boot
+program's own read/checksum/write test, the written-back image, an
+independent model of the adapter and controller
+(`scripts/check_fdc_log.py`), the 8042 and MC146818 models and Unicorn for
+the whole run. See the
+[diskette report](report/2026-11-17-diskette-adapter-and-dma.md) for
+results, timing assumptions (AT25-AT35) and limits.
+
 ## Verification and boundaries
 
 The board answers an I/O read only from modeled devices. On the bare board
