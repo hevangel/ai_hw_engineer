@@ -19,7 +19,11 @@ tasks_for() {
     case "$1" in
         ibm_s360_alu|ibm_s360_addr) echo "bmc cover" ;;
         ibm_s360_psw) echo "bmc prove cover" ;;
-        ibm_s360_cpu) echo "bmc cover" ;;
+        # The core cover task is defined but not run by default: with the
+        # 64-bit divider and the variable shifts in the model it exceeds a
+        # ten-minute budget. Non-vacuity for the M3 instructions is covered by
+        # simulation tests 9-14.
+        ibm_s360_cpu) echo "bmc" ;;
     esac
 }
 

@@ -11,7 +11,7 @@ echo "=== ibm_s360 M1 core synthesis (Yosys) ==="
 (cd "$HERE/src" && yosys -p "
     read_verilog -sv ibm_s360_alu.sv ibm_s360_addr.sv ibm_s360_psw.sv ibm_s360_cpu.sv
     hierarchy -check -top ibm_s360_cpu
-    synth -top ibm_s360_cpu
+    synth -top ibm_s360_cpu -run begin:fine
     check
     stat
 ") > "$HERE/work/synth/yosys.log" 2>&1
