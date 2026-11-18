@@ -1,6 +1,6 @@
-# IBM System/360 — architecture specification (M3)
+# IBM System/360 — architecture specification (M4)
 
-Status: **third functional increment**. This document fixes the architecture
+Status: **fourth functional increment**. This document fixes the architecture
 that `src/` implements, records every deliberate deviation, and lists the
 assumptions that must be validated before any compatibility claim. It is *not*
 the full S/360 specification: the instruction-set and model option matrix is
@@ -24,6 +24,8 @@ In scope and implemented:
 - the rest of the fixed-point group — halfword `LH`/`STH`/`AH`/`SH`/`CH`/`MH`,
   `MR`/`M`, `DR`/`D`, and the shifts `SLA`/`SRA`/`SLDA`/`SRDA` — and `SVC` with
   the supervisor-call interruption (M3);
+- the character and SS-format logical group — `MVC`, `MVN`, `MVZ`, `NC`, `OC`,
+  `XC`, `CLC`, `TM`, `IC`, `STC` (M4);
 - **program interruptions** with the causes operation (1), privileged
   operation (2), specification (6) and fixed-point overflow (8), the program
   old PSW at storage `0x28`, the program new PSW at `0x68`, and problem-state
@@ -31,9 +33,8 @@ In scope and implemented:
 - the wait state as a state in which no instruction is fetched (M2).
 
 Out of scope (each has its own issue or milestone): decimal and floating-point
-operations; SS-format instructions; the character/logical group not yet in the
-table (`TR`, `TRT`, `ED`, `EDMK`, `IC`, `STC`, `TM`, `NC`/`OC`/`XC`, `MVC`/`CLC`);
-`EXECUTE`;
+operations; `TR`, `TRT`, `ED`, `EDMK`, `PACK`, `UNPK`, `CVB`, `CVD` and
+`MOVE WITH OFFSET`; `EXECUTE`;
 protection keys, storage protection and DAT; supervisor-call, external, I/O and
 machine-check interruptions; addressing exceptions; channel I/O; `EXECUTE`;
 timing and microarchitecture.
@@ -168,7 +169,24 @@ Notes that the implementation depends on:
 - `SLDA`/`SLA` overflow when a bit unlike the sign leaves the integer field;
   the result is stored with the sign unchanged and CC is set to 3 (pp. 33-34).
 
-### 2.8 Program interruptions (pp. 15-16, 71-72)
+### 2.8 Character and SS-format logical group (M4, pp. 53-57)
+
+| Operation | Fields | Behaviour | CC |
+|---|---|---|---|
+| MVC | `L,B1,D1,B2,D2` | copy `L+1` bytes from operand 2 to operand 1, left to right, overlapping fields allowed | unchanged |
+| MVN | same | low four bits of each source byte into the low four bits of the destination byte | unchanged |
+| MVZ | same | high four bits of each source byte into the high four bits of the destination byte | unchanged |
+| NC / OC / XC | same | AND / OR / exclusive OR of corresponding bytes into the first operand | unchanged |
+| CLC | same | binary comparison, left to right, stops at the first inequality | 0 equal, 1 first low, 2 first high |
+| TM | `I2,B1,D1` | tests the storage byte against the mask `I2` | 0 selected bits all zero or mask zero, 3 all selected bits one, 1 mixed |
+| IC | `R1,X2,B2,D2` | byte into bits 24-31 of `R1`, other bits unchanged | unchanged |
+| STC | same | bits 24-31 of `R1` into storage | unchanged |
+
+The length field is `L+1` bytes (1 to 256). The core executes one byte per three
+cycles (read operand 1, read operand 2, merge and store), so a 256-byte `MVC`
+takes about 770 cycles; this is a functional, not a timing, model.
+
+### 2.9 Program interruptions (pp. 15-16, 71-72)
 
 Every interruption stores the current PSW as an old PSW and makes the new PSW
 current. The program old PSW is at `0x28`, the program new PSW at `0x68`
@@ -209,7 +227,7 @@ Storage timing, interleaving, protection and channel contention are not
 modelled. Word operands must be aligned; apart from the `LPSW` doubleword
 check, unaligned operands are not detected.
 
-## 4. Implemented instruction set (41 operations)
+## 4. Implemented instruction set (51 operations)
 
 | Opcode | Mnemonic | Format | Operation | CC |
 |---|---|---|---|---|
@@ -238,6 +256,16 @@ check, unaligned operands are not detected.
 | `80` | SSM | SI | set system mask | unchanged |
 | `82` | LPSW | SI | load PSW | loaded |
 | `0A` | SVC | RR | supervisor call | unchanged |
+| `42` | STC | RX | store character | unchanged |
+| `43` | IC | RX | insert character | unchanged |
+| `91` | TM | SI | test under mask | set |
+| `D1` | MVN | SS | move numerics | unchanged |
+| `D2` | MVC | SS | move characters | unchanged |
+| `D3` | MVZ | SS | move zones | unchanged |
+| `D4` | NC | SS | AND characters | unchanged |
+| `D5` | CLC | SS | compare logical characters | set |
+| `D6` | OC | SS | OR characters | unchanged |
+| `D7` | XC | SS | exclusive OR characters | unchanged |
 | `1C` | MR | RR | multiply | unchanged |
 | `1D` | DR | RR | divide | unchanged |
 | `40` | STH | RX | store halfword | unchanged |
@@ -265,10 +293,9 @@ length and raises interruption code 1.
 These are deliberate and must not be presented as architectural behaviour.
 
 1. **Assigned but unimplemented instructions raise code 1.** A real S/360
-   executes the SS moves and compares (`MVC`, `CLC`, `NC`, `OC`, `XC`, `MVN`,
-   `MVZ`), `TR`/`TRT`/`ED`/`EDMK`, `IC`/`STC`/`TM`, `PACK`/`UNPK`,
-   `CVB`/`CVD`, `EXECUTE`, decimal and floating-point operations; this core
-   decodes them as an operation exception. This is an implementation gap, not
+   executes `TR`/`TRT`/`ED`/`EDMK`, `PACK`/`UNPK`/`MVO`, `CVB`/`CVD`,
+   `EXECUTE`, and decimal and floating-point operations; this core decodes
+   them as an operation exception. This is an implementation gap, not
    architecture, and is the reason no compatibility claim may be made until
    the remaining instruction groups and the external oracle exist.
 2. **Only program interruptions exist.** Supervisor call, external, I/O and
@@ -290,9 +317,9 @@ These are deliberate and must not be presented as architectural behaviour.
    byte plus fixed decode/execute/commit cycles, and five cycles per
    interruption. No storage access timing, overlap, prefetch or model-specific
    microarchitecture is modelled.
-7. **No `EXECUTE`, decimal, floating-point, SS or character/logical
-   operations.** They raise code 1 as described above. The fixed-point group is
-   complete.
+7. **No `EXECUTE`, `TR`/`TRT`, decimal conversions, decimal arithmetic or
+   floating point.** They raise code 1 as described above. The fixed-point
+   group and the SS moves/compares/logical group are complete.
 8. **Divide and supervisor-call old-PSW addresses.** For the divide exception
    and for `SVC` the core stores the *updated* instruction address and the ILC
    of the instruction, matching the suppressed-check rule of p. 72. The manual
@@ -340,3 +367,4 @@ microarchitecture.
 - [../report/2026-11-05-m1-core.md](../report/2026-11-05-m1-core.md)
 - [../report/2026-11-08-m2-status-switching.md](../report/2026-11-08-m2-status-switching.md)
 - [../report/2026-11-17-m3-fixedpoint.md](../report/2026-11-17-m3-fixedpoint.md)
+- [../report/2026-11-18-m4-character-ss.md](../report/2026-11-18-m4-character-ss.md)

@@ -569,7 +569,24 @@ module tb_ibm_s360_cpu;
     check_word(24'h00_002C, 32'h4000_0102, "odd pair old PSW: ILC 1, IA 0x102");
 
     // =========================================================================
-    // Test 15: directed arithmetic unit, address generation and decode checks.
+    // Test 15: character and SS-format group -- MVC, XC, NC, OC, MVN, MVZ,
+    // CLC, IC, STC, TM.
+    // =========================================================================
+    start_reset();
+    poke_word(24'h00_0200, 32'hC1C2_C3C4);  // EBCDIC "ABCD"
+    poke_word(24'h00_0204, 32'h4B4C_4D4E);  // EBCDIC ".<(>+"
+    poke_hex(24'h00_0100,
+      "D20302080200D70302080204D40302080200D60002080200D10002080204D30002080205D50002080205431002084210020C91800208910F02049140020841F0014207FF");
+    run_cycles(400);
+
+    check(int_count == 0, "character group caused an unexpected interruption");
+    check_word(24'h00_0208, 32'h4B82_8280, "MVC/XC/NC/OC/MVN/MVZ result");
+    check_word(24'h00_020C, 32'h4B00_0000, "STC stored the inserted character");
+    check_gpr(1, 32'h0000_004B);
+    check(psw[29:28] === 2'd3, "TM all-ones did not set CC 3");
+
+    // =========================================================================
+    // Test 16: directed arithmetic unit, address generation and decode checks.
     // =========================================================================
     t_alu(ALU_ADD, 32'd7, 32'd5, 32'd12, 2'd2, 1'b0, "add positive");
     t_alu(ALU_ADD, 32'h7FFF_FFFF, 32'd1, 32'h8000_0000, 2'd3, 1'b1, "add positive overflow");
@@ -607,16 +624,24 @@ module tb_ibm_s360_cpu;
       check(d.valid && (d.op == OP_SVC) && (d.fmt == FMT_RR), "decode 0x0A as SVC/RR");
       d = s360_decode(8'h4C);
       check(d.valid && (d.op == OP_MH) && (d.fmt == FMT_RX), "decode 0x4C as MH/RX");
+      d = s360_decode(8'hD2);
+      check(d.valid && (d.op == OP_MVC) && (d.fmt == FMT_SS), "decode 0xD2 as MVC/SS");
+      d = s360_decode(8'hD5);
+      check(d.valid && (d.op == OP_CLC) && (d.fmt == FMT_SS), "decode 0xD5 as CLC/SS");
+      d = s360_decode(8'h91);
+      check(d.valid && (d.op == OP_TM) && (d.fmt == FMT_RS_SI), "decode 0x91 as TM/SI");
+      d = s360_decode(8'h43);
+      check(d.valid && (d.op == OP_IC) && (d.fmt == FMT_RX), "decode 0x43 as IC/RX");
     end
 
     // =========================================================================
     // Report
     // =========================================================================
     if (errors == 0) begin
-      $display("IBM S360 M3 CORE TESTS PASSED (%0d checks)", checks);
+      $display("IBM S360 M4 CORE TESTS PASSED (%0d checks)", checks);
       $finish;
     end else begin
-      $display("IBM S360 M3 CORE TESTS FAILED: %0d error(s) in %0d checks", errors, checks);
+      $display("IBM S360 M4 CORE TESTS FAILED: %0d error(s) in %0d checks", errors, checks);
       $fatal(1, "testbench failures");
     end
   end

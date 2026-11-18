@@ -83,21 +83,24 @@ module ibm_s360_cpu #(
   // ---------------------------------------------------------------------------
   // State
   // ---------------------------------------------------------------------------
-  typedef enum logic [3:0] {
-    S_CHECK     = 4'd0,
-    S_FETCH     = 4'd1,
-    S_DECODE    = 4'd2,
-    S_EXEC      = 4'd3,
-    S_WRITE     = 4'd4,
-    S_COMMIT    = 4'd5,
-    S_INT_OLD0  = 4'd6,
-    S_INT_OLD1  = 4'd7,
-    S_INT_NEW0  = 4'd8,
-    S_INT_NEW1  = 4'd9,
-    S_INT_LOAD  = 4'd10,
-    S_LPSW_LO   = 4'd11,
-    S_LPSW_HI   = 4'd12,
-    S_LPSW_LOAD = 4'd13
+  typedef enum logic [4:0] {
+    S_CHECK     = 5'd0,
+    S_FETCH     = 5'd1,
+    S_DECODE    = 5'd2,
+    S_EXEC      = 5'd3,
+    S_WRITE     = 5'd4,
+    S_COMMIT    = 5'd5,
+    S_INT_OLD0  = 5'd6,
+    S_INT_OLD1  = 5'd7,
+    S_INT_NEW0  = 5'd8,
+    S_INT_NEW1  = 5'd9,
+    S_INT_LOAD  = 5'd10,
+    S_LPSW_LO   = 5'd11,
+    S_LPSW_HI   = 5'd12,
+    S_LPSW_LOAD = 5'd13,
+    S_SS_A      = 5'd14,  // read first operand byte
+    S_SS_B      = 5'd15,  // read second operand byte (or the translate-table byte)
+    S_SS_C      = 5'd16   // merge/store or compare, then step the loop
   } state_e;
 
   state_e state;
@@ -135,6 +138,14 @@ module ibm_s360_cpu #(
   logic [1:0]  spm_cc_q;
   logic        sysmask_en_q;
   logic [7:0]  sysmask_q;
+
+  // SS-format loop state.
+  logic [7:0]  ss_len_q;
+  logic [23:0] ss_addr1_q;
+  logic [23:0] ss_addr2_q;
+  logic [8:0]  ss_i_q;
+  logic [7:0]  ss_b1_q;
+  logic [7:0]  ss_b2_q;
 
   logic [15:0] int_code_q;
   logic [63:0] int_psw_q;
@@ -186,6 +197,26 @@ module ibm_s360_cpu #(
       .addr   (ea)
   );
 
+  // SS-format address pair: B1|D1 in the second halfword, B2|D2 in the third.
+  logic [23:0] ss_addr1;
+  logic [23:0] ss_addr2;
+  ibm_s360_addr u_addr_ss1 (
+      .b_field(ib[2][7:4]),
+      .x_field (4'd0),
+      .b_val   (gpr[ib[2][7:4]]),
+      .x_val   (32'd0),
+      .disp    ({ib[2][3:0], ib[3]}),
+      .addr    (ss_addr1)
+  );
+  ibm_s360_addr u_addr_ss2 (
+      .b_field(ib[4][7:4]),
+      .x_field (4'd0),
+      .b_val   (gpr[ib[4][7:4]]),
+      .x_val   (32'd0),
+      .disp    ({ib[4][3:0], ib[5]}),
+      .addr    (ss_addr2)
+  );
+
   // ---------------------------------------------------------------------------
   // Operation classification
   // ---------------------------------------------------------------------------
@@ -195,6 +226,7 @@ module ibm_s360_cpu #(
   logic is_shift_op;      // SLA SRA SLDA SRDA
   logic is_shift_double;
   logic is_addsub;        // ALU add/subtract that can overflow
+  logic ss_op;            // SS-format storage-to-storage operation
 
   always_comb begin
     is_halfword_op = (dec.op == OP_LH) || (dec.op == OP_STH) ||
@@ -209,6 +241,10 @@ module ibm_s360_cpu #(
     is_addsub      = (dec.op == OP_AR) || (dec.op == OP_A) ||
                      (dec.op == OP_SR) || (dec.op == OP_S) ||
                      (dec.op == OP_AH) || (dec.op == OP_SH);
+    ss_op          = (dec.op == OP_MVC) || (dec.op == OP_MVN) ||
+                     (dec.op == OP_MVZ) || (dec.op == OP_NC) ||
+                     (dec.op == OP_OC) || (dec.op == OP_XC) ||
+                     (dec.op == OP_CLC);
   end
 
   // ---------------------------------------------------------------------------
@@ -326,7 +362,7 @@ module ibm_s360_cpu #(
       OP_OR, OP_O: begin alu_op = ALU_OR;  sets_alu_cc = 1'b1; end
       OP_XR, OP_X: begin alu_op = ALU_XOR; sets_alu_cc = 1'b1; end
       OP_CLI: begin alu_op = ALU_CLR; sets_alu_cc = 1'b1; end
-      OP_ST, OP_STH: is_store = 1'b1;
+      OP_ST, OP_STH, OP_STC: is_store = 1'b1;
       OP_MVI: is_store = 1'b1;
       OP_BC, OP_BCR: is_branch = 1'b1;
       default: ;
@@ -473,8 +509,17 @@ module ibm_s360_cpu #(
   logic [31:0] read_word;
   logic [7:0]  read_byte;
 
+  // Current byte addresses of the SS loop.
+  logic [23:0] ss_a1_cur;
+  logic [23:0] ss_a2_cur;
+  assign ss_a1_cur = ss_addr1_q + {15'd0, ss_i_q};
+  assign ss_a2_cur = ss_addr2_q + {15'd0, ss_i_q};
+
   assign rd_off = (state == S_FETCH)  ? (ia_cur[1:0] + cnt[1:0])
                 : (state == S_DECODE) ? ea[1:0]
+                : (state == S_SS_A)   ? ss_a1_cur[1:0]
+                : (state == S_SS_B)   ? ss_a2_cur[1:0]
+                : (state == S_SS_C)   ? ss_a1_cur[1:0]
                                       : ea_q[1:0];
   assign read_word = mem_rdata;
   assign byte_sel = (5'd3 - {3'b000, rd_off}) << 3;
@@ -483,6 +528,23 @@ module ibm_s360_cpu #(
   // Halfword at the decoded address (even).
   logic [15:0] half_at_ea;
   assign half_at_ea = ea[1] ? read_word[15:0] : read_word[31:16];
+
+  // SS-format merge and write qualifier.
+  logic [7:0] ss_merged_byte;
+  logic       ss_writes;
+
+  always_comb begin
+    unique case (dec.op)
+      OP_MVN:  ss_merged_byte = {ss_b1_q[7:4], ss_b2_q[3:0]};  // numerics
+      OP_MVZ:  ss_merged_byte = {ss_b2_q[7:4], ss_b1_q[3:0]};  // zones
+      OP_NC:   ss_merged_byte = ss_b1_q & ss_b2_q;
+      OP_OC:   ss_merged_byte = ss_b1_q | ss_b2_q;
+      OP_XC:   ss_merged_byte = ss_b1_q ^ ss_b2_q;
+      default: ss_merged_byte = ss_b2_q;                        // MVC and others
+    endcase
+    ss_writes = (dec.op == OP_MVC) || (dec.op == OP_MVN) || (dec.op == OP_MVZ) ||
+                (dec.op == OP_NC) || (dec.op == OP_OC) || (dec.op == OP_XC);
+  end
 
   // ---------------------------------------------------------------------------
   // Storage port
@@ -515,6 +577,14 @@ module ibm_s360_cpu #(
         mem_we    = 1'b1;
         mem_wdata = int_psw_q[31:0];
         mem_wbe   = 4'hF;
+      end
+      S_SS_A: mem_addr = ss_a1_cur;
+      S_SS_B: mem_addr = ss_a2_cur;
+      S_SS_C: begin
+        mem_addr  = ss_a1_cur;
+        mem_we    = ss_writes;
+        mem_wdata = {4{ss_merged_byte}};
+        mem_wbe   = ss_writes ? (4'b1000 >> ss_a1_cur[1:0]) : 4'd0;
       end
       S_INT_NEW0: mem_addr = int_new_addr_q;
       S_INT_NEW1: mem_addr = int_new_addr_q + 24'd4;
@@ -576,6 +646,12 @@ module ibm_s360_cpu #(
       spm_cc_q     <= 2'd0;
       sysmask_en_q <= 1'b0;
       sysmask_q    <= 8'd0;
+      ss_len_q     <= 8'd0;
+      ss_addr1_q   <= 24'd0;
+      ss_addr2_q   <= 24'd0;
+      ss_i_q       <= 9'd0;
+      ss_b1_q      <= 8'd0;
+      ss_b2_q      <= 8'd0;
       int_code_q   <= 16'd0;
       int_psw_q    <= 64'd0;
       int_pending_q<= 1'b0;
@@ -753,6 +829,29 @@ module ibm_s360_cpu #(
                 wr_idx2_q <= r1_f | 4'd1;
                 res2_q    <= (dec.op == OP_SLDA) ? slda_result[31:0] : srda_result[31:0];
               end
+              OP_TM: begin
+                // Mask test on the byte read at S_DECODE (p. 56).
+                cc_we_q <= 1'b1;
+                cc_q    <= ((str_q & i2_f) == 8'd0) ? 2'd0
+                         : ((str_q & i2_f) == i2_f) ? 2'd3
+                                                    : 2'd1;
+              end
+              OP_IC: begin
+                // Byte into bit positions 24-31 of R1, other bits unchanged.
+                wr_en_q  <= 1'b1;
+                wr_idx_q <= r1_f;
+                res_q    <= {gpr[r1_f][31:8], str_q};
+              end
+              OP_STC: begin
+                st_data_q <= {4{gpr[r1_f][7:0]}};
+                st_be_q   <= 4'b1000 >> ea_q[1:0];
+              end
+              OP_MVC, OP_MVN, OP_MVZ, OP_NC, OP_OC, OP_XC, OP_CLC: begin
+                ss_len_q   <= ib[1];
+                ss_addr1_q <= ss_addr1;
+                ss_addr2_q <= ss_addr2;
+                ss_i_q     <= 9'd0;
+              end
               OP_SPM: begin
                 spm_cc_en_q <= 1'b1;
                 spm_cc_q    <= gpr[r1_f][3:2];
@@ -789,6 +888,8 @@ module ibm_s360_cpu #(
             end
             if (dec.op == OP_LPSW) begin
               state <= S_LPSW_LO;
+            end else if (ss_op) begin
+              state <= S_SS_A;
             end else if (is_store) begin
               state <= S_WRITE;
             end else begin
@@ -843,6 +944,38 @@ module ibm_s360_cpu #(
         end
         S_LPSW_LOAD: state <= S_CHECK;
 
+        S_SS_A: begin
+          ss_b1_q <= read_byte;
+          state   <= S_SS_B;
+        end
+
+        S_SS_B: begin
+          ss_b2_q <= read_byte;
+          state   <= S_SS_C;
+        end
+
+        S_SS_C: begin
+          if (dec.op == OP_CLC) begin
+            if (ss_b1_q != ss_b2_q) begin
+              cc_we_q <= 1'b1;
+              cc_q    <= (ss_b1_q < ss_b2_q) ? 2'd1 : 2'd2;
+              state   <= S_COMMIT;
+            end else if (ss_i_q == {1'b0, ss_len_q}) begin
+              cc_we_q <= 1'b1;
+              cc_q    <= 2'd0;
+              state   <= S_COMMIT;
+            end else begin
+              ss_i_q <= ss_i_q + 9'd1;
+              state  <= S_SS_A;
+            end
+          end else if (ss_i_q == {1'b0, ss_len_q}) begin
+            state <= S_COMMIT;
+          end else begin
+            ss_i_q <= ss_i_q + 9'd1;
+            state  <= S_SS_A;
+          end
+        end
+
         default: state <= S_CHECK;
       endcase
     end
@@ -887,7 +1020,7 @@ module ibm_s360_cpu #(
   // Structural facts that hold in every state, including the unconstrained
   // initial one. The temporal contracts live in formal/ibm_s360_cpu_props.sv.
   always_comb begin
-    assert (!mem_we || (state == S_WRITE) ||
+    assert (!mem_we || (state == S_WRITE) || (state == S_SS_C) ||
             (state == S_INT_OLD0) || (state == S_INT_OLD1));
     assert ((state == S_COMMIT) || (state == S_LPSW_LOAD) || !retire);
   end
