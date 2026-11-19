@@ -26,7 +26,7 @@ Family Handbook anchors the earliest documented subgroup.
 | am29323 | [#230](https://github.com/hevangel/ai_hw_engineer/issues/230) | [am29323](members/am29323/README.md) |
 | am29325 | [#169](https://github.com/hevangel/ai_hw_engineer/issues/169) | planned: members/am29325 |
 | am29331 | [#170](https://github.com/hevangel/ai_hw_engineer/issues/170) | [am29331](members/am29331/README.md) |
-| am29332 | [#171](https://github.com/hevangel/ai_hw_engineer/issues/171) | planned: members/am29332 |
+| am29332 | [#171](https://github.com/hevangel/ai_hw_engineer/issues/171) | [am29332](members/am29332/README.md) |
 | am29334 | [#172](https://github.com/hevangel/ai_hw_engineer/issues/172) | [am29334](members/am29334/README.md) |
 | am29337 | [#173](https://github.com/hevangel/ai_hw_engineer/issues/173) | planned: members/am29337 |
 | am29338 | [#174](https://github.com/hevangel/ai_hw_engineer/issues/174) | [am29338](members/am29338/README.md) |
