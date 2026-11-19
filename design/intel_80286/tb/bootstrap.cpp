@@ -13239,6 +13239,7 @@ static void protected_iopl_controls() {
         uint16_t error;
         bool read_target_descriptor;
         uint16_t gdt_limit=0x007f;
+        uint16_t gate_tss_selector=0x0078;
     };
     const DirectTaskFaultCase direct_task_faults[]={
         {"null direct selector",false,false,0x0000,0x85,0,0x81,0x002b,0,0xff,13,0x0000,false},
@@ -13263,8 +13264,10 @@ static void protected_iopl_controls() {
         // (80286 path); PCE-286 oracle scenarios far_xfer.*.taskgate_to_code.
         {"code-segment task-gate target CALL",true,true,0x0070,0x85,0,0x9a,0x002b,0,0xff,13,0x0078,true},
         {"code-segment task-gate target JMP",true,false,0x0070,0x85,0,0x9a,0x002b,0,0xff,13,0x0078,true},
-        {"out-of-GDT task-gate TSS CALL",true,true,0x0070,0x85,0,0x81,0x002b,0,0xff,10,0x0078,false,0x0077},
-        {"out-of-GDT task-gate TSS JMP",true,false,0x0070,0x85,0,0x81,0x002b,0,0xff,10,0x0078,false,0x0077},
+        {"out-of-GDT task-gate TSS CALL",true,true,0x0070,0x85,0,0x81,0x002b,0,0xff,13,0x0078,false,0x0077},
+        {"out-of-GDT task-gate TSS JMP",true,false,0x0070,0x85,0,0x81,0x002b,0,0xff,13,0x0078,false,0x0077},
+        {"null task-gate TSS CALL",true,true,0x0070,0x85,0,0x81,0x002b,0,0xff,13,0x0000,false,0x007f,0x0000},
+        {"LDT task-gate TSS JMP",true,false,0x0070,0x85,0,0x81,0x002b,0,0xff,13,0x0034,false,0x007f,0x0034},
         {"available current TR",false,true,0x0078,0x85,0,0x81,0x002b,0,0x81,10,0x0078,true},
         {"not-present current TR",true,false,0x0070,0x85,0,0x81,0x002b,0,0x03,10,0x0078,true}
     };
@@ -13284,8 +13287,8 @@ static void protected_iopl_controls() {
               {tss_descriptor[0],tss_descriptor[1],tss_descriptor[2],tss_descriptor[3],
                tss_descriptor[4],tss_descriptor[5],tss_descriptor[6],tss_descriptor[7]});
         b.put(kGdtBase+direct_task_gate_selector,
-              {test.gate_offset,0x00,uint8_t(direct_task_tss_selector),
-               uint8_t(direct_task_tss_selector>>8),0x00,test.gate_access,0x00,0x00});
+              {test.gate_offset,0x00,uint8_t(test.gate_tss_selector),
+               uint8_t(test.gate_tss_selector>>8),0x00,test.gate_access,0x00,0x00});
         for (uint8_t vector:{10,11,13})
             b.put(kIdtBase+uint32_t(vector)*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
         if (test.current_access!=0xff)
@@ -13391,9 +13394,9 @@ static void protected_iopl_controls() {
               (std::string("rejected task switch read or changed task state/busy state: ")+test.name).c_str());
         ++direct_task_fault_cases;
     }
-    check(direct_task_fault_cases==44,
+    check(direct_task_fault_cases==48,
           "direct TSS/task-gate fault matrix missed an exception case or READY policy");
-    std::cout<<"PASS: 44 rejected direct TSS/task-gate CALL/JMP cases check exact #GP/#NP/#TS priority packets and no task-image/busy-bit side effects in both READY modes\n";
+    std::cout<<"PASS: 48 rejected direct TSS/task-gate CALL/JMP cases check exact #GP/#NP/#TS priority packets and no task-image/busy-bit side effects in both READY modes\n";
 
     // Reset after every accepted data transfer in direct task entry. Accepted
     // writes survive RESET; the partially completed task switch must not resume.

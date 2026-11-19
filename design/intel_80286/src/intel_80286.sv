@@ -3045,7 +3045,7 @@ module intel_80286 #(
                                      protected_call_descriptor_target[18] ||
                                      ({1'b0,{protected_call_descriptor_target[31:19],3'b000}}+17'd7)>
                                          {1'b0,gdt_limit}) begin
-                            enter_event(10,instruction_ip,1'b0,1'b1,1'b1,
+                            enter_event(13,instruction_ip,1'b0,1'b1,1'b1,
                                         protected_call_descriptor_target[31:16]&16'hfffc);
                             state<=EVENT_START; retire_o<=0;
                         end else begin
