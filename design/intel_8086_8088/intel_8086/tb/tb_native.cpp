@@ -241,6 +241,57 @@ static void native_tests(Bench &b){
     b.tick();b.tick();b.external_rqgt=2;b.tick();b.external_rqgt=3;
     for(unsigned i=0;i<100 && b.grant1==0;++i)b.tick();
     require(b.grant1==1,"pending lower-priority RQ/GT lost");++cases;
+    // Undocumented POP CS (0Fh), MOV CS (8Eh /1 and /5), and LOCK alias F1h.
+    for(bool mode:{true,false}){
+        b.min_mode=mode;
+        // POP CS redirects BIU and enforces 1-instruction interrupt shadow.
+        b.boot({0xbc,0,0x80,0xfb,0x0f,0xf4});
+        b.set(0x8000,0x00);b.set(0x8001,0x20);
+        b.set(0x80,0x00);b.set(0x81,0x04);b.set(0x82,0x00);b.set(0x83,0x00);
+        b.set(0x400,0xcf);
+        b.set(0x20005,0x90);b.set(0x20006,0xf4);
+        b.step(3);b.dut.intr_i=1;b.step(4);
+        b.retire();require(b.read()[9]==0x2000 && b.dut.ip_o==5,"native POP CS CS:IP");
+        b.retire();require(!b.dut.halted_o && b.read()[9]==0x2000 && b.dut.ip_o==6,"native POP CS shadow/redirect");
+        for(unsigned i=0;i<1000 && !(b.read()[9]==0 && b.dut.ip_o==0x400);++i)b.tick();
+        require(b.acknowledgements==2 && b.read()[4]==0x7ffc && b.memory[0x7ffc]==6 &&
+            b.memory[0x7ffe]==0x00 && b.memory[0x7fff]==0x20,"native POP CS delayed IRQ");
+        b.dut.intr_i=0;b.step(6);b.step(7);require(b.dut.halted_o,"native POP CS HLT");++cases;
+        // MOV CS (/1 and /5) register and memory forms redirect BIU and hold shadow.
+        for(uint8_t modrm:{0xc8,0xe8}){
+            b.boot({0xbc,0,0x80,0xb8,0x00,0x20,0xfb,0x8e,modrm,0xf4});
+            b.set(0x80,0x00);b.set(0x81,0x04);b.set(0x82,0x00);b.set(0x83,0x00);
+            b.set(0x400,0xcf);
+            b.set(0x20009,0x90);b.set(0x2000a,0xf4);
+            b.step(3);b.step(6);b.dut.intr_i=1;b.step(7);b.retire();
+            require(b.read()[9]==0x2000 && b.dut.ip_o==9,"native MOV CS reg CS:IP");
+            b.retire();require(!b.dut.halted_o && b.read()[9]==0x2000 && b.dut.ip_o==10,"native MOV CS reg redirect");
+            for(unsigned i=0;i<1000 && !(b.read()[9]==0 && b.dut.ip_o==0x400);++i)b.tick();
+            require(b.acknowledgements==2 && b.read()[4]==0x7ffa && b.memory[0x7ffa]==10 &&
+                b.memory[0x7ffc]==0x00 && b.memory[0x7ffd]==0x20,"native MOV CS reg delayed IRQ");
+            b.dut.intr_i=0;b.step(10);b.step(11);require(b.dut.halted_o,"native MOV CS HLT");++cases;
+        }
+        b.boot({0x8e,0x0e,0x00,0x20,0xf4});b.set(0x02000,0x00);b.set(0x02001,0x20);
+        b.set(0x20004,0x90);b.set(0x20005,0xf4);
+        b.retire();require(b.read()[9]==0x2000 && b.dut.ip_o==4,"native MOV CS mem CS:IP");
+        b.retire();require(!b.dut.halted_o && b.read()[9]==0x2000 && b.dut.ip_o==5,"native MOV CS mem redirect");
+        b.step(6);require(b.dut.halted_o,"native MOV CS mem HLT");++cases;
+        // F1h LOCK alias blocks HOLD/RQ-GT across read-modify-write.
+        b.boot({0xf1,0xff,0x06,0,0x20,0x90,0xf4});
+        for(unsigned i=0;i<500 && !(b.dut.phase_o==2 && b.status==5);++i)b.tick();
+        if(!mode)require(!b.dut.lock_n_o,"F1 LOCK# not asserted");
+        if(mode)b.dut.hold_i=1;else b.external_rqgt=2;
+        for(unsigned i=0;i<500 && !b.dut.retire_o;++i){b.tick();require(mode ? !b.dut.hlda_o:b.grant0==0,"native grant split F1 LOCK");}
+        require(b.memory[0x2000]==1,"native F1 locked INC");
+        if(!mode)b.external_rqgt=3;
+        for(unsigned i=0;i<100 && b.dut.control_oe_o;++i)b.tick();
+        require(!b.dut.control_oe_o && (mode ? b.dut.hlda_o:b.grant0==1),"native F1 arbitration grant");
+        for(unsigned i=0;i<20;++i){b.tick();require(!b.dut.ad_oe_o,"F1 bus driven while granted");}
+        if(mode)b.dut.hold_i=0;else b.external_rqgt=2;
+        b.tick();b.external_rqgt=3;
+        for(unsigned i=0;i<100 && !b.dut.control_oe_o;++i)b.tick();
+        require(b.dut.control_oe_o,"native F1 arbitration release");++cases;
+    }
     std::cout<<"PASS: "<<cases<<" native minimum/maximum-mode bus, prefetch, arbitration and reset scenarios\n";
 }
 int main(int argc,char **argv){

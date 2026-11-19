@@ -156,5 +156,40 @@ static void control(Bench &b) {
         }
         step(b,0x103);++cases;
     }
+    // Undocumented POP CS (0Fh), MOV CS (8Eh /1 and /5), LOCK alias F1h, and SALC (D6h).
+    setup(b,{0x0f,0x90,0xf4},0xf302); put_word(b,0x8000,0x2000);
+    code(b,0x20101,{0x90,0xf4}); code(b,0x10101,{0xcc,0xf4});
+    step(b,0x101,0x2000); b.dut.nmi_i=1; step(b,0x102,0x2000);
+    for(unsigned i=0;i<1000 && !(b.dut.redirect_o && b.dut.ip_o==0x420);++i) b.tick();
+    require(b.read()[4]==0x7ffc && word(b,0x7ffc)==0x102 && word(b,0x7ffe)==0x2000,"POP CS interrupt shadow/target");
+    ++cases;
+    for(uint8_t modrm:{0xc8,0xe8}) {
+        setup(b,{0x8e,modrm,0x90,0xf4},0xf302);
+        auto rcs=b.read(); rcs[0]=0x2000; b.load(rcs);
+        code(b,0x20102,{0x90,0xf4}); code(b,0x10102,{0xcc,0xf4});
+        step(b,0x102,0x2000); b.dut.nmi_i=1; step(b,0x103,0x2000);
+        for(unsigned i=0;i<1000 && !(b.dut.redirect_o && b.dut.ip_o==0x420);++i) b.tick();
+        require(b.read()[4]==0x7ffa && word(b,0x7ffa)==0x103 && word(b,0x7ffc)==0x2000,"MOV CS reg shadow/target");
+        ++cases;
+    }
+    setup(b,{0x8e,0x0e,0x00,0x20,0x90,0xf4},0xf302); put_word(b,0x2000,0x2000);
+    code(b,0x20104,{0x90,0xf4}); code(b,0x10104,{0xcc,0xf4});
+    step(b,0x104,0x2000); b.dut.nmi_i=1; step(b,0x105,0x2000);
+    for(unsigned i=0;i<1000 && !(b.dut.redirect_o && b.dut.ip_o==0x420);++i) b.tick();
+    require(b.read()[4]==0x7ffa && word(b,0x7ffa)==0x105 && word(b,0x7ffc)==0x2000,"MOV CS mem shadow/target");
+    ++cases;
+    setup(b,{0xf1,0x87,0x06,0,0x20,0x90}); put_word(b,0x2000,0x1234);
+    for(unsigned i=0;i<500 && !(b.dut.bus_req_o && !b.dut.bus_fetch_o);++i) b.tick();
+    b.dut.hold_i=1;
+    for(unsigned i=0;i<500 && !b.dut.retire_o;++i) {b.tick(); require(!b.dut.hlda_o,"HOLD split F1 LOCK");}
+    require(b.read()[0]==0x1234 && word(b,0x2000)==0,"F1 LOCK XCHG effects");
+    for(unsigned i=0;i<20 && !b.dut.hlda_o;++i) b.tick(); require(b.dut.hlda_o,"F1 HOLD grant absent");
+    b.dut.hold_i=0; step(b,0x106); ++cases;
+    for(uint16_t flags:{0xf002,0xf003}) {
+        setup(b,{0xd6,0x90},flags); auto sr=b.read(); sr[0]=0x1234; b.load(sr);
+        step(b,0x101);
+        require(b.read()[0]==((flags&1) ? 0x12ff:0x1200) && b.read()[13]==flags,"SALC value/flags");
+        ++cases;
+    }
     std::cout<<"PASS: "<<cases<<" documented control, interrupt, REP, WAIT and LOCK scenarios\n";
 }

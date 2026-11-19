@@ -320,7 +320,7 @@ module intel_8086 (
           wide<=opcode[0];
           if(opcode==8'h26 || opcode==8'h2e || opcode==8'h36 || opcode==8'h3e) begin
             override_valid<=1; override_seg<=opcode[4:3]; state<=FETCH;
-          end else if(opcode==8'hf0) begin lock_prefix<=1; state<=FETCH; end
+          end else if(opcode==8'hf0 || opcode==8'hf1) begin lock_prefix<=1; state<=FETCH; end
           else if(opcode==8'hf2 || opcode==8'hf3) begin
             repeat_kind<=opcode[0] ? 2'd2:2'd1; state<=FETCH;
           end else if(opcode<=8'h3d && opcode[2:0]<=5) begin
@@ -332,9 +332,9 @@ module intel_8086 (
             if(opcode==8'h9c) `I86_PUSH(flags_o,BOUNDARY)
             else if(opcode[6]) `I86_PUSH(opcode==8'h54 ? gpr[4]-16'd2:gpr[opcode[2:0]],BOUNDARY)
             else `I86_PUSH(seg[opcode[4:3]],BOUNDARY)
-          end else if((opcode>=8'h58 && opcode<=8'h5f) || opcode==8'h07 ||
+          end else if((opcode>=8'h58 && opcode<=8'h5f) || opcode==8'h07 || opcode==8'h0f ||
               opcode==8'h17 || opcode==8'h1f || opcode==8'h9d) `I86_POP(POP_DONE)
-          else if(opcode>=8'h70 && opcode<=8'h7f) `I86_IMM(1,EXECUTE)
+          else if((opcode>=8'h60 && opcode<=8'h6f) || (opcode>=8'h70 && opcode<=8'h7f)) `I86_IMM(1,EXECUTE)
           else if((opcode>=8'h80 && opcode<=8'h8f) || opcode==8'hc4 || opcode==8'hc5 ||
               opcode==8'hc6 || opcode==8'hc7 || (opcode>=8'hd0 && opcode<=8'hd3) ||
               (opcode>=8'hd8 && opcode<=8'hdf) || opcode==8'hf6 || opcode==8'hf7 ||
@@ -349,12 +349,15 @@ module intel_8086 (
           else if(opcode>=8'ha4 && opcode<=8'haf && opcode!=8'ha8 && opcode!=8'ha9) state<=STRING_START;
           else if(opcode==8'ha8 || opcode==8'ha9) `I86_IMM(opcode[0] ? 3'd2:3'd1,EXECUTE)
           else if(opcode>=8'hb0 && opcode<=8'hbf) begin wide<=opcode[3]; `I86_IMM(opcode[3] ? 3'd2:3'd1,EXECUTE) end
-          else if(opcode==8'hc2 || opcode==8'hca || opcode==8'he8 || opcode==8'he9) `I86_IMM(2,EXECUTE)
+          else if(opcode==8'hc0 || opcode==8'hc2 || opcode==8'hc8 || opcode==8'hca ||
+              opcode==8'he8 || opcode==8'he9) `I86_IMM(2,EXECUTE)
           else if(opcode==8'hea) `I86_IMM(4,EXECUTE)
           else if(opcode==8'hcd || opcode==8'hd4 || opcode==8'hd5 || opcode>=8'he0 && opcode<=8'he7 || opcode==8'heb)
             `I86_IMM(1,EXECUTE)
-          else if(opcode==8'hc3 || opcode==8'hcb || opcode==8'hcc || opcode==8'hce || opcode==8'hcf ||
-              opcode==8'h27 || opcode==8'h2f || opcode==8'h37 || opcode==8'h3f || opcode==8'hd7 ||
+          else if(opcode==8'hc1 || opcode==8'hc3 || opcode==8'hc9 || opcode==8'hcb ||
+              opcode==8'hcc || opcode==8'hce || opcode==8'hcf ||
+              opcode==8'h27 || opcode==8'h2f || opcode==8'h37 || opcode==8'h3f ||
+              opcode==8'hd6 || opcode==8'hd7 ||
               opcode>=8'hec && opcode<=8'hef || opcode==8'hf5 || opcode>=8'hf8 && opcode<=8'hfd)
             state<=EXECUTE;
           else if(opcode==8'h9b) begin wait_count<=0; state<=WAITING; end
@@ -379,11 +382,9 @@ module intel_8086 (
         MODRM_DONE: begin
           modrm<=read_byte; ip<=ip+16'd1; ea<=effective_base;
           ea_seg<=override_valid ? override_seg:default_seg;
-          if((opcode==8'h8c || opcode==8'h8e) && (read_byte[5] || opcode==8'h8e && read_byte[5:3]==1) ||
-             (opcode==8'h8d || opcode==8'hc4 || opcode==8'hc5) && read_byte[7:6]==3 ||
-             (opcode==8'h8f || opcode==8'hc6 || opcode==8'hc7) && read_byte[5:3]!=0 ||
-             opcode==8'hfe && read_byte[5:3]>1 || opcode==8'hff &&
-             (read_byte[5:3]==7 || (read_byte[5:3]==3 || read_byte[5:3]==5) && read_byte[7:6]==3)) state<=FAULT;
+          if((opcode==8'h8d || opcode==8'hc4 || opcode==8'hc5) && read_byte[7:6]==3 ||
+             opcode==8'hfe && read_byte[5:3]>1 ||
+             opcode==8'hff && (read_byte[5:3]==3 || read_byte[5:3]==5) && read_byte[7:6]==3) state<=FAULT;
           else begin
             // Intel 1979 manual section 2.5 requires LOCK for atomic XCHG.
             if(read_byte[7:6]==3) state<=PREPARE;
@@ -451,9 +452,12 @@ module intel_8086 (
           else begin
             if(opcode>=8'h58 && opcode<=8'h5f) gpr[opcode[2:0]]<=memory_result;
             else if(opcode==8'h9d) flags<=(memory_result & 16'h0fd5) | 16'hf002;
-            else begin seg[opcode[4:3]]<=memory_result; all_shadow<=1; end
+            else begin
+              seg[opcode[4:3]]<=memory_result; all_shadow<=1;
+              if(opcode==8'h0f) `I86_REDIRECT
+            end
             `I86_DONE
-            if(opcode==8'h07 || opcode==8'h17 || opcode==8'h1f) trap_pending<=0;
+            if(opcode==8'h07 || opcode==8'h0f || opcode==8'h17 || opcode==8'h1f) trap_pending<=0;
           end
         end
         MOFFS: begin
@@ -473,7 +477,7 @@ module intel_8086 (
             else `I86_WRITE(alu_value)
           end else if(opcode>=8'h40 && opcode<=8'h4f) begin
             gpr[opcode[2:0]]<=alu_value; flags<={alu_flags[15:1],flags[0]}; `I86_DONE
-          end else if(opcode>=8'h70 && opcode<=8'h7f) begin
+          end else if((opcode>=8'h60 && opcode<=8'h6f) || (opcode>=8'h70 && opcode<=8'h7f)) begin
             if(condition(opcode[3:0])) begin ip<=ip+{{8{immediate[7]}},immediate[7:0]}; `I86_REDIRECT end
             `I86_DONE
           end else if(opcode>=8'h80 && opcode<=8'h83) begin
@@ -484,7 +488,11 @@ module intel_8086 (
           else if(opcode==8'h8a || opcode==8'h8b) begin `I86_SET(modrm[5:3],wide,rm_value) `I86_DONE end
           else if(opcode==8'h8c) `I86_WRITE(seg[modrm[4:3]])
           else if(opcode==8'h8d) begin gpr[modrm[5:3]]<=ea; `I86_DONE end
-          else if(opcode==8'h8e) begin seg[modrm[4:3]]<=rm_value; all_shadow<=1; `I86_DONE trap_pending<=0; end
+          else if(opcode==8'h8e) begin
+            seg[modrm[4:3]]<=rm_value; all_shadow<=1;
+            if(modrm[4:3]==2'd1) `I86_REDIRECT
+            `I86_DONE trap_pending<=0;
+          end
           else if(opcode>=8'h90 && opcode<=8'h97) begin
             gpr[0]<=gpr[opcode[2:0]]; gpr[opcode[2:0]]<=gpr[0]; `I86_DONE
           end else if(opcode==8'h98) begin gpr[0][15:8]<={8{gpr[0][7]}}; `I86_DONE end
@@ -521,7 +529,7 @@ module intel_8086 (
               2: begin target_ip<=rm_value; target_cs<=seg[1]; `I86_PUSH(ip,TRANSFER) end
               3,5: begin target_ip<=rm_value; state<=FAR_POINTER; end
               4: begin ip<=rm_value; `I86_REDIRECT `I86_DONE end
-              6: `I86_PUSH(modrm[7:6]==3 && modrm[2:0]==4 ? gpr[4]-16'd2:rm_value,BOUNDARY)
+              6,7: `I86_PUSH(modrm[7:6]==3 && modrm[2:0]==4 ? gpr[4]-16'd2:rm_value,BOUNDARY)
               default: state<=FAULT;
             endcase
           end else if(opcode>=8'he0 && opcode<=8'he3) begin
@@ -543,10 +551,11 @@ module intel_8086 (
             8'he9: begin ip<=ip+immediate[15:0]; `I86_REDIRECT `I86_DONE end
             8'heb: begin ip<=ip+{{8{immediate[7]}},immediate[7:0]}; `I86_REDIRECT `I86_DONE end
             8'hea: begin ip<=immediate[15:0]; seg[1]<=immediate[31:16]; `I86_REDIRECT `I86_DONE end
-            8'hc2,8'hc3,8'hca,8'hcb,8'hcf: `I86_POP(RET_IP)
+            8'hc0,8'hc1,8'hc2,8'hc3,8'hc8,8'hc9,8'hca,8'hcb,8'hcf: `I86_POP(RET_IP)
             8'hcc: `I86_INTERRUPT(3,ip,1)
             8'hcd: `I86_INTERRUPT(immediate[7:0],ip,1)
             8'hce: if(flags[11]) `I86_INTERRUPT(4,ip,1) else `I86_DONE
+            8'hd6: begin gpr[0][7:0]<={8{flags[0]}}; `I86_DONE end
             8'hd7: begin wide<=0; `I86_MEM(override_valid ? override_seg:2'd3,gpr[3]+{8'b0,gpr[0][7:0]},0,0,0,IO_DONE,0) end
             8'hf5: begin flags[0]<=!flags[0]; `I86_DONE end
             8'hf8: begin flags[0]<=0; `I86_DONE end
@@ -575,10 +584,10 @@ module intel_8086 (
         TRANSFER: begin ip<=target_ip; seg[1]<=target_cs; `I86_REDIRECT `I86_DONE end
         RET_IP: begin
           target_ip<=memory_result;
-          if(opcode==8'hca || opcode==8'hcb || opcode==8'hcf) `I86_POP(RET_CS)
+          if(opcode==8'hc8 || opcode==8'hc9 || opcode==8'hca || opcode==8'hcb || opcode==8'hcf) `I86_POP(RET_CS)
           else begin
             ip<=memory_result;
-            if(opcode==8'hc2) gpr[4]<=gpr[4]+immediate[15:0];
+            if(opcode==8'hc0 || opcode==8'hc2) gpr[4]<=gpr[4]+immediate[15:0];
             `I86_REDIRECT `I86_DONE
           end
         end
@@ -586,7 +595,7 @@ module intel_8086 (
           seg[1]<=memory_result;
           if(opcode==8'hcf) `I86_POP(RET_FLAGS)
           else begin
-            ip<=target_ip; if(opcode==8'hca) gpr[4]<=gpr[4]+immediate[15:0];
+            ip<=target_ip; if(opcode==8'hc8 || opcode==8'hca) gpr[4]<=gpr[4]+immediate[15:0];
             `I86_REDIRECT `I86_DONE
           end
         end

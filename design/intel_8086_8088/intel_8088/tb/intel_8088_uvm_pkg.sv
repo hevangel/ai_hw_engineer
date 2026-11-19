@@ -430,12 +430,12 @@ package intel_8088_uvm_pkg;
       set_signal(1, 0);
       completed++;
 
-      // Undefined opcode 60h and undocumented MOV CS fail explicitly.
+      // Diagnostic fault on invalid register-form LEA and undefined FE /2.
       for (int scenario = 0; scenario < 2; scenario++) begin
-        if (scenario == 0) program_bytes(20'h10000, '{8'h60, 8'h90});
-        else program_bytes(20'h10000, '{8'h8e, 8'hc8});
+        if (scenario == 0) program_bytes(20'h10000, '{8'h8d, 8'hc0});
+        else program_bytes(20'h10000, '{8'hfe, 8'h10});
         boot();
-        instruction(scenario == 0 ? 16'h0001 : 16'h0002, 0, 1);
+        instruction(16'h0002, 0, 1);
         repeat (10) tick();
         completed++;
       end

@@ -9,14 +9,14 @@ module intel_8086_cover (
   logic [19:0] address;
   always_ff @(posedge clk) if (cycles != 7) cycles <= cycles + 1;
   always_ff @(posedge clk) rst_n <= 1;
-  // PUSH AX; STI; HLT (or undefined 60h). Optional IRQ and finite HOLD
-  // paths independently witness the new control outputs.
+  // PUSH AX; STI; HLT (or invalid register-form LEA 8Dh / C0h). Optional IRQ
+  // and finite HOLD paths independently witness the new control outputs.
   intel_8086 dut (
       .clk(clk),
       .rst_n(rst_n),
       .bus_ready_i(1'b1),
       .bus_rdata_i(address==20'hffff0 ? (irq_path ? 16'h90fb :
-          {fault_path ? 8'h60:8'hf4,8'h50}) : 16'hf4f4),
+          (fault_path ? 16'hc08d : 16'hf450)) : 16'hf4f4),
       .bus_addr_o(address),
       .intr_i(irq_path),
       .nmi_i(1'b0),

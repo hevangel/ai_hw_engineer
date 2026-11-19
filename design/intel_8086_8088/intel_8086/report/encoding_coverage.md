@@ -25,7 +25,7 @@ has an additional directed exact-target/return test. CL=255 has directed coverag
 | 0C | normal | 2,000 physical-chip fixtures per interface |
 | 0D | normal | 2,000 physical-chip fixtures per interface |
 | 0E | normal | 2,000 physical-chip fixtures per interface |
-| 0F | undocumented (upstream labels normal) | Outside documented contract: POP CS; omitted by upstream. [Original die analysis](https://www.righto.com/2023/07/undocumented-8086-instructions.html) |
+| 0F | undocumented (upstream labels normal) | POP CS implemented with BIU redirect: directed EU + native tests (absent from corpus; [original die analysis](https://www.righto.com/2023/07/undocumented-8086-instructions.html)) |
 | 10 | normal | 2,000 physical-chip fixtures per interface |
 | 11 | normal | 2,000 physical-chip fixtures per interface |
 | 12 | normal | 2,000 physical-chip fixtures per interface |
@@ -106,22 +106,22 @@ has an additional directed exact-target/return test. CL=255 has directed coverag
 | 5D | normal | 2,000 physical-chip fixtures per interface |
 | 5E | normal | 2,000 physical-chip fixtures per interface |
 | 5F | normal | 2,000 physical-chip fixtures per interface |
-| 60 | alias | Outside documented contract; excluded with upstream status |
-| 61 | alias | Outside documented contract; excluded with upstream status |
-| 62 | alias | Outside documented contract; excluded with upstream status |
-| 63 | alias | Outside documented contract; excluded with upstream status |
-| 64 | alias | Outside documented contract; excluded with upstream status |
-| 65 | alias | Outside documented contract; excluded with upstream status |
-| 66 | alias | Outside documented contract; excluded with upstream status |
-| 67 | alias | Outside documented contract; excluded with upstream status |
-| 68 | alias | Outside documented contract; excluded with upstream status |
-| 69 | alias | Outside documented contract; excluded with upstream status |
-| 6A | alias | Outside documented contract; excluded with upstream status |
-| 6B | alias | Outside documented contract; excluded with upstream status |
-| 6C | alias | Outside documented contract; excluded with upstream status |
-| 6D | alias | Outside documented contract; excluded with upstream status |
-| 6E | alias | Outside documented contract; excluded with upstream status |
-| 6F | alias | Outside documented contract; excluded with upstream status |
+| 60 | alias | 2,000 physical-chip fixtures per interface |
+| 61 | alias | 2,000 physical-chip fixtures per interface |
+| 62 | alias | 2,000 physical-chip fixtures per interface |
+| 63 | alias | 2,000 physical-chip fixtures per interface |
+| 64 | alias | 2,000 physical-chip fixtures per interface |
+| 65 | alias | 2,000 physical-chip fixtures per interface |
+| 66 | alias | 2,000 physical-chip fixtures per interface |
+| 67 | alias | 2,000 physical-chip fixtures per interface |
+| 68 | alias | 2,000 physical-chip fixtures per interface |
+| 69 | alias | 2,000 physical-chip fixtures per interface |
+| 6A | alias | 2,000 physical-chip fixtures per interface |
+| 6B | alias | 2,000 physical-chip fixtures per interface |
+| 6C | alias | 2,000 physical-chip fixtures per interface |
+| 6D | alias | 2,000 physical-chip fixtures per interface |
+| 6E | alias | 2,000 physical-chip fixtures per interface |
+| 6F | alias | 2,000 physical-chip fixtures per interface |
 | 70 | normal | 2,000 physical-chip fixtures per interface |
 | 71 | normal | 2,000 physical-chip fixtures per interface |
 | 72 | normal | 2,000 physical-chip fixtures per interface |
@@ -154,14 +154,14 @@ has an additional directed exact-target/return test. CL=255 has directed coverag
 | 81.5 | normal | 2,000 physical-chip fixtures per interface |
 | 81.6 | normal | 2,000 physical-chip fixtures per interface |
 | 81.7 | normal | 2,000 physical-chip fixtures per interface |
-| 82.0 | alias | Original DEBUG.COM exercises this 80h alias; alias corpus excluded explicitly |
-| 82.1 | alias | Original DEBUG.COM exercises this 80h alias; alias corpus excluded explicitly |
-| 82.2 | alias | Original DEBUG.COM exercises this 80h alias; alias corpus excluded explicitly |
-| 82.3 | alias | Original DEBUG.COM exercises this 80h alias; alias corpus excluded explicitly |
-| 82.4 | alias | Original DEBUG.COM exercises this 80h alias; alias corpus excluded explicitly |
-| 82.5 | alias | Original DEBUG.COM exercises this 80h alias; alias corpus excluded explicitly |
-| 82.6 | alias | Original DEBUG.COM exercises this 80h alias; alias corpus excluded explicitly |
-| 82.7 | alias | Original DEBUG.COM exercises this 80h alias; alias corpus excluded explicitly |
+| 82.0 | alias | 2,000 physical-chip fixtures per interface |
+| 82.1 | alias | 2,000 physical-chip fixtures per interface |
+| 82.2 | alias | 2,000 physical-chip fixtures per interface |
+| 82.3 | alias | 2,000 physical-chip fixtures per interface |
+| 82.4 | alias | 2,000 physical-chip fixtures per interface |
+| 82.5 | alias | 2,000 physical-chip fixtures per interface |
+| 82.6 | alias | 2,000 physical-chip fixtures per interface |
+| 82.7 | alias | 2,000 physical-chip fixtures per interface |
 | 83.0 | normal | 2,000 physical-chip fixtures per interface |
 | 83.1 | normal | 2,000 physical-chip fixtures per interface |
 | 83.2 | normal | 2,000 physical-chip fixtures per interface |
@@ -178,17 +178,17 @@ has an additional directed exact-target/return test. CL=255 has directed coverag
 | 89 | normal | 2,000 physical-chip fixtures per interface |
 | 8A | normal | 2,000 physical-chip fixtures per interface |
 | 8B | normal | 2,000 physical-chip fixtures per interface |
-| 8C | normal | 981 physical-chip fixtures per interface |
-| 8D | normal | 2,000 physical-chip fixtures per interface |
-| 8E | normal | 996 physical-chip fixtures per interface |
+| 8C | normal | 2,000 physical-chip fixtures per interface |
+| 8D | normal | 2,000 physical-chip fixtures per interface; mod=3 register form enters diagnostic fault_o (UVM/formal/directed) |
+| 8E | normal | 2,000 physical-chip fixtures per interface; MOV CS (/1, /5) covered by directed EU + native tests |
 | 8F.0 | normal | 238 physical-chip fixtures per interface |
-| 8F.1 | undefined | Outside documented contract; excluded with upstream status |
-| 8F.2 | undefined | Outside documented contract; excluded with upstream status |
-| 8F.3 | undefined | Outside documented contract; excluded with upstream status |
-| 8F.4 | undefined | Outside documented contract; excluded with upstream status |
-| 8F.5 | undefined | Outside documented contract; excluded with upstream status |
-| 8F.6 | undefined | Outside documented contract; excluded with upstream status |
-| 8F.7 | undefined | Outside documented contract; excluded with upstream status |
+| 8F.1 | undefined | 250 physical-chip fixtures per interface |
+| 8F.2 | undefined | 253 physical-chip fixtures per interface |
+| 8F.3 | undefined | 258 physical-chip fixtures per interface |
+| 8F.4 | undefined | 240 physical-chip fixtures per interface |
+| 8F.5 | undefined | 239 physical-chip fixtures per interface |
+| 8F.6 | undefined | 260 physical-chip fixtures per interface |
+| 8F.7 | undefined | 262 physical-chip fixtures per interface |
 | 90 | normal | 2,000 physical-chip fixtures per interface |
 | 91 | normal | 2,000 physical-chip fixtures per interface |
 | 92 | normal | 2,000 physical-chip fixtures per interface |
@@ -237,30 +237,30 @@ has an additional directed exact-target/return test. CL=255 has directed coverag
 | BD | normal | 2,000 physical-chip fixtures per interface |
 | BE | normal | 2,000 physical-chip fixtures per interface |
 | BF | normal | 2,000 physical-chip fixtures per interface |
-| C0 | alias | Outside documented contract; excluded with upstream status |
-| C1 | alias | Outside documented contract; excluded with upstream status |
+| C0 | alias | 2,000 physical-chip fixtures per interface |
+| C1 | alias | 2,000 physical-chip fixtures per interface |
 | C2 | normal | 2,000 physical-chip fixtures per interface |
 | C3 | normal | 2,000 physical-chip fixtures per interface |
-| C4 | normal | 2,000 physical-chip fixtures per interface |
-| C5 | normal | 2,000 physical-chip fixtures per interface |
+| C4 | normal | 2,000 physical-chip fixtures per interface; mod=3 register form enters diagnostic fault_o (UVM/formal/directed) |
+| C5 | normal | 2,000 physical-chip fixtures per interface; mod=3 register form enters diagnostic fault_o (UVM/formal/directed) |
 | C6.0 | normal | 236 physical-chip fixtures per interface |
-| C6.1 | undefined | Outside documented contract; excluded with upstream status |
-| C6.2 | undefined | Outside documented contract; excluded with upstream status |
-| C6.3 | undefined | Outside documented contract; excluded with upstream status |
-| C6.4 | undefined | Outside documented contract; excluded with upstream status |
-| C6.5 | undefined | Outside documented contract; excluded with upstream status |
-| C6.6 | undefined | Outside documented contract; excluded with upstream status |
-| C6.7 | undefined | Outside documented contract; excluded with upstream status |
+| C6.1 | undefined | 250 physical-chip fixtures per interface |
+| C6.2 | undefined | 246 physical-chip fixtures per interface |
+| C6.3 | undefined | 278 physical-chip fixtures per interface |
+| C6.4 | undefined | 264 physical-chip fixtures per interface |
+| C6.5 | undefined | 240 physical-chip fixtures per interface |
+| C6.6 | undefined | 239 physical-chip fixtures per interface |
+| C6.7 | undefined | 247 physical-chip fixtures per interface |
 | C7.0 | normal | 270 physical-chip fixtures per interface |
-| C7.1 | undefined | Outside documented contract; excluded with upstream status |
-| C7.2 | undefined | Outside documented contract; excluded with upstream status |
-| C7.3 | undefined | Outside documented contract; excluded with upstream status |
-| C7.4 | undefined | Outside documented contract; excluded with upstream status |
-| C7.5 | undefined | Outside documented contract; excluded with upstream status |
-| C7.6 | undefined | Outside documented contract; excluded with upstream status |
-| C7.7 | undefined | Outside documented contract; excluded with upstream status |
-| C8 | alias | Outside documented contract; excluded with upstream status |
-| C9 | alias | Outside documented contract; excluded with upstream status |
+| C7.1 | undefined | 243 physical-chip fixtures per interface |
+| C7.2 | undefined | 233 physical-chip fixtures per interface |
+| C7.3 | undefined | 245 physical-chip fixtures per interface |
+| C7.4 | undefined | 237 physical-chip fixtures per interface |
+| C7.5 | undefined | 233 physical-chip fixtures per interface |
+| C7.6 | undefined | 255 physical-chip fixtures per interface |
+| C7.7 | undefined | 284 physical-chip fixtures per interface |
+| C8 | alias | 2,000 physical-chip fixtures per interface |
+| C9 | alias | 2,000 physical-chip fixtures per interface |
 | CA | normal | 2,000 physical-chip fixtures per interface |
 | CB | normal | 2,000 physical-chip fixtures per interface |
 | CC | normal | 2,000 physical-chip fixtures per interface |
@@ -273,7 +273,7 @@ has an additional directed exact-target/return test. CL=255 has directed coverag
 | D0.3 | normal | 2,000 physical-chip fixtures per interface |
 | D0.4 | normal | 2,000 physical-chip fixtures per interface |
 | D0.5 | normal | 2,000 physical-chip fixtures per interface |
-| D0.6 | undocumented | Outside documented contract; excluded with upstream status |
+| D0.6 | undocumented | 2,000 physical-chip fixtures per interface |
 | D0.7 | normal | 2,000 physical-chip fixtures per interface |
 | D1.0 | normal | 2,000 physical-chip fixtures per interface |
 | D1.1 | normal | 2,000 physical-chip fixtures per interface |
@@ -281,7 +281,7 @@ has an additional directed exact-target/return test. CL=255 has directed coverag
 | D1.3 | normal | 2,000 physical-chip fixtures per interface |
 | D1.4 | normal | 2,000 physical-chip fixtures per interface |
 | D1.5 | normal | 2,000 physical-chip fixtures per interface |
-| D1.6 | undocumented | Outside documented contract; excluded with upstream status |
+| D1.6 | undocumented | 2,000 physical-chip fixtures per interface |
 | D1.7 | normal | 2,000 physical-chip fixtures per interface |
 | D2.0 | normal | 2,000 physical-chip fixtures per interface |
 | D2.1 | normal | 2,000 physical-chip fixtures per interface |
@@ -289,7 +289,7 @@ has an additional directed exact-target/return test. CL=255 has directed coverag
 | D2.3 | normal | 2,000 physical-chip fixtures per interface |
 | D2.4 | normal | 2,000 physical-chip fixtures per interface |
 | D2.5 | normal | 2,000 physical-chip fixtures per interface |
-| D2.6 | undocumented | Outside documented contract; excluded with upstream status |
+| D2.6 | undocumented | 2,000 physical-chip fixtures per interface |
 | D2.7 | normal | 2,000 physical-chip fixtures per interface |
 | D3.0 | normal | 2,000 physical-chip fixtures per interface |
 | D3.1 | normal | 2,000 physical-chip fixtures per interface |
@@ -297,11 +297,11 @@ has an additional directed exact-target/return test. CL=255 has directed coverag
 | D3.3 | normal | 2,000 physical-chip fixtures per interface |
 | D3.4 | normal | 2,000 physical-chip fixtures per interface |
 | D3.5 | normal | 2,000 physical-chip fixtures per interface |
-| D3.6 | undocumented | Outside documented contract; excluded with upstream status |
+| D3.6 | undocumented | 2,000 physical-chip fixtures per interface |
 | D3.7 | normal | 2,000 physical-chip fixtures per interface |
 | D4 | normal | 2,000 physical-chip fixtures per interface |
 | D5 | normal | 2,000 physical-chip fixtures per interface |
-| D6 | undocumented | Outside documented contract; excluded with upstream status |
+| D6 | undocumented | 2,000 physical-chip fixtures per interface |
 | D7 | normal | 2,000 physical-chip fixtures per interface |
 | D8 | fpu | 2,000 physical-chip fixtures per interface |
 | D9 | fpu | 2,000 physical-chip fixtures per interface |
@@ -328,13 +328,13 @@ has an additional directed exact-target/return test. CL=255 has directed coverag
 | EE | normal | 2,000 physical-chip fixtures per interface |
 | EF | normal | 2,000 physical-chip fixtures per interface |
 | F0 | prefix | LOCK/HOLD atomicity (control + native) |
-| F1 | prefix | Outside documented contract; excluded with upstream status |
+| F1 | prefix | LOCK prefix alias: directed EU + native LOCK/HOLD/RQ-GT tests |
 | F2 | prefix | REPNE physical string fixtures |
 | F3 | prefix | REP/REPE physical fixtures and interrupted restart |
 | F4 | normal | HLT idle/wakeup (control + native + UVM + formal) |
 | F5 | normal | 2,000 physical-chip fixtures per interface |
 | F6.0 | normal | 2,000 physical-chip fixtures per interface |
-| F6.1 | alias | Outside documented contract; excluded with upstream status |
+| F6.1 | alias | 2,000 physical-chip fixtures per interface |
 | F6.2 | normal | 2,000 physical-chip fixtures per interface |
 | F6.3 | normal | 2,000 physical-chip fixtures per interface |
 | F6.4 | normal | 2,000 physical-chip fixtures per interface |
@@ -342,7 +342,7 @@ has an additional directed exact-target/return test. CL=255 has directed coverag
 | F6.6 | normal | 2,000 physical-chip fixtures per interface |
 | F6.7 | normal | 2,000 physical-chip fixtures per interface |
 | F7.0 | normal | 2,000 physical-chip fixtures per interface |
-| F7.1 | alias | Outside documented contract; excluded with upstream status |
+| F7.1 | alias | 2,000 physical-chip fixtures per interface |
 | F7.2 | normal | 2,000 physical-chip fixtures per interface |
 | F7.3 | normal | 2,000 physical-chip fixtures per interface |
 | F7.4 | normal | 2,000 physical-chip fixtures per interface |
@@ -357,17 +357,17 @@ has an additional directed exact-target/return test. CL=255 has directed coverag
 | FD | normal | 2,000 physical-chip fixtures per interface |
 | FE.0 | normal | 2,000 physical-chip fixtures per interface |
 | FE.1 | normal | 2,000 physical-chip fixtures per interface |
-| FE.2 | undefined | Outside documented contract; excluded with upstream status |
-| FE.3 | undefined | Outside documented contract; excluded with upstream status |
-| FE.4 | undefined | Outside documented contract; excluded with upstream status |
-| FE.5 | undefined | Outside documented contract; excluded with upstream status |
-| FE.6 | undefined | Outside documented contract; excluded with upstream status |
-| FE.7 | undefined | Outside documented contract; excluded with upstream status |
+| FE.2 | undefined | Unimplemented undefined FE group; enters diagnostic fault_o (UVM/directed; 0 corpus fixtures) |
+| FE.3 | undefined | Unimplemented undefined FE group; enters diagnostic fault_o (UVM/directed; 0 corpus fixtures) |
+| FE.4 | undefined | Unimplemented undefined FE group; enters diagnostic fault_o (UVM/directed; 0 corpus fixtures) |
+| FE.5 | undefined | Unimplemented undefined FE group; enters diagnostic fault_o (UVM/directed; 0 corpus fixtures) |
+| FE.6 | undefined | Unimplemented undefined FE group; enters diagnostic fault_o (UVM/directed; 0 corpus fixtures) |
+| FE.7 | undefined | Unimplemented undefined FE group; enters diagnostic fault_o (UVM/directed; 0 corpus fixtures) |
 | FF.0 | normal | 2,000 physical-chip fixtures per interface |
 | FF.1 | normal | 2,000 physical-chip fixtures per interface |
 | FF.2 | normal | 2,000 physical-chip fixtures per interface |
-| FF.3 | normal | 2,000 physical-chip fixtures per interface |
+| FF.3 | normal | 2,000 physical-chip fixtures per interface; mod=3 register form enters diagnostic fault_o (UVM/formal/directed) |
 | FF.4 | normal | 2,000 physical-chip fixtures per interface |
-| FF.5 | normal | 2,000 physical-chip fixtures per interface |
+| FF.5 | normal | 2,000 physical-chip fixtures per interface; mod=3 register form enters diagnostic fault_o (UVM/formal/directed) |
 | FF.6 | normal | 2,000 physical-chip fixtures per interface |
-| FF.7 | alias | Outside documented contract; excluded with upstream status |
+| FF.7 | alias | 2,000 physical-chip fixtures per interface |
