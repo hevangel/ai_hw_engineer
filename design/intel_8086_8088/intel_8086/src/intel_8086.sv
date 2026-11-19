@@ -288,7 +288,9 @@ module intel_8086 (
       target_ip<=0; target_cs<=0; string_source<=0;
       vector_number<=0; interrupt_return_ip<=0; interrupt_instruction<=0; interrupt_entry<=0;
       repeat_kind<=0; lock_prefix<=0; acknowledge_lock<=0;
-      nmi_previous<=0; nmi_pending<=0; tf_start<=0; trap_pending<=0;
+      // Track NMI through reset (Intel 1979 8086 datasheet p. B-6) so a line
+      // already high at reset release does not look like a rising edge.
+      nmi_previous<=nmi_i; nmi_pending<=0; tf_start<=0; trap_pending<=0;
       mask_shadow<=0; all_shadow<=0; wait_count<=0; hlda_o<=0;
     end else begin
       if(hlda_o) begin if(!hold_i) hlda_o<=0; end
@@ -697,9 +699,10 @@ module intel_8086 (
                !all_shadow && (nmi_pending || (intr_i && flags[9] && !mask_shadow) || trap_pending)))
         assert(interrupt_entry && prefetch_suspend_o);
     end
+    if(past_valid) assert(nmi_previous==$past(nmi_i));
     if(past_valid && !$past(rst_n)) begin
       assert(ip_o==0 && seg[1]==16'hffff && flags_o==16'hf002);
-      assert(!halted_o && !fault_o);
+      assert(!halted_o && !fault_o && !nmi_pending);
     end
     if(bus_req_o) begin
       assert(bus_addr_o[0]==0 && bus_be_o!=0);

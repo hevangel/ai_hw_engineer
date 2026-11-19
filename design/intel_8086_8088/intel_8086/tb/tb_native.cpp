@@ -357,6 +357,28 @@ static void native_tests(Bench &b){
         require(saw_handler,"missing INT 21h handler fetch");++cases;
         b.random_wait=true;
     }
+    // NMI held high across reset release must not trigger a spurious edge;
+    // a subsequent 0->1 rising edge wakes HLT into vector 2.
+    for(bool mode:{true,false}){
+        b.min_mode=mode;
+        b.reset();
+        const uint8_t jump[]={0xea,0x00,0x00,0x00,0x10};
+        for(unsigned i=0;i<5;++i)b.set(0xffff0+i,jump[i]);
+        const uint8_t prog[]={0xbc,0x00,0x80,0xf4,0x90,0xf4};
+        for(unsigned i=0;i<6;++i)b.set(0x10000+i,prog[i]);
+        b.set(0x08,0x20);b.set(0x09,0x04);b.set(0x0a,0x00);b.set(0x0b,0x00);
+        b.set(0x420,0x43);b.set(0x421,0xcf);
+        b.dut.nmi_i=1;b.dut.reset_i=1;b.tick();b.tick();b.dut.reset_i=0;
+        for(unsigned i=0;i<600 && !b.dut.halted_o;++i)b.tick();
+        require(b.dut.halted_o && b.read()[9]==0x1000 && b.dut.ip_o==4 &&
+            b.read()[3]==0 && b.writes.empty(),"spurious NMI on reset release");
+        b.dut.nmi_i=0;for(unsigned i=0;i<4;++i)b.tick();
+        b.dut.nmi_i=1;b.step(0x421);
+        require(b.read()[9]==0 && b.read()[4]==0x7ffa && b.memory[0x7ffa]==4 &&
+            b.memory[0x7ffc]==0x00 && b.memory[0x7ffd]==0x10,"post-reset NMI edge stack");
+        b.dut.nmi_i=0;b.step(4);b.step(5);b.step(6);
+        require(b.dut.halted_o && b.read()[3]==1,"post-NMI re-halt");++cases;
+    }
     std::cout<<"PASS: "<<cases<<" native minimum/maximum-mode bus, prefetch, arbitration and reset scenarios\n";
 }
 int main(int argc,char **argv){

@@ -191,5 +191,21 @@ static void control(Bench &b) {
         require(b.read()[0]==((flags&1) ? 0x12ff:0x1200) && b.read()[13]==flags,"SALC value/flags");
         ++cases;
     }
+    // NMI held high across reset and release must not trigger a spurious edge;
+    // a subsequent 0->1 rising edge wakes HLT into vector 2.
+    b.reset();
+    put_word(b,8,0x420); put_word(b,10,0); code(b,0x420,{0x43,0xcf});
+    code(b,0xffff0,{0xea,0x00,0x00,0x00,0x10}); code(b,0x10000,{0xbc,0x00,0x80,0xf4,0x90,0xf4});
+    b.dut.nmi_i=1; b.dut.rst_n=0; b.tick(); b.tick(); b.dut.rst_n=1;
+    b.retire(); require(b.read()[9]==0x1000 && b.dut.ip_o==0 && b.writes.empty(),"spurious NMI before reset jump");
+    b.retire(); require(b.read()[9]==0x1000 && b.dut.ip_o==3 && b.writes.empty(),"spurious NMI on reset release");
+    b.retire(); require(b.dut.halted_o && b.read()[9]==0x1000 && b.dut.ip_o==4 &&
+        b.read()[3]==0 && b.writes.empty(),"spurious NMI before HLT");
+    b.dut.nmi_i=0; b.tick(); b.tick(); b.dut.nmi_i=1;
+    for(unsigned i=0;i<1000 && !(b.dut.redirect_o && b.dut.ip_o==0x420);++i) b.tick();
+    require(b.read()[9]==0 && b.dut.ip_o==0x420 && b.read()[4]==0x7ffa &&
+        word(b,0x7ffa)==4 && word(b,0x7ffc)==0x1000,"post-reset NMI rising edge wake");
+    b.dut.nmi_i=0; step(b,0x421,0); step(b,4); step(b,5); step(b,6);
+    require(b.dut.halted_o && b.read()[3]==1,"post-NMI re-halt"); ++cases;
     std::cout<<"PASS: "<<cases<<" documented control, interrupt, REP, WAIT and LOCK scenarios\n";
 }
