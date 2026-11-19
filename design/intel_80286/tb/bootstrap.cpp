@@ -3725,7 +3725,44 @@ static void protected_far_call_not_present() {
         ++runs;
     }
     check(runs==8,"not-present far-transfer cases incomplete");
-    std::cout<<"PASS: protected far CALL and JMP to a not-present code segment raise restartable #NP(selector), with type and privilege #GP(selector) taking priority, in both READY modes\n";
+    unsigned call_stack_before_ip_cases=0;
+    for (bool wait:{false,true}) for (uint16_t sp:{uint16_t(0x0002),uint16_t(0x0080)}) {
+        const uint8_t program[]={
+            0xb8,0x58,0x00, 0x0f,0x00,0xd8,      // 0200 LTR 0058
+            0xb8,0x28,0x00, 0x8e,0xd0,           // 0206 MOV SS,0028
+            0xbc,uint8_t(sp),uint8_t(sp>>8),     // 020B MOV SP,sp
+            0x9a,0x00,0x10,0x48,0x00,            // 020E CALL 0048:1000
+            0xf4
+        };
+        Bench b;
+        place_selector_fixture(b,program,sizeof(program));
+        b.put(kGdtBase+0x48,{0xff,0x00,0x00,0x00,0x06,0x9b,0x00,0x00}); // CS limit 00ff
+        b.put(kGdtBase+0x50,{0x2b,0x00,0x40,0x07,0x00,0x81,0x00,0x00}); // #SS task TSS
+        b.put(kGdtBase+0x58,{0x2b,0x00,0x80,0x07,0x00,0x81,0x00,0x00}); // current TSS for switch
+        b.put(0x00000740+14,{0x00,0x03, 0x02,0x00, 0,0,0,0,0,0,0,0, 0x80,0x00, 0,0,0,0,0,0,
+                             0x10,0x00, 0x30,0x00, 0x28,0x00, 0x10,0x00, 0x00,0x00});
+        b.put(kIdtBase+12*8,{0x00,0x00,0x50,0x00,0x00,0x85,0x00,0x00}); // task gate so SP=2 does not #DF
+        b.put(kHandlerBase+kHandlerIp,{0xf4});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x0f,kCodeSelector,0x0206,wait);
+        b.step(kCodeBase+0x0206,0xb8,kCodeSelector,0x0209,wait);
+        b.step(kCodeBase+0x0209,0x8e,kCodeSelector,0x020b,wait);
+        b.step(kCodeBase+0x020b,0xbc,kCodeSelector,0x020e,wait);
+        b.data_transfers.clear();
+        for (unsigned n=0;n<60000 && !b.d.event_o && !b.d.fault_o && !b.d.shutdown_o;++n) b.tick(wait);
+        const uint8_t expected_vec=(sp==0x0002) ? 12 : 13;
+        check(b.d.event_o && !b.d.fault_o && !b.d.shutdown_o && b.d.event_vector_o==expected_vec &&
+              b.d.event_packet_error_code_o==0 && b.d.event_packet_saved_ip_o==0x020e &&
+              b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp &&
+              std::none_of(b.data_transfers.begin(),b.data_transfers.end(),[](const auto& t) {
+                  return t.write && !t.io && t.address>=kStackBase && t.address<kStackBase+8;
+              }),
+              "far CALL did not check stack room (#SS(0)) before target IP limit (#GP(0))");
+        ++call_stack_before_ip_cases;
+    }
+    check(call_stack_before_ip_cases==4,"far CALL stack-before-IP cases incomplete");
+    std::cout<<"PASS: protected far CALL and JMP to a not-present code segment raise restartable #NP(selector), type/privilege #GP(selector) take priority, and far CALL checks stack room before target IP limit in both READY modes\n";
 }
 
 // ASSUMPTION A44: a protected-mode frame pushed from SP=0000 occupies the
@@ -4568,7 +4605,48 @@ static void protected_call_gate_tss_stack_faults() {
         ++executions;
     }
     check(executions==20,"CALL-gate TSS/stack fault matrix did not cover every case and READY mode");
-    std::cout<<"PASS: CALL-gate TSS bounds, SS0 selector/type/privilege/presence and stack-span failures deliver exact #TS/#SS frames without partial privilege-switch writes in both READY modes\n";
+    unsigned gate_stack_before_ip_cases=0;
+    for (bool wait:{false,true}) for (uint16_t ss0:{uint16_t(0x0000),uint16_t(0x0028)}) {
+        Bench b;
+        place_selector_fixture(b,ring0_program,sizeof(ring0_program));
+        b.memory[0x41]=0x00; b.memory[0x40]=0x77; // Include 0070 short CS descriptor.
+        b.put(kGdtBase+0x38,{ring3_cs[0],ring3_cs[1],ring3_cs[2],ring3_cs[3],
+                              ring3_cs[4],ring3_cs[5],ring3_cs[6],ring3_cs[7]});
+        b.put(kGdtBase+0x40,{ring3_ss[0],ring3_ss[1],ring3_ss[2],ring3_ss[3],
+                              ring3_ss[4],ring3_ss[5],ring3_ss[6],ring3_ss[7]});
+        b.put(kGdtBase+0x48,{0xff,0x00,0x00,0x00,0x05,0x93,0x00,0x00});
+        b.put(kGdtBase+0x28,{0xff,0x00,0x00,0x00,0x05,0x93,0x00,0x00});
+        b.put(kGdtBase+0x58,{0x2b,0x00,0x00,0x07,0x00,0x81,0x00,0x00});
+        b.put(kGdtBase+0x70,{0xff,0x00,0x00,0x00,0x01,0x9b,0x00,0x00}); // Short ring0 CS limit 00ff
+        b.put(kGdtBase+0x68,{0x00,0x05,0x70,0x00,0x00,0xe4,0x00,0x00}); // Gate -> 0070:0500 (IP > limit)
+        b.put(0x00000702,{0x00,0x01,uint8_t(ss0),uint8_t(ss0>>8)});
+        b.put(kIdtBase+10*8,{0x00,0x03,0x3b,0x00,0x00,0x86,0x00,0x00});
+        b.put(kIdtBase+13*8,{0x00,0x03,0x3b,0x00,0x00,0x86,0x00,0x00});
+        b.put(0x00060000+0x0400,{ring3_program[0],ring3_program[1],ring3_program[2],
+                                  ring3_program[3],ring3_program[4],ring3_program[5]});
+        b.put(0x00060000+0x0300,{0xf4});
+        b.put(kStackBase+0x0080,{0x00,0x04,0x3b,0x00,0x02,0x02,0x00,0x01,0x43,0x00});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+        b.step(kCodeBase+0x020b,0x0f,kCodeSelector,0x020e,wait);
+        b.step(kCodeBase+0x020e,0xcf,0x003b,0x0400,wait);
+        b.data_transfers.clear();
+        for (unsigned cycle=0;cycle<30000 && !b.d.event_o && !b.d.fault_o;++cycle) b.tick(wait);
+        const uint8_t expected_vec=(ss0==0x0000) ? 10 : 13;
+        check(b.d.event_o && !b.d.fault_o && b.d.event_vector_o==expected_vec &&
+              b.d.event_packet_error_code_o==0 && b.d.event_packet_saved_ip_o==0x0400 &&
+              b.cs()==0x003b && b.d.ip_o==0x0300 &&
+              std::none_of(b.data_transfers.begin(),b.data_transfers.end(),[](const auto& t) {
+                  return t.write && !t.io && t.address>=kStackBase+0xf0 && t.address<kStackBase+0x100;
+              }),
+              "CALL gate did not validate TSS stack before target IP limit");
+        ++gate_stack_before_ip_cases;
+    }
+    check(gate_stack_before_ip_cases==4,"CALL-gate stack-before-IP cases incomplete");
+    std::cout<<"PASS: CALL-gate TSS bounds, SS0 selector/type/privilege/presence and stack-span failures precede IP-limit #GP(0) and deliver exact #TS/#SS frames without partial privilege-switch writes in both READY modes\n";
 }
 
 static void protected_call_gate_outer_level() {
@@ -7629,8 +7707,52 @@ static void protected_event_delivery_faults() {
         ++df_gate_executions;
     }
     check(df_gate_executions==4,"#DF interrupt/trap gate matrix missed a case");
+    unsigned int_stack_before_ip_cases=0;
+    for (bool wait:{false,true}) for (uint16_t ss0:{uint16_t(0x0000),uint16_t(0x0028)}) {
+        const uint8_t ring0_prog[]={
+            0xb8,0x48,0x00, 0x8e,0xd0, // 0200 MOV SS,0048
+            0xbc,0x80,0x00,             // 0205 MOV SP,0080
+            0xb8,0x58,0x00, 0x0f,0x00,0xd8, // 0208 LTR 0058
+            0xcf, 0xf4                  // 020E IRET to 003b:0400
+        };
+        Bench b;
+        place_selector_fixture(b,ring0_prog,sizeof(ring0_prog));
+        b.memory[0x41]=0x00; b.memory[0x40]=0x77;
+        b.memory[0x46]=0x0f; b.memory[0x47]=0x01; // IDT covers vector 20h
+        b.put(kGdtBase+0x38,{0xff,0x0f,0x00,0x00,0x06,0xfa,0x00,0x00});
+        b.put(kGdtBase+0x40,{0xff,0x01,0x00,0x00,0x07,0xf2,0x00,0x00});
+        b.put(kGdtBase+0x48,{0xff,0x00,0x00,0x00,0x05,0x93,0x00,0x00});
+        b.put(kGdtBase+0x58,{0x2b,0x00,0x00,0x07,0x00,0x81,0x00,0x00});
+        b.put(kGdtBase+0x70,{0xff,0x00,0x00,0x00,0x01,0x9b,0x00,0x00}); // Short CS limit 00ff
+        b.put(0x00000702,{0x00,0x01,uint8_t(ss0),uint8_t(ss0>>8)});
+        b.put(kIdtBase+0x20*8,{0x80,0x04,0x70,0x00,0x00,0xe6,0x00,0x00}); // Gate -> 0070:0480 (IP > limit)
+        b.put(kIdtBase+10*8,{0x00,0x03,0x3b,0x00,0x00,0x86,0x00,0x00});
+        b.put(kIdtBase+13*8,{0x00,0x03,0x3b,0x00,0x00,0x86,0x00,0x00});
+        b.put(0x00060000+0x0400,{0xcd,0x20,0xf4});
+        b.put(0x00060000+0x0300,{0xf4});
+        b.put(kStackBase+0x0080,{0x00,0x04,0x3b,0x00,0x02,0x02,0x00,0x01,0x43,0x00});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+        b.step(kCodeBase+0x020b,0x0f,kCodeSelector,0x020e,wait);
+        b.step(kCodeBase+0x020e,0xcf,0x003b,0x0400,wait);
+        b.data_transfers.clear();
+        for (unsigned n=0;n<30000 && !b.d.event_o && !b.d.fault_o;++n) b.tick(wait);
+        const uint8_t expected_vec=(ss0==0x0000) ? 10 : 13;
+        check(b.d.event_o && !b.d.fault_o && b.d.event_vector_o==expected_vec &&
+              b.d.event_packet_error_code_o==0 && b.d.event_packet_saved_ip_o==0x0400 &&
+              b.cs()==0x003b && b.d.ip_o==0x0300 &&
+              std::none_of(b.data_transfers.begin(),b.data_transfers.end(),[](const auto& t) {
+                  return t.write && !t.io && t.address>=kStackBase+0xf0 && t.address<kStackBase+0x100;
+              }),
+              "INT CPL3->0 did not check inner SS0 (#TS(0)) before handler IP limit (#GP(0))");
+        ++int_stack_before_ip_cases;
+    }
+    check(int_stack_before_ip_cases==4,"INT inner-stack-before-IP cases incomplete");
     std::cout<<"PASS: 10 protected handler-invocation faults raise App. B #GP/#NP/#SS codes with EXT, "
-               "point INT faults at the INT, escalate #SS to #DF and shutdown per 9.6.2, and 4 #DF interrupt/trap-gate runs enter vector 8\n";
+               "point INT faults at the INT, escalate #SS to #DF and shutdown per 9.6.2, 4 #DF interrupt/trap-gate runs enter vector 8, and 4 inner-stack-before-IP cases order #TS(0) before #GP(0)\n";
 }
 
 static void protected_event_task_gate_delivery() {

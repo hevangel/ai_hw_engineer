@@ -31,9 +31,10 @@
         code_load_target==5 ? task_state_image[11] :
         opcode==8'hea ? immediate[31:16] : memory_result[31:16];
     wire [15:0] f_code_expected_offset =
-        code_load_target==1 ? event_pointer[15:0] :
+        code_load_target==1 ? 16'd0 :
         code_load_target==2 ? (iret_outer_active ? 16'd0 : iret_saved_ip) :
-        (code_load_target==3 || code_load_target==6) ? protected_call_target_offset :
+        code_load_target==3 ? 16'd0 :
+        code_load_target==6 ? protected_call_target_offset :
         code_load_target==4 ? (ret_outer_active ? 16'd0 : ret_saved_ip) :
         code_load_target==5 ? 16'd0 :
         opcode==8'hea ? immediate[15:0] : memory_result[15:0];
@@ -414,7 +415,7 @@
                       code_load_cache_valid && !code_load_fault && !code_load_special &&
                       code_load_special_descriptor==48'd0 && code_load_target==1 &&
                       code_load_request_selector==event_pointer[31:16] &&
-                      code_load_request_offset==event_pointer[15:0])) begin
+                      code_load_request_offset==16'd0)) begin
                 if ($past(code_load_selector[1:0]<cs[1:0])) begin
                     if ($past(!tr_valid || code_load_selector[1:0]>2 ||
                         ({1'b0,(16'd2+{12'd0,code_load_selector[1:0],2'b00})}+17'd3)>

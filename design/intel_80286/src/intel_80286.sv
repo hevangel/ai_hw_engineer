@@ -890,9 +890,9 @@ module intel_80286 #(
                     state==RET_CODE_START ? ret_saved_cs :
                     state==TASK_CODE_START ? task_state_image[11] :
                     opcode==8'hea ? immediate[31:16] : memory_result[31:16]),
-        .offset_i(state==EVENT_CODE_START ? event_pointer[15:0] :
+        .offset_i(state==EVENT_CODE_START ? 16'd0 :
                   state==IRET_CODE_START ? (iret_outer_active ? 16'd0 : iret_saved_ip) :
-                  state==CALL_CODE_START ? protected_call_target_offset :
+                  state==CALL_CODE_START ? (protected_call_direct_jump ? protected_call_target_offset : 16'd0) :
                   (state==RET_CODE_START && ret_outer_active) ? 16'd0 :
                   state==RET_CODE_START ? ret_saved_ip :
                   // Validate the incoming IP only after the new segment
@@ -2227,9 +2227,10 @@ module intel_80286 #(
                             code_load_target==4 ? ret_saved_cs :
                             code_load_target==5 ? task_state_image[11] :
                             opcode==8'hea ? immediate[31:16] : memory_result[31:16]) ||
-                        code_load_request_offset!=(code_load_target==1 ? event_pointer[15:0] :
+                        code_load_request_offset!=(code_load_target==1 ? 16'd0 :
                         code_load_target==2 ? (iret_outer_active ? 16'd0 : iret_saved_ip) :
-                        (code_load_target==3 || code_load_target==6) ? protected_call_target_offset :
+                        code_load_target==3 ? 16'd0 :
+                        code_load_target==6 ? protected_call_target_offset :
                         code_load_target==4 ? (ret_outer_active ? 16'd0 : ret_saved_ip) :
                         code_load_target==5 ? 16'd0 :
                             opcode==8'hea ? immediate[15:0] : memory_result[15:0])) begin
@@ -2316,7 +2317,7 @@ module intel_80286 #(
                         protected_call_target_base<=code_load_base;
                         protected_call_target_limit<=code_load_limit;
                         protected_call_target_access<=code_load_access;
-                        far_ip<=code_load_request_offset; far_cs<=code_load_selector;
+                        far_ip<=protected_call_target_offset; far_cs<=code_load_selector;
                         retire_o<=0;
                         if (protected_call_through_gate && code_load_selector[1:0]<cs[1:0]) begin
                             protected_far_call_active<=0;
@@ -2493,6 +2494,10 @@ module intel_80286 #(
                                     (16'd8+{10'd0,protected_call_parameter_count,1'b0})) <= segment_load_limit :
                                 (protected_call_tss_stack_sp-16'd1)>segment_load_limit)) begin
                             enter_event(12,instruction_ip,1'b0,1'b1,1'b1,16'd0);
+                            state<=EVENT_START; retire_o<=0;
+                            protected_call_stack_active<=0; protected_call_through_gate<=0;
+                        end else if (far_ip>protected_call_target_limit) begin
+                            enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0);
                             state<=EVENT_START; retire_o<=0;
                             protected_call_stack_active<=0; protected_call_through_gate<=0;
                         end else begin
@@ -3092,9 +3097,16 @@ module intel_80286 #(
                                       protected_call_through_gate ? 3'd6 : 3'd0;
                     state<=CODE_LOAD_WAIT; retire_o<=0;
                 end
-                CALL_FRAME_READY:
-                    memory_start(1'b1,2,gpr[4]-16'd2,24'd0,1'b1,1'b0,3'd2,
-                                 {16'h0,cs},FAR_CS_DONE);
+                CALL_FRAME_READY: begin
+                    if (far_ip>protected_call_target_limit) begin
+                        enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0);
+                        protected_far_call_active<=0; protected_call_through_gate<=0;
+                        state<=EVENT_START; retire_o<=0;
+                    end else begin
+                        memory_start(1'b1,2,gpr[4]-16'd2,24'd0,1'b1,1'b0,3'd2,
+                                     {16'h0,cs},FAR_CS_DONE);
+                    end
+                end
                 CALL_TSS_PAIR: begin
                     protected_call_tss_stack_sp<=memory_result[15:0];
                     protected_call_tss_stack_ss<=memory_result[31:16];
@@ -3616,7 +3628,9 @@ module intel_80286 #(
                     end
                 end
                 EVENT_FRAME_READY: if (owner_event_grant) begin
-                    if (event_stack_active)
+                    if (event_pointer[15:0]>event_target_limit) begin
+                        `I286_DELIVERY_FAULT(8'd13,16'd0)
+                    end else if (event_stack_active)
                         event_frame_word(event_tss_stack_sp-16'd2,
                                          event_packet.saved_ss,EVENT_FRAME_OLD_SS);
                     else
