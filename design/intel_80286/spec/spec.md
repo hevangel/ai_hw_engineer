@@ -298,8 +298,13 @@ The 2026-11-12 PCE-286 oracle loop (see
   both set. PCE-286 agrees; no primary-source quote for TS=1 with MP=0 was
   retrieved.
 
-ASSUMPTION A31: an invalid outer-level return SS raises #SS(selector) per
-Table 7-4, although Appendix B lists #GP/#NP. See
+ASSUMPTION A31: Intel 210498-005 disagrees internally on an invalid
+outer-level return SS: Table 7-4 (RET table, page 7-22) lists "SF" for every
+SS row, whereas Appendix B lists the same rules for both IRET (page B-52) and
+RET (page B-95): #GP(selector) for null, limit, RPL, non-data, read-only, and
+DPL checks, and #SS(selector) only for not-present. The core follows Appendix
+B for both outer IRET and outer RETF (matching PCE-286 and 86Box); physical
+286 evidence remains uncaptured. See
 [the privilege-transition spec](protected_privilege_transition.md).
 
 ASSUMPTION A30: ESC D9h-DFh use the D8h command protocol captured on a physical

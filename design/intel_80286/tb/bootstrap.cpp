@@ -3103,20 +3103,23 @@ static void protected_outer_iret_ss_faults() {
     const uint8_t ring3_ss_not_present[]={0xff,0x0f,0x00,0x00,0x05,0x72,0x00,0x00};
     const uint8_t ring3_ss_wrong_dpl[]={0xff,0x0f,0x00,0x00,0x05,0xd2,0x00,0x00};
     const uint8_t ring3_code_descriptor[]={0xff,0x0f,0x00,0x00,0x01,0xfa,0x00,0x00};
+    const uint8_t ring3_ro_data_descriptor[]={0xff,0x0f,0x00,0x00,0x05,0xf0,0x00,0x00};
     struct FaultCase {
         const char* label;
         uint16_t selector, error_code;
         const uint8_t* descriptor;
+        uint8_t vector;
     };
     const FaultCase cases[]={
-        {"null SS selector",0x0003,0x0000,nullptr},
-        {"non-present SS descriptor",0x0043,0x0040,ring3_ss_not_present},
-        {"code descriptor in SS slot",0x004b,0x0048,ring3_code_descriptor},
-        {"SS selector RPL mismatch",0x0042,0x0040,ring3_ss_wrong_dpl},
-        {"SS selector beyond GDT limit",0x00c3,0x00c0,nullptr}
+        {"null SS selector",0x0003,0x0000,nullptr,13},
+        {"non-present SS descriptor",0x0043,0x0040,ring3_ss_not_present,12},
+        {"code descriptor in SS slot",0x004b,0x0048,ring3_code_descriptor,13},
+        {"read-only data descriptor in SS slot",0x004b,0x0048,ring3_ro_data_descriptor,13},
+        {"SS selector RPL mismatch",0x0042,0x0040,ring3_ss_wrong_dpl,13},
+        {"SS selector beyond GDT limit",0x00c3,0x00c0,nullptr,13}
     };
     const uint8_t repair_handler[]={
-        0x83,0xc4,0x02,             // 0300 discard #SS(selector)
+        0x83,0xc4,0x02,             // 0300 discard error code
         0xb8,0x28,0x00,             // 0303 MOV AX, ring-0 SS
         0x8e,0xd8,                   // 0306 MOV DS,AX
         0xb8,0x53,0x00,             // 0308 MOV AX, valid ring-3 SS
@@ -3137,8 +3140,10 @@ static void protected_outer_iret_ss_faults() {
                            fault.descriptor[3],fault.descriptor[4],fault.descriptor[5],
                            fault.descriptor[6],fault.descriptor[7]});
         }
-        for (unsigned i=0;i<8;++i)
+        for (unsigned i=0;i<8;++i) {
             b.memory[kIdtBase+12*8+i]=kVector13Gate[i];
+            b.memory[kIdtBase+13*8+i]=kVector13Gate[i];
+        }
         for (std::size_t i=0;i<sizeof(repair_handler);++i)
             b.memory[kHandlerBase+kHandlerIp+uint32_t(i)]=repair_handler[i];
         b.put(kCodeBase+0x0400,{0x90});
@@ -3158,7 +3163,7 @@ static void protected_outer_iret_ss_faults() {
         for (unsigned n=0;n<100000 && !b.d.event_o && !b.d.fault_o;++n) b.tick(wait);
         check(!b.d.fault_o && b.d.event_o && b.d.event_packet_valid_o &&
               b.d.event_packet_protected_o && b.d.event_packet_error_valid_o &&
-              b.d.event_packet_restartable_o && b.d.event_vector_o==12 &&
+              b.d.event_packet_restartable_o && b.d.event_vector_o==fault.vector &&
               b.d.event_packet_error_code_o==fault.error_code &&
               b.d.event_packet_saved_cs_o==kCodeSelector &&
               b.d.event_packet_saved_ip_o==0x0208 &&
@@ -3167,7 +3172,7 @@ static void protected_outer_iret_ss_faults() {
               b.cs()==kHandlerSelector && b.d.cs_base_o==kHandlerBase &&
               b.d.ip_o==kHandlerIp && b.reg(4)==0x0078,
               (std::string("outer IRET ")+fault.label+
-               " did not deliver restartable #SS(selector)").c_str());
+               " did not deliver restartable App. B SS fault").c_str());
         const uint8_t expected_error_frame[]={uint8_t(fault.error_code),
             uint8_t(fault.error_code>>8),0x08,0x02,0x08,0x00,
             uint8_t(kSavedFlags),uint8_t(kSavedFlags>>8)};
@@ -3217,8 +3222,8 @@ static void protected_outer_iret_ss_faults() {
               "repaired outer IRET did not execute the exact ring-3 successor");
         ++executions;
     }
-    check(executions==10,"outer IRET SS fault matrix missed a fault or READY mode");
-    std::cout<<"PASS: null, absent, wrong-type, wrong-RPL and out-of-limit outer SS faults raise #SS(selector), repair/retry, and reach the exact successor in both READY modes\n";
+    check(executions==12,"outer IRET SS fault matrix missed a fault or READY mode");
+    std::cout<<"PASS: null, absent, wrong-type, read-only, wrong-RPL and out-of-limit outer SS faults follow App. B (#GP or #SS for absent), repair/retry, and reach the exact successor in both READY modes\n";
 }
 
 static void protected_outer_iret_frame_faults() {
@@ -3373,7 +3378,7 @@ static void protected_outer_iret_fault_priorities() {
         {"full-frame #SS before null return-CS #GP",0x0080,0x0087,0x0003,0x0000,0x0400,12,false,false,false,0,6,0,0,0},
         {"null return-CS #GP before null outer-SS #SS",0x0080,0x008f,0x0003,0x0000,0x0400,13,false,false,false,0,6,0,0,0},
         {"non-present return-CS #NP before null outer-SS #SS",0x0080,0x008f,0x004b,0x0000,0x0400,11,true,false,false,0x0048,6,8,0,0},
-        {"null outer-SS #SS before over-limit return-IP #GP(0)",0x0080,0x008f,0x004b,0x0000,0x0400,12,false,true,false,0,10,8,0,1},
+        {"null outer-SS #GP before over-limit return-IP #GP(0)",0x0080,0x008f,0x004b,0x0000,0x0400,13,false,true,false,0,10,8,0,1},
         {"non-present outer-SS #SS before over-limit return-IP #GP(0)",0x0080,0x008f,0x004b,0x0043,0x0400,12,false,true,true,0x0040,10,8,8,1}
     };
     unsigned executions=0;

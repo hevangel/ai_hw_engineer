@@ -637,21 +637,25 @@ five-word outer-IRET frame: an invalid starting SP faults with #SS(0) before
 any source-frame read, while a frame crossing the current SS limit reads only
 IP/CS/FLAGS before its full-span check faults.
 
-ASSUMPTION A31: the outer-level return SS checks (null, table limit, RPL,
-type, DPL, present) raise #SS(SS selector), following Table 7-4 of the 1985
-iAPX 286 PRM (page 7-22, "SF" for every SS row). The same manual's
-Appendix B pages B-50 (IRET) and B-92 (RET) instead list #GP(SS selector), and
-#NP(SS selector) for a not-present SS. The pinned 86Box `pmoderetf` uses #GP
-for the descriptor checks and #SS for not-present. The sources disagree, so
-validate against physical 286 evidence before sign-off.
+ASSUMPTION A31: Intel 210498-005 disagrees internally on outer-level return SS
+checks. Table 7-4 (the RET table, page 7-22) labels every SS check "SF" (#SS),
+whereas Appendix B gives the same rules for both IRET (page B-52) and RET
+(page B-95): #GP(SS selector) for null, GDT/LDT limit, RPL!=target CPL,
+non-writable data / code descriptor, and DPL!=target CPL, and #SS(SS selector)
+only for a not-present SS descriptor (listed as #SF in 210498-005 Table 9-1 /
+B-52 / B-95 for SS). The core adopts the Appendix B rules uniformly for both
+outer IRET and outer RETF (matching PCE-286 and 86Box `pmoderetf`); validate
+against physical 286 silicon before final sign-off if a hardware capture
+becomes available.
 
 Table 7-4 orders outer-return checks as current-stack bounds, return-CS
 descriptor validation, outer-SS validation, then return-IP limit. The 12-
 execution priority matrix pairs both current-stack bounds faults with a null
 return CS (#SS first), null and non-present return-CS descriptors with a null
-outer SS (#GP/#NP first), and null and non-present outer SS with an over-limit
-saved IP (#SS first). The non-present SS case reports #SS(0040) after its
-descriptor read. For outer IRET, the RTL checks the CS descriptor at offset zero,
+outer SS (#GP/#NP first), null outer SS (#GP(0)) with an over-limit saved IP
+(#GP first), and non-present outer SS (#SS(0040)) with an over-limit saved IP
+(#SS first). The non-present SS case reports #SS(0040) after its descriptor
+read. For outer IRET, the RTL checks the CS descriptor at offset zero,
 deferring the saved-IP limit check until after the full frame and outer SS
 validate. A valid CS descriptor may have its accessed bit set before a later
 SS or IP fault. The limit fault is #GP(0); the CS/SS/SP/FLAGS return context is

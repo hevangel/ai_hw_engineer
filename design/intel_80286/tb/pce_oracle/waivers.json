@@ -10,16 +10,6 @@
     "source": "spec/protected_privilege_transition.md (Table 7-4 discussion: 'A valid CS descriptor may have its accessed bit set before a later SS or IP fault'); report/2026-10-28-protected-iret-fault-priority.md; 86Box x86seg.c pmoderetf sets accessed after SS validation (second opinion only)."
   },
   {
-    "match": "far_return.iret.cs_*.ss_[cdlr]*",
-    "reason": "Outer-level IRET with an invalid return SS (code, DPL0, beyond GDT limit, read-only, RPL mismatch): the RTL raises #SS(SS selector) per ASSUMPTION A31 (Table 7-4 lists every outer-return SS check as a stack fault); PCE-286 raises #GP(SS selector) as Appendix B page B-50 lists. Intel's two texts conflict; unresolved until physical 286 evidence exists. Note the RTL's RETF path uses #GP here (see report), so the two RTL paths also disagree.",
-    "source": "Intel 210498-005 Table 7-4 (page 7-22, visually reviewed per report/2026-10-28-protected-iret-fault-recovery.md) versus Appendix B page B-50; spec/spec.md and spec/protected_privilege_transition.md ASSUMPTION A31."
-  },
-  {
-    "match": "far_return.iret.cs_*.ss_null",
-    "reason": "Outer-level IRET with a null return SS: RTL #SS(0) per ASSUMPTION A31 (Table 7-4), PCE-286 #GP(0) per Appendix B page B-50. Same source conflict as the entry above.",
-    "source": "Intel 210498-005 Table 7-4 versus Appendix B page B-50; spec/protected_privilege_transition.md ASSUMPTION A31."
-  },
-  {
     "match": "selector_query.arpl.*.src000[0-3].cpl*",
     "reason": "ARPL with a null (index 0, TI 0, any RPL) source selector: RTL raises #GP(0) per the Intel 80286 B-2/B-3 information sheet; PCE-286 and 86Box (x86_ops_pmode.h opARPL) execute ARPL as a plain RPL adjustment. Intel 210498-005 Appendix B ARPL does not mention the case. Oracle omits an errata-documented behavior; RTL kept.",
     "source": "Intel 80286 (B-2/B-3) Information Sheet 1984-11-21 (docs.pcjs.org/manuals/intel/80286/80286_B2_B3_Errata-1984-11-21.pdf), cited in spec/protected_execution.md; report/2026-10-28-arpl-reachable-privilege-matrix.md. Not re-read in this session (offline)."

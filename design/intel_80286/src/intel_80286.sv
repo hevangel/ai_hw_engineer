@@ -2441,12 +2441,7 @@ module intel_80286 #(
                             `I286_DELIVERY_FAULT(segment_load_fault_vector==8'd12 ? 8'd12 : 8'd10,
                                            segment_load_fault_error)
                         end else begin
-                            if (segment_load_target==2 && iret_outer_active)
-                                // Table 7-4 classifies every rejected outer
-                                // return SS check as a stack fault.
-                                enter_event(12,instruction_ip,1'b0,1'b1,1'b1,
-                                            segment_load_fault_error);
-                            else if (segment_load_target==2 && protected_call_stack_active)
+                            if (segment_load_target==2 && protected_call_stack_active)
                                 enter_event(segment_load_fault_vector==12 ? 12 : 10,
                                             instruction_ip,1'b0,1'b1,1'b1,segment_load_fault_error);
                             else
