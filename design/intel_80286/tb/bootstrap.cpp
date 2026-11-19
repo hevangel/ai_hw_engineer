@@ -9607,7 +9607,7 @@ static void protected_iopl_controls() {
         {"GDT-limit backlink",0x0080,0x83,0x002b,10,0x0080},
         {"non-TSS backlink",0x0030,0x83,0x002b,10,0x0030},
         {"not-present backlink TSS",0x0058,0x03,0x002b,11,0x0058},
-        {"available backlink TSS with RPL",0x005b,0x81,0x002b,13,0x0058},
+        {"available backlink TSS with RPL",0x005b,0x81,0x002b,10,0x0058},
         {"short backlink TSS",0x0058,0x83,0x0020,10,0x0058}
     };
     unsigned backlink_fault_cases=0;

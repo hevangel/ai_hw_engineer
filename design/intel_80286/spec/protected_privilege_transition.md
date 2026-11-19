@@ -279,7 +279,7 @@ with a null LDTR.
 
 Invalid backlink selector/TI/GDT-bound/type checks now raise restartable
 #TS(selector); a not-present backlink TSS raises #NP(selector), an available
-instead of busy TSS raises #GP(selector), and a too-short TSS raises
+instead of busy TSS raises #TS(selector), and a too-short TSS raises
 #TS(selector). Directed tests verify those packets before any outgoing TSS
 save or busy-bit clear. Invalid incoming LDTR selectors now raise #TS after
 publishing the transferred task registers and TR. A nested #TS task-gate test

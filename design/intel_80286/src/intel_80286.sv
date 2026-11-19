@@ -3355,7 +3355,7 @@ module intel_80286 #(
                         state<=EVENT_START; retire_o<=0;
                     end else if (event_task_access[4:0]!=5'b00011) begin
                         // IRET requires the backlink TSS to remain busy.
-                        task_return_fault(8'd13,event_task_selector&16'hfffc);
+                        task_return_fault(8'd10,event_task_selector&16'hfffc);
                         event_delivery_active<=0; task_switch_active<=0;
                         task_switch_from_event<=0; task_return_active<=0;
                         state<=EVENT_START; retire_o<=0;
