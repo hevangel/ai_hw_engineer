@@ -1,0 +1,21 @@
+[tasks]
+bmc
+prove
+cover
+[options]
+bmc: mode bmc
+prove: mode prove
+cover: mode cover
+depth 8
+[engines]
+bmc: smtbmc z3
+prove: smtbmc z3
+cover: smtbmc z3
+[script]
+read -formal -sv -I formal amd_am29332.sv
+prep -top amd_am29332
+prove: memory_map
+prove: setundef -zero
+[files]
+../src/amd_am29332.sv
+amd_am29332_props.sv
