@@ -445,7 +445,6 @@ module intel_80286 #(
             12: outgoing_task_word=(task_return_active || task_switch_instruction) ?
                                       ss : event_packet.saved_ss;
             13: outgoing_task_word=ds;
-            14: outgoing_task_word=ldtr_selector;
             default: outgoing_task_word=16'h0000;
         endcase
     endfunction
@@ -3282,10 +3281,10 @@ module intel_80286 #(
                         end
                     end else if (task_switch_instruction) begin
                         state<=TASK_SWITCH_DIRECT_CURRENT_START; retire_o<=0;
-                    end else if (!tr_valid || tr_limit<16'h002b) begin
-                        // The outgoing task image cannot be saved; report
-                        // the current TSS as the direct task switch does.
-                        `I286_DELIVERY_FAULT(8'd10,tr_selector&16'hfffc)
+                    end else if (!tr_valid || tr_limit<16'h0029) begin
+                        // Intel 210498-005 App. B SWITCH_TASKS: current TSS
+                        // requires limit >= 41; error code is the new TSS.
+                        `I286_DELIVERY_FAULT(8'd10,event_task_selector&16'hfffc)
                     end else begin
                         // 286 SWITCH_TASKS marks the available target busy
                         // before saving the current task's dynamic image.
@@ -3314,7 +3313,7 @@ module intel_80286 #(
                         task_switch_from_event<=0; task_return_active<=0;
                         state<=EVENT_START; retire_o<=0;
                     end else if (!tr_valid || tr_selector[2] ||
-                        tr_selector[15:3]==0 || tr_limit<16'h002b ||
+                        tr_selector[15:3]==0 || tr_limit<16'h0029 ||
                         ({1'b0,{tr_selector[15:3],3'b000}}+17'd7)>
                             {1'b0,gdt_limit}) begin
                         // Intel 210498-005 App. B SWITCH_TASKS: an invalid
@@ -3374,11 +3373,11 @@ module intel_80286 #(
                 end
                 TASK_SWITCH_DIRECT_CURRENT_START: begin
                     if (!tr_valid || tr_selector[15:3]==0 || tr_selector[2] ||
-                        tr_limit<16'h002b ||
+                        tr_limit<16'h0029 ||
                         ({1'b0,{tr_selector[15:3],3'b000}}+17'd7)>
                             {1'b0,gdt_limit}) begin
                         enter_event(10,instruction_ip,1'b0,1'b1,1'b1,
-                                    tr_selector&16'hfffc);
+                                    event_task_selector&16'hfffc);
                         task_switch_active<=0; task_switch_instruction<=0;
                         task_switch_jump<=0; task_switch_nested<=0;
                         state<=EVENT_START; retire_o<=0;
@@ -3396,7 +3395,7 @@ module intel_80286 #(
                 TASK_SWITCH_DIRECT_CURRENT_CHECK: begin
                     if (task_current_access[4:0]!=5'b00011 || !task_current_access[7]) begin
                         enter_event(10,instruction_ip,1'b0,1'b1,1'b1,
-                                    tr_selector&16'hfffc);
+                                    event_task_selector&16'hfffc);
                         task_switch_active<=0; task_switch_instruction<=0;
                         task_switch_jump<=0; task_switch_nested<=0;
                         state<=EVENT_START; retire_o<=0;
@@ -3440,7 +3439,7 @@ module intel_80286 #(
                         1'b1,1'b0,3'd2,{16'h0,outgoing_task_word(task_save_index)},
                         TASK_SWITCH_SAVE_NEXT);
                 TASK_SWITCH_SAVE_NEXT: begin
-                    if (task_save_index==4'd14) begin
+                    if (task_save_index==4'd13) begin
                         task_load_index<=0;
                         state<=(task_return_active || task_switch_jump) ?
                             TASK_RETURN_CLEAR_BUSY : TASK_SWITCH_LOAD;

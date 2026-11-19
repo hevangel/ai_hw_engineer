@@ -9282,9 +9282,9 @@ static void protected_iopl_controls() {
               "task IRET did not save its post-instruction IP, cleared NT and current SP");
         const uint16_t outgoing_words[]={
             0x0400,old_flags,old_regs[0],old_regs[1],old_regs[2],old_regs[3],old_sp,
-            old_regs[4],old_regs[5],old_regs[6],0x0000,old_cs,old_ss,0x0000,0x0000
+            old_regs[4],old_regs[5],old_regs[6],0x0000,old_cs,old_ss,0x0000
         };
-        for (unsigned i=0;i<15;++i)
+        for (unsigned i=0;i<14;++i)
             check(read_word(0x00070000+0x0e + 2*i)==outgoing_words[i],
                   "#DF task switch did not save the outgoing task-state image");
         const auto first_task_iret=std::find(b.accepted.begin(),b.accepted.end(),kHandlerBase+kHandlerIp);
@@ -12829,7 +12829,52 @@ static void protected_iopl_controls() {
     }
     check(direct_task_switch_cases==8,
           "direct TSS CALL/JMP task-transfer matrix missed a transfer or READY policy");
-    std::cout<<"PASS: 8 protected far CALL/JMP transfers through available TSS descriptors and task gates check nested backlink/NT return versus non-nested busy clearing and exact successors in both READY modes\n";
+    unsigned outgoing_tss_limit_cases=0;
+    for (bool wait:{false,true}) for (uint16_t out_limit:{uint16_t(0x0029),uint16_t(0x0028)}) {
+        const std::vector<uint8_t> program={
+            0xb8,0x48,0x00, 0x0f,0x00,0xd8,                 // 0400 MOV AX,0048; LTR AX
+            0xea,0x00,0x05,
+            uint8_t(direct_task_tss_selector),uint8_t(direct_task_tss_selector>>8),
+            0xf4
+        };
+        Bench b;
+        const Context context=prepare(b,wait,0,0,program,true);
+        b.put(kGdtBase+0x48,{uint8_t(out_limit),uint8_t(out_limit>>8),0x00,0x00,0x07,0x81,0x00,0x00});
+        b.put(kGdtBase+direct_task_tss_selector,
+              {direct_task_tss_descriptor[0],direct_task_tss_descriptor[1],
+               direct_task_tss_descriptor[2],direct_task_tss_descriptor[3],
+               direct_task_tss_descriptor[4],direct_task_tss_descriptor[5],
+               direct_task_tss_descriptor[6],direct_task_tss_descriptor[7]});
+        for (unsigned i=0;i<14;++i)
+            put_task_word(b,direct_task_tss_base+0x000e + 2*i,direct_task_words[i]);
+        put_task_word(b,0x0007002a,0xbeef);
+        b.put(kHandlerBase+0x0500,{0xf4});
+        b.put(kIdtBase+10*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+        b.step(context.level.code_base+0x0400,0xb8,context.level.cs,0x0403,wait);
+        b.step(context.level.code_base+0x0403,0x0f,context.level.cs,0x0406,wait);
+        b.data_transfers.clear();
+        for (unsigned cycle=0;cycle<150000 && !b.d.halted_o && !b.d.fault_o && !b.d.shutdown_o;++cycle)
+            b.tick(wait);
+        if (out_limit==0x0029) {
+            check(b.d.halted_o && !b.d.fault_o && !b.d.shutdown_o &&
+                  b.cs()==0x0030 && b.d.ip_o==0x0501 &&
+                  uint16_t(b.memory[0x0007002a]|(uint16_t(b.memory[0x0007002b])<<8))==0xbeef &&
+                  std::none_of(b.data_transfers.begin(),b.data_transfers.end(),[](const auto& t) {
+                      return t.write && !t.io && (t.address==0x0007002a || t.address==0x0007002b);
+                  }),
+                  "outgoing TSS limit=41 did not complete or overwrote word +42");
+        } else {
+            check(b.d.halted_o && !b.d.fault_o && !b.d.shutdown_o &&
+                  b.cs()==0x0030 && b.d.ip_o==0x0301 &&
+                  b.d.event_vector_o==10 && b.d.event_packet_error_valid_o &&
+                  b.d.event_packet_error_code_o==direct_task_tss_selector &&
+                  b.d.event_packet_saved_ip_o==0x0406,
+                  "outgoing TSS limit=40 did not raise #TS(new TSS selector)");
+        }
+        ++outgoing_tss_limit_cases;
+    }
+    check(outgoing_tss_limit_cases==4,"outgoing TSS limit/save cases missed a case");
+    std::cout<<"PASS: 8 protected far CALL/JMP transfers through available TSS descriptors and task gates check nested backlink/NT return versus non-nested busy clearing and exact successors, plus 4 outgoing-TSS limit>=41 and +42 preservation cases in both READY modes\n";
 
     // Intel 210498-005 §8.5 applies the task-gate DPL check to the effective
     // privilege of the far selector: max(CPL,RPL) must be <= gate DPL.
@@ -13220,8 +13265,8 @@ static void protected_iopl_controls() {
         {"code-segment task-gate target JMP",true,false,0x0070,0x85,0,0x9a,0x002b,0,0xff,13,0x0078,true},
         {"out-of-GDT task-gate TSS CALL",true,true,0x0070,0x85,0,0x81,0x002b,0,0xff,10,0x0078,false,0x0077},
         {"out-of-GDT task-gate TSS JMP",true,false,0x0070,0x85,0,0x81,0x002b,0,0xff,10,0x0078,false,0x0077},
-        {"available current TR",false,true,0x0078,0x85,0,0x81,0x002b,0,0x81,10,0x0058,true},
-        {"not-present current TR",true,false,0x0070,0x85,0,0x81,0x002b,0,0x03,10,0x0058,true}
+        {"available current TR",false,true,0x0078,0x85,0,0x81,0x002b,0,0x81,10,0x0078,true},
+        {"not-present current TR",true,false,0x0070,0x85,0,0x81,0x002b,0,0x03,10,0x0078,true}
     };
     unsigned direct_task_fault_cases=0;
     constexpr uint32_t outgoing_task_tss_base=0x00070000;
