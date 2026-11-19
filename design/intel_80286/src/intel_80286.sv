@@ -3274,22 +3274,20 @@ module intel_80286 #(
                         if (task_switch_instruction) begin
                             // As for INT below: a gate target that is not an
                             // available TSS (busy, or any other type) is
-                            // #GP(TSS selector) (App. B CALL/JMP task-gate
-                            // entries; 86Box task_target_check uses #GP for
-                            // the 80286). Only a short TSS is #TS (Table 8-1).
-                            enter_event(!event_task_access[7] ? 8'd11 :
-                                        (event_task_access[4:0]!=5'b00001 ? 8'd13 : 8'd10),
+                            // #GP(TSS selector) before presence (#NP) or
+                            // short TSS (#TS) (App. B CALL/JMP/Table 8-1).
+                            enter_event(event_task_access[4:0]!=5'b00001 ? 8'd13 :
+                                        (!event_task_access[7] ? 8'd11 : 8'd10),
                                         instruction_ip,1'b0,1'b1,1'b1,
                                         event_task_selector&16'hfffc);
                             task_switch_active<=0; task_switch_instruction<=0;
                             task_switch_jump<=0; task_switch_nested<=0;
                             state<=EVENT_START; retire_o<=0;
                         end else begin
-                            // Table 8-1 order: not present is #NP(TSS), busy
-                            // is #GP(TSS), limit below 43 is #TS(TSS). App. B
-                            // page B-50 makes any non-available-TSS type #GP.
-                            `I286_DELIVERY_FAULT(!event_task_access[7] ? 8'd11 :
-                                           event_task_access[4:0]!=5'b00001 ? 8'd13 : 8'd10,
+                            // App. B INT / Table 8-1: available TSS check (#GP)
+                            // precedes present (#NP) and limit below 43 (#TS).
+                            `I286_DELIVERY_FAULT(event_task_access[4:0]!=5'b00001 ? 8'd13 :
+                                           (!event_task_access[7] ? 8'd11 : 8'd10),
                                            event_task_selector&16'hfffc)
                         end
                     end else if (task_switch_instruction) begin
@@ -3355,20 +3353,15 @@ module intel_80286 #(
                         1'b0,1'b0,3'd2,0,TASK_RETURN_TSS_CHECK);
                 end
                 TASK_RETURN_TSS_CHECK: begin
-                    if (event_task_access[4:0]!=5'b00001 &&
-                        event_task_access[4:0]!=5'b00011) begin
+                    if (event_task_access[4:0]!=5'b00011) begin
+                        // App. B RETURN FROM NESTED TASK: new TSS must be busy
+                        // (#TS) before presence (#NP) or limit (#TS).
                         task_return_fault(8'd10,event_task_selector&16'hfffc);
                         event_delivery_active<=0; task_switch_active<=0;
                         task_switch_from_event<=0; task_return_active<=0;
                         state<=EVENT_START; retire_o<=0;
                     end else if (!event_task_access[7]) begin
                         task_return_fault(8'd11,event_task_selector&16'hfffc);
-                        event_delivery_active<=0; task_switch_active<=0;
-                        task_switch_from_event<=0; task_return_active<=0;
-                        state<=EVENT_START; retire_o<=0;
-                    end else if (event_task_access[4:0]!=5'b00011) begin
-                        // IRET requires the backlink TSS to remain busy.
-                        task_return_fault(8'd10,event_task_selector&16'hfffc);
                         event_delivery_active<=0; task_switch_active<=0;
                         task_switch_from_event<=0; task_return_active<=0;
                         state<=EVENT_START; retire_o<=0;

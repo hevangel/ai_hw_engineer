@@ -9818,6 +9818,8 @@ static void protected_iopl_controls() {
         {"non-TSS backlink",0x0030,0x83,0x002b,10,0x0030},
         {"not-present backlink TSS",0x0058,0x03,0x002b,11,0x0058},
         {"available backlink TSS with RPL",0x005b,0x81,0x002b,10,0x0058},
+        {"not-present available backlink TSS",0x0058,0x01,0x002b,10,0x0058},
+        {"not-present non-TSS backlink",0x0058,0x1a,0x002b,10,0x0058},
         {"short backlink TSS",0x0058,0x83,0x0020,10,0x0058}
     };
     unsigned backlink_fault_cases=0;
@@ -9911,9 +9913,24 @@ static void protected_iopl_controls() {
         }
         ++backlink_fault_cases;
     }
-    check(backlink_fault_cases==14,
+    check(backlink_fault_cases==18,
           "task-return backlink fault matrix missed a READY policy or descriptor case");
-    std::cout<<"PASS: 14 invalid task-return backlink cases deliver restartable #TS/#NP/#GP with selector errors before TSS save or busy-bit changes in both READY modes\n";
+    unsigned idt_tss_type_before_present_cases=0;
+    for (bool wait:{false,true}) for (uint8_t bad_access:{uint8_t(0x03),uint8_t(0x1a)}) {
+        Bench b;
+        const Context context=prepare(b,wait,0,0,{0xcd,0x20,0xf4},true,0x010f);
+        b.put(kGdtBase+0x50,{0x2b,0x00,0x00,0x00,0x08,bad_access,0x00,0x00});
+        b.put(kIdtBase+0x20*8,{0x00,0x00,0x50,0x00,0x00,0x85,0x00,0x00});
+        for (unsigned cycle=0;cycle<100000 && !b.d.halted_o && !b.d.fault_o;++cycle) b.tick(wait);
+        check(b.d.halted_o && !b.d.fault_o && !b.d.shutdown_o &&
+              b.cs()==0x0030 && b.d.ip_o==0x0301 &&
+              b.d.event_vector_o==13 && b.d.event_packet_error_code_o==0x0050 &&
+              b.d.event_packet_saved_cs_o==context.level.cs && b.d.event_packet_saved_ip_o==0x0400,
+              "IDT task gate did not test TSS type (#GP) before presence (#NP)");
+        ++idt_tss_type_before_present_cases;
+    }
+    check(idt_tss_type_before_present_cases==4,"IDT task-gate type-before-present cases incomplete");
+    std::cout<<"PASS: 18 invalid task-return backlink cases (including type-before-present) and 4 IDT task-gate type-before-present cases deliver exact #TS/#NP/#GP selector errors in both READY modes\n";
 
     struct IncomingLdtrFaultCase {
         const char* name;
@@ -13468,6 +13485,8 @@ static void protected_iopl_controls() {
         {"short task-gate TSS",true,false,0x0070,0x85,0,0x81,0x002a,0,0xff,10,0x0078,true},
         {"busy task-gate TSS CALL",true,true,0x0070,0x85,0,0x83,0x002b,0,0xff,13,0x0078,true},
         {"busy task-gate TSS JMP",true,false,0x0070,0x85,0,0x83,0x002b,0,0xff,13,0x0078,true},
+        {"not-present busy task-gate TSS CALL",true,true,0x0070,0x85,0,0x03,0x002b,0,0xff,13,0x0078,true},
+        {"not-present code task-gate target JMP",true,false,0x0070,0x85,0,0x1a,0x002b,0,0xff,13,0x0078,true},
         // A task-gate target that is not a TSS at all (here an executable
         // code segment) is #GP(target selector), as for INT through a task
         // gate: App. B CALL/JMP task-gate entries; 86Box task_target_check
@@ -13604,9 +13623,9 @@ static void protected_iopl_controls() {
               (std::string("rejected task switch read or changed task state/busy state: ")+test.name).c_str());
         ++direct_task_fault_cases;
     }
-    check(direct_task_fault_cases==48,
+    check(direct_task_fault_cases==52,
           "direct TSS/task-gate fault matrix missed an exception case or READY policy");
-    std::cout<<"PASS: 48 rejected direct TSS/task-gate CALL/JMP cases check exact #GP/#NP/#TS priority packets and no task-image/busy-bit side effects in both READY modes\n";
+    std::cout<<"PASS: 52 rejected direct TSS/task-gate CALL/JMP cases check exact #GP/#NP/#TS priority packets and no task-image/busy-bit side effects in both READY modes\n";
 
     // Reset after every accepted data transfer in direct task entry. Accepted
     // writes survive RESET; the partially completed task switch must not resume.
