@@ -4,7 +4,7 @@ Scope: the shared engine in `src/` and the self-checking testbench in `tb/`.
 Later increments extend this plan; a test that does not exist yet is listed as
 planned, never as passing.
 
-## Exit criteria (current increment, M3)
+## Exit criteria (current increment, M4)
 
 1. `scripts/run_lint.sh` clean under `verilator --lint-only -Wall` for both the
    RTL and the testbench.
@@ -61,6 +61,13 @@ by the handler.
 
 Suppressed checks also assert that the handler at `0x300` runs, which proves
 the new PSW was fetched from `0x68` and made current.
+
+### 2.2 Character and SS-format group (M4)
+
+| Test | Program | Checked |
+|---|---|---|
+| SS chain | `MVC 0x208(4),0x200; XC; NC; OC; MVN; MVZ` | the four-byte field follows `C1C2C3C4 → 8A8E8E8A → 80828280 → C1828280 → CB828280 → 4B828280` |
+| Compare / character | `CLC`, `IC`, `STC`, three `TM` masks | CC 1 from `CLC`; `R1` low byte 0x4B; stored byte at `0x20C`; `TM` gives CC 0, 1 and 3 for zero, mixed and all-one selections |
 
 ## 3. Arithmetic unit and address checks
 

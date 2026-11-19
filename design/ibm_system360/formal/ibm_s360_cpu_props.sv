@@ -24,7 +24,7 @@
 module ibm_s360_cpu_props (
     input logic        clk,
     input logic        rst_n,
-    input logic [3:0]  state,
+    input logic [4:0]  state,
     input logic        dec_valid,
     input logic [5:0]  op,
     input logic [3:0]  len_q,
@@ -61,13 +61,14 @@ module ibm_s360_cpu_props (
 
   `include "ibm_s360_defs.svh"
 
-  localparam logic [3:0] ST_CHECK   = 4'd0;
-  localparam logic [3:0] ST_FETCH   = 4'd1;
-  localparam logic [3:0] ST_DECODE  = 4'd2;
-  localparam logic [3:0] ST_WRITE   = 4'd4;
-  localparam logic [3:0] ST_COMMIT  = 4'd5;
-  localparam logic [3:0] ST_OLD0    = 4'd6;
-  localparam logic [3:0] ST_OLD1    = 4'd7;
+  localparam logic [4:0] ST_CHECK   = 5'd0;
+  localparam logic [4:0] ST_FETCH   = 5'd1;
+  localparam logic [4:0] ST_DECODE  = 5'd2;
+  localparam logic [4:0] ST_WRITE   = 5'd4;
+  localparam logic [4:0] ST_COMMIT  = 5'd5;
+  localparam logic [4:0] ST_OLD0    = 5'd6;
+  localparam logic [4:0] ST_OLD1    = 5'd7;
+  localparam logic [4:0] ST_SS_C    = 5'd16;
 
   always @(posedge clk) begin
     if ($initstate) begin
@@ -140,7 +141,8 @@ module ibm_s360_cpu_props (
       end
 
       // ---- Storage writes --------------------------------------------------
-      assert (!mem_we || (state == ST_WRITE) || (state == ST_OLD0) || (state == ST_OLD1));
+      assert (!mem_we || (state == ST_WRITE) || (state == ST_SS_C) ||
+              (state == ST_OLD0) || (state == ST_OLD1));
       if (state == ST_OLD0) begin
         assert (mem_addr == 24'h00_0028 || mem_addr == 24'h00_0020);
         assert (mem_wbe == 4'hF);

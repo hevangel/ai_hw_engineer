@@ -106,7 +106,18 @@ typedef enum logic [5:0] {
   OP_SLA  = 6'd38,  // 8B
   OP_SRA  = 6'd39,  // 8A
   OP_SLDA = 6'd40,  // 8F
-  OP_SRDA = 6'd41   // 8E
+  OP_SRDA = 6'd41,  // 8E
+  // Character and SS-format logical group (pp. 53-57)
+  OP_MVC  = 6'd42,  // D2
+  OP_MVN  = 6'd43,  // D1
+  OP_MVZ  = 6'd44,  // D3
+  OP_NC   = 6'd45,  // D4
+  OP_OC   = 6'd46,  // D6
+  OP_XC   = 6'd47,  // D7
+  OP_CLC  = 6'd48,  // D5
+  OP_TM   = 6'd49,  // 91
+  OP_IC   = 6'd50,  // 43
+  OP_STC  = 6'd51   // 42
 } s360_op_e;
 
 typedef struct packed {
@@ -209,6 +220,17 @@ function automatic s360_dec_t s360_decode(input logic [7:0] opcode);
     8'h8B: d.op = OP_SLA;
     8'h8E: d.op = OP_SRDA;
     8'h8F: d.op = OP_SLDA;
+    // ---- Character and SS-format logical group, pp. 53-57 -------------------
+    8'h42: d.op = OP_STC;
+    8'h43: d.op = OP_IC;
+    8'h91: d.op = OP_TM;
+    8'hD1: d.op = OP_MVN;
+    8'hD2: d.op = OP_MVC;
+    8'hD3: d.op = OP_MVZ;
+    8'hD4: d.op = OP_NC;
+    8'hD5: d.op = OP_CLC;
+    8'hD6: d.op = OP_OC;
+    8'hD7: d.op = OP_XC;
     default: begin
       d.valid = 1'b0;
       d.op    = OP_ILLEGAL;
