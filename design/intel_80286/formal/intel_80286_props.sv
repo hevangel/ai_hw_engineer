@@ -1587,8 +1587,7 @@
                 event_delivery_active && event_packet.protected_mode)) begin
                 if ($past(!event_gate[44] &&
                           (event_gate[43:40]==4'h6 || event_gate[43:40]==4'h7) &&
-                          event_gate[47] && // 9.6.2: the #DF handler must be a task gate.
-                          !(event_packet.restartable && event_packet.vector==8) &&
+                          event_gate[47] &&
                           (!event_packet.software_interrupt ||
                            cs[1:0]<=event_gate[46:45]))) begin
                     assert(state==EVENT_CODE_START);

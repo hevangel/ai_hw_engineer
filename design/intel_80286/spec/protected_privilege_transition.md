@@ -119,9 +119,11 @@ Intel §9.6.2 defines the 286 rule directly: when two separate faults occur
 during one instruction, vector 8 (double fault) is generated if the first
 fault is vector 0, 10, 11, 12 or 13. The error code for double fault is null,
 and its saved address identifies the instruction being executed or ready to
-execute. Intel specifically says a task gate must be used for the double-fault
-handler so the handler gets a proper task state; the backlink identifies the
-task that caused the exception.
+execute. Intel §9.6.2 advises that a task gate should/must be used for the
+double-fault handler in system software so the handler gets a proper task state;
+the backlink identifies the task that caused the exception. Appendix B INT
+(page B-49), however, accepts any interrupt, trap, or task gate for vector
+delivery, with no vector-8 task-gate-only restriction in processor hardware.
 
 The same section says a protection violation while processing vector 8 enters
 shutdown, in which no further instruction or exception is processed. NMI can

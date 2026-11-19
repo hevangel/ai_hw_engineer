@@ -3212,9 +3212,7 @@ module intel_80286 #(
                     // ignored (zero is required only for 80386 compatibility).
                     if (event_gate[44] ||
                         (event_gate[43:40]!=4'h5 && event_gate[43:40]!=4'h6 &&
-                         event_gate[43:40]!=4'h7) ||
-                        (event_packet.protected_mode && event_packet.restartable &&
-                         event_packet.vector==8 && event_gate[43:40]!=4'h5)) begin
+                         event_gate[43:40]!=4'h7)) begin
                         `I286_DELIVERY_FAULT(8'd13,{5'd0,event_packet.vector,3'b010})
                     end else if (event_packet.software_interrupt &&
                                  cs[1:0]>event_gate[46:45]) begin

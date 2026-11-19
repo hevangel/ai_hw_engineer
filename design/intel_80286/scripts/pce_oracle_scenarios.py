@@ -598,6 +598,19 @@ def review_2026_11_09():
             yield f'review.gate{gbits}.unused{unused:02x}.tail{tail:04x}', e
 
 
+@family
+def review_2026_11_18():
+    """Protected-mode fault rules fixed for review issue #284."""
+    for cpl in (0, 3):
+        for glabel, gbits in (('intgate', 0x06), ('trapgate', 0x07)):
+            e = Env()
+            e.idt(13, gate(0x0a00, S_CODE0, 0x06))
+            e.idt(8, gate(0x0904, S_CODE0, access(gbits, 0)))
+            e.put(CODE0 + 0x0904, HLT)
+            e.run(cpl, jmp_far(0x0088, 0), flags=0x0202)
+            yield f'review284.df.{glabel}.cpl{cpl}', e
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('outdir')

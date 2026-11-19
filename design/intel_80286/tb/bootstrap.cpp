@@ -7499,8 +7499,50 @@ static void protected_event_delivery_faults() {
         ++executions;
     }
     check(executions==10,"delivery-fault matrix did not run every case in both READY modes");
+    unsigned df_gate_executions=0;
+    for (bool wait:{false,true}) for (uint8_t gate_type:{uint8_t(0x86),uint8_t(0x87)}) {
+        Bench b;
+        const uint8_t program[]={
+            0xb8,0x28,0x00, 0x8e,0xd0, // 0200 MOV SS,0028
+            0xbc,0x80,0x00,             // 0205 MOV SP,0080
+            0xfb,                       // 0208 STI
+            0xcd,0x40,                  // 0209 INT 40h -> #GP(0202) -> not-present #GP gate -> #DF(0)
+            0xf4
+        };
+        place_selector_fixture(b,program,sizeof(program));
+        b.put(kIdtBase+13*8,{0x00,0x03,0x30,0x00,0x00,0x06,0x00,0x00});
+        b.put(kIdtBase+8*8,{0x00,0x03,0x30,0x00,0x00,gate_type,0x00,0x00});
+        b.put(kHandlerBase+kHandlerIp,{0xf4});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xfb,kCodeSelector,0x0209,wait);
+        const uint16_t flags_before=b.d.flags_o;
+        const unsigned retired_before=b.retired;
+        for (unsigned cycle=0;cycle<50000 && !b.d.fault_o && !b.d.shutdown_o &&
+             !(b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp);++cycle)
+            b.tick(wait);
+        const std::string name=std::string(gate_type==0x86 ? "#DF interrupt gate" : "#DF trap gate")+
+                               (wait ? " (wait)" : "");
+        check(!b.d.shutdown_o && !b.d.fault_o &&
+              b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp && b.reg(4)==0x0078 &&
+              b.d.event_vector_o==8 && b.d.event_packet_error_valid_o &&
+              b.d.event_packet_error_code_o==0 && b.retired==retired_before,
+              (name+": #DF handler was not entered without shutdown").c_str());
+        const bool expected_if=(gate_type==0x87);
+        check(bool((b.d.flags_o>>9)&1)==expected_if,
+              (name+": unexpected IF state on #DF entry").c_str());
+        const uint32_t frame=kStackBase+0x0078;
+        auto word=[&](uint32_t a){ return uint16_t(b.memory[a]|(b.memory[a+1]<<8)); };
+        check(word(frame)==0x0000 && word(frame+2)==0x0209 &&
+              word(frame+4)==kCodeSelector && word(frame+6)==flags_before,
+              (name+": stacked #DF error/IP/CS/FLAGS differ").c_str());
+        ++df_gate_executions;
+    }
+    check(df_gate_executions==4,"#DF interrupt/trap gate matrix missed a case");
     std::cout<<"PASS: 10 protected handler-invocation faults raise App. B #GP/#NP/#SS codes with EXT, "
-               "point INT faults at the INT, and escalate #SS to #DF and shutdown per 9.6.2\n";
+               "point INT faults at the INT, escalate #SS to #DF and shutdown per 9.6.2, and 4 #DF interrupt/trap-gate runs enter vector 8\n";
 }
 
 static void protected_event_task_gate_delivery() {
