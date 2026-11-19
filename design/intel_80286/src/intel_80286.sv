@@ -2488,12 +2488,18 @@ module intel_80286 #(
                                 (16'd8+{10'd0,protected_call_parameter_count,1'b0})) ||
                             (protected_call_parameter_count!=0 &&
                              (!cache_valid[2] ||
-                              ({1'b0,gpr[4]}+{11'd0,protected_call_parameter_count,1'b0}-17'd1)>
-                                  {1'b0,cache_limits[47:32]})) ||
-                            (protected_call_tss_stack_sp-16'd1)>segment_load_limit) begin
+                              (cache_access[18] ?
+                                  (gpr[4]<=cache_limits[47:32] ||
+                                   ({1'b0,gpr[4]}+{11'd0,protected_call_parameter_count,1'b0}-17'd1)>17'h0ffff) :
+                                  ({1'b0,gpr[4]}+{11'd0,protected_call_parameter_count,1'b0}-17'd1)>
+                                      {1'b0,cache_limits[47:32]}))) ||
+                            (segment_load_access[2] ?
+                                (protected_call_tss_stack_sp-
+                                    (16'd8+{10'd0,protected_call_parameter_count,1'b0})) <= segment_load_limit :
+                                (protected_call_tss_stack_sp-16'd1)>segment_load_limit)) begin
                             enter_event(12,instruction_ip,1'b0,1'b1,1'b1,16'd0);
                             state<=EVENT_START; retire_o<=0;
-                            protected_call_stack_active<=0;
+                            protected_call_stack_active<=0; protected_call_through_gate<=0;
                         end else begin
                             protected_call_new_ss_selector<=segment_load_selector;
                             protected_call_new_ss_base<=segment_load_base;

@@ -4450,7 +4450,8 @@ static void protected_call_gate_tss_stack_faults() {
         {"SS0 DPL mismatch",0x002b,0x0100,0x0040,0x00ff,0x93,10,0x0040,true,true},
         {"SS0 not present",0x002b,0x0100,0x0028,0x00ff,0x12,12,0x0028,true,true},
         {"SP0 underflow",0x002b,0x0007,0x0028,0x00ff,0x93,12,0x0000,true,true},
-        {"SS0 limit",0x002b,0x0008,0x0028,0x0006,0x93,12,0x0000,true,true}
+        {"SS0 limit",0x002b,0x0008,0x0028,0x0006,0x93,12,0x0000,true,true},
+        {"expand-down SS0 underflow",0x002b,0x1007,0x0028,0x0fff,0x97,12,0x0000,true,true}
     };
     const uint8_t ring0_program[]={
         0xb8,0x48,0x00,             // 0200 MOV AX, dedicated ring-0 setup SS
@@ -4561,7 +4562,7 @@ static void protected_call_gate_tss_stack_faults() {
                   (std::string("CALL-gate ")+test.name+" exception stack image mismatch").c_str());
         ++executions;
     }
-    check(executions==18,"CALL-gate TSS/stack fault matrix did not cover every case and READY mode");
+    check(executions==20,"CALL-gate TSS/stack fault matrix did not cover every case and READY mode");
     std::cout<<"PASS: CALL-gate TSS bounds, SS0 selector/type/privilege/presence and stack-span failures deliver exact #TS/#SS frames without partial privilege-switch writes in both READY modes\n";
 }
 
@@ -4668,7 +4669,89 @@ static void protected_call_gate_outer_level() {
         ++executions;
     }
     check(executions==6,"inter-level call gate did not cover zero, one and 31 parameters in both READY modes");
-    std::cout<<"PASS: protected ring-3 CALL gates copy 0, 1 and 31 parameters, switch through TSS, and return across privilege levels in both READY modes\n";
+    unsigned expand_down_cases=0;
+    for (bool wait:{false,true}) for (bool inner_down:{true,false}) for (unsigned wc:{0u,2u}) {
+        if (!inner_down && wc==0) continue; // caller expand-down with 2 parameters; plus inner expand-down with 0/2 params.
+        Bench b;
+        place_selector_fixture(b,ring0_program,sizeof(ring0_program));
+        b.memory[0x41]=0x00; b.memory[0x40]=0x6f;
+        b.put(kGdtBase+0x38,{ring3_cs[0],ring3_cs[1],ring3_cs[2],ring3_cs[3],
+                              ring3_cs[4],ring3_cs[5],ring3_cs[6],ring3_cs[7]});
+        if (inner_down) {
+            b.put(kGdtBase+0x48,{0xff,0x0f,0x00,0x00,0x05,0x97,0x00,0x00});
+            b.put(kGdtBase+0x40,{ring3_ss[0],ring3_ss[1],ring3_ss[2],ring3_ss[3],
+                                  ring3_ss[4],ring3_ss[5],ring3_ss[6],ring3_ss[7]});
+            b.put(0x00000702,{0xf0,0xff,0x48,0x00}); // SP0=FFF0, SS0=0048
+            b.put(kStackBase+0x0080,{0x00,0x04,0x3b,0x00,0x02,0x02,0x00,0x01,0x43,0x00});
+        } else {
+            b.put(kGdtBase+0x40,{0xff,0x0f,0x00,0x00,0x07,0xf7,0x00,0x00});
+            b.put(0x00000702,{0x00,0x01,0x28,0x00}); // SP0=0100
+            b.put(kStackBase+0x0080,{0x00,0x04,0x3b,0x00,0x02,0x02,0x00,0x80,0x43,0x00});
+        }
+        b.put(kGdtBase+0x58,{tss[0],tss[1],tss[2],tss[3],tss[4],tss[5],tss[6],tss[7]});
+        b.put(kGdtBase+0x68,{0x00,0x05,0x08,0x00,uint8_t(wc),0xe4,0x00,0x00});
+        b.put(0x00060000+0x0400,{ring3_program[0],ring3_program[1],ring3_program[2],
+                                  ring3_program[3],ring3_program[4],ring3_program[5]});
+        const uint16_t adjust=uint16_t(wc*2);
+        if (wc==0) b.put(kCodeBase+0x0500,{0xcb});
+        else b.put(kCodeBase+0x0500,{0xca,uint8_t(adjust),uint8_t(adjust>>8)});
+        const uint16_t outer_sp=inner_down ? 0x0100 : 0x8000;
+        for (unsigned i=0;i<wc;++i) {
+            const uint16_t value=uint16_t(0x2000+i);
+            b.put(0x00070000+outer_sp+2*i,{uint8_t(value),uint8_t(value>>8)});
+        }
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+        b.step(kCodeBase+0x020b,0x0f,kCodeSelector,0x020e,wait);
+        b.step(kCodeBase+0x020e,0xcf,0x003b,0x0400,wait);
+        b.step(0x00060400,0x9a,kCodeSelector,0x0500,wait);
+        const uint16_t expected_inner_sp=uint16_t((inner_down ? 0xfff0 : 0x0100)-(8+wc*2));
+        check(uint16_t(b.d.segs_o>>32)==(inner_down ? 0x0048 : kSsSelector) && b.reg(4)==expected_inner_sp,
+              "expand-down call-gate stack switch failed");
+        for (unsigned i=0;i<wc;++i) {
+            const uint16_t got=uint16_t(b.memory[kStackBase+expected_inner_sp+4+2*i]|
+                                       (uint16_t(b.memory[kStackBase+expected_inner_sp+5+2*i])<<8));
+            check(got==uint16_t(0x2000+i),"expand-down call-gate parameter copy mismatch");
+        }
+        b.step(kCodeBase+0x0500,wc==0 ? 0xcb : 0xca,0x003b,0x0405,wait);
+        check(uint16_t(b.d.segs_o>>32)==0x0043 && b.reg(4)==uint16_t(outer_sp+adjust),
+              "expand-down outer RETF did not restore caller stack");
+        ++expand_down_cases;
+    }
+    for (bool wait:{false,true}) for (uint16_t bad_sp:{uint16_t(0x0fff),uint16_t(0xfffe)}) {
+        Bench b;
+        place_selector_fixture(b,ring0_program,sizeof(ring0_program));
+        b.memory[0x41]=0x00; b.memory[0x40]=0x6f;
+        b.put(kGdtBase+0x38,{ring3_cs[0],ring3_cs[1],ring3_cs[2],ring3_cs[3],
+                              ring3_cs[4],ring3_cs[5],ring3_cs[6],ring3_cs[7]});
+        b.put(kGdtBase+0x40,{0xff,0x0f,0x00,0x00,0x07,0xf7,0x00,0x00});
+        b.put(kGdtBase+0x58,{tss[0],tss[1],tss[2],tss[3],tss[4],tss[5],tss[6],tss[7]});
+        b.put(kGdtBase+0x68,{0x00,0x05,0x08,0x00,0x02,0xe4,0x00,0x00});
+        b.put(0x00000702,{0x00,0x01,0x28,0x00});
+        b.put(kIdtBase+12*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+        b.put(kHandlerBase+0x0300,{0xf4});
+        b.put(0x00060000+0x0400,{ring3_program[0],ring3_program[1],ring3_program[2],
+                                  ring3_program[3],ring3_program[4],ring3_program[5]});
+        b.put(kStackBase+0x0080,{0x00,0x04,0x3b,0x00,0x02,0x02,
+                                 uint8_t(bad_sp),uint8_t(bad_sp>>8),0x43,0x00});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+        b.step(kCodeBase+0x020b,0x0f,kCodeSelector,0x020e,wait);
+        b.step(kCodeBase+0x020e,0xcf,0x003b,0x0400,wait);
+        for (unsigned n=0;n<30000 && !b.d.event_o && !b.d.fault_o;++n) b.tick(wait);
+        check(b.d.event_o && !b.d.fault_o && b.d.event_vector_o==12 &&
+              b.d.event_packet_error_code_o==0 && b.cs()==kHandlerSelector && b.d.ip_o==0x0300,
+              "expand-down caller stack parameter fault did not raise #SS(0)");
+        ++expand_down_cases;
+    }
+    check(expand_down_cases==10,"expand-down call-gate test matrix missed a case");
+    std::cout<<"PASS: protected ring-3 CALL gates copy 0, 1 and 31 parameters, handle expand-down inner/caller stacks, switch through TSS, and return across privilege levels in both READY modes\n";
 }
 
 static void protected_call_gate_ring1_ring2() {
