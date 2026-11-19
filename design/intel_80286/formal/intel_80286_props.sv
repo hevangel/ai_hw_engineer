@@ -633,7 +633,8 @@
                           state==TASK_SWITCH_DIRECT_CURRENT_ACCESS ||
                           state==TASK_SWITCH_DIRECT_CURRENT_CHECK ||
                           ((state==BUS || state==MEMORY_CHECK) &&
-                           memory_return==TASK_SWITCH_DIRECT_CURRENT_ACCESS)))
+                           (memory_return==TASK_SWITCH_DIRECT_CURRENT_CHECK ||
+                            memory_return==TASK_SWITCH_DIRECT_CURRENT_ACCESS))))
                 assert(task_switch_active && task_switch_instruction && !event_delivery_active);
             // The TSS stack-pair read is launched only after a privilege
             // change has marked this delivery as using the new stack.
@@ -979,6 +980,7 @@
                    memory_return == TASK_RETURN_TSS_TAIL || memory_return == TASK_RETURN_TSS_CHECK ||
                    memory_return == TASK_RETURN_CURRENT_ACCESS ||
                    memory_return == TASK_SWITCH_BACKLINK ||
+                   memory_return == TASK_SWITCH_DIRECT_CURRENT_CHECK ||
                    memory_return == TASK_SWITCH_DIRECT_CURRENT_ACCESS ||
                    memory_return == TASK_SWITCH_SAVE || memory_return == TASK_SWITCH_SAVE_NEXT ||
                    memory_return == TASK_SWITCH_LOAD || memory_return == TASK_SWITCH_LOAD_NEXT);

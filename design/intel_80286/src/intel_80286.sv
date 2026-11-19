@@ -3378,41 +3378,36 @@ module intel_80286 #(
                     end
                 end
                 TASK_SWITCH_DIRECT_CURRENT_START: begin
-                    if (!tr_valid || tr_selector[15:3]==0 || tr_selector[2] ||
-                        tr_limit<16'h0029 ||
-                        ({1'b0,{tr_selector[15:3],3'b000}}+17'd7)>
-                            {1'b0,gdt_limit}) begin
+                    // Intel 210498-005 App. B SWITCH_TASKS: mark the target
+                    // TSS busy first, then validate the cached current TR.
+                    memory_start(1'b0,2'd0,16'd0,
+                        event_task_descriptor_address+24'd5,
+                        1'b1,1'b0,3'd1,{24'd0,(event_task_access|8'h02)},
+                        TASK_SWITCH_DIRECT_CURRENT_CHECK);
+                    retire_o<=0;
+                end
+                TASK_SWITCH_DIRECT_CURRENT_CHECK: begin
+                    if (!tr_valid || tr_limit<16'h0029) begin
                         enter_event(10,instruction_ip,1'b0,1'b1,1'b1,
                                     event_task_selector&16'hfffc);
                         task_switch_active<=0; task_switch_instruction<=0;
                         task_switch_jump<=0; task_switch_nested<=0;
                         state<=EVENT_START; retire_o<=0;
-                    end else begin
+                    end else if (task_switch_jump) begin
                         memory_start(1'b0,2'd0,16'd0,
                             gdt_base+{8'd0,tr_selector[15:3],3'b000}+24'd5,
                             1'b0,1'b0,3'd1,0,TASK_SWITCH_DIRECT_CURRENT_ACCESS);
+                        retire_o<=0;
+                    end else begin
+                        task_save_index<=0;
+                        state<=task_switch_nested ? TASK_SWITCH_BACKLINK : TASK_SWITCH_SAVE;
                         retire_o<=0;
                     end
                 end
                 TASK_SWITCH_DIRECT_CURRENT_ACCESS: begin
                     task_current_access<=memory_result[7:0];
-                    state<=TASK_SWITCH_DIRECT_CURRENT_CHECK; retire_o<=0;
-                end
-                TASK_SWITCH_DIRECT_CURRENT_CHECK: begin
-                    if (task_current_access[4:0]!=5'b00011 || !task_current_access[7]) begin
-                        enter_event(10,instruction_ip,1'b0,1'b1,1'b1,
-                                    event_task_selector&16'hfffc);
-                        task_switch_active<=0; task_switch_instruction<=0;
-                        task_switch_jump<=0; task_switch_nested<=0;
-                        state<=EVENT_START; retire_o<=0;
-                    end else begin
-                        task_save_index<=0;
-                        memory_start(1'b0,2'd0,16'd0,
-                            event_task_descriptor_address+24'd5,
-                            1'b1,1'b0,3'd1,{24'd0,(event_task_access|8'h02)},
-                            task_switch_nested ? TASK_SWITCH_BACKLINK : TASK_SWITCH_SAVE);
-                        retire_o<=0;
-                    end
+                    task_save_index<=0;
+                    state<=TASK_SWITCH_SAVE; retire_o<=0;
                 end
                 TASK_RETURN_CURRENT_ACCESS: begin
                     task_current_access<=memory_result[7:0];

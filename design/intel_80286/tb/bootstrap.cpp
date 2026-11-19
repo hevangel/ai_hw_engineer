@@ -13496,9 +13496,7 @@ static void protected_iopl_controls() {
         {"out-of-GDT task-gate TSS CALL",true,true,0x0070,0x85,0,0x81,0x002b,0,0xff,13,0x0078,false,0x0077},
         {"out-of-GDT task-gate TSS JMP",true,false,0x0070,0x85,0,0x81,0x002b,0,0xff,13,0x0078,false,0x0077},
         {"null task-gate TSS CALL",true,true,0x0070,0x85,0,0x81,0x002b,0,0xff,13,0x0000,false,0x007f,0x0000},
-        {"LDT task-gate TSS JMP",true,false,0x0070,0x85,0,0x81,0x002b,0,0xff,13,0x0034,false,0x007f,0x0034},
-        {"available current TR",false,true,0x0078,0x85,0,0x81,0x002b,0,0x81,10,0x0078,true},
-        {"not-present current TR",true,false,0x0070,0x85,0,0x81,0x002b,0,0x03,10,0x0078,true}
+        {"LDT task-gate TSS JMP",true,false,0x0070,0x85,0,0x81,0x002b,0,0xff,13,0x0034,false,0x007f,0x0034}
     };
     unsigned direct_task_fault_cases=0;
     constexpr uint32_t outgoing_task_tss_base=0x00070000;
@@ -13623,9 +13621,40 @@ static void protected_iopl_controls() {
               (std::string("rejected task switch read or changed task state/busy state: ")+test.name).c_str());
         ++direct_task_fault_cases;
     }
-    check(direct_task_fault_cases==52,
+    check(direct_task_fault_cases==48,
           "direct TSS/task-gate fault matrix missed an exception case or READY policy");
-    std::cout<<"PASS: 52 rejected direct TSS/task-gate CALL/JMP cases check exact #GP/#NP/#TS priority packets and no task-image/busy-bit side effects in both READY modes\n";
+    unsigned current_tr_gdt_ignored_cases=0;
+    for (bool wait:{false,true}) for (bool far_call:{false,true})
+        for (uint8_t cur_access:{uint8_t(0x81),uint8_t(0x03)}) {
+        const uint16_t sel=far_call ? direct_task_tss_selector : direct_task_gate_selector;
+        const std::vector<uint8_t> program=far_call ?
+            std::vector<uint8_t>{0x9a,0x00,0x05,uint8_t(sel),uint8_t(sel>>8),0xf4} :
+            std::vector<uint8_t>{0xea,0x00,0x05,uint8_t(sel),uint8_t(sel>>8),0xf4};
+        Bench b;
+        prepare(b,wait,0,0,program,true);
+        b.put(kGdtBase+direct_task_tss_selector,
+              {direct_task_tss_descriptor[0],direct_task_tss_descriptor[1],
+               direct_task_tss_descriptor[2],direct_task_tss_descriptor[3],
+               direct_task_tss_descriptor[4],direct_task_tss_descriptor[5],
+               direct_task_tss_descriptor[6],direct_task_tss_descriptor[7]});
+        if (!far_call)
+            b.put(kGdtBase+direct_task_gate_selector,
+                  {0x00,0x00,uint8_t(direct_task_tss_selector),
+                   uint8_t(direct_task_tss_selector>>8),0x00,0x85,0x00,0x00});
+        for (unsigned i=0;i<14;++i)
+            put_task_word(b,direct_task_tss_base+0x000e + 2*i,direct_task_words[i]);
+        b.put(kHandlerBase+0x0500,{0xf4});
+        b.memory[kGdtBase+current_task_tss_selector+5]=cur_access;
+        for (unsigned cycle=0;cycle<150000 && !b.d.halted_o && !b.d.fault_o && !b.d.shutdown_o;++cycle)
+            b.tick(wait);
+        check(b.d.halted_o && !b.d.fault_o && !b.d.shutdown_o &&
+              b.cs()==0x0030 && b.d.ip_o==0x0501 &&
+              b.memory[kGdtBase+direct_task_tss_selector+5]==0x83,
+              "direct task switch faulted on current TSS GDT access byte instead of cached TR");
+        ++current_tr_gdt_ignored_cases;
+    }
+    check(current_tr_gdt_ignored_cases==8,"current-TR GDT-ignored cases incomplete");
+    std::cout<<"PASS: 48 rejected direct TSS/task-gate CALL/JMP cases and 8 cached-TR-only direct task-switch cases pass in both READY modes\n";
 
     // Reset after every accepted data transfer in direct task entry. Accepted
     // writes survive RESET; the partially completed task switch must not resume.
