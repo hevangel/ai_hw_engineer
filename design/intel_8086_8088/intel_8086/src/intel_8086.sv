@@ -22,7 +22,7 @@
   `I86_MEM(2,gpr[4],0,1,0,POP_ADVANCE,0) pop_continuation<=(S); end
 `define I86_WRITE(V) begin write_value<=(V); state<=WRITEBACK; end
 `define I86_INTERRUPT(V,RET,INSN) begin vector_number<=(V); \
-  interrupt_return_ip<=(RET); interrupt_instruction<=(INSN); state<=INT_START; end
+  interrupt_return_ip<=(RET); interrupt_instruction<=(INSN); interrupt_entry<=1; state<=INT_START; end
 `define I86_REDIRECT begin redirect_o<=1; end
 
 module intel_8086 (
@@ -89,7 +89,7 @@ module intel_8086 (
   logic [15:0] target_ip, target_cs, string_source;
   logic [7:0] vector_number;
   logic [15:0] interrupt_return_ip;
-  logic interrupt_instruction;
+  logic interrupt_instruction, interrupt_entry;
   logic [1:0] repeat_kind;
   logic lock_prefix, acknowledge_lock;
   logic nmi_previous, nmi_pending, tf_start, trap_pending;
@@ -155,9 +155,11 @@ module intel_8086 (
   // ASSUMPTION: A5. FAULT is an implementation diagnostic, not native #UD.
   assign fault_o=state==FAULT;
   assign lock_o=lock_prefix || acknowledge_lock;
-  // Interrupt microcode executes SUSP before vector/stack activity. Keep
-  // CODE fetches out of the two-cycle interrupt-acknowledge sequence.
-  assign prefetch_suspend_o=state>=INT_START && state<=IRQ_VECTOR;
+  // Interrupt microcode executes SUSP before vector/stack activity and keeps
+  // CODE prefetch suspended across the entire acknowledge and entry sequence.
+  assign prefetch_suspend_o=interrupt_entry ||
+      (state==BOUNDARY && !all_shadow &&
+       (nmi_pending || (intr_i && flags[9] && !mask_shadow) || trap_pending));
   // Datasheet RQ/GT rule 2: an odd-address word's low byte cannot yield
   // ownership before its high byte. This is separate from the LOCK pin.
   assign arbitration_inhibit_o=memory_pair_active;
@@ -284,7 +286,7 @@ module intel_8086 (
       memory_io<=0; memory_pair_active<=0; memory_segment<=0; memory_data<=0; memory_result<=0;
       shift_value<=0; shift_flags<=0; shift_count<=0;
       target_ip<=0; target_cs<=0; string_source<=0;
-      vector_number<=0; interrupt_return_ip<=0; interrupt_instruction<=0;
+      vector_number<=0; interrupt_return_ip<=0; interrupt_instruction<=0; interrupt_entry<=0;
       repeat_kind<=0; lock_prefix<=0; acknowledge_lock<=0;
       nmi_previous<=0; nmi_pending<=0; tf_start<=0; trap_pending<=0;
       mask_shadow<=0; all_shadow<=0; wait_count<=0; hlda_o<=0;
@@ -296,7 +298,8 @@ module intel_8086 (
           if(nmi_pending && !all_shadow) begin
             nmi_pending<=0; `I86_INTERRUPT(8'd2,ip,0)
           end else if(intr_i && flags[9] && !mask_shadow && !all_shadow) begin
-            acknowledge_lock<=1; interrupt_return_ip<=ip; interrupt_instruction<=0; state<=IRQ_FIRST;
+            acknowledge_lock<=1; interrupt_return_ip<=ip; interrupt_instruction<=0;
+            interrupt_entry<=1; state<=IRQ_FIRST;
           end else if(trap_pending && !all_shadow) begin
             trap_pending<=0; `I86_INTERRUPT(8'd1,ip,0)
           end else begin
@@ -624,7 +627,7 @@ module intel_8086 (
         INT_READ_CS: begin target_ip<=memory_result; `I86_MEM(4,{6'b0,vector_number,2'b0}+16'd2,0,1,0,INT_SAVE_FLAGS,0) end
         INT_DONE: begin
           ip<=target_ip; seg[1]<=target_cs; mask_shadow<=0; all_shadow<=0;
-          lock_prefix<=0; state<=BOUNDARY; `I86_REDIRECT
+          lock_prefix<=0; interrupt_entry<=0; state<=BOUNDARY; `I86_REDIRECT
           if(interrupt_instruction) begin retire_o<=1; trap_pending<=tf_start; end
         end
         STRING_START: begin
@@ -688,6 +691,11 @@ module intel_8086 (
       end
       if($past(fault_o)) assert(fault_o && !bus_req_o && !retire_o);
       if(hlda_o) assert(!bus_req_o);
+      if(interrupt_entry) assert(prefetch_suspend_o);
+      if($past(interrupt_entry && state!=INT_DONE)) assert(interrupt_entry && prefetch_suspend_o);
+      if($past(state==BOUNDARY && !hlda_o && !(hold_i && !lock_o && !arbitration_inhibit_o) &&
+               !all_shadow && (nmi_pending || (intr_i && flags[9] && !mask_shadow) || trap_pending)))
+        assert(interrupt_entry && prefetch_suspend_o);
     end
     if(past_valid && !$past(rst_n)) begin
       assert(ip_o==0 && seg[1]==16'hffff && flags_o==16'hf002);

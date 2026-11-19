@@ -31,6 +31,8 @@ public:
     bool min_mode=true,random_wait=true;
     bool ready_at_t2=true;
     bool vector_mode=false,vector_instruction_done=false;
+    bool record_cycles=false;
+    std::vector<std::pair<uint8_t,uint32_t>> bus_log;
     std::unordered_map<uint32_t,uint8_t> fixture_code;
     void set(uint32_t a,uint8_t v){a&=0xfffff;memory[a]=v;touched.push_back(a);}
     bool request(){return dut.rootp->intel_8086_chip__DOT__req;}
@@ -93,6 +95,7 @@ public:
         if(dut.rqgt_oe_o&1)++grant0;
         if(dut.rqgt_oe_o&2)++grant1;
         if(!dut.reset_i && (phase==3 || phase==4) && dut.phase_o==5){
+            if(record_cycles)bus_log.emplace_back(status,address);
             if(status==4){require(acknowledgements!=1,"CODE cycle split interrupt acknowledges");++code_reads;}
             if(status==0)++acknowledgements;
             if(status==2 || status==6){
@@ -112,6 +115,7 @@ public:
         cycles=0;acknowledgements=waits=code_reads=write_count=grant0=grant1=qs_seen=0;
         writes.clear();ordered_writes.clear();saw_fetch=false;
         vector_mode=false;vector_instruction_done=false;fixture_code.clear();
+        record_cycles=false;bus_log.clear();
         external_rqgt=3;dut.intr_i=0;dut.nmi_i=0;dut.hold_i=0;dut.test_n_i=0;
         dut.min_mode_i=min_mode;dut.reset_i=1;tick();tick();dut.reset_i=0;
     }
@@ -291,6 +295,67 @@ static void native_tests(Bench &b){
         b.tick();b.external_rqgt=3;
         for(unsigned i=0;i<100 && !b.dut.control_oe_o;++i)b.tick();
         require(b.dut.control_oe_o,"native F1 arbitration release");++cases;
+    }
+    // Prefetch must stay suspended across interrupt entry even when the queue is refilling after a jump.
+    for(bool mode:{true,false}){
+        b.min_mode=mode;
+        b.random_wait=false;
+        for(unsigned delay:{0u,2u,4u,6u}){
+            b.boot({0xbc,0x00,0x80,0xfb,0xeb,0xfe});
+            b.set(0x80,0x00);b.set(0x81,0x04);b.set(0x82,0x00);b.set(0x83,0x00);
+            b.set(0x400,0xf4);
+            b.step(3);b.step(4);
+            b.record_cycles=true;b.bus_log.clear();
+            for(unsigned d=0;d<delay;++d)b.tick();
+            b.dut.intr_i=1;
+            for(unsigned i=0;i<500 && !b.dut.halted_o;++i)b.tick();
+            require(b.dut.halted_o && b.dut.ip_o==0x401,"post-jump INTR handler did not halt");
+            bool in_entry=false,saw_handler=false;
+            for(auto [st,addr]:b.bus_log){
+                if(st==0)in_entry=true;
+                if(!in_entry)continue;
+                if(st==4 && addr>=0x400 && addr<0x410){saw_handler=true;break;}
+                require(st!=4,"abandoned CODE fetch during INTR entry at addr="+std::to_string(addr));
+            }
+            require(saw_handler,"missing INTR handler fetch");
+        }
+        ++cases;
+        for(unsigned delay:{0u,2u,4u,6u}){
+            b.boot({0xbc,0x00,0x80,0xeb,0xfe});
+            b.set(0x08,0x10);b.set(0x09,0x04);b.set(0x0a,0x00);b.set(0x0b,0x00);
+            b.set(0x410,0xf4);
+            b.step(3);
+            b.record_cycles=true;b.bus_log.clear();
+            for(unsigned d=0;d<delay;++d)b.tick();
+            b.dut.nmi_i=1;
+            for(unsigned i=0;i<500 && !b.dut.halted_o;++i)b.tick();
+            require(b.dut.halted_o && b.dut.ip_o==0x411,"post-jump NMI handler did not halt");
+            bool in_entry=false,saw_handler=false;
+            for(auto [st,addr]:b.bus_log){
+                if(st==5 && addr==0x0008)in_entry=true;
+                if(!in_entry)continue;
+                if(st==4 && addr>=0x410 && addr<0x420){saw_handler=true;break;}
+                require(st!=4,"abandoned CODE fetch during NMI entry at addr="+std::to_string(addr));
+            }
+            require(saw_handler,"missing NMI handler fetch");
+        }
+        ++cases;
+        b.boot({0xbc,0x00,0x80,0xeb,0x00,0xcd,0x21});
+        b.set(0x84,0x20);b.set(0x85,0x04);b.set(0x86,0x00);b.set(0x87,0x00);
+        b.set(0x420,0xf4);
+        b.step(3);b.step(5);
+        b.record_cycles=true;b.bus_log.clear();
+        for(unsigned i=0;i<500 && !b.dut.halted_o;++i)b.tick();
+        require(b.dut.halted_o && b.dut.ip_o==0x421,"post-jump INT 21h handler did not halt");
+        bool in_entry=false,saw_handler=false;
+        for(auto [st,addr]:b.bus_log){
+            if(st==5 && addr==0x0084)in_entry=true;
+            if(!in_entry)continue;
+            if(st==4 && addr>=0x420 && addr<0x430){saw_handler=true;break;}
+            require(st!=4,"abandoned CODE fetch during INT 21h entry at addr="+std::to_string(addr));
+        }
+        require(saw_handler,"missing INT 21h handler fetch");++cases;
+        b.random_wait=true;
     }
     std::cout<<"PASS: "<<cases<<" native minimum/maximum-mode bus, prefetch, arbitration and reset scenarios\n";
 }
