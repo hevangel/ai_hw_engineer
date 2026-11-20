@@ -33,6 +33,7 @@ public:
     bool vector_mode=false,vector_instruction_done=false;
     bool record_cycles=false;
     std::vector<std::pair<uint8_t,uint32_t>> bus_log;
+    std::vector<bool> bus_lock_n;
     std::unordered_map<uint32_t,uint8_t> fixture_code;
     void set(uint32_t a,uint8_t v){a&=0xfffff;memory[a]=v;touched.push_back(a);}
     bool request(){return dut.rootp->intel_8086_chip__DOT__req;}
@@ -95,7 +96,7 @@ public:
         if(dut.rqgt_oe_o&1)++grant0;
         if(dut.rqgt_oe_o&2)++grant1;
         if(!dut.reset_i && (phase==3 || phase==4) && dut.phase_o==5){
-            if(record_cycles)bus_log.emplace_back(status,address);
+            if(record_cycles){bus_log.emplace_back(status,address);bus_lock_n.push_back(dut.lock_n_o);}
             if(status==4){require(acknowledgements!=1,"CODE cycle split interrupt acknowledges");++code_reads;}
             if(status==0)++acknowledgements;
             if(status==2 || status==6){
@@ -115,7 +116,7 @@ public:
         cycles=0;acknowledgements=waits=code_reads=write_count=grant0=grant1=qs_seen=0;
         writes.clear();ordered_writes.clear();saw_fetch=false;
         vector_mode=false;vector_instruction_done=false;fixture_code.clear();
-        record_cycles=false;bus_log.clear();
+        record_cycles=false;bus_log.clear();bus_lock_n.clear();
         external_rqgt=3;dut.intr_i=0;dut.nmi_i=0;dut.hold_i=0;dut.test_n_i=0;
         dut.min_mode_i=min_mode;dut.reset_i=1;tick();tick();dut.reset_i=0;
     }
@@ -379,6 +380,44 @@ static void native_tests(Bench &b){
         b.dut.nmi_i=0;b.step(4);b.step(5);b.step(6);
         require(b.dut.halted_o && b.read()[3]==1,"post-NMI re-halt");++cases;
     }
+    // Interrupting LOCK REP or LOCK WAIT in maximum mode must release LOCK# before vector/stack entry.
+    b.min_mode=false;
+    for(bool use_nmi:{false,true}){
+        b.boot({0xbc,0x00,0x80,0xb9,0x00,0x10,0xbe,0x00,0x20,0xbf,0x00,0x30,0xfb,0xf0,0xf3,0xa4,0xf4});
+        b.set(0x80,0x00);b.set(0x81,0x04);b.set(0x82,0x00);b.set(0x83,0x00);
+        b.set(0x08,0x10);b.set(0x09,0x04);b.set(0x0a,0x00);b.set(0x0b,0x00);
+        b.set(0x400,0xf4);b.set(0x410,0xf4);
+        b.record_cycles=true;b.bus_log.clear();b.bus_lock_n.clear();
+        for(unsigned i=0;i<500 && b.write_count==0;++i)b.tick();
+        require(b.write_count>0 && !b.dut.lock_n_o,"native LOCK REP did not drive LOCK#");
+        if(use_nmi)b.dut.nmi_i=1;else b.dut.intr_i=1;
+        for(unsigned i=0;i<1000 && !b.dut.halted_o;++i)b.tick();
+        require(b.dut.halted_o && b.dut.ip_o==(use_nmi ? 0x411:0x401),"LOCK REP interrupt handler did not halt");
+        unsigned vec_reads=0,stack_writes=0;
+        for(size_t i=0;i<b.bus_log.size();++i){
+            auto [st,addr]=b.bus_log[i];
+            if(st==5 && addr<(use_nmi ? 0x10u:0x100u)){require(b.bus_lock_n[i],"LOCK# still low during interrupt vector read");++vec_reads;}
+            if(st==6 && addr>=0x7ff0 && addr<0x8000){require(b.bus_lock_n[i],"LOCK# still low during interrupt stack push");++stack_writes;}
+        }
+        require(vec_reads==2 && stack_writes==3,"missing LOCK REP interrupt vector/stack cycles");++cases;
+    }
+    b.boot({0xbc,0x00,0x80,0xfb,0xf0,0x9b,0xf4});
+    b.set(0x80,0x00);b.set(0x81,0x04);b.set(0x82,0x00);b.set(0x83,0x00);
+    b.set(0x400,0xf4);
+    b.step(3);b.step(4);b.dut.test_n_i=1;
+    for(unsigned i=0;i<30;++i)b.tick();
+    require(!b.dut.lock_n_o,"native LOCK WAIT did not drive LOCK#");
+    b.record_cycles=true;b.bus_log.clear();b.bus_lock_n.clear();
+    b.dut.intr_i=1;
+    for(unsigned i=0;i<1000 && !b.dut.halted_o;++i)b.tick();
+    require(b.dut.halted_o && b.dut.ip_o==0x401,"LOCK WAIT interrupt handler did not halt");
+    unsigned wait_vec=0,wait_stack=0;
+    for(size_t i=0;i<b.bus_log.size();++i){
+        auto [st,addr]=b.bus_log[i];
+        if(st==5 && addr>=0x80 && addr<0x84){require(b.bus_lock_n[i],"LOCK# still low during WAIT vector read");++wait_vec;}
+        if(st==6 && addr>=0x7ff0 && addr<0x8000){require(b.bus_lock_n[i],"LOCK# still low during WAIT stack push");++wait_stack;}
+    }
+    require(wait_vec==2 && wait_stack==3,"missing LOCK WAIT interrupt vector/stack cycles");++cases;
     std::cout<<"PASS: "<<cases<<" native minimum/maximum-mode bus, prefetch, arbitration and reset scenarios\n";
 }
 int main(int argc,char **argv){

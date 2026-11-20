@@ -207,5 +207,38 @@ static void control(Bench &b) {
         word(b,0x7ffa)==4 && word(b,0x7ffc)==0x1000,"post-reset NMI rising edge wake");
     b.dut.nmi_i=0; step(b,0x421,0); step(b,4); step(b,5); step(b,6);
     require(b.dut.halted_o && b.read()[3]==1,"post-NMI re-halt"); ++cases;
+    // Interrupting LOCK REP or LOCK WAIT must release LOCK before vector/stack entry.
+    for(bool use_nmi:{false,true}) {
+        setup(b,{0xf0,0xf3,0xa4,0x90},0xf202);
+        auto lr=b.read(); lr[1]=16; lr[6]=0x200; lr[7]=0x300; lr[8]=0x2000; lr[11]=0x3000; b.load(lr);
+        for(unsigned i=0;i<500 && b.writes.empty();++i) b.tick();
+        require(b.dut.lock_o,"LOCK REP did not assert lock_o");
+        if(use_nmi) b.dut.nmi_i=1; else b.dut.intr_i=1;
+        bool in_vec_stack=false;
+        for(unsigned i=0;i<1000 && !(b.dut.redirect_o && b.read()[9]==0);++i) {
+            b.tick((b.cycles%7)<3);
+            if(b.dut.bus_req_o && !b.dut.bus_fetch_o && !b.dut.bus_intack_o &&
+               (b.dut.bus_addr_o<0x400 || (b.dut.bus_addr_o>=0x7ff0 && b.dut.bus_addr_o<0x8000)))
+                in_vec_stack=true;
+            if(in_vec_stack && b.dut.bus_req_o)
+                require(!b.dut.lock_o,"LOCK remained asserted during interrupted REP entry");
+        }
+        require(in_vec_stack && b.read()[9]==0 && b.dut.ip_o==(use_nmi ? 0x420:0x600),"LOCK REP IRQ entry");
+        ++cases;
+    }
+    setup(b,{0xf0,0x9b,0x90},0xf202); b.dut.test_n_i=1;
+    for(unsigned i=0;i<30;++i) b.tick();
+    require(b.dut.waiting_o && b.dut.lock_o,"LOCK WAIT did not assert lock_o");
+    b.dut.intr_i=1;
+    bool wait_vec_stack=false;
+    for(unsigned i=0;i<1000 && !(b.dut.redirect_o && b.read()[9]==0);++i) {
+        b.tick((b.cycles%7)<3);
+        if(b.dut.bus_req_o && !b.dut.bus_fetch_o && !b.dut.bus_intack_o &&
+           (b.dut.bus_addr_o<0x400 || (b.dut.bus_addr_o>=0x7ff0 && b.dut.bus_addr_o<0x8000)))
+            wait_vec_stack=true;
+        if(wait_vec_stack && b.dut.bus_req_o)
+            require(!b.dut.lock_o,"LOCK remained asserted during interrupted WAIT entry");
+    }
+    require(wait_vec_stack && b.read()[9]==0 && b.dut.ip_o==0x600,"LOCK WAIT IRQ entry"); ++cases;
     std::cout<<"PASS: "<<cases<<" documented control, interrupt, REP, WAIT and LOCK scenarios\n";
 }

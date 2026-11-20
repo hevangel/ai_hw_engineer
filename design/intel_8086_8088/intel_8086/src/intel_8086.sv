@@ -661,7 +661,7 @@ module intel_8086 (
             if((nmi_pending || intr_i && flags[9] && !mask_shadow || tf_start) && !all_shadow) begin
               // Original RPTI microcode decrements the corrected PC by two;
               // earlier prefixes are lost on an interrupted multi-prefix REP.
-              ip<=ip-16'd2; trap_pending<=tf_start; state<=BOUNDARY; `I86_REDIRECT
+              ip<=ip-16'd2; trap_pending<=tf_start; lock_prefix<=0; state<=BOUNDARY; `I86_REDIRECT
             end else state<=STRING_START;
           end else `I86_DONE
         end
@@ -670,7 +670,7 @@ module intel_8086 (
           else if(wait_count==4) begin
             wait_count<=0;
             if((nmi_pending || intr_i && flags[9] && !mask_shadow) && !all_shadow) begin
-              ip<=instruction_ip; state<=BOUNDARY; `I86_REDIRECT
+              ip<=instruction_ip; lock_prefix<=0; state<=BOUNDARY; `I86_REDIRECT
             end
           end else wait_count<=wait_count+3'd1;
         end
