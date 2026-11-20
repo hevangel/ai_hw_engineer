@@ -19,7 +19,7 @@ set -eu
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 SYSTEM_DIR=$(dirname "$SCRIPT_DIR")
-DESIGN_DIR="$SYSTEM_DIR/../../design"
+DESIGN_DIR="$SYSTEM_DIR/../../design/intel_mcs4"
 BACKEND="${BUSICOM_BACKEND:-xezim}"
 PORT="${BUSICOM_PORT:-8080}"
 WORK_DIR="$SYSTEM_DIR/work/system-$BACKEND-$PORT"
