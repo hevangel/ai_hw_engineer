@@ -50,7 +50,8 @@ The complete `run_all.sh` was also rerun successfully on the current RTL:
 strict lint, all nine formal tasks, eight UVM scenarios, 153 control tests,
 25 native bus tests, all 1,700,163 physical-chip instruction-case executions,
 oracle negative controls, historical software and both synthesis tops pass.
-The retained completion log is `work/current-run-all.log`. These are the
+That run writes its log to `work/current-run-all.log`, which is git-ignored and
+not committed; rerun `scripts/run_all.sh` to reproduce it. These are the
 same finite contracts and physical-oracle limitations described below.
 
 ## Independent instruction oracle
