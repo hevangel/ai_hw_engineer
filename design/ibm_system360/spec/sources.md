@@ -76,6 +76,19 @@ Functional Characteristics manual before its PSW is declared exact.
 | Supports | announcement date (7 April 1964), shipment years (1965-1978), the initial announcement of Models 30/40/50/60/62/70, the replacement of 60/62/70 by 65/75, and the model list with announcement/ship dates; Model 20's eight 16-bit registers and reduced set; Model 44's removal of storage-to-storage instructions; Model 67's DAT |
 | Status | **secondary** — every date and model deviation still needs its primary IBM announcement, Functional Characteristics manual or Systems Reference Library entry before the corresponding model issue is signed off |
 
+### S-4 — Independent System/360 emulator (test oracle)
+
+| Field | Value |
+|---|---|
+| Project | `luiscunhacsc/s360-model30-v01`, IBM System/360 Model 30 instruction-level emulator (JavaScript, headless Node mode) |
+| URL | https://github.com/luiscunhacsc/s360-model30-v01 |
+| Commit | `4c379fceda39250fad7385eac15630d99281debf` (2026-09-24) |
+| File used | `src/core.js`, 42,903 bytes, SHA-256 `5034225ECB1378FE6FA990DEDA251619843E1E878E39AF127DC759EB2C903BDB` |
+| Retrieved | 2026-11-22 |
+| Used by | `design/ibm_system360/tools/oracle/` (differential suite) |
+| Supports | architectural agreement checks for the implemented instruction set; it found the `DR` register-placement and `EX` mask-source defects |
+| Rights | **No licence is stated in the repository** (no LICENSE file, no licence text in the README). Treated as all rights reserved: used locally for verification only, never redistributed, never committed. URLs and hashes are recorded so the same artifact can be re-fetched. |
+
 ## 3. Sources located but not yet read
 
 These are needed by later issues and are recorded so that no one re-does the
