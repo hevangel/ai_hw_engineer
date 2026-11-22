@@ -240,5 +240,14 @@ static void control(Bench &b) {
             require(!b.dut.lock_o,"LOCK remained asserted during interrupted WAIT entry");
     }
     require(wait_vec_stack && b.read()[9]==0 && b.dut.ip_o==0x600,"LOCK WAIT IRQ entry"); ++cases;
+    // A LOCK prefix followed by an encoding that enters the FAULT stop must
+    // release LOCK: the locked instruction has ended (review #286 finding 4).
+    setup(b,{0xf0,0x8d,0xc3,0x90}); // LOCK LEA AX,BX (register form faults)
+    for(unsigned i=0;i<500 && !b.dut.fault_o;++i) b.tick();
+    require(b.dut.fault_o,"LOCK LEA reg,reg did not reach FAULT");
+    b.tick(); require(!b.dut.lock_o,"LOCK remained asserted in FAULT");
+    b.dut.hold_i=1;
+    for(unsigned i=0;i<20 && !b.dut.hlda_o;++i) b.tick();
+    require(b.dut.hlda_o,"HOLD refused after LOCK then FAULT"); b.dut.hold_i=0; ++cases;
     std::cout<<"PASS: "<<cases<<" documented control, interrupt, REP, WAIT and LOCK scenarios\n";
 }

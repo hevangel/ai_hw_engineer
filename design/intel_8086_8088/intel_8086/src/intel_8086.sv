@@ -154,7 +154,10 @@ module intel_8086 (
   assign halted_o=state==HALTED;
   // ASSUMPTION: A5. FAULT is an implementation diagnostic, not native #UD.
   assign fault_o=state==FAULT;
-  assign lock_o=lock_prefix || acknowledge_lock;
+  // LOCK covers only the instruction that follows the prefix (Intel 1979
+  // manual p. 2-50). Entering the FAULT stop ends that instruction, so it
+  // releases LOCK as an interrupted REP or WAIT does.
+  assign lock_o=(lock_prefix && state!=FAULT) || acknowledge_lock;
   // Interrupt microcode executes SUSP before vector/stack activity and keeps
   // CODE prefetch suspended across the entire acknowledge and entry sequence.
   assign prefetch_suspend_o=interrupt_entry ||
@@ -675,7 +678,7 @@ module intel_8086 (
           end else wait_count<=wait_count+3'd1;
         end
         HALTED: if(nmi_pending || intr_i && flags[9] || trap_pending) state<=BOUNDARY;
-        FAULT: ;
+        FAULT: lock_prefix<=0;
         default: state<=FAULT;
       endcase
     end
@@ -692,6 +695,7 @@ module intel_8086 (
         assert($stable({bus_addr_o,bus_be_o,bus_write_o,bus_wdata_o,bus_fetch_o,bus_io_o,bus_intack_o}));
       end
       if($past(fault_o)) assert(fault_o && !bus_req_o && !retire_o);
+      if(fault_o) assert(!lock_o);
       if(hlda_o) assert(!bus_req_o);
       if(interrupt_entry) assert(prefetch_suspend_o);
       if($past(interrupt_entry && state!=INT_DONE)) assert(interrupt_entry && prefetch_suspend_o);
