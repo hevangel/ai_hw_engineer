@@ -53,7 +53,7 @@ module intel_8086 (
     CALL_PUSH_IP,TRANSFER,RET_IP,RET_CS,RET_FLAGS,
     INT_START,INT_PUSH_CS,INT_PUSH_IP,INT_READ_IP,INT_READ_CS,INT_SAVE_FLAGS,INT_DONE,
     IRQ_FIRST,IRQ_SECOND,IRQ_VECTOR,SHIFT_STEP,
-    STRING_START,STRING_SOURCE,STRING_COMPARE,STRING_UPDATE,WAITING,HALTED,FAULT
+    STRING_START,STRING_SOURCE,STRING_COMPARE,STRING_UPDATE,WAITING,HALTED,FAULT,DIVIDE
   } state_t;
   state_t state, continuation, immediate_continuation, memory_continuation, pop_continuation;
   logic [15:0] gpr[0:7], seg[0:3];
@@ -82,7 +82,8 @@ module intel_8086 (
   logic [15:0] shift_value, shift_flags, shifted_value, shifted_flags;
   logic [7:0] shift_count;
   logic [15:0] mul_ax, mul_dx;
-  logic mul_carry, divide_error;
+  logic mul_carry, divide_error, divide_start, divide_done;
+  logic [7:0] aam_quotient, aam_remainder;
   logic [15:0] decimal_ax, decimal_flags;
   logic [7:0] adjusted_al;
   logic decimal_error;
@@ -221,9 +222,12 @@ module intel_8086 (
       .flags_i(flags_o),.value_o(alu_value),.flags_o(alu_flags));
   intel_8086_shift shifter(.wide_i(wide),.kind_i(modrm[5:3]),.value_i(shift_value),
       .flags_i(shift_flags),.value_o(shifted_value),.flags_o(shifted_flags));
-  intel_8086_muldiv muldiv(.wide_i(wide),.kind_i(modrm[4:3]),.operand_i(rm_value),
-      .ax_i(gpr[0]),.dx_i(gpr[2]),.ax_o(mul_ax),.dx_o(mul_dx),
-      .carry_o(mul_carry),.divide_error_o(divide_error));
+  // DIV, IDIV and AAM wait in DIVIDE for the iterative divider.
+  intel_8086_muldiv muldiv(.clk(clk),.rst_n(rst_n),.start_i(divide_start),.aam_i(opcode==8'hd4),
+      .wide_i(wide),.kind_i(modrm[4:3]),.operand_i(rm_value),
+      .ax_i(gpr[0]),.dx_i(gpr[2]),.aam_divisor_i(immediate[7:0]),.ax_o(mul_ax),.dx_o(mul_dx),
+      .carry_o(mul_carry),.divide_error_o(divide_error),.divide_done_o(divide_done),
+      .aam_quotient_o(aam_quotient),.aam_remainder_o(aam_remainder));
 
   always_comb begin
     decimal_ax=gpr[0]; decimal_flags=flags_o; adjusted_al=gpr[0][7:0]; decimal_error=0;
@@ -259,8 +263,9 @@ module intel_8086 (
         // Physical P80C86 D4:460 sets SZP from zero before the type-0 entry.
         if(immediate[7:0]==0) begin decimal_error=1; adjusted_al=0; end
         else begin
-          decimal_ax[15:8]=gpr[0][7:0]/immediate[7:0];
-          adjusted_al=gpr[0][7:0]%immediate[7:0]; decimal_ax[7:0]=adjusted_al;
+          // Valid in DIVIDE, after the iterative divider settles.
+          decimal_ax[15:8]=aam_quotient;
+          adjusted_al=aam_remainder; decimal_ax[7:0]=adjusted_al;
         end
       end
       8'hd5: begin
@@ -276,7 +281,7 @@ module intel_8086 (
   end
 
   always_ff @(posedge clk) begin
-    retire_o<=0; redirect_o<=0; esc_valid_o<=0;
+    retire_o<=0; redirect_o<=0; esc_valid_o<=0; divide_start<=0;
     nmi_previous<=nmi_i;
     if(nmi_i && !nmi_previous) nmi_pending<=1;
     if(!rst_n) begin
@@ -534,13 +539,11 @@ module intel_8086 (
               2: `I86_WRITE(~rm_value)
               3: begin flags<=alu_flags; `I86_WRITE(alu_value) end
               default: begin
-                if(modrm[5:3]>=6 && divide_error) `I86_INTERRUPT(0,ip,1)
+                if(modrm[5:3]>=6) begin divide_start<=1; state<=DIVIDE; end
                 else begin
-                  if(repeat_kind!=0 && modrm[5:3]==7) begin
-                    gpr[0]<=wide ? 16'd0-mul_ax:{mul_ax[15:8],8'(0-mul_ax[7:0])};
-                  end else gpr[0]<=mul_ax;
+                  gpr[0]<=mul_ax;
                   if(wide) gpr[2]<=mul_dx;
-                  if(modrm[5:3]<6) begin flags[0]<=mul_carry; flags[11]<=mul_carry; end
+                  flags[0]<=mul_carry; flags[11]<=mul_carry;
                   `I86_DONE
                 end
               end
@@ -566,6 +569,7 @@ module intel_8086 (
           else case(opcode)
             8'h27,8'h2f,8'h37,8'h3f,8'hd4,8'hd5: begin
               if(decimal_error) begin flags<=decimal_flags; `I86_INTERRUPT(0,ip,1) end
+              else if(opcode==8'hd4) begin divide_start<=1; state<=DIVIDE; end
               else begin gpr[0]<=decimal_ax; flags<=decimal_flags; `I86_DONE end
             end
             8'h9a: begin target_ip<=immediate[15:0]; target_cs<=immediate[31:16]; `I86_PUSH(seg[1],CALL_PUSH_IP) end
@@ -701,6 +705,17 @@ module intel_8086 (
         end
         HALTED: if(nmi_pending || intr_i && flags[9] || trap_pending) begin
           state<=BOUNDARY; intr_committed<=intr_i && flags[9];
+        end
+        DIVIDE: if(divide_done) begin
+          if(opcode==8'hd4) begin gpr[0]<=decimal_ax; flags<=decimal_flags; `I86_DONE end
+          else if(divide_error) `I86_INTERRUPT(0,ip,1)
+          else begin
+            if(repeat_kind!=0 && modrm[5:3]==7) begin
+              gpr[0]<=wide ? 16'd0-mul_ax:{mul_ax[15:8],8'(0-mul_ax[7:0])};
+            end else gpr[0]<=mul_ax;
+            if(wide) gpr[2]<=mul_dx;
+            `I86_DONE
+          end
         end
         FAULT: lock_prefix<=0;
         default: state<=FAULT;
