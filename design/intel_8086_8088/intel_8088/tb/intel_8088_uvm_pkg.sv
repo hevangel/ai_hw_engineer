@@ -192,7 +192,9 @@ package intel_8088_uvm_pkg;
         return;
       end
       snapshots++;
-      if (tr.ale !== (tr.min_mode && tr.pre_phase == 3'd1 && tr.control_oe))
+      // ALE at T1, plus the single HALT-entry indication (S2:S0=011 in IDLE).
+      if (tr.ale !== (tr.min_mode && tr.control_oe &&
+                      (tr.pre_phase == 3'd1 || tr.pre_phase == 3'd0 && tr.status_pins == 3'd3)))
         `uvm_error("ALE", "ALE timing/mode")
       if (tr.hlda && (tr.ad_oe || tr.high_address_oe || tr.address_status_oe ||
                       tr.control_oe || tr.sso_oe))
