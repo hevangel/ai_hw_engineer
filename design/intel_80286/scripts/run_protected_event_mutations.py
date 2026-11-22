@@ -45,9 +45,9 @@ MUTATIONS = (
     (
         'software_int_dpl_polarity_reversed',
         'event_packet.software_interrupt &&\n'
-        '                                 cs[1:0]>event_gate[46:45]',
+        '                                 cpl>event_gate[46:45]',
         'event_packet.software_interrupt &&\n'
-        '                                 cs[1:0]<=event_gate[46:45]',
+        '                                 cpl<=event_gate[46:45]',
     ),
     (
         'interrupt_gate_preserves_if',

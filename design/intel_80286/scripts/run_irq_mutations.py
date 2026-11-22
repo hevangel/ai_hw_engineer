@@ -11,10 +11,11 @@ WORK=WORK_ROOT/'irq_mutations'
 MUTATIONS=[
     ('intr_ignores_if', '.if_i(flags[9] &&', '.if_i(1\'b1 &&'),
     ('sti_shadow_missing',
-     '.if_i(flags[9] && !sti_shadow && !(state==STRING_BOUNDARY && instruction_sti_shadow))',
+     '.if_i(flags[9] && !sti_shadow &&\n'
+     '              !((state==STRING_BOUNDARY || state==WAIT_BUSY) && instruction_sti_shadow))',
      '.if_i(flags[9])'),
     ('ss_shadow_missing',
-     '.inhibit_i(ss_shadow || (state==STRING_BOUNDARY && instruction_ss_shadow))',
+     '.inhibit_i(ss_shadow || ((state==STRING_BOUNDARY || state==WAIT_BUSY) && instruction_ss_shadow))',
      '.inhibit_i(1\'b0)'),
     ('iret_does_not_unblock_nmi', '.iret_i(state==FAR_RETURN_DONE && opcode==8\'hcf)', '.iret_i(1\'b0)'),
     ('rep_restart_skips_prefix', 'state==STRING_POLL ? instruction_ip : ip',

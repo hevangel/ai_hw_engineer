@@ -74,14 +74,20 @@ def main(extra_mutations=(), required_string_cases=(), minimum_passed_cases=55):
         ),
         (
             "keep_pre_fault_indices",
-            "if (msw[0] && ins_precheck_active) begin",
-            "if (1'b0 && msw[0] && ins_precheck_active) begin",
+            # Commit 7e46383 dropped the msw[0] term (real-mode INS also
+            # repairs DI/CX, assumption A36); the pattern followed late.
+            "if (ins_precheck_active) begin",
+            "if (1'b0 && ins_precheck_active) begin",
             "INS fault packet or completed-element state is imprecise",
         ),
         (
             "decrement_rep_twice",
-            "if (repeat_valid) gpr[1]<=gpr[1]-16'd1;",
-            "if (repeat_valid) gpr[1]<=gpr[1]-16'd2;",
+            # The element commit's decrement; the same text also appears in
+            # the real-mode FFFF fault-state repair (commits 35334fa, 7e46383).
+            "if (string_compare) flags<=alu_flags;\n"
+            "                    if (repeat_valid) gpr[1]<=gpr[1]-16'd1;",
+            "if (string_compare) flags<=alu_flags;\n"
+            "                    if (repeat_valid) gpr[1]<=gpr[1]-16'd2;",
             "INS fixture retired PC or exact successor mismatch",
         ),
     ]
