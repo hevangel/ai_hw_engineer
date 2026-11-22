@@ -306,7 +306,10 @@ module intel_8086 (
       else case(state)
         BOUNDARY: begin
           if(nmi_pending && !all_shadow) begin
-            nmi_pending<=0; `I86_INTERRUPT(8'd2,ip,0)
+            // A new rising edge in the accepting clock stays latched for the
+            // next NMI instead of being overwritten by this clear.
+            if(!(nmi_i && !nmi_previous)) nmi_pending<=0;
+            `I86_INTERRUPT(8'd2,ip,0)
           end else if(intr_i && flags[9] && !mask_shadow && !all_shadow) begin
             acknowledge_lock<=1; interrupt_return_ip<=ip; interrupt_instruction<=0;
             interrupt_entry<=1; state<=IRQ_FIRST;

@@ -267,6 +267,24 @@ static void control(Bench &b) {
     setup(b,{0xfb,0x9b,0x90,0xf4},0xf002); b.dut.test_n_i=1; b.dut.intr_i=1;
     step(b,0x101); require(b.acknowledgements==0,"STI accepted IRQ too early before WAIT");
     entry(b,0x20,0x101,0xf202); b.dut.intr_i=0; b.dut.test_n_i=0; ++cases;
+    // A second NMI rising edge in the very clock a pending NMI is accepted
+    // must stay latched and be taken after the first handler (review #286
+    // finding 9). The handler is INC BX; IRET, so BX counts NMI entries.
+    setup(b,{0x90,0x90,0x90,0x90,0x90,0xf4},0xf002);
+    b.dut.nmi_i=1; b.tick(); b.dut.nmi_i=0;
+    bool second_edge=false;
+    for(unsigned i=0;i<1000 && !second_edge;++i) {
+        b.dut.eval();
+        if(b.dut.rootp->intel_8086__DOT__state==0 && b.dut.rootp->intel_8086__DOT__nmi_pending) {
+            b.dut.nmi_i=1; second_edge=true;
+        }
+        b.tick();
+    }
+    require(second_edge,"NMI accept clock not reached");
+    for(unsigned i=0;i<3000 && !b.dut.halted_o;++i) b.tick();
+    require(b.dut.halted_o && b.read()[3]==2,"NMI edge in the accepting clock was lost, BX="+
+        std::to_string(b.read()[3]));
+    b.dut.nmi_i=0; ++cases;
     // A LOCK prefix followed by an encoding that enters the FAULT stop must
     // release LOCK: the locked instruction has ended (review #286 finding 4).
     setup(b,{0xf0,0x8d,0xc3,0x90}); // LOCK LEA AX,BX (register form faults)
