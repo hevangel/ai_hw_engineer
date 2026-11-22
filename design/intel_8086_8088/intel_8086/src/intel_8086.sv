@@ -98,6 +98,10 @@ module intel_8086 (
   // load. BOUNDARY clears the live flags as that instruction starts, so a
   // REP string tests these copies between its elements.
   logic instruction_mask_shadow, instruction_all_shadow;
+  // ASSUMPTION: A9. Once a REP string, WAIT or HLT yields to INTR the CPU is
+  // committed to the acknowledge, as when the original microcode leaves for
+  // its interrupt sequence; the request is not resampled at BOUNDARY.
+  logic intr_committed;
   logic [2:0] wait_count;
   logic string_more;
   integer index;
@@ -166,7 +170,7 @@ module intel_8086 (
   // CODE prefetch suspended across the entire acknowledge and entry sequence.
   assign prefetch_suspend_o=interrupt_entry ||
       (state==BOUNDARY && !all_shadow &&
-       (nmi_pending || (intr_i && flags[9] && !mask_shadow) || trap_pending));
+       (nmi_pending || intr_committed || (intr_i && flags[9] && !mask_shadow) || trap_pending));
   // Datasheet RQ/GT rule 2: an odd-address word's low byte cannot yield
   // ownership before its high byte. This is separate from the LOCK pin.
   assign arbitration_inhibit_o=memory_pair_active;
@@ -299,18 +303,19 @@ module intel_8086 (
       // already high at reset release does not look like a rising edge.
       nmi_previous<=nmi_i; nmi_pending<=0; tf_start<=0; trap_pending<=0;
       mask_shadow<=0; all_shadow<=0; wait_count<=0; hlda_o<=0;
-      instruction_mask_shadow<=0; instruction_all_shadow<=0;
+      instruction_mask_shadow<=0; instruction_all_shadow<=0; intr_committed<=0;
     end else begin
       if(hlda_o) begin if(!hold_i) hlda_o<=0; end
       else if(hold_i && !lock_o && !arbitration_inhibit_o && state!=BUS) hlda_o<=1;
       else case(state)
         BOUNDARY: begin
+          intr_committed<=0;
           if(nmi_pending && !all_shadow) begin
             // A new rising edge in the accepting clock stays latched for the
             // next NMI instead of being overwritten by this clear.
             if(!(nmi_i && !nmi_previous)) nmi_pending<=0;
             `I86_INTERRUPT(8'd2,ip,0)
-          end else if(intr_i && flags[9] && !mask_shadow && !all_shadow) begin
+          end else if((intr_committed || intr_i && flags[9] && !mask_shadow) && !all_shadow) begin
             acknowledge_lock<=1; interrupt_return_ip<=ip; interrupt_instruction<=0;
             interrupt_entry<=1; state<=IRQ_FIRST;
           end else if(trap_pending && !all_shadow) begin
@@ -677,6 +682,7 @@ module intel_8086 (
               // Original RPTI microcode decrements the corrected PC by two;
               // earlier prefixes are lost on an interrupted multi-prefix REP.
               ip<=ip-16'd2; trap_pending<=tf_start; lock_prefix<=0; state<=BOUNDARY; `I86_REDIRECT
+              intr_committed<=intr_i && flags[9] && !instruction_mask_shadow;
             end else state<=STRING_START;
           end else `I86_DONE
         end
@@ -689,10 +695,13 @@ module intel_8086 (
             // or POP SS, so interrupt latency is not unbounded.
             if(nmi_pending || intr_i && flags[9]) begin
               ip<=instruction_ip; lock_prefix<=0; state<=BOUNDARY; `I86_REDIRECT
+              intr_committed<=intr_i && flags[9];
             end
           end else wait_count<=wait_count+3'd1;
         end
-        HALTED: if(nmi_pending || intr_i && flags[9] || trap_pending) state<=BOUNDARY;
+        HALTED: if(nmi_pending || intr_i && flags[9] || trap_pending) begin
+          state<=BOUNDARY; intr_committed<=intr_i && flags[9];
+        end
         FAULT: lock_prefix<=0;
         default: state<=FAULT;
       endcase
@@ -715,7 +724,7 @@ module intel_8086 (
       if(interrupt_entry) assert(prefetch_suspend_o);
       if($past(interrupt_entry && state!=INT_DONE)) assert(interrupt_entry && prefetch_suspend_o);
       if($past(state==BOUNDARY && !hlda_o && !(hold_i && !lock_o && !arbitration_inhibit_o) &&
-               !all_shadow && (nmi_pending || (intr_i && flags[9] && !mask_shadow) || trap_pending)))
+               !all_shadow && (nmi_pending || intr_committed || (intr_i && flags[9] && !mask_shadow) || trap_pending)))
         assert(interrupt_entry && prefetch_suspend_o);
     end
     if(past_valid) assert(nmi_previous==$past(nmi_i));

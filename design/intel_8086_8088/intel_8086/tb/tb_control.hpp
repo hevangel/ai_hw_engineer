@@ -285,6 +285,32 @@ static void control(Bench &b) {
     require(b.dut.halted_o && b.read()[3]==2,"NMI edge in the accepting clock was lost, BX="+
         std::to_string(b.read()[3]));
     b.dut.nmi_i=0; ++cases;
+    // Once REP or HLT yields to INTR the acknowledge is committed even if the
+    // request is withdrawn the next clock (review #286 finding 10,
+    // assumption A9). STRING_UPDATE is state 43 of the EU state enum.
+    constexpr unsigned string_update_state=43;
+    setup(b,{0x2e,0xf3,0xa4,0x90,0xf4},0xf202); // CS: REP MOVSB with IF set
+    {
+        auto cr=b.read(); cr[1]=10; cr[6]=0x200; cr[7]=0x300; cr[8]=0x2000; cr[11]=0x3000; b.load(cr);
+        bool pulsed=false;
+        for(unsigned i=0;i<1000 && !pulsed;++i) {
+            b.dut.eval();
+            if(b.dut.rootp->intel_8086__DOT__state==string_update_state) {
+                b.dut.intr_i=1; b.tick(); b.dut.intr_i=0; pulsed=true;
+            } else b.tick();
+        }
+        require(pulsed,"REP element boundary not reached");
+        // RPTI backs up two bytes, so the CS override is lost on return.
+        entry(b,0x20,0x101,0xf202);
+        require(b.read()[1]==9 && b.acknowledgements==2,"withdrawn INTR did not complete REP yield");
+        ++cases;
+    }
+    setup(b,{0xfb,0xf4,0x90,0xf4},0xf002); // STI; HLT, INTR pulsed for one clock
+    step(b,0x101); step(b,0x102);
+    for(unsigned i=0;i<20;++i) b.tick();
+    require(b.dut.halted_o,"STI; HLT did not halt");
+    b.dut.intr_i=1; b.tick(); b.dut.intr_i=0;
+    entry(b,0x20,0x102,0xf202); ++cases;
     // A LOCK prefix followed by an encoding that enters the FAULT stop must
     // release LOCK: the locked instruction has ended (review #286 finding 4).
     setup(b,{0xf0,0x8d,0xc3,0x90}); // LOCK LEA AX,BX (register form faults)
