@@ -42,6 +42,12 @@ def decode(uc, pc, extended=False):
     memory operand (the AT BIOS's adapter-ROM scan calls a card ROM's
     initialization entry this way; the register form is undefined,
     210498-005 Appendix B CALL).
+    For PC DOS 1.00/2.00 and ROM BASIC (system/ibm_pc_at_5170
+    scripts/run_dos_8086.sh) it also accepts DAA/DAS/AAA/AAS (27/2F/37/3F),
+    the direct far CALL (9A), the indirect far JMP FF /5 with a memory
+    operand (the register form is undefined, 210498-005 Appendix B JMP),
+    XLAT (D7) and the immediate group 82 /0-/7, which the 286 executes as
+    80 (assumption A34 of design/intel_80286/spec/spec.md).
     """
     raw = bytes(uc.mem_read(pc,10))
     n = 0
@@ -59,6 +65,7 @@ def decode(uc, pc, extended=False):
     if extended and op in EXTENDED_OPS: return op,raw[n:]
     if extended and op==0x62: return (op,raw[n:]) if raw[n+1]<0xc0 else None
     if extended and op==0x63: return op,raw[n:]
+    if extended and op in (0x27,0x2f,0x37,0x3f,0x9a,0xd7): return op,raw[n:]
     if extended and op in (0xd4,0xd5): return (op,raw[n:]) if raw[n+1]==0x0a else None
     if extended and 0xd8<=op<=0xdf: return op,raw[n:]
     if extended and op==0x0f:
@@ -68,7 +75,7 @@ def decode(uc, pc, extended=False):
             return op,raw[n:]
         if second==0x00 and extension<=5 or second in (0x02,0x03): return op,raw[n:]
         return None
-    modrm = op<=0x3b and op%8<4 or op in (0x80,0x81,0x83,0x84,0x85,0x86,0x87,
+    modrm = op<=0x3b and op%8<4 or op in (0x80,0x81,0x83,*((0x82,) if extended else ()),0x84,0x85,0x86,0x87,
         0x88,0x89,0x8a,0x8b,0x8c,0x8d,0x8e,0x8f,0xc0,0xc1,0xc4,0xc5,0xc6,0xc7,
         0xd0,0xd1,0xd2,0xd3,0xf6,0xf7,0xfe,0xff)
     if modrm:
@@ -76,7 +83,7 @@ def decode(uc, pc, extended=False):
         if op in (0xc0,0xc1,0xd0,0xd1,0xd2,0xd3) and extension==6: return None
         if op in (0xf6,0xf7) and extension not in ((0,2,3,4,5,6,7) if extended else (0,2,3)): return None
         if op==0xfe and extension not in (0,1): return None
-        if op==0xff and extension==3 and extended: return (op,raw[n:]) if m<0xc0 else None
+        if op==0xff and extension in (3,5) and extended: return (op,raw[n:]) if m<0xc0 else None
         if op==0xff and extension not in (0,1,2,4,6): return None
         if op in (0xc6,0xc7,0x8f) and extension!=0: return None
         if op in (0x8c,0x8e) and (extension>3 or op==0x8e and extension==1): return None
