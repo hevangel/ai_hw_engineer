@@ -182,8 +182,9 @@ regression (`scripts/run_post_card.sh ega|vga`).
     shows that corrupted, dropped, misordered or misplaced D/G records are
     rejected.
   - Not checked: DMA and controller timing (AT25, AT27), the adapter's
-    gate-level logic (AT28-AT33), 360 KB media in a regression, format,
-    multiple drives.
+    gate-level logic (AT28-AT33). (360 KB drives, single-sided media,
+    format and two drives are covered since by `scripts/run_dos_8086.sh`,
+    below.)
 - M4b (remaining): POST completes with no error text; screen text matches
   86Box; keyboard input reaches the BIOS buffer.
 - M5 (diskette part, done): `scripts/run_dos_boot.sh` fetches pinned IBM
@@ -193,6 +194,26 @@ regression (`scripts/run_post_card.sh ega|vga`).
   `Ctrl+Alt+Del`, answers Date and Time again, and verifies `TYPE TEST.TXT`
   prints `HELLO` and `TEST.TXT` (`HELLO\r\n`, cluster 255) in the
   written-back FAT12 image. Fixed-disk controller and hard-disk boot remain.
+- 8086/8088 compatibility (done, `scripts/run_dos_8086.sh`): the IBM PC's
+  diskette DOS workloads on the AT, with the unchanged BIOS, driven only
+  by keys, and the same keystrokes on the 8088 machines:
+  - dos100: PC DOS 1.00 (160 KB) in drive A, a blank 160 KB diskette in
+    the 360 KB drive B (`tb/cmos_vga_2fd.hex`); the steps of
+    `system/ibm_pc/scripts/test_software.py`. Reference: `system/ibm_pc`.
+  - dos200: PC DOS 2.00 Disk 1 and 2 (180 KB) in drives A and B; date,
+    time, DIR, ECHO and COPY CON to B:, TYPE, BASIC. Reference:
+    `system/ibm_pc_xt_5160` booted from drive A.
+  - `scripts/compare_8086.py`: every step's final text screen identical
+    after the listed expected differences (each explained); CHKDSK disk
+    numbers; the files on drive B read with an independent FAT12 reader;
+    the drive B images compared sector by sector (DOS 2.00: only file time
+    fields may differ).
+  - Unicorn for every instruction of both AT runs (`check_post_trace.py
+    --boot`), and `scripts/scan_286_differences.py` for the instructions
+    whose 8086 and 286 results differ (PUSH SP, shift counts, new opcodes,
+    fetches wrapped at 1 MB).
+  - Not checked: DONKEY's pixels (behaviour only), intermediate frames,
+    keystroke timing.
 - M6: OS/2 1.0 prompt and the CPGREP output line.
 
 ## Every milestone

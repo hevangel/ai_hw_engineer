@@ -8,7 +8,10 @@
 // knows no 720 KB or 1.44 MB format). A drive holds a raw sector image
 // (.img): 1,228,800 bytes (1.2 MB: 80 x 2 x 15 x 512) or 368,640 bytes
 // (360 KB: 40 x 2 x 9 x 512); 327,680 bytes (320 KB, 8 sectors) is also
-// accepted.
+// accepted, as are the single-sided 5150 formats 163,840 bytes (160 KB:
+// 40 x 1 x 8 x 512, PC DOS 1.00) and 184,320 bytes (180 KB: 40 x 1 x 9 x
+// 512, PC DOS 2.00). A single-sided image is a medium recorded on side 0
+// only: on head 1 no ID is found and nothing is written (ASSUMPTION AT38).
 //
 // What a drive does here (ASSUMPTION AT34 in the specification):
 //   - The medium is decoded sectors (AT3): one ID per sector with its
@@ -82,7 +85,7 @@ struct Drive {
     unsigned position = 0;    // head position (cylinder of the drive)
     uint64_t angle = 0;       // clocks since the last index
     // Geometry of the inserted medium.
-    unsigned cylinders = 0, sectors = 0;
+    unsigned cylinders = 0, heads = 2, sectors = 0;
     bool high_density_medium = false;
 
     bool has_medium() const { return !image.empty(); }
@@ -102,15 +105,17 @@ struct Drive {
         return position / 2 < cylinders ? int(position / 2) : -1;
     }
     size_t offset(unsigned c, unsigned h, unsigned r) const {
-        return ((size_t(c) * 2 + h) * sectors + (r - 1)) * 512;
+        return ((size_t(c) * heads + h) * sectors + (r - 1)) * 512;
     }
     void insert(std::vector<uint8_t> data, bool ro) {
-        unsigned cyl, spt;
+        unsigned cyl, spt, hds = 2;
         bool hd = false;
         switch (data.size()) {
             case 1228800: cyl = 80; spt = 15; hd = true; break;
             case 368640:  cyl = 40; spt = 9; break;
             case 327680:  cyl = 40; spt = 8; break;
+            case 184320:  cyl = 40; spt = 9; hds = 1; break;
+            case 163840:  cyl = 40; spt = 8; hds = 1; break;
             default: throw std::runtime_error("unsupported diskette image size " + std::to_string(data.size()));
         }
         if (hd && type != DriveType::HighCapacity)
@@ -118,6 +123,7 @@ struct Drive {
         image = std::move(data);
         read_only = ro;
         cylinders = cyl;
+        heads = hds;
         sectors = spt;
         high_density_medium = hd;
         changed = true;
@@ -188,7 +194,7 @@ public:
         const int trk = d.track();
         const unsigned head = in.head ? 1 : 0;
         const uint64_t byte_clocks = hz_ * 8 / (rate == 0 ? 500000 : rate == 1 ? 300000 : 250000);
-        const bool readable = rate >= 0 && unsigned(rate) == in.rate && trk >= 0;
+        const bool readable = rate >= 0 && unsigned(rate) == in.rate && trk >= 0 && head < d.heads;
 
         // Format: after each ID the controller publishes (sector_begin), a
         // data field of write slots follows.
@@ -250,7 +256,8 @@ public:
         // Bytes the controller writes (one per slot, on the clock after it).
         if (in.tx_valid && field_.unit == unsigned(sel) && field_.c >= 0 && field_.written < 512) {
             const unsigned r = field_.r;
-            if (!d.read_only && r >= 1 && r <= d.sectors && unsigned(field_.c) < d.cylinders) {
+            if (!d.read_only && r >= 1 && r <= d.sectors && unsigned(field_.c) < d.cylinders &&
+                field_.h < d.heads) {
                 d.image[d.offset(field_.c, field_.h, r) + field_.written] = in.tx_byte;
                 d.dirty = true;
                 ++media_writes;
