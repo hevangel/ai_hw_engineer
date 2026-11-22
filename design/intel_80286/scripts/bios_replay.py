@@ -215,6 +215,31 @@ class _Replay:
                     shadow[a] = byte
         recorder(uc, access, address, size, value, data)
 
+    def fold_fetch(self, pc):
+        """With A20 forced low, an instruction at or above 1 MB is fetched
+        from the folded address: the IBM AT's A20 gate (U129, sheet 1;
+        system/ibm_pc_at_5170/spec/spec.md) masks address bit 20 of every
+        processor memory cycle, code fetches included, as it does for the
+        data transfers read_hook folds. Copy the low bytes to the high
+        addresses Unicorn fetches; unfold() restores them after the
+        instruction. PC DOS
+        1.00's CP/M-style entry (CALL 5 -> CALL F01D:FEF0 = 1000C0h) relies
+        on this wrap, as it does on the 8086."""
+        if self.a20 or not (pc + 10) & 0x100000:
+            return
+        uc, shadow = self.uc, self.g.shadow
+        for a in range(pc, pc + 10):
+            if not a & 0x100000:
+                continue
+            low = a & ~0x100000
+            if a not in self.folded:
+                self.folded[a] = shadow.get(a, 0)
+            byte = shadow.get(low, 0)
+            uc.mem_write(a, bytes([byte]))
+            shadow[a] = byte
+        uc.ctl_remove_cache(pc, pc + 10)
+        self.stats['a20_folded_fetches'] = self.stats.get('a20_folded_fetches', 0) + 1
+
     def unfold(self):
         """After an instruction with A20 forced low: move its writes to the
         folded addresses, restore the high addresses and fold the bus."""
@@ -701,6 +726,7 @@ class _Replay:
                     if cpu_writes is not None:
                         raise ValueError(f'exception during interrupt entry {where}')
                     fault_pc = expected_pc
+                    self.fold_fetch(fault_pc)
                     decoded = decode(uc, fault_pc, extended=True)
                     if decoded is None:
                         raise ValueError(f'PC mismatch {where}: oracle {fault_pc:06x} (unsupported instruction)')
@@ -733,6 +759,7 @@ class _Replay:
                     expected_pc = self.cs_base + ip
                     if pc != expected_pc:
                         raise ValueError(f'PC mismatch after exception {where}: oracle {expected_pc:06x}')
+                self.fold_fetch(pc)
                 decoded = decode(uc, pc, extended=True)
                 if decoded is None or decoded[0] != op:
                     raise ValueError(f'opcode mismatch at {pc:06x}, CPU {op:02x}, oracle {decoded}')
@@ -849,8 +876,8 @@ class _Replay:
                     valid_flags |= 0x8d5
                 # 0F 01 SGDT/SIDT/LGDT/LIDT/SMSW/LMSW change no flags (210498-005
                 # Appendix B entries; spec/system_register_execution.md).
-                if op <= 0x3d and op % 8 <= 5 or op in (0x80, 0x81, 0x83):
-                    kind = (raw[1] >> 3) & 7 if op in (0x80, 0x81, 0x83) else op // 8
+                if op <= 0x3d and op % 8 <= 5 or op in (0x80, 0x81, 0x82, 0x83):
+                    kind = (raw[1] >> 3) & 7 if op in (0x80, 0x81, 0x82, 0x83) else op // 8
                     valid_flags |= 0x8d5
                     if kind in (1, 4, 6):
                         valid_flags &= ~0x10
@@ -881,6 +908,13 @@ class _Replay:
                             valid_flags &= ~1
                 if op == 0x9e:
                     valid_flags |= 0xd5
+                # DAA/DAS define SF/ZF/AF/PF/CF, OF is undefined; AAA/AAS
+                # define AF/CF, OF/SF/ZF/PF are undefined (210498-005
+                # Appendix B).
+                if op in (0x27, 0x2f):
+                    valid_flags = (valid_flags | 0xd5) & ~0x800
+                if op in (0x37, 0x3f):
+                    valid_flags = (valid_flags | 0x11) & ~0x8c4
                 # POPF and IRET load every flag from the stack image.
                 if op in (0x9d, 0xcf):
                     valid_flags = 0x8fd5
