@@ -117,7 +117,10 @@ typedef enum logic [5:0] {
   OP_CLC  = 6'd48,  // D5
   OP_TM   = 6'd49,  // 91
   OP_IC   = 6'd50,  // 43
-  OP_STC  = 6'd51   // 42
+  OP_STC  = 6'd51,  // 42
+  OP_TR   = 6'd52,  // DC
+  OP_TRT  = 6'd53,  // DD
+  OP_EX   = 6'd54   // 44
 } s360_op_e;
 
 typedef struct packed {
@@ -175,6 +178,7 @@ function automatic s360_dec_t s360_decode(input logic [7:0] opcode);
     // ---- Branching, pp. 73-74 ---------------------------------------------
     8'h07: d.op = OP_BCR;
     8'h47: d.op = OP_BC;
+    8'h44: d.op = OP_EX;
     // ---- Fixed-point, pp. 26-32 --------------------------------------------
     8'h12: d.op = OP_LTR;
     8'h14: d.op = OP_NR;
@@ -231,6 +235,8 @@ function automatic s360_dec_t s360_decode(input logic [7:0] opcode);
     8'hD5: d.op = OP_CLC;
     8'hD6: d.op = OP_OC;
     8'hD7: d.op = OP_XC;
+    8'hDC: d.op = OP_TR;
+    8'hDD: d.op = OP_TRT;
     default: begin
       d.valid = 1'b0;
       d.op    = OP_ILLEGAL;

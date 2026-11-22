@@ -79,6 +79,7 @@ module ibm_s360_cpu #(
   localparam logic [15:0] CODE_SPECIF      = 16'd6;
   localparam logic [15:0] CODE_OVERFLOW    = 16'd8;
   localparam logic [15:0] CODE_DIVIDE      = 16'd9;
+  localparam logic [15:0] CODE_EXECUTE     = 16'd3;
 
   // ---------------------------------------------------------------------------
   // State
@@ -138,6 +139,13 @@ module ibm_s360_cpu #(
   logic [1:0]  spm_cc_q;
   logic        sysmask_en_q;
   logic [7:0]  sysmask_q;
+
+  // EXECUTE state: the EX instruction remembers its own address, the return
+  // address, and the byte ORed into the subject instruction.
+  logic        ex_active_q;
+  logic [23:0] ex_ia_q;
+  logic [23:0] ex_return_ia_q;
+  logic [7:0]  ex_byte_q;
 
   // SS-format loop state.
   logic [7:0]  ss_len_q;
@@ -244,7 +252,8 @@ module ibm_s360_cpu #(
     ss_op          = (dec.op == OP_MVC) || (dec.op == OP_MVN) ||
                      (dec.op == OP_MVZ) || (dec.op == OP_NC) ||
                      (dec.op == OP_OC) || (dec.op == OP_XC) ||
-                     (dec.op == OP_CLC);
+                     (dec.op == OP_CLC) || (dec.op == OP_TR) ||
+                     (dec.op == OP_TRT);
   end
 
   // ---------------------------------------------------------------------------
@@ -254,6 +263,8 @@ module ibm_s360_cpu #(
   logic privileged;
   logic odd_pair_register;
   logic odd_halfword_address;
+  logic ex_odd_address;
+  logic ex_of_ex;
   logic suppress;
   logic [15:0] suppress_code;
 
@@ -261,6 +272,8 @@ module ibm_s360_cpu #(
   assign lpsw_unaligned = (dec.op == OP_LPSW) && (ea[2:0] != 3'b000);
   assign odd_pair_register = is_pair_op && r1_f[0];
   assign odd_halfword_address = is_halfword_op && ea[0];
+  assign ex_odd_address = (dec.op == OP_EX) && ea[0];
+  assign ex_of_ex      = (dec.op == OP_EX) && ex_active_q;
 
   always_comb begin
     suppress      = 1'b0;
@@ -271,15 +284,22 @@ module ibm_s360_cpu #(
     end else if (privileged && psw_problem) begin
       suppress      = 1'b1;
       suppress_code = CODE_PRIVILEGED;
-    end else if (lpsw_unaligned || odd_pair_register || odd_halfword_address) begin
+    end else if (ex_of_ex) begin
+      suppress      = 1'b1;
+      suppress_code = CODE_EXECUTE;
+    end else if (lpsw_unaligned || odd_pair_register || odd_halfword_address ||
+                 ex_odd_address) begin
       suppress      = 1'b1;
       suppress_code = CODE_SPECIF;
     end
   end
 
   logic [63:0] int_psw_suppressed;
-  assign int_psw_suppressed = {psw_word[63:48], suppress_code, s360_ilc(dec.fmt),
-                               psw_word[29:24], (ia_cur + {20'd0, len})};
+  assign int_psw_suppressed = {psw_word[63:48], suppress_code,
+                               ex_active_q ? 2'd2 : s360_ilc(dec.fmt),
+                               psw_word[29:24],
+                               ex_active_q ? ex_return_ia_q
+                                           : (ia_cur + {20'd0, len})};
 
   // ---------------------------------------------------------------------------
   // PSW
@@ -514,13 +534,21 @@ module ibm_s360_cpu #(
   logic [23:0] ss_a2_cur;
   assign ss_a1_cur = ss_addr1_q + {15'd0, ss_i_q};
   assign ss_a2_cur = ss_addr2_q + {15'd0, ss_i_q};
+  // TRANSLATE reads its function byte at table + argument, where the argument
+  // is the byte read in the previous phase (p. 57).
+  logic [23:0] ss_table_addr;
+  assign ss_table_addr = ss_addr2_q + {16'd0, ss_b1_q};
 
   assign rd_off = (state == S_FETCH)  ? (ia_cur[1:0] + cnt[1:0])
                 : (state == S_DECODE) ? ea[1:0]
                 : (state == S_SS_A)   ? ss_a1_cur[1:0]
-                : (state == S_SS_B)   ? ss_a2_cur[1:0]
+                : (state == S_SS_B)   ? ss_read_b_addr[1:0]
                 : (state == S_SS_C)   ? ss_a1_cur[1:0]
                                       : ea_q[1:0];
+  logic [23:0] ss_read_b_addr;
+  assign ss_read_b_addr = ((dec.op == OP_TR) || (dec.op == OP_TRT)) ? ss_table_addr
+                                                                    : ss_a2_cur;
+
   assign read_word = mem_rdata;
   assign byte_sel = (5'd3 - {3'b000, rd_off}) << 3;
   assign read_byte = mem_rdata[byte_sel +: 8];
@@ -540,10 +568,12 @@ module ibm_s360_cpu #(
       OP_NC:   ss_merged_byte = ss_b1_q & ss_b2_q;
       OP_OC:   ss_merged_byte = ss_b1_q | ss_b2_q;
       OP_XC:   ss_merged_byte = ss_b1_q ^ ss_b2_q;
+      OP_TR:   ss_merged_byte = ss_b2_q;   // translated function byte
       default: ss_merged_byte = ss_b2_q;                        // MVC and others
     endcase
     ss_writes = (dec.op == OP_MVC) || (dec.op == OP_MVN) || (dec.op == OP_MVZ) ||
-                (dec.op == OP_NC) || (dec.op == OP_OC) || (dec.op == OP_XC);
+                (dec.op == OP_NC) || (dec.op == OP_OC) || (dec.op == OP_XC) ||
+                (dec.op == OP_TR);
   end
 
   // ---------------------------------------------------------------------------
@@ -579,7 +609,7 @@ module ibm_s360_cpu #(
         mem_wbe   = 4'hF;
       end
       S_SS_A: mem_addr = ss_a1_cur;
-      S_SS_B: mem_addr = ss_a2_cur;
+      S_SS_B: mem_addr = ss_read_b_addr;
       S_SS_C: begin
         mem_addr  = ss_a1_cur;
         mem_we    = ss_writes;
@@ -646,6 +676,10 @@ module ibm_s360_cpu #(
       spm_cc_q     <= 2'd0;
       sysmask_en_q <= 1'b0;
       sysmask_q    <= 8'd0;
+      ex_active_q    <= 1'b0;
+      ex_ia_q        <= 24'd0;
+      ex_return_ia_q <= 24'd0;
+      ex_byte_q      <= 8'd0;
       ss_len_q     <= 8'd0;
       ss_addr1_q   <= 24'd0;
       ss_addr2_q   <= 24'd0;
@@ -686,7 +720,12 @@ module ibm_s360_cpu #(
         end
 
         S_FETCH: begin
-          ib[cnt] <= read_byte;
+          // EXECUTE ORs its I1 byte into bits 8-15 of the subject instruction.
+          if (ex_active_q && (cnt == 3'd1)) begin
+            ib[cnt] <= read_byte | ex_byte_q;
+          end else begin
+            ib[cnt] <= read_byte;
+          end
           if (cnt == 3'd0) begin
             len   <= len_of_first_byte;
             cnt   <= 3'd1;
@@ -846,11 +885,23 @@ module ibm_s360_cpu #(
                 st_data_q <= {4{gpr[r1_f][7:0]}};
                 st_be_q   <= 4'b1000 >> ea_q[1:0];
               end
-              OP_MVC, OP_MVN, OP_MVZ, OP_NC, OP_OC, OP_XC, OP_CLC: begin
+              OP_MVC, OP_MVN, OP_MVZ, OP_NC, OP_OC, OP_XC, OP_CLC,
+              OP_TR, OP_TRT: begin
                 ss_len_q   <= ib[1];
                 ss_addr1_q <= ss_addr1;
                 ss_addr2_q <= ss_addr2;
                 ss_i_q     <= 9'd0;
+              end
+              OP_EX: begin
+                // Execute the subject instruction at the operand address with
+                // the I1 byte ORed into its second byte; the PSW address
+                // advances by EXECUTE's own length (p. 67).
+                ex_active_q    <= 1'b1;
+                ex_ia_q        <= ia_cur;
+                ex_return_ia_q <= ia_cur + {20'd0, len_q};
+                ex_byte_q      <= b1;
+                ia_cur         <= ea_q;
+                cnt            <= 3'd0;
               end
               OP_SPM: begin
                 spm_cc_en_q <= 1'b1;
@@ -886,8 +937,17 @@ module ibm_s360_cpu #(
             if (is_branch && branch_taken) begin
               next_ia_q <= branch_target;
             end
+            if (ex_active_q) begin
+              // The subject instruction does not advance the PSW address; a
+              // successful branch still takes effect, everything else resumes
+              // after EXECUTE with ILC 2.
+              next_ia_q <= branch_taken ? branch_target : ex_return_ia_q;
+              ilc_q     <= 2'd2;
+            end
             if (dec.op == OP_LPSW) begin
               state <= S_LPSW_LO;
+            end else if (dec.op == OP_EX) begin
+              state <= S_FETCH;
             end else if (ss_op) begin
               state <= S_SS_A;
             end else if (is_store) begin
@@ -906,6 +966,9 @@ module ibm_s360_cpu #(
           end
           if (wr_en2_q) begin
             gpr[wr_idx2_q] <= res2_q;
+          end
+          if (ex_active_q) begin
+            ex_active_q <= 1'b0;
           end
           if (ovf_int_q) begin
             int_code_q     <= CODE_OVERFLOW;
@@ -955,7 +1018,29 @@ module ibm_s360_cpu #(
         end
 
         S_SS_C: begin
-          if (dec.op == OP_CLC) begin
+          if (dec.op == OP_TRT) begin
+            // The subject uses fixed general registers 1 and 2: the manual
+            // names "general register 1" and "general register 2" for TRT and
+            // the SS format has no R fields (p. 57).
+            if (ss_b2_q != 8'd0) begin
+              wr_en_q   <= 1'b1;
+              wr_idx_q  <= 4'd1;
+              res_q     <= {gpr[1][31:24], ss_a1_cur[23:0]};
+              wr_en2_q  <= 1'b1;
+              wr_idx2_q <= 4'd2;
+              res2_q    <= {gpr[2][31:8], ss_b2_q};
+              cc_we_q   <= 1'b1;
+              cc_q      <= (ss_i_q == {1'b0, ss_len_q}) ? 2'd2 : 2'd1;
+              state     <= S_COMMIT;
+            end else if (ss_i_q == {1'b0, ss_len_q}) begin
+              cc_we_q <= 1'b1;
+              cc_q    <= 2'd0;
+              state   <= S_COMMIT;
+            end else begin
+              ss_i_q <= ss_i_q + 9'd1;
+              state  <= S_SS_A;
+            end
+          end else if (dec.op == OP_CLC) begin
             if (ss_b1_q != ss_b2_q) begin
               cc_we_q <= 1'b1;
               cc_q    <= (ss_b1_q < ss_b2_q) ? 2'd1 : 2'd2;
@@ -1007,8 +1092,9 @@ module ibm_s360_cpu #(
   assign int_taken     = (state == S_INT_LOAD);
   assign in_wait_state = psw_wait;
   assign retire        = (state == S_COMMIT) || (state == S_LPSW_LOAD);
-  assign retire_ia     = ia_cur;
-  assign retire_len    = len_q;
+  // An EXECUTE retires as itself, not as the subject instruction it ran.
+  assign retire_ia     = ex_active_q ? ex_ia_q : ia_cur;
+  assign retire_len    = ex_active_q ? 4'd4 : len_q;
 
   always_comb begin
     for (int i = 0; i < GPR_COUNT; i++) begin

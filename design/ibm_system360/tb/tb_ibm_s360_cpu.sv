@@ -586,7 +586,76 @@ module tb_ibm_s360_cpu;
     check(psw[29:28] === 2'd3, "TM all-ones did not set CC 3");
 
     // =========================================================================
-    // Test 16: directed arithmetic unit, address generation and decode checks.
+    // Test 16: TR -- translate a four-byte field through a 256-byte table.
+    // =========================================================================
+    start_reset();
+    for (int i = 0; i < 256; i++) begin
+      poke_byte(24'h00_0300 + i[23:0], i[7:0] + 8'd1);
+    end
+    poke_hex(24'h00_0200, "10203040");
+    poke_hex(24'h00_0100, "DC030200030041F0010A07FF");
+    run_cycles(300);
+
+    check(int_count == 0, "TR caused an unexpected interruption");
+    check_word(24'h00_0200, 32'h1121_3141, "TR translated each byte");
+
+    // =========================================================================
+    // Test 17: TRT -- a match before the end gives CC 1, an all-zero table CC 0.
+    // =========================================================================
+    start_reset();
+    for (int i = 0; i < 256; i++) begin
+      poke_byte(24'h00_0300 + i[23:0], 8'h00);
+    end
+    poke_byte(24'h00_0320, 8'h0F);          // function byte for argument 0x20
+    poke_hex(24'h00_0200, "10203040");
+    poke_hex(24'h00_0100, "DD030200030041F0010A07FF");
+    run_cycles(300);
+
+    check(int_count == 0, "TRT caused an unexpected interruption");
+    check_gpr(1, 32'h0000_0201);            // argument address of the match
+    check_gpr(2, 32'h0000_000F);            // function byte
+    check(psw[29:28] === 2'd1, "TRT match before the end did not give CC 1");
+
+    start_reset();
+    for (int i = 0; i < 256; i++) begin
+      poke_byte(24'h00_0300 + i[23:0], 8'h00);
+    end
+    poke_hex(24'h00_0200, "10203040");
+    poke_hex(24'h00_0100, "DD030200030041F0010A07FF");
+    run_cycles(300);
+
+    check_gpr(1, 32'h0000_0000);            // untouched
+    check_gpr(2, 32'h0000_0000);
+    check(psw[29:28] === 2'd0, "TRT with all-zero table did not give CC 0");
+
+    // =========================================================================
+    // Test 18: EX -- the I1 byte is ORed into the subject instruction and the
+    // PSW advances past EXECUTE; EXECUTE of EXECUTE raises code 3.
+    // =========================================================================
+    start_reset();
+    poke_hex(24'h00_0210, "92001000");      // MVI 0(1),0x00
+    poke_hex(24'h00_0100, "41100220444002104120005541F0011007FF");
+    run_cycles(120);
+
+    check(int_count == 0, "EX caused an unexpected interruption");
+    check_word(24'h00_0220, 32'h4000_0000, "EX did not OR the I1 byte into MVI");
+    check_gpr(1, 32'h0000_0220);
+    check_gpr(2, 32'h0000_0055);            // instruction after EX ran
+    check(psw[23:0] === 24'h00_0110, "EX did not advance the PSW past itself");
+
+    start_reset();
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
+    poke_handler(24'h00_0300);
+    poke_hex(24'h00_0210, "44000000");      // subject is another EXECUTE
+    poke_hex(24'h00_0100, "44400210");
+    run_cycles(80);
+
+    check(int_count == 1, "EXECUTE of EXECUTE did not raise an interruption");
+    check(last_int_code == 16'd3, "execute exception code is not 3");
+    check_word(24'h00_002C, 32'h8000_0104, "execute old PSW: ILC 2, IA 0x104");
+
+    // =========================================================================
+    // Test 19: directed arithmetic unit, address generation and decode checks.
     // =========================================================================
     t_alu(ALU_ADD, 32'd7, 32'd5, 32'd12, 2'd2, 1'b0, "add positive");
     t_alu(ALU_ADD, 32'h7FFF_FFFF, 32'd1, 32'h8000_0000, 2'd3, 1'b1, "add positive overflow");
@@ -632,16 +701,22 @@ module tb_ibm_s360_cpu;
       check(d.valid && (d.op == OP_TM) && (d.fmt == FMT_RS_SI), "decode 0x91 as TM/SI");
       d = s360_decode(8'h43);
       check(d.valid && (d.op == OP_IC) && (d.fmt == FMT_RX), "decode 0x43 as IC/RX");
+      d = s360_decode(8'hDC);
+      check(d.valid && (d.op == OP_TR) && (d.fmt == FMT_SS), "decode 0xDC as TR/SS");
+      d = s360_decode(8'hDD);
+      check(d.valid && (d.op == OP_TRT) && (d.fmt == FMT_SS), "decode 0xDD as TRT/SS");
+      d = s360_decode(8'h44);
+      check(d.valid && (d.op == OP_EX) && (d.fmt == FMT_RX), "decode 0x44 as EX/RX");
     end
 
     // =========================================================================
     // Report
     // =========================================================================
     if (errors == 0) begin
-      $display("IBM S360 M4 CORE TESTS PASSED (%0d checks)", checks);
+      $display("IBM S360 M5 CORE TESTS PASSED (%0d checks)", checks);
       $finish;
     end else begin
-      $display("IBM S360 M4 CORE TESTS FAILED: %0d error(s) in %0d checks", errors, checks);
+      $display("IBM S360 M5 CORE TESTS FAILED: %0d error(s) in %0d checks", errors, checks);
       $fatal(1, "testbench failures");
     end
   end
