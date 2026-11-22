@@ -1171,6 +1171,11 @@ module intel_80286 #(
                                      {12'b0,remaining_bytes}) > 17'h10000;
     end
 
+    // Operand width and destination register depend only on the decoded
+    // opcode and ModRM. They are kept out of the block below, which reads
+    // rm_value and alu_value: rm_value itself depends on wide, so one block
+    // computing both formed a block-level combinational loop (UNOPTFLAT;
+    // issue #284 finding 11).
     always_comb begin
         wide = opcode[0];
         if (opcode >= 8'h40 && opcode <= 8'h4f) wide = 1;
@@ -1184,6 +1189,8 @@ module intel_80286 #(
         if ((binary_rm || mov_rm) && opcode[1]) destination = modrm[5:3];
         if (binary_acc || opcode == 8'ha8 || opcode == 8'ha9) destination = 0;
         if (opcode >= 8'h40 && opcode <= 8'h4f) destination = opcode[2:0];
+    end
+    always_comb begin
         alu_kind = opcode[5:3];
         if (group_alu) alu_kind = modrm[5:3];
         if (test_op) alu_kind = 4;
