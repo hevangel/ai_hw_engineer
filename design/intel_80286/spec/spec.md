@@ -312,7 +312,24 @@ The 2026-11-12 PCE-286 oracle loop (see
   within the 64 KiB segment as before (PCE-286 also checks a real-mode CS
   limit, which differs from FFFFh only after LOADALL). PCE-286
   (`e86_check_near_target`, `ea.c` lines 457-464; `opcodes.c` Jcc, LOOP,
-  CALL/JMP rel and r/m, RET) applies the same check before any state change.
+  CALL/JMP rel and r/m, RET) applies the same check before any state change. The
+  `near_limit` PCE oracle family (23 scenarios, issue #284 finding 10)
+  matches on this source; 9 of its scenarios mismatch the earlier source.
+- ASSUMPTION A48: the MOV SS/POP SS and STI interrupt shadows cover the whole
+  next instruction, including a WAIT that is still polling BUSY, as they
+  already cover every element of a REP string. Intel says WAIT may be
+  interrupted while BUSY is active and does not say whether a preceding STI
+  or MOV SS changes that; the iAPX 286 data sheet's "after the next
+  instruction" wording is applied literally. So `STI; WAIT` takes a held
+  INTR, and `MOV SS,AX; WAIT` a new NMI, only after WAIT completes (issue
+  #284, finding 15).
+- An IRET to an outer privilege level opens no interrupt shadow. Intel
+  describes the shadow only for MOV SS and POP SS, and the outer-level RETF
+  has none; an earlier source held off NMI and INTR for one instruction after
+  an outer IRET (issue #284, finding 17).
+- An NMI edge in the clock that selects an already pending NMI is a second
+  NMI: it stays pending, blocked until the first handler's IRET (issue #284,
+  finding 16).
 
 ASSUMPTION A31: Intel 210498-005 disagrees internally on an invalid
 outer-level return SS: Table 7-4 (RET table, page 7-22) lists "SF" for every

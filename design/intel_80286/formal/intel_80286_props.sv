@@ -126,7 +126,7 @@
             else if (event_o) witnessed_vector_limit<=0;
 
             if (async_boundary && async_step && !ss_shadow &&
-                !(state==STRING_BOUNDARY && instruction_ss_shadow)) witnessed_debug<=1;
+                !((state==STRING_BOUNDARY || state==WAIT_BUSY) && instruction_ss_shadow)) witnessed_debug<=1;
             if (event_o) witnessed_debug<=0;
             if (state==FETCH && !prefix_active && core_bus_ready) rep_progress<=0;
             if (element_o && !retire_o) rep_progress<=1;
@@ -916,7 +916,7 @@
                 owner_cpu_grant && cpu_bus_ready && !fetch_reference_fault))
                 assert(instruction_tf==$past(flags[8]));
             if (rst_n && $past(rst_n && async_boundary && async_step && !ss_shadow &&
-                !(state==STRING_BOUNDARY && instruction_ss_shadow)))
+                !((state==STRING_BOUNDARY || state==WAIT_BUSY) && instruction_ss_shadow)))
                 assert(async_poll && async_valid && async_vector==1);
             if (async_boundary || async_poll) assert(!core_bus_req);
             // WAIT can select an event on the same clock that BUSY drops.

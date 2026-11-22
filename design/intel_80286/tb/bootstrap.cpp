@@ -7420,6 +7420,11 @@ static void protected_event_ring12_async_delivery(bool nmi_mode) {
         check(uint16_t(b.d.segs_o>>32)==level.stack_selector &&
               b.reg(4)==ring_level_sp && b.d.flags_o==saved_flags,
               "initial outer IRET did not establish the external-event ring");
+        // The outer IRET opens no interrupt shadow (issue #284, finding 17;
+        // tested by protected_outer_iret_no_shadow). Run the first ring-level
+        // NOP before raising the line so the event is taken at the NOP's
+        // boundary, with its successor as the saved IP.
+        b.step(level.code_base+first_ip,0x90,level.code_selector,successor_ip,wait);
 
         const unsigned retired_before=b.retired;
         const unsigned acknowledgements_before=b.acknowledgements;
@@ -7435,13 +7440,7 @@ static void protected_event_ring12_async_delivery(bool nmi_mode) {
         for (unsigned cycle=0;cycle<50000 && !b.d.fault_o &&
              b.cs()!=kHandlerSelector;++cycle) {
             b.tick(wait);
-            if (b.d.retire_o) {
-                check(!first_nop_retired && b.d.retire_pc_o==level.code_base+first_ip &&
-                      b.d.retire_opcode_o==0x90 && b.cs()==level.code_selector &&
-                      b.d.ip_o==successor_ip,
-                      "external INTR was not sampled after exactly the first ring-level NOP");
-                first_nop_retired=true;
-            }
+            if (b.d.retire_o) first_nop_retired=true;  // must not happen: checked below
             event_seen=event_seen || b.d.event_o;
             if (b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp) {
                 handler_entered=true;
@@ -7463,7 +7462,7 @@ static void protected_event_ring12_async_delivery(bool nmi_mode) {
               (nmi_mode ? (b.acknowledgements==acknowledgements_before &&
                            b.d.nmi_blocked_o && !b.d.nmi_pending_o) :
                           b.acknowledgements>acknowledgements_before) &&
-              first_nop_retired && b.retired==retired_before+1 &&
+              !first_nop_retired && b.retired==retired_before &&
               b.cs()==kHandlerSelector &&
               b.d.ip_o==kHandlerIp && uint16_t(b.d.segs_o>>32)==kSsSelector &&
               b.reg(4)==expected_stack_pointer;
@@ -7853,6 +7852,10 @@ static void protected_event_task_gate_delivery() {
         check(uint16_t(b.d.segs_o>>32)==level.stack_selector &&
               b.reg(4)==ring_level_sp && b.d.flags_o==saved_flags,
               "task-gate event fixture did not establish CPL1/CPL2 state");
+        // No interrupt shadow after the outer IRET (issue #284, finding 17):
+        // run the first NOP before raising an external line.
+        if (!software_int)
+            b.step(level.code_base+first_ip,0x90,level.code_selector,successor_ip,wait);
 
         const unsigned retired_before=b.retired;
         const unsigned acknowledgements_before=b.acknowledgements;
@@ -7873,14 +7876,7 @@ static void protected_event_task_gate_delivery() {
         for (unsigned cycle=0;cycle<100000 && !b.d.fault_o &&
              !(b.cs()==0x0030 && b.d.ip_o==0x0500);++cycle) {
             b.tick(wait);
-            if (b.d.retire_o) {
-                check(!software_int && !first_instruction_retired &&
-                      b.d.retire_pc_o==level.code_base+first_ip &&
-                      b.d.retire_opcode_o==0x90 && b.cs()==level.code_selector &&
-                      b.d.ip_o==successor_ip,
-                      "external task-gate interrupt was not sampled after exactly one NOP");
-                first_instruction_retired=true;
-            }
+            if (b.d.retire_o) first_instruction_retired=true;  // must not happen: checked below
             if (b.d.event_o) {
                 event_seen=true;
                 packet_valid=b.d.event_packet_valid_o;
@@ -7912,10 +7908,10 @@ static void protected_event_task_gate_delivery() {
               (software_int ? (b.acknowledgements==acknowledgements_before &&
                                !first_instruction_retired) :
                nmi_mode ? (b.acknowledgements==acknowledgements_before &&
-                           first_instruction_retired && b.d.nmi_blocked_o &&
+                           !first_instruction_retired && b.d.nmi_blocked_o &&
                            !b.d.nmi_pending_o) :
                           (b.acknowledgements==acknowledgements_before+1 &&
-                           first_instruction_retired)) &&
+                           !first_instruction_retired)) &&
               b.cs()==0x0030 && b.d.ip_o==0x0500 &&
               uint16_t(b.d.segs_o>>32)==0x0028 &&
               b.reg(4)==(software_int ? 0x007e : 0x0080),
@@ -7972,7 +7968,7 @@ static void protected_event_task_gate_delivery() {
                       "task IRET did not release the serviced NMI");
             b.step(level.code_base+successor_ip,0x90,level.code_selector,successor_ip+1,wait);
             check(b.cs()==level.code_selector && b.d.ip_o==successor_ip+1 &&
-                  b.reg(4)==ring_level_sp && b.retired==retired_before+3,
+                  b.reg(4)==ring_level_sp && b.retired==retired_before+2,
                   "task-gate external interrupt missed the exact resumed successor");
         }
         ++cases;
@@ -14528,29 +14524,62 @@ static void processor_extension_contract() {
         check(nmi_wait.reg(3)==2,"NMI return restarted or skipped interrupted WAIT");
         nmi_wait.step(0xf010b,0xf4,0xf000,0x010c,false);
     }
+    // A NOP separates STI from WAIT so that the STI shadow (A48) has ended
+    // and only WAIT's own interruptibility is tested here.
     {
         Bench intr_wait;
         interrupt_setup(intr_wait); interrupt_vector(intr_wait,0x20);
-        intr_wait.put(0xf0109,{0xfb,0x9b,0x43,0xf4});
+        intr_wait.put(0xf0109,{0xfb,0x90,0x9b,0x43,0xf4});
         intr_wait.step(0xf0109,0xfb,0xf000,0x010a,false);
+        intr_wait.step(0xf010a,0x90,0xf000,0x010b,false);
         intr_wait.d.busy_i=1;
-        for(unsigned n=0;n<64 && intr_wait.accepted.back()!=0xf010a;++n) intr_wait.tick(false);
+        for(unsigned n=0;n<64 && intr_wait.accepted.back()!=0xf010b;++n) intr_wait.tick(false);
         for(unsigned n=0;n<24;++n) intr_wait.tick(false);
-        check(intr_wait.d.ip_o==0x010b && !intr_wait.d.bus_req_o &&
+        check(intr_wait.d.ip_o==0x010c && !intr_wait.d.bus_req_o &&
               !intr_wait.d.retire_o,"INTR/WAIT setup did not remain stalled after WAIT");
         const auto retired=intr_wait.retired;
         intr_wait.d.intr_i=1; intr_wait.interrupt_vector=0x20; intr_wait.acknowledge=true;
         for(unsigned n=0;n<32 && !intr_wait.d.inta_req_o;++n) intr_wait.tick(false);
         check(intr_wait.d.inta_req_o,"INTR was not acknowledged while WAIT was busy");
-        interrupt_entry(intr_wait,0x20,0x010b,0x0202);
+        interrupt_entry(intr_wait,0x20,0x010c,0x0202);
         check(intr_wait.retired==retired && intr_wait.acknowledgements==1,
               "INTR while WAIT busy fabricated retirement or missed acknowledgement");
         intr_wait.d.intr_i=0; intr_wait.acknowledge=false;
         intr_wait.step(0x20100,0x43,0x2000,0x0101,false);
-        intr_wait.step(0x20101,0xcf,0xf000,0x010b,false);
-        intr_wait.step(0xf010b,0x43,0xf000,0x010c,false);
+        intr_wait.step(0x20101,0xcf,0xf000,0x010c,false);
+        intr_wait.step(0xf010c,0x43,0xf000,0x010d,false);
         check(intr_wait.reg(3)==2,"INTR return restarted or skipped interrupted WAIT");
-        intr_wait.step(0xf010c,0xf4,0xf000,0x010d,false);
+        intr_wait.step(0xf010d,0xf4,0xf000,0x010e,false);
+    }
+    // Issue #284 finding 15, ASSUMPTION A48: the STI and MOV SS shadows cover
+    // a WAIT that follows them for as long as it polls BUSY, as they cover
+    // every element of a REP string. STI;WAIT with INTR held, and MOV SS;WAIT
+    // with an NMI edge, are both taken only after WAIT completes, with the
+    // IP after WAIT saved.
+    for (bool nmi_case:{false,true}) {
+        Bench b;
+        interrupt_setup(b);
+        const unsigned vector=nmi_case ? 2 : 0x20;
+        interrupt_vector(b,vector,0x2100);
+        if (nmi_case) b.put(0xf0109,{0x8e,0xd0,0x9b,0x43,0xf4});  // MOV SS,AX; WAIT
+        else b.put(0xf0109,{0xfb,0x9b,0x43,0xf4});                // STI; WAIT
+        const uint32_t wait_pc=nmi_case ? 0xf010b : 0xf010a;
+        const uint16_t after_wait=nmi_case ? 0x010c : 0x010b;
+        b.step(0xf0109,nmi_case ? 0x8e : 0xfb,0xf000,uint16_t(wait_pc-0xf0000),false);
+        b.d.busy_i=1;
+        for(unsigned n=0;n<64 && b.accepted.back()!=wait_pc;++n) b.tick(false);
+        if (nmi_case) b.d.nmi_i=1;
+        else { b.d.intr_i=1; b.interrupt_vector=0x20; b.acknowledge=true; }
+        for(unsigned n=0;n<400;++n) {
+            b.tick(false);
+            check(!b.d.inta_req_o && !b.d.event_o && !b.d.retire_o,
+                  nmi_case ? "NMI taken inside the MOV SS shadow while WAIT polled BUSY"
+                           : "INTR taken inside the STI shadow while WAIT polled BUSY");
+        }
+        b.d.busy_i=0;
+        b.step(wait_pc,0x9b,0xf000,after_wait,false);
+        interrupt_entry(b,vector,after_wait,nmi_case ? 0x0002 : 0x0202,0x2100);
+        check(b.acknowledgements==(nmi_case ? 0u : 1u),"shadowed WAIT event acknowledgement count");
     }
 
     // EM without TS does not make WAIT raise vector 7 in Intel 80287 Table 4.
@@ -14681,10 +14710,12 @@ static void processor_extension_contract() {
         Bench race;
         interrupt_setup(race);
         interrupt_vector(race,0x20,0x2000);
-        race.put(0xf0109,{0xfb,0x9b,0x9b,0xf4});
+        // NOP ends the STI shadow (A48) before the WAIT under test.
+        race.put(0xf0109,{0xfb,0x90,0x9b,0x9b,0xf4});
         race.step(0xf0109,0xfb,0xf000,0x010a,wait);
+        race.step(0xf010a,0x90,0xf000,0x010b,wait);
         race.d.busy_i=1;
-        for (unsigned n=0;n<128 && race.d.ip_o!=0x010b;++n) race.tick(wait);
+        for (unsigned n=0;n<128 && race.d.ip_o!=0x010c;++n) race.tick(wait);
         for (unsigned n=0;n<24;++n) race.tick(wait);
         race.d.intr_i=1; race.interrupt_vector=0x20;
         for (unsigned n=0;n<64 && !race.d.inta_req_o;++n) race.tick(wait);
@@ -14696,13 +14727,13 @@ static void processor_extension_contract() {
                   !race.d.bus_req_o,"WAIT abandoned an outstanding INTR acknowledge");
         }
         race.acknowledge=true;
-        interrupt_entry(race,0x20,0x010b,0x0202,0x2000);
+        interrupt_entry(race,0x20,0x010c,0x0202,0x2000);
         check(race.acknowledgements==1,"WAIT error race duplicated INTA");
         race.d.intr_i=0; race.acknowledge=false;
         race.step(0x20100,0x43,0x2000,0x0101,wait);
-        race.step(0x20101,0xcf,0xf000,0x010b,wait);
-        race.processor_fault(16,0x010b,wait);
-        check(race.d.event_packet_saved_ip_o==0x010b && !race.d.retire_o,
+        race.step(0x20101,0xcf,0xf000,0x010c,wait);
+        race.processor_fault(16,0x010c,wait);
+        check(race.d.event_packet_saved_ip_o==0x010c && !race.d.retire_o,
               "following WAIT did not report the deferred extension error");
     }
 
@@ -15133,6 +15164,76 @@ static void processor_extension_data_channel() {
     std::cout<<"PASS: "<<cases<<" processor-extension channel runs: FLD qword loads memory-then-FAh, FSTP tbyte stores FAh-then-memory at an odd address, PEACK# on each first operation, transfers while halted, and interrupt 9 for a word past FFFFh, in both READY modes\n";
 }
 
+// Issue #284, finding 17. An IRET to an outer privilege level does not open an
+// interrupt shadow: Intel describes one only for MOV SS and POP SS, and the
+// outer-level RETF has none. With INTR held and masked at level 0, an IRET to
+// level 1 or 2 that sets IF must take the interrupt at its own boundary, with
+// the IRET target as the saved IP and nothing executed at the outer level.
+static void protected_outer_iret_no_shadow() {
+    using namespace protected_mode_fixture;
+    const uint8_t ring0_program[]={
+        0xb8,0x28,0x00, 0x8e,0xd0,   // 0200 MOV SS,0028
+        0xbc,0x80,0x00,              // 0205 MOV SP,0080
+        0xb8,0x68,0x00, 0x0f,0x00,0xd8, // 0208 MOV AX,0068 / LTR AX
+        0xfa,                        // 020E CLI: INTR stays masked at level 0
+        0xcf,0xf4                    // 020F IRET to the outer level
+    };
+    struct Level { uint16_t code_selector, stack_selector; uint32_t code_base, stack_base;
+                   uint32_t code_descriptor, stack_descriptor; uint8_t code_access, stack_access; };
+    const Level levels[]={
+        {0x0049,0x0051,0x00081000,0x00080000,0x48,0x50,0xba,0xb2},
+        {0x005a,0x0062,0x00083000,0x00082000,0x58,0x60,0xda,0xd2}
+    };
+    constexpr uint16_t first_ip=0x0400, ring_level_sp=0x0100, saved_flags=0x0202;
+    auto put_descriptor=[](Bench& b,uint32_t address,uint16_t limit,uint32_t base,uint8_t access) {
+        b.put(address,{uint8_t(limit),uint8_t(limit>>8),uint8_t(base),uint8_t(base>>8),
+                       uint8_t(base>>16),access,0,0});
+    };
+    unsigned cases=0;
+    for (const auto& level:levels) for (bool wait:{false,true}) {
+        Bench b;
+        place_selector_fixture(b,ring0_program,sizeof(ring0_program));
+        b.memory[0x40]=0x77;
+        for (const auto& l:levels) {
+            put_descriptor(b,kGdtBase+l.code_descriptor,0x0fff,l.code_base,l.code_access);
+            put_descriptor(b,kGdtBase+l.stack_descriptor,0x0fff,l.stack_base,l.stack_access);
+        }
+        b.put(kGdtBase+0x68,{0x2b,0x00,0x00,0x07,0x00,0x81,0x00,0x00});
+        b.put(0x00000700+2,{0x00,0x01,0x28,0x00});          // SP0:SS0 = 0100:0028
+        b.put(level.code_base+first_ip,{0x90,0x43,0xf4});   // NOP; INC BX; HLT
+        b.memory[kHandlerBase+kHandlerIp]=0xf4;
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+        b.step(kCodeBase+0x020b,0x0f,kCodeSelector,0x020e,wait);
+        b.step(kCodeBase+0x020e,0xfa,kCodeSelector,0x020f,wait);
+        b.put(kStackBase+0x0080,{uint8_t(first_ip),uint8_t(first_ip>>8),
+                                  uint8_t(level.code_selector),uint8_t(level.code_selector>>8),
+                                  uint8_t(saved_flags),uint8_t(saved_flags>>8),
+                                  uint8_t(ring_level_sp),uint8_t(ring_level_sp>>8),
+                                  uint8_t(level.stack_selector),uint8_t(level.stack_selector>>8)});
+        b.d.intr_i=1; b.acknowledge=true; b.interrupt_vector=13;
+        b.step(kCodeBase+0x020f,0xcf,level.code_selector,first_ip,wait);
+        const unsigned retired_after_iret=b.retired;
+        bool entered=false;
+        for (unsigned n=0;n<50000 && !b.d.fault_o && !entered;++n) {
+            b.tick(wait);
+            entered=b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp;
+        }
+        b.d.intr_i=0; b.acknowledge=false;
+        const std::string name="outer IRET to CPL "+std::to_string(level.code_selector&3)+
+            (wait?" (wait states)":"");
+        check(entered && !b.d.fault_o && b.retired==retired_after_iret &&
+              b.d.event_vector_o==13 && b.d.event_packet_saved_ip_o==first_ip &&
+              b.d.event_packet_saved_cs_o==level.code_selector,
+              (name+": INTR was not taken at the IRET boundary (an outer-level instruction ran first)").c_str());
+        ++cases;
+    }
+    check(cases==4,"outer IRET shadow matrix missed a case");
+}
+
 // Issue #284, finding 14. Setting PE leaves CS at its real-mode value, and the
 // processor runs at privilege level 0 until the first protected CS load
 // (210498-005 section 10.4.2, page 10-7: set PE, intra-segment JMP, then the
@@ -15258,8 +15359,9 @@ int main(int argc, char** argv) {
         else if (argc==3 && std::string(argv[1])=="--bios-decimal") vectors(argv[2],false,true);
         else if (argc==2 && std::string(argv[1])=="--processor-extension") processor_extension_contract();
         else if (argc==2 && std::string(argv[1])=="--pe-entry") protected_entry_from_real_segments();
+        else if (argc==2 && std::string(argv[1])=="--outer-iret-shadow") protected_outer_iret_no_shadow();
         else {
-            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); loadall_contract(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); stack_wrap_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); processor_extension_data_channel(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_delivery_faults(); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_jump(); protected_far_call_not_present(); protected_full_stack_frames(); protected_lock_iopl(); protected_reserved_descriptor_fields(); protected_outer_retf_frame_overrun(); protected_nt_flag_contracts(); protected_enter_stack_limit(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix(); protected_entry_from_real_segments();
+            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); loadall_contract(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); stack_wrap_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); processor_extension_data_channel(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_delivery_faults(); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_jump(); protected_far_call_not_present(); protected_full_stack_frames(); protected_lock_iopl(); protected_reserved_descriptor_fields(); protected_outer_retf_frame_overrun(); protected_nt_flag_contracts(); protected_enter_stack_limit(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix(); protected_entry_from_real_segments(); protected_outer_iret_no_shadow();
             std::cout << "PASS: 80286 bootstrap reset, register aliases, flags, exact branches, stalls and diagnostic boundaries\n";
         }
     } catch (const std::exception& error) {

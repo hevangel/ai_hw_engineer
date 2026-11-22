@@ -1299,9 +1299,15 @@ module intel_80286 #(
          (state==STRING_BOUNDARY && element_o));
     intel_80286_event_control event_control(.clk(clk),.rst_n(rst_n),
         .boundary_i(async_boundary),
-        .inhibit_i(ss_shadow || (state==STRING_BOUNDARY && instruction_ss_shadow)),
+        // ASSUMPTION A48: the MOV SS/POP SS and STI shadows cover the whole
+        // next instruction, including a WAIT still polling BUSY, as they
+        // already cover every element of a REP string (issue #284,
+        // finding 15). Fetch has moved the live flags into the
+        // instruction_* copies by then.
+        .inhibit_i(ss_shadow || ((state==STRING_BOUNDARY || state==WAIT_BUSY) && instruction_ss_shadow)),
         .step_i(async_step),
-        .if_i(flags[9] && !sti_shadow && !(state==STRING_BOUNDARY && instruction_sti_shadow)),
+        .if_i(flags[9] && !sti_shadow &&
+              !((state==STRING_BOUNDARY || state==WAIT_BUSY) && instruction_sti_shadow)),
         .intr_i(intr_i),.nmi_i(nmi_i),
         .shutdown_i(shutdown_pending && !shutdown_recovery_active),
         .shutdown_nmi_enable_i(shutdown_pending && !shutdown_recovery_active &&
@@ -2982,7 +2988,10 @@ module intel_80286 #(
                             ss<=iret_target_ss_selector; ss_base<=iret_target_ss_base;
                             cache_limits[47:32]<=iret_target_ss_limit;
                             cache_access[23:16]<=iret_target_ss_access; cache_valid[2]<=1;
-                            gpr[4]<=iret_outer_sp; ss_shadow<=1;
+                            // No interrupt shadow: Intel describes one only
+                            // for MOV SS and POP SS, and the outer RETF has
+                            // none (issue #284, finding 17).
+                            gpr[4]<=iret_outer_sp;
                             if (iret_es_invalid) begin es<=0; cache_valid[0]<=0; end
                             if (iret_ds_invalid) begin ds<=0; cache_valid[3]<=0; end
                         end else gpr[4]<=iret_saved_sp;
