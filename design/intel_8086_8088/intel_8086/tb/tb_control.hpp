@@ -240,6 +240,33 @@ static void control(Bench &b) {
             require(!b.dut.lock_o,"LOCK remained asserted during interrupted WAIT entry");
     }
     require(wait_vec_stack && b.read()[9]==0 && b.dut.ip_o==0x600,"LOCK WAIT IRQ entry"); ++cases;
+    // Shadows cover the whole following REP string (review #286 finding 8,
+    // assumption A7): STI then REP MOVSB with INTR held, and MOV SS then
+    // REP MOVSB with an NMI edge during the first element, each complete all
+    // ten elements before the interrupt, which returns past the REP.
+    for(bool segment_load:{false,true}) {
+        if(segment_load) setup(b,{0x8e,0xd0,0xf3,0xa4,0x90,0xf4},0xf002); // MOV SS,AX; REP MOVSB
+        else setup(b,{0xfb,0xf3,0xa4,0x90,0xf4},0xf002);                  // STI; REP MOVSB
+        auto sr=b.read(); sr[0]=0; sr[1]=10; sr[6]=0x200; sr[7]=0x300; sr[8]=0x2000; sr[11]=0x3000; b.load(sr);
+        for(unsigned i=0;i<10;++i) b.set(0x30200+i,0x40+i);
+        if(!segment_load) b.dut.intr_i=1;
+        step(b,segment_load ? 0x102:0x101);
+        require(b.acknowledgements==0,"shadow-setting instruction accepted an interrupt");
+        if(segment_load) {
+            for(unsigned i=0;i<500 && b.writes.empty();++i) b.tick();
+            b.dut.nmi_i=1;
+            entry(b,2,0x104,0xf002);
+        } else entry(b,0x20,0x103,0xf202);
+        bool copied=b.read()[1]==0;
+        for(unsigned i=0;i<10;++i) copied=copied && b.memory[0x20300+i]==0x40+i;
+        require(copied,std::string(segment_load ? "MOV SS":"STI")+" shadow did not cover the whole REP string");
+        b.dut.intr_i=0; b.dut.nmi_i=0; ++cases;
+    }
+    // WAIT is exempt (assumption A8): STI; WAIT with TEST high takes a held
+    // INTR while waiting and returns to the WAIT itself.
+    setup(b,{0xfb,0x9b,0x90,0xf4},0xf002); b.dut.test_n_i=1; b.dut.intr_i=1;
+    step(b,0x101); require(b.acknowledgements==0,"STI accepted IRQ too early before WAIT");
+    entry(b,0x20,0x101,0xf202); b.dut.intr_i=0; b.dut.test_n_i=0; ++cases;
     // A LOCK prefix followed by an encoding that enters the FAULT stop must
     // release LOCK: the locked instruction has ended (review #286 finding 4).
     setup(b,{0xf0,0x8d,0xc3,0x90}); // LOCK LEA AX,BX (register form faults)

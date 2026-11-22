@@ -94,6 +94,10 @@ module intel_8086 (
   logic lock_prefix, acknowledge_lock;
   logic nmi_previous, nmi_pending, tf_start, trap_pending;
   logic mask_shadow, all_shadow;
+  // Shadows owned by the instruction that follows STI/IRET or a segment
+  // load. BOUNDARY clears the live flags as that instruction starts, so a
+  // REP string tests these copies between its elements.
+  logic instruction_mask_shadow, instruction_all_shadow;
   logic [2:0] wait_count;
   logic string_more;
   integer index;
@@ -295,6 +299,7 @@ module intel_8086 (
       // already high at reset release does not look like a rising edge.
       nmi_previous<=nmi_i; nmi_pending<=0; tf_start<=0; trap_pending<=0;
       mask_shadow<=0; all_shadow<=0; wait_count<=0; hlda_o<=0;
+      instruction_mask_shadow<=0; instruction_all_shadow<=0;
     end else begin
       if(hlda_o) begin if(!hold_i) hlda_o<=0; end
       else if(hold_i && !lock_o && !arbitration_inhibit_o && state!=BUS) hlda_o<=1;
@@ -309,6 +314,7 @@ module intel_8086 (
             trap_pending<=0; `I86_INTERRUPT(8'd1,ip,0)
           end else begin
             instruction_ip<=ip; tf_start<=flags[8]; trap_pending<=0;
+            instruction_mask_shadow<=mask_shadow; instruction_all_shadow<=all_shadow;
             mask_shadow<=0; all_shadow<=0; override_valid<=0; repeat_kind<=0;
             lock_prefix<=0; state<=FETCH;
           end
@@ -661,7 +667,10 @@ module intel_8086 (
             gpr[7]<=flags[10] ? gpr[7]-(wide ? 16'd2:16'd1):gpr[7]+(wide ? 16'd2:16'd1);
           if(repeat_kind!=0) gpr[1]<=gpr[1]-16'd1;
           if(string_more) begin
-            if((nmi_pending || intr_i && flags[9] && !mask_shadow || tf_start) && !all_shadow) begin
+            // ASSUMPTION: A7. STI/IRET and segment-load shadows cover the
+            // whole following REP string, not only its first element.
+            if((nmi_pending || intr_i && flags[9] && !instruction_mask_shadow || tf_start) &&
+               !instruction_all_shadow) begin
               // Original RPTI microcode decrements the corrected PC by two;
               // earlier prefixes are lost on an interrupted multi-prefix REP.
               ip<=ip-16'd2; trap_pending<=tf_start; lock_prefix<=0; state<=BOUNDARY; `I86_REDIRECT
@@ -672,7 +681,10 @@ module intel_8086 (
           if(!test_n_i) `I86_DONE
           else if(wait_count==4) begin
             wait_count<=0;
-            if((nmi_pending || intr_i && flags[9] && !mask_shadow) && !all_shadow) begin
+            // ASSUMPTION: A8. WAIT is exempt from the shadows: it stays
+            // interruptible while TEST is high even right after STI, MOV SS
+            // or POP SS, so interrupt latency is not unbounded.
+            if(nmi_pending || intr_i && flags[9]) begin
               ip<=instruction_ip; lock_prefix<=0; state<=BOUNDARY; `I86_REDIRECT
             end
           end else wait_count<=wait_count+3'd1;
