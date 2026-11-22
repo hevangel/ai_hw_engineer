@@ -15133,6 +15133,52 @@ static void processor_extension_data_channel() {
     std::cout<<"PASS: "<<cases<<" processor-extension channel runs: FLD qword loads memory-then-FAh, FSTP tbyte stores FAh-then-memory at an odd address, PEACK# on each first operation, transfers while halted, and interrupt 9 for a word past FFFFh, in both READY modes\n";
 }
 
+// Issue #284, finding 14. Setting PE leaves CS at its real-mode value, and the
+// processor runs at privilege level 0 until the first protected CS load
+// (210498-005 section 10.4.2, page 10-7: set PE, intra-segment JMP, then the
+// privileged LTR/LLDT before the far JMP). CPL must therefore not be taken from
+// the low bits of the real-mode CS value. Enter protected mode from segments
+// whose low two bits are 00, 01, 10 and 11, run LLDT and LTR between LMSW and
+// the far jump, and require the far jump to the DPL-0 code segment to land
+// with no exception.
+static void protected_entry_from_real_segments() {
+    using namespace protected_mode_fixture;
+    unsigned cases=0;
+    for (bool wait:{false,true}) for (uint16_t segment:{0x2000,0x2001,0x2002,0x2003}) {
+        const uint8_t target[]={0xf4};  // 0008:0200 HLT
+        Bench b;
+        place_selector_fixture(b,target,sizeof(target));
+        b.put(kResetVector,{0xea,0x00,0x00,uint8_t(segment),uint8_t(segment>>8)});
+        b.put(uint32_t(segment)<<4,{
+            0x0f,0x01,0x16,0x40,0x00,  // LGDT [0040]
+            0x0f,0x01,0x1e,0x46,0x00,  // LIDT [0046]
+            0xb8,0x01,0x00,            // MOV AX,0001
+            0x0f,0x01,0xf0,            // LMSW AX: PE set, CS unchanged
+            0xeb,0x00,                 // JMP $+2
+            0xb8,0x38,0x00,            // MOV AX,0038 (LDT descriptor)
+            0x0f,0x00,0xd0,            // LLDT AX, privileged
+            0xb8,0x40,0x00,            // MOV AX,0040 (available TSS)
+            0x0f,0x00,0xd8,            // LTR AX, privileged
+            0xea,0x00,0x02,0x08,0x00   // JMP FAR 0008:0200 (DPL-0 code)
+        });
+        b.wait_mode=wait;
+        b.reset();
+        bool event=false;
+        for (unsigned n=0;n<40000 && !b.d.halted_o && !b.d.fault_o && !b.d.shutdown_o;++n) {
+            b.tick(wait);
+            event=event || b.d.event_o;
+        }
+        const std::string name="PE entry from real-mode segment "+std::to_string(segment&3)+
+            (wait?" (wait states)":"");
+        check(!event && !b.d.fault_o && !b.d.shutdown_o && b.d.halted_o && (b.d.msw_o&1),
+              (name+": an exception, fault or shutdown before the protected far JMP landed").c_str());
+        check(b.cs()==kCodeSelector && b.d.ip_o==0x0201,
+              (name+": the far JMP did not land at 0008:0201").c_str());
+        ++cases;
+    }
+    check(cases==8,"PE entry segment matrix missed a case");
+}
+
 int main(int argc, char** argv) {
     Verilated::commandArgs(argc,argv);
     try {
@@ -15211,8 +15257,9 @@ int main(int argc, char** argv) {
         else if (argc==3 && std::string(argv[1])=="--firmware") vectors(argv[2],true);
         else if (argc==3 && std::string(argv[1])=="--bios-decimal") vectors(argv[2],false,true);
         else if (argc==2 && std::string(argv[1])=="--processor-extension") processor_extension_contract();
+        else if (argc==2 && std::string(argv[1])=="--pe-entry") protected_entry_from_real_segments();
         else {
-            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); loadall_contract(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); stack_wrap_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); processor_extension_data_channel(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_delivery_faults(); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_jump(); protected_far_call_not_present(); protected_full_stack_frames(); protected_lock_iopl(); protected_reserved_descriptor_fields(); protected_outer_retf_frame_overrun(); protected_nt_flag_contracts(); protected_enter_stack_limit(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix();
+            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); loadall_contract(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); stack_wrap_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); processor_extension_data_channel(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_delivery_faults(); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_jump(); protected_far_call_not_present(); protected_full_stack_frames(); protected_lock_iopl(); protected_reserved_descriptor_fields(); protected_outer_retf_frame_overrun(); protected_nt_flag_contracts(); protected_enter_stack_limit(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix(); protected_entry_from_real_segments();
             std::cout << "PASS: 80286 bootstrap reset, register aliases, flags, exact branches, stalls and diagnostic boundaries\n";
         }
     } catch (const std::exception& error) {

@@ -345,7 +345,7 @@
             // bytes from 000800h, only for 0F 05h outside CPL>0 (Intel note).
             if (rst_n && (state==LOADALL_READ || state==LOADALL_COMMIT ||
                           ((state==BUS || state==MEMORY_CHECK) && memory_return==LOADALL_READ))) begin
-                assert(opcode==8'h0f && system_opcode==8'h05 && (!msw[0] || cs[1:0]==0));
+                assert(opcode==8'h0f && system_opcode==8'h05 && (!msw[0] || cpl==0));
                 assert(!event_delivery_active && !task_switch_active && !retire_o);
                 assert(loadall_index<=5'd16);
             end
@@ -353,7 +353,7 @@
             // cannot change before it executes.
             if (rst_n && opcode==8'h0f && system_opcode==8'h05 &&
                 (state==IMMEDIATE || state==PREPARE || state==EXECUTE))
-                assert(!msw[0] || cs[1:0]==0);
+                assert(!msw[0] || cpl==0);
             // LOADALL has no ModRM operand, so no operand read returns to EXECUTE.
             if (rst_n && opcode==8'h0f && system_opcode==8'h05 &&
                 (state==BUS || state==MEMORY_CHECK))
@@ -416,7 +416,7 @@
                       code_load_special_descriptor==48'd0 && code_load_target==1 &&
                       code_load_request_selector==event_pointer[31:16] &&
                       code_load_request_offset==16'd0)) begin
-                if ($past(code_load_selector[1:0]<cs[1:0])) begin
+                if ($past(code_load_selector[1:0]<cpl)) begin
                     if ($past(!tr_valid || code_load_selector[1:0]>2 ||
                         ({1'b0,(16'd2+{12'd0,code_load_selector[1:0],2'b00})}+17'd3)>
                             {1'b0,tr_limit}))
@@ -1399,10 +1399,10 @@
                        gpr[4]==($past(iret_outer_active) ? $past(iret_outer_sp) :
                                                            $past(iret_saved_sp)));
                 assert(flags==(($past(msw[0]) ? ($past(iret_saved_flags)&16'h4000) : ($past(flags)&16'h4000)) |
-                    ($past(msw[0] && cs[1:0]==0) ? ($past(iret_saved_flags)&16'h3000) :
+                    ($past(msw[0] && cpl==0) ? ($past(iret_saved_flags)&16'h3000) :
                                                     ($past(flags)&16'h3000)) |
                     ($past(iret_saved_flags)&16'h0dd5) |
-                    ((!$past(msw[0]) || $past(cs[1:0])<=$past(flags[13:12])) ?
+                    ((!$past(msw[0]) || $past(cpl)<=$past(flags[13:12])) ?
                         ($past(iret_saved_flags)&16'h0200) : ($past(flags)&16'h0200)) |
                     16'h0002));
                 assert(es==($past(iret_outer_active && iret_es_invalid) ? 16'h0000 : $past(es)));
@@ -1599,13 +1599,13 @@
                           (event_gate[43:40]==4'h6 || event_gate[43:40]==4'h7) &&
                           event_gate[47] &&
                           (!event_packet.software_interrupt ||
-                           cs[1:0]<=event_gate[46:45]))) begin
+                           cpl<=event_gate[46:45]))) begin
                     assert(state==EVENT_CODE_START);
                     assert(event_pointer=={event_gate[31:16],event_gate[15:0]});
                 end else if ($past(!event_gate[44] &&
                                    (event_gate[43:40]==4'h6 || event_gate[43:40]==4'h7) &&
                                    event_gate[47] && event_packet.software_interrupt &&
-                                   cs[1:0]>event_gate[46:45])) begin
+                                   cpl>event_gate[46:45])) begin
                     assert(state==EVENT_START && event_packet.vector==13 &&
                            event_packet.error_present &&
                            event_packet.error_code=={5'd0,$past(event_packet.vector),3'b010} &&
@@ -1613,7 +1613,7 @@
                 end else if (!$past(!event_gate[44] &&
                                     event_gate[43:40]==4'h5 && event_gate[47] &&
                                     (!event_packet.software_interrupt ||
-                                     cs[1:0]<=event_gate[46:45]))) begin
+                                     cpl<=event_gate[46:45]))) begin
                     // Not a usable task gate either: App. B page B-49 gives
                     // #GP for type or INT-DPL faults, #NP for a not-present
                     // gate, each with error vector*8+2(+EXT).
@@ -1621,7 +1621,7 @@
                         $past(!event_gate[44] &&
                               event_gate[43:40]>=4'h5 && event_gate[43:40]<=4'h7 &&
                               (!event_packet.software_interrupt ||
-                               cs[1:0]<=event_gate[46:45])) ? 8'd11 : 8'd13));
+                               cpl<=event_gate[46:45])) ? 8'd11 : 8'd13));
                 end
             end
             if (state==EVENT_CODE_START && owner_event_grant) assert(code_load_start);

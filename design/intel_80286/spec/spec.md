@@ -228,10 +228,13 @@ to go outside of the stack limit within any part of the instruction
 execution" as covering the final allocation as well as the pushes. No
 protected-mode capture confirms it.
 
-ASSUMPTION A41: the core keeps using the CS selector RPL as CPL,
-whereas Intel defines CPL as the CS cache DPL after LOADALL. The two differ
-only for an image whose CS selector RPL differs from its CS cache DPL. The
-core also uses the trusted-CS fetch rule, so an execute-only, execute/read
+ASSUMPTION A41 (revised for issue #284, finding 14): CPL is a register of
+its own, not the CS selector RPL. Reset sets it to 0; real-mode CS loads and
+LMSW leave it unchanged, so setting PE keeps level 0 until the first
+protected CS load (210498-005 section 10.4.2, page 10-7); every protected CS
+load, gate or interrupt entry and task switch writes the new CS RPL; LOADALL
+writes the CS cache DPL, as Intel defines CPL after LOADALL. The core also
+uses the trusted-CS fetch rule, so an execute-only, execute/read
 or writable-data CS cache can all fetch. The TSS and LDT cache access bytes
 supply only their valid bits.
 
