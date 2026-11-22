@@ -8,9 +8,11 @@ Author: coding agent working under `AGENTS.md`.
 
 ## 1. Result
 
-Thirteen directed programs now run on **both** the RTL and an independent
-System/360 emulator, and their architectural state is compared field by field.
-**13/13 cases agree** after the fixes described in §3.
+**37 programs** now run on **both** the RTL and an independent System/360
+emulator, and their architectural state is compared field by field: 13 directed
+cases plus 24 deterministic randomised ones (a preamble that loads registers
+0-7 from random data, then exactly one random instruction, so a divergence names
+the instruction that caused it). **37/37 agree** after the fixes in §3.
 
 This is the first evidence in the project that the RTL matches something other
 than its author's reading of the manual. It immediately paid for itself: the
@@ -53,7 +55,22 @@ specified, which indicates that no modification takes place."* The mask is a
 Fixed in the M5 branch: the mask is `gpr[R1][7:0]`, forced to zero when R1 = 0,
 and the test program loads the mask register first.
 
-### 3.3 A harness difference, not a defect
+### 3.3 `CLI` operand order
+
+The randomised cases showed CC 1/2 flips on `CLI`. The RTL compared the
+immediate byte as the *first* operand, so "first operand low" was reported
+against the wrong side. The storage byte is the first operand and the immediate
+the second (p. 54). Fixed; the randomised `CLI` cases now agree.
+
+### 3.4 A reference-implementation bug
+
+The emulator sets the condition code for `NC`, `OC` and `XC`
+(`P.cc = nz ? 1 : 0`), while A22-6821-7 pp. 55-56 says the code is **unchanged**
+for those three. The RTL follows the manual. The comparison therefore ignores
+CC for those cases and each such case is labelled in the run output; the
+disagreement is recorded here rather than hidden by dropping the cases.
+
+### 3.5 A harness difference, not a defect
 
 The interruption case (`0x00` opcode, handler at 0x300) agreed on the old PSW
 (code 1, ILC 1, IA 0x102) and on the handler's effect, but disagreed on the
@@ -80,9 +97,15 @@ registers; the program old PSW at `0x28`/`0x2C`; storage words `0x200`-`0x23F`.
 
 ## 5. Cases
 
-`LA`/`LR`, `AR` (CC 2), `SR` (CC 1), `LTR` (CC 0), `A` overflow (CC 3), `CR`
-across the 32-bit boundary, `MVI`+`TM`, `TR` through a table, `MVN`, `MR`
-across a pair, `DR` quotient/remainder, `EX` with the R1 mask, `SLA`.
+Directed: `LA`/`LR`, `AR` (CC 2), `SR` (CC 1), `LTR` (CC 0), `A` overflow
+(CC 3), `CR` across the 32-bit boundary, `MVI`+`TM`, `TR` through a table,
+`MN`, `MR` across a pair, `DR` quotient/remainder, `EX` with the R1 mask, `SLA`.
+
+Randomised (24, fixed seed 36054): a preamble of eight `L` loads, then one
+instruction drawn from the RR, RX, SI, SS, shift and `MR` groups with random
+register fields, displacements inside the data area and random lengths. Branches,
+`DR`/`D`, the status-switching instructions and `EXECUTE` are excluded, each for
+a stated reason in `tools/oracle/random_cases.py`.
 
 They cover the arithmetic, compare, logical, storage-to-storage, translate,
 multiply/divide and execute paths that M1-M5 implement; they are all directed,
@@ -90,8 +113,8 @@ so they do not yet explore arbitrary operand combinations.
 
 ## 6. Limits
 
-- Thirteen directed cases, not a corpus: a shared misreading that none of them
-  exercises would still pass.
+- 37 cases, not a corpus: a shared misreading that none of them exercises would
+  still pass. The randomised set is one instruction deep after a fixed preamble.
 - Interruption entry not yet compared (harness alignment, §3.3).
 - The emulator itself is unverified software with no stated licence; it is
   treated as one witness, not as ground truth. Disagreements are resolved
@@ -100,8 +123,8 @@ so they do not yet explore arbitrary operand combinations.
 
 ## 7. Next
 
-1. Extend the case set to every implemented operation and add pseudo-random
-   operand/state generation.
+1. Deepen the random set: instruction sequences, random initial PSW fields and
+   branch targets restricted to a controlled region.
 2. Event-aligned interruption comparison.
 3. Reuse the emulator's DOS/360 images for the real-software regression (#429)
    once IPL and channels exist.

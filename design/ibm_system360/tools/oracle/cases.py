@@ -88,10 +88,12 @@ def psw_fields(value):
     }
 
 
-def compare(rtl, ref):
+def compare(rtl, ref, ignore_cc=False):
     problems = []
     a, b = psw_fields(rtl["psw"]), psw_fields(ref["psw"])
     for field in ("ia", "cc", "ilc", "progMask", "sysMask", "P", "W"):
+        if field == "cc" and ignore_cc:
+            continue
         if a[field] != b[field]:
             problems.append(f"psw.{field}: rtl={a[field]:#x} ref={b[field]:#x}")
     for i in range(16):

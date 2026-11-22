@@ -394,7 +394,9 @@ module ibm_s360_cpu #(
 
   always_comb begin
     if (dec.op == OP_CLI) begin
-      alu_a = {24'd0, i2_f};
+      // The storage byte is the first operand and the immediate byte is the
+      // second, so a low first operand gives CC 1 (p. 54).
+      alu_a = {24'd0, str_q};
     end else if (dec.op == OP_LTR) begin
       alu_a = gpr[r2_f];
     end else begin
@@ -404,7 +406,7 @@ module ibm_s360_cpu #(
 
   always_comb begin
     if (dec.op == OP_CLI) begin
-      alu_b = {24'd0, str_q};
+      alu_b = {24'd0, i2_f};
     end else if (is_halfword_op && (dec.op != OP_MH)) begin
       alu_b = opnd_half_sx;
     end else if (dec.fmt == FMT_RR) begin

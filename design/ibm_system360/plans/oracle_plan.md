@@ -1,9 +1,11 @@
 # Independent oracle plan (issue #383)
 
-Status: **first differential suite implemented and passing**. Thirteen directed
-programs are executed on both the RTL and an independent emulator, and their
-architectural state is compared; the comparison is what found two real
-architectural defects in M5.
+Status: **differential suite implemented and passing**. Thirty-seven programs —
+thirteen directed and twenty-four deterministic randomised — are executed on
+both the RTL and an independent emulator and their architectural state is
+compared. The comparison has found three real architectural defects so far
+(`DR` placement, the `EX` mask source and the `CLI` operand order) and one bug in
+the reference itself (`NC`/`OC`/`XC` set the condition code).
 
 ## Why an oracle is required
 
@@ -53,7 +55,7 @@ python design/ibm_system360/tools/oracle/run_diff.py
 The RTL image defaults to `ai-hw-engineer:latest`; override with
 `--rtl-image`. `ORACLE_ROOT` points at the emulator checkout.
 
-## Cases covered (13)
+## Cases covered (37)
 
 `LA`/`LR`, `AR` (CC 2), `SR` (CC 1), `LTR` (CC 0), `A` overflow (CC 3),
 `CR` across the 32-bit boundary, `MVI`+`TM`, `TR` through a table, `MVN`,
@@ -70,8 +72,15 @@ and `SLA`.
    subject; p. 67 says bits 8-15 of the subject are OR'ed with bits 24-31 of
    the **register named by R1**, and R1 = 0 means no modification. Fixed in M5.
 
-A third apparent divergence, the PSW ILC after an interruption, turned out to
-be a harness accounting difference: the emulator performs the interruption
+3. **`CLI` operand order.** The RTL treated the immediate byte as the first
+   operand, so CC 1 and CC 2 were reported for the wrong side (p. 54 makes the
+   storage byte the first operand). Fixed.
+
+One reference bug: the emulator sets CC on `NC`/`OC`/`XC`, which pp. 55-56 say
+must be unchanged. The comparison ignores CC for those cases and labels them.
+
+An apparent divergence, the PSW ILC after an interruption, turned out to be a
+harness accounting difference: the emulator performs the interruption
 inside `step()` while the RTL retires only real instructions. Interruption
 cases are therefore excluded from this suite until an event-aligned driver
 exists (tracked as follow-up).

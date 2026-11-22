@@ -25,6 +25,7 @@ WORK = DESIGN / "work" / "oracle"
 
 sys.path.insert(0, str(HERE))
 from cases import CASES, build_image, compare, parse_dump  # noqa: E402
+from random_cases import make_cases  # noqa: E402
 
 
 def oracle_root():
@@ -44,13 +45,16 @@ def host_to_container(path: Path):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--rtl-image", default="ai-hw-engineer:latest")
+    ap.add_argument("--random", type=int, default=24,
+                    help="number of randomised cases (0 disables)")
     args = ap.parse_args()
 
     root = oracle_root()
     WORK.mkdir(parents=True, exist_ok=True)
 
+    cases = list(CASES) + (make_cases(args.random) if args.random else [])
     manifest = []
-    for case in CASES:
+    for case in cases:
         out_dir = WORK / case["name"]
         out_dir.mkdir(parents=True, exist_ok=True)
         image = build_image(case)
@@ -74,7 +78,7 @@ def main():
 
     failures = 0
     env = dict(os.environ, ORACLE_ROOT=str(root))
-    for case in CASES:
+    for case in cases:
         out_dir = WORK / case["name"]
         ref_out = out_dir / "ref.txt"
         r = subprocess.run(["node", str(HERE / "js_run.js"), str(out_dir / "prog.hex"),
@@ -85,16 +89,20 @@ def main():
             print(r.stderr[-1500:])
             raise SystemExit(f"emulator run failed for {case['name']}")
 
-        problems = compare(parse_dump(out_dir / "rtl.txt"), parse_dump(ref_out))
+        problems = compare(parse_dump(out_dir / "rtl.txt"), parse_dump(ref_out),
+                          ignore_cc=case.get("ignore_cc", False))
         if problems:
             failures += 1
             print(f"FAIL {case['name']}: {case['note']}")
             for p in problems:
                 print("   " + p)
+        elif case.get("ignore_cc"):
+            print(f"PASS {case['name']}: {case['note']} "
+                  "(CC ignored: reference sets it on NC/OC/XC, p. 55)")
         else:
             print(f"PASS {case['name']}: {case['note']}")
 
-    print(f"\n{len(CASES) - failures}/{len(CASES)} cases agree with the independent emulator")
+    print(f"\n{len(cases) - failures}/{len(cases)} cases agree with the independent emulator")
     return 1 if failures else 0
 
 
