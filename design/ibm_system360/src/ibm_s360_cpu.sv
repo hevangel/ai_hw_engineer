@@ -847,12 +847,15 @@ module ibm_s360_cpu #(
                 res_q    <= mul_product[31:0];
               end
               OP_DR, OP_D: begin
+                // "A 32-bit signed remainder and a 32-bit signed quotient
+                // replace the dividend in the even-numbered and odd-numbered
+                // registers, respectively" (p. 31).
                 wr_en_q   <= 1'b1;
                 wr_idx_q  <= r1_f;
-                res_q     <= div_quotient[31:0];
+                res_q     <= div_remainder;
                 wr_en2_q  <= 1'b1;
                 wr_idx2_q <= r1_f | 4'd1;
-                res2_q    <= div_remainder;
+                res2_q    <= div_quotient[31:0];
               end
               OP_SLA, OP_SRA: begin
                 wr_en_q  <= 1'b1;
@@ -894,12 +897,13 @@ module ibm_s360_cpu #(
               end
               OP_EX: begin
                 // Execute the subject instruction at the operand address with
-                // the I1 byte ORed into its second byte; the PSW address
-                // advances by EXECUTE's own length (p. 67).
+                // bits 24-31 of the R1 register ORed into its second byte;
+                // R1 = 0 means no modification (p. 67). The PSW address
+                // advances by EXECUTE's own length.
                 ex_active_q    <= 1'b1;
                 ex_ia_q        <= ia_cur;
                 ex_return_ia_q <= ia_cur + {20'd0, len_q};
-                ex_byte_q      <= b1;
+                ex_byte_q      <= (r1_f == 4'd0) ? 8'h00 : gpr[r1_f][7:0];
                 ia_cur         <= ea_q;
                 cnt            <= 3'd0;
               end

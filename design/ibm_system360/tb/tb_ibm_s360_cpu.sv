@@ -495,10 +495,10 @@ module tb_ibm_s360_cpu;
     check_word(24'h00_0210, 32'hFFFF_FFFF, "MR high half stored");
     check_word(24'h00_0214, 32'hFFFF_FFD6, "MR low half stored");
     check_gpr(4, 32'h0000_0006);              // multiplier
-    check_gpr(6, 32'h0000_0001);              // 42 / 42 quotient
-    check_gpr(7, 32'h0000_0000);              // remainder
-    check_word(24'h00_0218, 32'h0000_0001, "DR quotient stored");
-    check_word(24'h00_021C, 32'h0000_0000, "DR remainder stored");
+    check_gpr(6, 32'h0000_0000);              // remainder (even register)
+    check_gpr(7, 32'h0000_0001);              // quotient (odd register)
+    check_word(24'h00_0218, 32'h0000_0000, "DR remainder stored");
+    check_word(24'h00_021C, 32'h0000_0001, "DR quotient stored");
 
     // =========================================================================
     // Test 11: fixed-point divide exception (code 9), dividend unchanged.
@@ -634,20 +634,20 @@ module tb_ibm_s360_cpu;
     // =========================================================================
     start_reset();
     poke_hex(24'h00_0210, "92001000");      // MVI 0(1),0x00
-    poke_hex(24'h00_0100, "41100220444002104120005541F0011007FF");
+    poke_hex(24'h00_0100, "4120004041100220442002104130005541F0011407FF");
     run_cycles(120);
 
     check(int_count == 0, "EX caused an unexpected interruption");
-    check_word(24'h00_0220, 32'h4000_0000, "EX did not OR the I1 byte into MVI");
+    check_word(24'h00_0220, 32'h4000_0000, "EX did not OR the R1 mask into MVI");
     check_gpr(1, 32'h0000_0220);
-    check_gpr(2, 32'h0000_0055);            // instruction after EX ran
-    check(psw[23:0] === 24'h00_0110, "EX did not advance the PSW past itself");
+    check_gpr(3, 32'h0000_0055);            // instruction after EX ran
+    check(psw[23:0] === 24'h00_0114, "EX did not advance the PSW past itself");
 
     start_reset();
     poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
     poke_handler(24'h00_0300);
     poke_hex(24'h00_0210, "44000000");      // subject is another EXECUTE
-    poke_hex(24'h00_0100, "44400210");
+    poke_hex(24'h00_0100, "44200210");
     run_cycles(80);
 
     check(int_count == 1, "EXECUTE of EXECUTE did not raise an interruption");

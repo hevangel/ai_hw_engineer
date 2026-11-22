@@ -155,7 +155,7 @@ happen when the next instruction is executed (p. 73 and p. 71).
 | CH | halfword, sign-extended | — | compare rules | specification |
 | MH | halfword × R1 | low 32 bits of the product | unchanged | specification |
 | MR / M | R1 pair (multiplicand in the odd register) × multiplier | 64-bit product replaces the pair | unchanged | specification (odd R1) |
-| DR / D | R1 pair as a 64-bit dividend ÷ 32-bit divisor | quotient in R1, remainder in R1+1 | unchanged | specification (odd R1), divide (code 9) |
+| DR / D | R1 pair as a 64-bit dividend ÷ 32-bit divisor | **remainder in R1 (even), quotient in R1+1 (odd)** | unchanged | specification (odd R1), divide (code 9) |
 | SLA / SLDA | shift count from the low six bits of the second-operand address | R1 (or the pair); sign bit fixed | 0/1/2, 3 on overflow | specification (SLDA odd R1), overflow |
 | SRA / SRDA | same | R1 (or the pair) with sign fill | 0/1/2 | specification (SRDA odd R1) |
 
@@ -185,7 +185,7 @@ Notes that the implementation depends on:
 | STC | same | bits 24-31 of `R1` into storage | unchanged |
 | TR | `L,B1,D1,B2,D2` | each byte of operand 1 indexes the 256-byte table at the operand-2 address and is replaced by the function byte | unchanged |
 | TRT | same | as `TR` but the field is not stored: a nonzero function byte stops the scan, puts the argument address in **general register 1** and the function byte in the low byte of **general register 2** | 0 all zero, 1 nonzero before the end, 2 nonzero on the last byte |
-| EX | `I1,X2,B2,D2` | the instruction at the operand address is executed with `I1` ORed into its bits 8-15; the PSW address advances by EXECUTE's own length and the stored ILC is 2; a successful branch of the subject still takes effect | set by the subject |
+| EX | `R1,X2,B2,D2` | the instruction at the operand address is executed with bits 24-31 of **the register named by R1** ORed into its bits 8-15 (R1 = 0 means no modification); the PSW address advances by EXECUTE's own length and the stored ILC is 2; a successful branch of the subject still takes effect | set by the subject |
 
 The length field is `L+1` bytes (1 to 256). The core executes one byte per three
 cycles (read operand 1, read operand 2, merge and store), so a 256-byte `MVC`
@@ -193,7 +193,11 @@ takes about 770 cycles; this is a functional, not a timing, model.
 
 `TRT` has no register fields in the SS format; the manual names "general
 register 1" and "general register 2" literally, so the core uses GR1 and GR2
-(assumption A-7). `EXECUTE` of `EXECUTE` raises the execute exception (code 3),
+(assumption A-7). `DR`/`D` follow p. 31: "a 32-bit signed remainder and a
+32-bit signed quotient replace the dividend in the even-numbered and
+odd-numbered registers, respectively". `EX` follows p. 67: bits 8-15 of the
+subject are OR'ed with bits 24-31 of the R1 register, and register 0 means no
+modification. `EXECUTE` of `EXECUTE` raises the execute exception (code 3),
 an odd subject address raises code 6, and an exception inside the subject
 instruction stores an old PSW carrying EXECUTE's own address-plus-four and ILC 2
 (p. 67).

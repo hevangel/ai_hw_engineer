@@ -33,8 +33,9 @@ conversions/arithmetic and floating point.
   literally. The core therefore always uses GR1 and GR2; this is recorded as
   assumption A-7 because OCR damage to the format figure prevents a visual
   confirmation, and it is the first thing the oracle should check.
-- **EX** (p. 67): the subject instruction is executed exactly as if it were in
-  the normal stream, except that the PSW instruction address advances by
+- **EX** (p. 67): bits 8-15 of the subject are OR'ed with bits 24-31 of the
+  register named by R1 (register 0 means no modification); the subject is
+  executed exactly as if it were in the normal stream, except that the PSW instruction address advances by
   EXECUTE's length (four) and the ILC recorded is 2. A successful branch of the
   subject still takes effect. An odd subject address is a specification
   exception, and a subject that is itself EXECUTE raises the execute exception
