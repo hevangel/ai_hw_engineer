@@ -1,6 +1,6 @@
-# IBM System/360 — architecture specification (M4)
+# IBM System/360 — architecture specification (M5)
 
-Status: **fourth functional increment**. This document fixes the architecture
+Status: **fifth functional increment**. This document fixes the architecture
 that `src/` implements, records every deliberate deviation, and lists the
 assumptions that must be validated before any compatibility claim. It is *not*
 the full S/360 specification: the instruction-set and model option matrix is
@@ -26,6 +26,8 @@ In scope and implemented:
   the supervisor-call interruption (M3);
 - the character and SS-format logical group — `MVC`, `MVN`, `MVZ`, `NC`, `OC`,
   `XC`, `CLC`, `TM`, `IC`, `STC` (M4);
+- `TR`, `TRT` and `EXECUTE`, completing the translate and instruction-stream
+  control group (M5);
 - **program interruptions** with the causes operation (1), privileged
   operation (2), specification (6) and fixed-point overflow (8), the program
   old PSW at storage `0x28`, the program new PSW at `0x68`, and problem-state
@@ -33,8 +35,8 @@ In scope and implemented:
 - the wait state as a state in which no instruction is fetched (M2).
 
 Out of scope (each has its own issue or milestone): decimal and floating-point
-operations; `TR`, `TRT`, `ED`, `EDMK`, `PACK`, `UNPK`, `CVB`, `CVD` and
-`MOVE WITH OFFSET`; `EXECUTE`;
+operations; `ED`, `EDMK`, `PACK`, `UNPK`, `MVO`, `CVB`, `CVD` and the decimal
+arithmetic group.
 protection keys, storage protection and DAT; supervisor-call, external, I/O and
 machine-check interruptions; addressing exceptions; channel I/O; `EXECUTE`;
 timing and microarchitecture.
@@ -181,10 +183,20 @@ Notes that the implementation depends on:
 | TM | `I2,B1,D1` | tests the storage byte against the mask `I2` | 0 selected bits all zero or mask zero, 3 all selected bits one, 1 mixed |
 | IC | `R1,X2,B2,D2` | byte into bits 24-31 of `R1`, other bits unchanged | unchanged |
 | STC | same | bits 24-31 of `R1` into storage | unchanged |
+| TR | `L,B1,D1,B2,D2` | each byte of operand 1 indexes the 256-byte table at the operand-2 address and is replaced by the function byte | unchanged |
+| TRT | same | as `TR` but the field is not stored: a nonzero function byte stops the scan, puts the argument address in **general register 1** and the function byte in the low byte of **general register 2** | 0 all zero, 1 nonzero before the end, 2 nonzero on the last byte |
+| EX | `I1,X2,B2,D2` | the instruction at the operand address is executed with `I1` ORed into its bits 8-15; the PSW address advances by EXECUTE's own length and the stored ILC is 2; a successful branch of the subject still takes effect | set by the subject |
 
 The length field is `L+1` bytes (1 to 256). The core executes one byte per three
 cycles (read operand 1, read operand 2, merge and store), so a 256-byte `MVC`
 takes about 770 cycles; this is a functional, not a timing, model.
+
+`TRT` has no register fields in the SS format; the manual names "general
+register 1" and "general register 2" literally, so the core uses GR1 and GR2
+(assumption A-7). `EXECUTE` of `EXECUTE` raises the execute exception (code 3),
+an odd subject address raises code 6, and an exception inside the subject
+instruction stores an old PSW carrying EXECUTE's own address-plus-four and ILC 2
+(p. 67).
 
 ### 2.9 Program interruptions (pp. 15-16, 71-72)
 
@@ -227,7 +239,7 @@ Storage timing, interleaving, protection and channel contention are not
 modelled. Word operands must be aligned; apart from the `LPSW` doubleword
 check, unaligned operands are not detected.
 
-## 4. Implemented instruction set (51 operations)
+## 4. Implemented instruction set (54 operations)
 
 | Opcode | Mnemonic | Format | Operation | CC |
 |---|---|---|---|---|
@@ -257,6 +269,7 @@ check, unaligned operands are not detected.
 | `82` | LPSW | SI | load PSW | loaded |
 | `0A` | SVC | RR | supervisor call | unchanged |
 | `42` | STC | RX | store character | unchanged |
+| `44` | EX | RX | execute | subject |
 | `43` | IC | RX | insert character | unchanged |
 | `91` | TM | SI | test under mask | set |
 | `D1` | MVN | SS | move numerics | unchanged |
@@ -266,6 +279,8 @@ check, unaligned operands are not detected.
 | `D5` | CLC | SS | compare logical characters | set |
 | `D6` | OC | SS | OR characters | unchanged |
 | `D7` | XC | SS | exclusive OR characters | unchanged |
+| `DC` | TR | SS | translate | unchanged |
+| `DD` | TRT | SS | translate and test | set |
 | `1C` | MR | RR | multiply | unchanged |
 | `1D` | DR | RR | divide | unchanged |
 | `40` | STH | RX | store halfword | unchanged |
@@ -293,9 +308,9 @@ length and raises interruption code 1.
 These are deliberate and must not be presented as architectural behaviour.
 
 1. **Assigned but unimplemented instructions raise code 1.** A real S/360
-   executes `TR`/`TRT`/`ED`/`EDMK`, `PACK`/`UNPK`/`MVO`, `CVB`/`CVD`,
-   `EXECUTE`, and decimal and floating-point operations; this core decodes
-   them as an operation exception. This is an implementation gap, not
+   executes `ED`/`EDMK`, `PACK`/`UNPK`/`MVO`, `CVB`/`CVD`, and decimal and
+   floating-point operations; this core decodes them as an operation
+   exception. This is an implementation gap, not
    architecture, and is the reason no compatibility claim may be made until
    the remaining instruction groups and the external oracle exist.
 2. **Only program interruptions exist.** Supervisor call, external, I/O and
@@ -317,9 +332,10 @@ These are deliberate and must not be presented as architectural behaviour.
    byte plus fixed decode/execute/commit cycles, and five cycles per
    interruption. No storage access timing, overlap, prefetch or model-specific
    microarchitecture is modelled.
-7. **No `EXECUTE`, `TR`/`TRT`, decimal conversions, decimal arithmetic or
-   floating point.** They raise code 1 as described above. The fixed-point
-   group and the SS moves/compares/logical group are complete.
+7. **No `ED`/`EDMK`, decimal conversions, decimal arithmetic or floating
+   point.** They raise code 1 as described above. The fixed-point group, the
+   SS moves/compares/logical group, the translate group and `EXECUTE` are
+   complete.
 8. **Divide and supervisor-call old-PSW addresses.** For the divide exception
    and for `SVC` the core stores the *updated* instruction address and the ILC
    of the instruction, matching the suppressed-check rule of p. 72. The manual
@@ -336,6 +352,7 @@ These are deliberate and must not be presented as architectural behaviour.
 | A-3 | An implemented-length but unassigned/unimplemented operation raises code 1 with the instruction address advanced by the ILC. | The manual defines code 1 for *unassigned* opcodes (p. 16); it does not define how a partially implemented machine should report a missing instruction. | Must disappear as the instruction set is completed; tracked by #384. |
 | A-4 | Byte operands are read from the aligned word and word operands must be aligned. | The storage port returns an aligned word. | Re-check when specification exceptions are complete. |
 | A-5 | The interruption sequence is treated as atomic (no priority nesting). | The manual describes priority ordering between classes (p. 16); with only program interruptions there is no competing request. | Re-check when I/O and external interruptions exist. |
+| A-7 | `TRT` writes general registers 1 and 2 (it has no register fields), and `EXECUTE` stores ILC 2 with the address advanced by four — including when the subject instruction raises an exception. | The manual names "general register 1/2" and states the EXECUTE address rule (p. 67), but OCR damage to the TRT format figure leaves the register encoding to be confirmed. | Validate against the independent oracle (#383). |
 | A-6 | Divide-exception and supervisor-call interruptions store an old PSW whose instruction address is advanced by the instruction length. | The manual states that rule for suppressed program checks (p. 72) and says division is suppressed (p. 34), but does not spell out the address for these two classes. | Re-check against an independent emulator (#383) and IBM diagnostics (#441). |
 
 ## 7. Model option matrix
@@ -368,3 +385,4 @@ microarchitecture.
 - [../report/2026-11-08-m2-status-switching.md](../report/2026-11-08-m2-status-switching.md)
 - [../report/2026-11-17-m3-fixedpoint.md](../report/2026-11-17-m3-fixedpoint.md)
 - [../report/2026-11-18-m4-character-ss.md](../report/2026-11-18-m4-character-ss.md)
+- [../report/2026-11-20-m5-translate-execute.md](../report/2026-11-20-m5-translate-execute.md)

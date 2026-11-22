@@ -4,7 +4,7 @@ Scope: the shared engine in `src/` and the self-checking testbench in `tb/`.
 Later increments extend this plan; a test that does not exist yet is listed as
 planned, never as passing.
 
-## Exit criteria (current increment, M4)
+## Exit criteria (current increment, M5)
 
 1. `scripts/run_lint.sh` clean under `verilator --lint-only -Wall` for both the
    RTL and the testbench.
@@ -68,6 +68,16 @@ the new PSW was fetched from `0x68` and made current.
 |---|---|---|
 | SS chain | `MVC 0x208(4),0x200; XC; NC; OC; MVN; MVZ` | the four-byte field follows `C1C2C3C4 → 8A8E8E8A → 80828280 → C1828280 → CB828280 → 4B828280` |
 | Compare / character | `CLC`, `IC`, `STC`, three `TM` masks | CC 1 from `CLC`; `R1` low byte 0x4B; stored byte at `0x20C`; `TM` gives CC 0, 1 and 3 for zero, mixed and all-one selections |
+
+### 2.3 Translate and execute (M5)
+
+| Test | Program | Checked |
+|---|---|---|
+| TR | 256-byte table \	able[i] = i+1\, field  20 30 40\ | field becomes 	 21 31 41\ |
+| TRT (match) | table with a function byte at argument 0x20 | GR1 = argument address 0x201, GR2 low byte 0x0F, CC 1 |
+| TRT (no match) | all-zero table | GR1/GR2 untouched, CC 0 |
+| EX | \EX\ with I1 = 0x40 over \MVI 0(1),0x00\ | stores 0x40, the instruction after EXECUTE runs, PSW points past EXECUTE |
+| EX of EX | subject is another EXECUTE | execute exception, code 3, old PSW ILC 2 and IA 0x104 |
 
 ## 3. Arithmetic unit and address checks
 
