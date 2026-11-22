@@ -40,12 +40,18 @@ module intel_80286_event_control_props (
                 if (shutdown) begin
                     if (shutdown_nmi_enable &&
                         (remembered || (nmi && !nmi_history))) begin
-                        selected<=1; claimed_vector<=2; was_nmi<=1; remembered<=0;
+                        selected<=1; claimed_vector<=2; was_nmi<=1;
+                        // Issue #284 finding 16: an edge in the selecting clock is a
+                        // second NMI when one was already remembered.
+                        remembered<=remembered && nmi && !nmi_history;
                     end
                 end else if (boundary && !inhibit) begin
                     if (step_request) begin selected<=1; claimed_vector<=1; end
                     else if ((!was_nmi || iret) && (remembered || (nmi && !nmi_history))) begin
-                        selected<=1; claimed_vector<=2; was_nmi<=1; remembered<=0;
+                        selected<=1; claimed_vector<=2; was_nmi<=1;
+                        // Issue #284 finding 16: an edge in the selecting clock is a
+                        // second NMI when one was already remembered.
+                        remembered<=remembered && nmi && !nmi_history;
                     end else if (intr && interrupts_enabled) begin selected<=1; waiting_ack<=1; end
                 end
             end
