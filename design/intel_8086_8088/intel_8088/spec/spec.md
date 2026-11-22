@@ -22,6 +22,8 @@ Every bus cycle transfers **one byte at its full byte address**. A 16-bit EU tra
 
 Bus phases are IDLE, T1, T2, T3, optional Tw, T4, four clocks minimum per cycle as on the 8086. T1 supplies the byte address; READY sampled at T2 determines wait insertion and READY in Tw permits completion; read data is captured at completion and write data is held through T4. Maximum-mode status remains active across an extended wait until completion. S3–S6 multiplex with A16–A19 exactly as on the 8086: S4:S3 encode the segment, S5 follows IF, S6 is zero. Maximum-mode status S2:S0 uses the 8086 encoding (interrupt acknowledge, I/O read/write, halt, code fetch, memory read/write, passive), active until the completion edge.
 
+HALT entry produces a single indication once the bus is idle, as on the 8086 (AP-67 p. A-39): maximum mode drives S2:S0=011 for one clock and then returns passive, so the 8288 derives one ALE; minimum mode drives one ALE clock with RD, WR, DEN and INTA inactive. While halted, the indication is reissued once each time the bus is returned after HOLD/HLDA or an RQ/GT grant.
+
 **Pin differences from the 8086**, per the datasheet and the [Osborne 16-bit Processor Handbook](https://en.wikipedia.org/wiki/Intel_8088):
 
 - AD0–AD7 multiplex address byte 0 and data; **A8–A15 are not multiplexed** and stay valid for the whole bus cycle (they do not switch to status, unlike A16–A19).

@@ -26,6 +26,8 @@ public:
     uint32_t first_fetch_address=0,fetch_address=0;
     uint8_t first_fetch_byte=0,fetch_byte=0;
     unsigned qs_seen=0;
+    unsigned halt_indications=0;
+    bool halt_previous=false;
     uint32_t address=0;
     uint8_t status=7,external_rqgt=3;
     bool min_mode=true,random_wait=true;
@@ -79,7 +81,16 @@ public:
                 require(bool(dut.ad_oe_o)==(status==2 || status==6),"T4 write-data hold");
                 if(min_mode)require(!dut.den_n_o,"T4 data-enable hold");
             }
-            require(bool(dut.ale_o)==(min_mode && phase==1 && dut.control_oe_o),"ALE timing/mode");
+            // HALT entry: one IDLE clock of S2:S0=011 and, in minimum mode,
+            // one ALE with no qualifying strobes (AP-67 p. A-39).
+            const bool halt_pulse=phase==0 && dut.control_oe_o && dut.status_o==3;
+            if(halt_pulse){
+                require(dut.halted_o && dut.rd_n_o && dut.wr_n_o && dut.den_n_o && dut.inta_n_o,"HALT indication with bus strobes");
+                require(!halt_previous,"HALT status longer than one clock");
+                ++halt_indications;
+            }
+            halt_previous=halt_pulse;
+            require(bool(dut.ale_o)==(min_mode && dut.control_oe_o && (phase==1 || halt_pulse)),"ALE timing/mode");
             if(!min_mode) require(dut.wr_n_o && dut.den_n_o && dut.inta_n_o,"minimum controls active in maximum mode");
         }
         const auto write_data=dut.ad_o;
@@ -118,6 +129,7 @@ public:
         cycles=0;acknowledgements=waits=code_reads=write_count=grant0=grant1=qs_seen=0;
         writes.clear();ordered_writes.clear();saw_fetch=false;
         vector_mode=false;vector_instruction_done=false;fixture_code.clear();
+        halt_indications=0;halt_previous=false;
         external_rqgt=3;dut.intr_i=0;dut.nmi_i=0;dut.hold_i=0;dut.test_n_i=0;
         dut.min_mode_i=min_mode;dut.reset_i=1;tick();tick();dut.reset_i=0;
     }
@@ -279,6 +291,27 @@ static void native_tests(Bench &b){
     b.tick();b.tick();b.external_rqgt=2;b.tick();b.external_rqgt=3;
     for(unsigned i=0;i<200 && b.grant1==0;++i)b.tick();
     require(b.grant1==1,"pending lower-priority RQ/GT lost");++cases;
+    // HLT entry issues exactly one HALT indication and reissues it when the
+    // bus is returned after HOLD/HLDA or RQ/GT while still halted.
+    for(bool mode:{true,false}){
+        b.min_mode=mode;
+        b.boot({0x90,0xf4});b.step(1);
+        b.halt_indications=0;b.step(2);
+        for(unsigned i=0;i<200;++i)b.tick();
+        require(b.dut.halted_o && b.halt_indications==1,"HALT indications on entry="+std::to_string(b.halt_indications));
+        if(mode)b.dut.hold_i=1;else b.external_rqgt=2;
+        b.tick();if(!mode)b.external_rqgt=3;
+        for(unsigned i=0;i<100 && b.dut.control_oe_o;++i)b.tick();
+        require(!b.dut.control_oe_o,"halted CPU did not grant the bus");
+        for(unsigned i=0;i<20;++i)b.tick();
+        require(b.halt_indications==1,"HALT indication while bus granted");
+        if(mode)b.dut.hold_i=0;else b.external_rqgt=2;
+        b.tick();b.external_rqgt=3;
+        for(unsigned i=0;i<100 && !b.dut.control_oe_o;++i)b.tick();
+        for(unsigned i=0;i<200;++i)b.tick();
+        require(b.dut.halted_o && b.halt_indications==2,"HALT indications after bus return="+std::to_string(b.halt_indications));
+        ++cases;
+    }
     std::cout<<"PASS: "<<cases<<" native minimum/maximum-mode byte-bus, prefetch, arbitration and reset scenarios\n";
 }
 int main(int argc,char **argv){

@@ -80,6 +80,7 @@ module intel_8088_biu (
   logic [1:0] pending, rqgt_previous, grant_pulse, release_delay;
   logic held, owner;
   logic request_hold, request_grant, release_request;
+  logic halt_announced, halt_indicate;
   integer index;
   function automatic logic [1:0] advance(input logic [1:0] pointer);
     advance = pointer == 2'd3 ? 2'd0 : pointer + 2'd1;
@@ -129,7 +130,14 @@ module intel_8088_biu (
   assign io_m_o = cycle_io || cycle_intack;
   assign dt_r_o = cycle_write;
   assign den_n_o = !(owned && min_mode_i && (data_phase || phase == T4));
-  assign ale_o = owned && min_mode_i && phase == T1;
+  // HALT entry (Intel 8088 datasheet; AP-67 p. A-39): minimum mode issues
+  // one ALE with no qualifying bus strobes; maximum mode drives a one-clock
+  // passive-to-HALT status (S2:S0=011) so the 8288 issues one ALE. The
+  // indication is reissued when the bus returns after HOLD/RQ-GT.
+  assign halt_indicate = owned && phase == IDLE && halted_i && !halt_announced && !flush_i &&
+      !(eu_req_i && !eu_fetch_i) &&
+      ((!request_hold && !request_grant) || lock_i || lock_delayed || inhibit_i);
+  assign ale_o = owned && min_mode_i && (phase == T1 || halt_indicate);
   assign inta_n_o = !(owned && min_mode_i && data_phase && cycle_intack);
   assign lock_n_o = !(rst_n && !min_mode_i && lock_delayed);
   always_comb begin
@@ -142,7 +150,7 @@ module intel_8088_biu (
       else if (cycle_io) status_o = cycle_write ? 3'b010 : 3'b001;
       else if (cycle_prefetch) status_o = 3'b100;
       else status_o = cycle_write ? 3'b110 : 3'b101;
-    end else if (owned && phase == IDLE && halted_i) status_o = 3'b011;
+    end else if (halt_indicate) status_o = 3'b011;
   end
   always_ff @(posedge clk) begin
     qs_o <= 0;
@@ -177,8 +185,11 @@ module intel_8088_biu (
       owner <= 0;
       release_delay <= 0;
       lock_delayed <= 0;
+      halt_announced <= 0;
       for (index = 0; index < 4; index = index + 1) queue[index] <= 0;
     end else begin
+      if (!halted_i || !owned) halt_announced <= 0;
+      else if (halt_indicate) halt_announced <= 1;
       if (!min_mode_i) begin
         for (index = 0; index < 2; index = index + 1)
         if(rqgt_previous[index] && !rqgt_n_i[index] && !grant_pulse[index] &&

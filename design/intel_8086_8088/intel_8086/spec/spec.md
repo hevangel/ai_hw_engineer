@@ -76,6 +76,8 @@ Bus phases are IDLE, T1, T2, T3, optional Tw, T4. T1 supplies the multiplexed ad
 
 Minimum mode produces ALE, M/IO, DT/R, DEN, RD, WR, INTA and HOLD/HLDA. Maximum mode produces S2:S0, QS, LOCK and bidirectional RQ/GT0/1. AD floats throughout INTA; BHE is low during the first INTA T1. Maximum-mode command strobes belong to an external 8288, while the chip exposes status and RD. Explicit output-enable ports represent floating AD, upper address/status, BHE and control pins during ownership loss.
 
+HALT entry produces a single indication once the bus is idle (Intel 1979 8086 datasheet p. B-7; AP-67 p. A-39). Maximum mode drives S2:S0=011 for one clock, after which status returns passive; the 8288 derives one ALE from that passive-to-HALT transition. Minimum mode drives one ALE clock with RD, WR, DEN and INTA inactive. While halted, the indication is reissued once each time the bus is returned after HOLD/HLDA or an RQ/GT grant.
+
 Requests sampled by T2 may receive ownership at T4; later requests are handled at a subsequent idle boundary. RQ/GT0 wins simultaneous requests; a pending RQ/GT1 survives the first grant and release. Grant/release pulses occupy one clock. Two clocks separate release recognition from bus redriving. Ownership requests outrank pending INTR, cannot split INTA, locked instructions or odd words, and are honored before the reset-vector fetch when asserted at reset release. Native tests cover these rules independently of instruction vectors.
 
 ## Assumption ledger
