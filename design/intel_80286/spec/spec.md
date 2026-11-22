@@ -297,6 +297,19 @@ The 2026-11-12 PCE-286 oracle loop (see
 - ASSUMPTION A46: WAIT raises exception 7 only when MSW.MP and MSW.TS are
   both set. PCE-286 agrees; no primary-source quote for TS=1 with MP=0 was
   retrieved.
+- ASSUMPTION A47: In protected mode, a near JMP, Jcc, LOOP/LOOPZ/LOOPNZ/JCXZ,
+  CALL or RET whose target IP is beyond the CS limit raises #GP(0) at the
+  transfer instruction (saved IP = the instruction), with no register change:
+  LOOP does not decrement CX, RET does not advance SP. Intel 210498-005
+  Appendix B lists #GP(0) for an out-of-limit target under JMP (p. B-58),
+  CALL (p. B-25) and RET; it does not state the saved IP or partial effects.
+  A near CALL checks the return-address push room first (#SS(0)), matching
+  the far-CALL stack-before-IP order, then raises #GP(0) without writing the
+  stack. The check is applied only in protected mode; real-mode transfers wrap
+  within the 64 KiB segment as before (PCE-286 also checks a real-mode CS
+  limit, which differs from FFFFh only after LOADALL). PCE-286
+  (`e86_check_near_target`, `ea.c` lines 457-464; `opcodes.c` Jcc, LOOP,
+  CALL/JMP rel and r/m, RET) applies the same check before any state change.
 
 ASSUMPTION A31: Intel 210498-005 disagrees internally on an invalid
 outer-level return SS: Table 7-4 (RET table, page 7-22) lists "SF" for every

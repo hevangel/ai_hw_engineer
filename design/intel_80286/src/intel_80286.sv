@@ -2093,6 +2093,13 @@ module intel_80286 #(
                                  opcode == 8'h68 ? immediate[15:0] : opcode == 8'h6a ? {{8{immediate[7]}},immediate[7:0]} :
                                  opcode == 8'hff ? rm_value : opcode == 8'h06 ? es : opcode == 8'h0e ? cs :
                                  opcode == 8'h16 ? ss : opcode == 8'h1e ? ds : gpr[opcode[2:0]]}, PUSH_DONE);
+                            // ASSUMPTION A47: a protected near CALL whose target is
+                            // beyond the CS limit checks the return-address push
+                            // first (#SS(0)), then faults #GP(0) at the CALL without
+                            // writing the stack or changing SP (App. B CALL; PCE-286).
+                            if (near_call && msw[0] &&
+                                (opcode == 8'he8 ? ip + immediate[15:0] : rm_value) > cache_limits[31:16])
+                                memory_precheck_only <= 1'b1;
                         end
                     end else if (pop_op) begin
                         if (gpr[4] == 16'hffff) `I286_STACK_OVERRUN
@@ -2112,7 +2119,18 @@ module intel_80286 #(
                     end else if (opcode >= 8'hb8 && opcode <= 8'hbf) gpr[opcode[2:0]] <= immediate[15:0];
                     else if (opcode >= 8'hb0 && opcode <= 8'hb7)
                         gpr[{1'b0,opcode[1:0]}] <= merge_register(gpr[{1'b0,opcode[1:0]}],opcode[2],1'b0,immediate[15:0]);
-                    else if (opcode >= 8'h70 && opcode <= 8'h7f) begin
+                    else if (msw[0] &&
+                        ((((opcode >= 8'h70 && opcode <= 8'h7f) || (opcode >= 8'he0 && opcode <= 8'he3)) &&
+                          jump_taken && ip + {{8{immediate[7]}},immediate[7:0]} > cache_limits[31:16]) ||
+                         (opcode == 8'heb && ip + {{8{immediate[7]}},immediate[7:0]} > cache_limits[31:16]) ||
+                         (opcode == 8'he9 && ip + immediate[15:0] > cache_limits[31:16]) ||
+                         (opcode == 8'hff && modrm[5:3] == 4 && rm_value > cache_limits[31:16]))) begin
+                        // ASSUMPTION A47: a protected near JMP/Jcc/LOOP/JCXZ target
+                        // beyond the CS limit raises #GP(0) at the instruction;
+                        // LOOP leaves CX unchanged (App. B JMP/Jcc/LOOP; PCE-286).
+                        enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0);
+                        state<=EVENT_START; retire_o<=0;
+                    end else if (opcode >= 8'h70 && opcode <= 8'h7f) begin
                         if (jump_taken) ip <= ip + {{8{immediate[7]}},immediate[7:0]};
                     end else if (opcode >= 8'he0 && opcode <= 8'he3) begin
                         if (opcode != 8'he3) gpr[1] <= gpr[1] - 16'd1;
@@ -2713,8 +2731,14 @@ module intel_80286 #(
                     retire_o <= 1; retire_pc_o <= instruction_pc; retire_opcode_o <= opcode; state <= BOUNDARY;
                 end
                 PUSH_DONE: begin
-                    gpr[4] <= pending_sp; if (pending_call) ip <= pending_ip;
-                    retire_o <= 1; retire_pc_o <= instruction_pc; retire_opcode_o <= opcode; state <= BOUNDARY;
+                    if (pending_call && msw[0] && pending_ip > cache_limits[31:16]) begin
+                        // A47: the push room was prechecked without a write.
+                        enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0);
+                        state<=EVENT_START; retire_o<=0;
+                    end else begin
+                        gpr[4] <= pending_sp; if (pending_call) ip <= pending_ip;
+                        retire_o <= 1; retire_pc_o <= instruction_pc; retire_opcode_o <= opcode; state <= BOUNDARY;
+                    end
                 end
                 POP_DONE: begin
                     if (opcode == 8'h8f && rm_memory) begin
@@ -2728,6 +2752,11 @@ module intel_80286 #(
                         // succeeds, so a fault restarts the POP (App. B POP).
                         segment_load_target<=opcode==8'h07 ? 2'd0 : opcode==8'h17 ? 2'd2 : 2'd3;
                         state<=SEGMENT_LOAD_WAIT; retire_o<=0;
+                    end else if (near_return && msw[0] && memory_result[15:0] > cache_limits[31:16]) begin
+                        // ASSUMPTION A47: a protected near RET to an IP beyond the
+                        // CS limit raises #GP(0) without advancing SP (App. B RET).
+                        enter_event(13,instruction_ip,1'b0,1'b1,1'b1,16'd0);
+                        state<=EVENT_START; retire_o<=0;
                     end else begin
                         gpr[4] <= gpr[4]+16'd2;
                         if (near_return) begin

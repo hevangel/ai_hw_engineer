@@ -558,6 +558,13 @@
                         assert(memory_role==2 && memory_kind==1 && memory_write && memory_size==1);
                         assert(memory_offset==stack_origin-16'd16 && memory_span_delta==16'd15);
                     end
+                    // A47: a protected near CALL to an IP beyond the CS limit
+                    // checks only the return-address push room before #GP(0).
+                    PUSH_DONE: begin
+                        assert(near_call && pending_call && msw[0] && pending_ip > cache_limits[31:16] &&
+                               memory_role==2 && memory_kind==1 && memory_write && memory_size==2 &&
+                               memory_offset==pending_sp && memory_span_delta==16'd1);
+                    end
                     default: assert(1'b0);
                 endcase
             end
