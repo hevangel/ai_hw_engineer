@@ -19,20 +19,35 @@ The aggregate script requires every stage to succeed and checks explicit complet
 | Strict Verilator `--lint-only -Wall` | Complete native hierarchy passes with no RTL warnings |
 | ALU BMC / unbounded prove / cover | All pass; three reached cover goals |
 | CPU BMC / unbounded prove / cover | All pass; BMC depth 24, seven reached cover goals |
-| BIU BMC / unbounded prove / cover | All pass; BMC depth 32, eight reached cover goals |
+| BIU BMC / unbounded prove / cover | All pass; BMC depth 32, ten reached cover goals |
 | xezim / UVM | Eight boundary/control scenarios; zero errors/fatals |
-| Physical-chip corpus, direct EU | 566,721 instruction cases pass |
-| Physical-chip corpus, native minimum mode | 566,721 instruction cases pass |
-| Physical-chip corpus, native maximum mode | 566,721 instruction cases pass |
-| Directed architecture/control | 153 scenarios pass, including 128 ESC cases and four maximum-CX REP cases |
-| Directed native pins | 25 minimum/maximum-mode bus, prefetch, arbitration and reset scenarios pass |
+| Physical-chip corpus, direct EU | 646,000 instruction cases pass |
+| Physical-chip corpus, native minimum mode | 646,000 instruction cases pass |
+| Physical-chip corpus, native maximum mode | 646,000 instruction cases pass |
+| Directed architecture/control | 171 scenarios pass, including 128 ESC cases and four maximum-CX REP cases |
+| Directed native pins | 48 minimum/maximum-mode bus, prefetch, arbitration, HALT and reset scenarios pass |
 | Oracle negative controls | EU and native runners reject wrong expected IP and omitted expected writes |
 | Encoding coverage | All 361 ledger rows assigned; no unassigned documented rows |
 | Intel 1979 startup | Figure 2-63 initialization and reset far jump pass at every exact instruction boundary |
 | Original Microsoft MS-DOS 1.25 DEBUG.COM | EU and both native modes each pass 22,100 RTL instructions and 1,239 external service calls |
 | Yosys synthesis | Both tops synthesize, map and pass `check -assert` with zero structural problems |
 
-The corpus total is **1,700,163 instruction-case executions** across the three interfaces. It covers 287 nonempty selected files from all 323 upstream files. Of 646,000 supplied cases, 77,256 upstream non-normal encodings and 2,023 undocumented segment-register fields are excluded explicitly. No test is removed because the RTL fails it. The [selection summary](vector_coverage.json) retains per-file counts and exclusion totals.
+The corpus total is **1,938,000 instruction-case executions** across the three interfaces: all 646,000 supplied cases from all 323 upstream files. Since the review #286 fixes, no case is excluded. The undocumented aliases and the captured undefined forms that were previously excluded now execute as on silicon and are regression tests. No test is removed because the RTL fails it. The [selection summary](vector_coverage.json) retains per-file counts and exclusion totals.
+
+## Review #286 fixes (2026-11-21)
+
+The ten findings of the [8086 implementation review](https://github.com/hevangel/ai_hw_engineer/issues/286) are fixed one per commit:
+- undocumented encodings execute;
+- CODE prefetch is suspended through the whole of interrupt entry;
+- NMI is tracked through reset;
+- LOCK is released when a locked instruction ends without retiring;
+- HALT entry gives a single indication;
+- division is iterative;
+- the STI/IRET and segment-load shadows cover a following REP string;
+- an NMI edge in the accepting clock is kept;
+- the INTR decision is latched once REP, WAIT or HLT yields.
+
+Assumptions A7–A9 in the [specification](../spec/spec.md) record the three choices that the 1979 manual does not settle. Directed tests for the escaped defects fail on the previous source; see the [post-mortem](../../../../failure_notes/2026-11-21-intel8086-review-interrupt-edges.md). The complete `run_all.sh` passed on the rebased branch on 2026-11-21 with `hevangel/ai-hw-engineer:latest` (Verilator 5.054, Yosys 0.71), with the counts in the table above. So did the 8088 member's `run_all.sh`, which shares this execution unit.
 
 ## Current historical-software rerun
 
