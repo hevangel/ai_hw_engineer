@@ -26,6 +26,10 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-11-22 - 8088 SS0 status pin driven inverted](2026-11-22-intel8088-ss0-inverted.md)
+  An external review's T2 pin samples showed SS0 at the opposite level to the
+  data sheet in every cycle type and toggling in maximum mode; the RTL, spec,
+  bench, scoreboard and formal covers all checked the RTL's own formula.
 - [2026-11-21 - 8086 review: prefetch in interrupt entry, NMI at reset, shadows in REP](2026-11-21-intel8086-review-interrupt-edges.md)
   An external review's pin-level probes found CODE prefetch during interrupt
   entry with a partly empty queue, a spurious NMI from a line held high
