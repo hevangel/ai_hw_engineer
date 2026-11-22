@@ -26,6 +26,9 @@ public:
     uint32_t first_fetch_address=0,fetch_address=0;
     uint8_t first_fetch_byte=0,fetch_byte=0;
     unsigned qs_seen=0;
+    unsigned halt_indications=0, trio_seen=0;
+    bool halt_trio_seen=false;
+    bool halt_previous=false;
     uint32_t address=0;
     uint8_t status=7,external_rqgt=3;
     bool min_mode=true,random_wait=true;
@@ -66,7 +69,6 @@ public:
                 require(bool(dut.ad_oe_o)==writing,"native data direction");
                 require(bool(dut.rd_n_o)==(writing || status==0),"native RD phase");
                 require(dut.io_m_o==(status==0 || status==1 || status==2),"IO/M polarity");
-                if(min_mode)require(dut.sso_n_o==!(dut.status_o&1),"SS0 mirrors status bit 0");
                 if(min_mode){
                     require(!dut.den_n_o && bool(dut.wr_n_o)==!writing && bool(dut.inta_n_o)==(status!=0),"minimum control phase");
                 }
@@ -79,7 +81,32 @@ public:
                 require(bool(dut.ad_oe_o)==(status==2 || status==6),"T4 write-data hold");
                 if(min_mode)require(!dut.den_n_o,"T4 data-enable hold");
             }
-            require(bool(dut.ale_o)==(min_mode && phase==1 && dut.control_oe_o),"ALE timing/mode");
+            // HALT entry: one IDLE clock of S2:S0=011; in minimum mode one
+            // ALE follows a clock later (8088 data sheet p. B-32).
+            const bool halt_pulse=phase==0 && dut.control_oe_o && dut.status_o==3;
+            if(halt_pulse){
+                require(dut.halted_o && dut.rd_n_o && dut.wr_n_o && dut.den_n_o && dut.inta_n_o,"HALT indication with bus strobes");
+                require(!halt_previous,"HALT status longer than one clock");
+                ++halt_indications;
+            }
+            require(bool(dut.ale_o)==(min_mode && dut.control_oe_o && (phase==1 || halt_previous)),"ALE timing/mode");
+            halt_previous=halt_pulse;
+            // {IO/M, DT/R, SS0} from the data sheet table (p. B-33), as literals:
+            // T2 of each cycle type, PASSIVE 011 and HALT 111 when idle;
+            // pin 34 is always high in maximum mode (p. B-34).
+            if(!min_mode && dut.control_oe_o) require(dut.ss0_o,"pin 34 not high in maximum mode");
+            if(min_mode && dut.control_oe_o){
+                const unsigned trio=(unsigned(dut.io_m_o)<<2)|(unsigned(dut.dt_r_o)<<1)|unsigned(dut.ss0_o);
+                static const unsigned table[8]={4,5,6,99,0,1,2,99};
+                if(phase==2){
+                    require(trio==table[status&7],"IO/M DT/R SS0="+std::to_string(trio)+" for status "+std::to_string(status)+" differs from the data sheet");
+                    trio_seen|=1u<<status;
+                }
+                if(phase==0){
+                    require(trio==(dut.halted_o ? 7u:3u),"idle IO/M DT/R SS0="+std::to_string(trio)+" is not PASSIVE/HALT");
+                    if(dut.halted_o)halt_trio_seen=true;
+                }
+            }
             if(!min_mode) require(dut.wr_n_o && dut.den_n_o && dut.inta_n_o,"minimum controls active in maximum mode");
         }
         const auto write_data=dut.ad_o;
@@ -118,6 +145,7 @@ public:
         cycles=0;acknowledgements=waits=code_reads=write_count=grant0=grant1=qs_seen=0;
         writes.clear();ordered_writes.clear();saw_fetch=false;
         vector_mode=false;vector_instruction_done=false;fixture_code.clear();
+        halt_indications=0;halt_previous=false;trio_seen=0;halt_trio_seen=false;
         external_rqgt=3;dut.intr_i=0;dut.nmi_i=0;dut.hold_i=0;dut.test_n_i=0;
         dut.min_mode_i=min_mode;dut.reset_i=1;tick();tick();dut.reset_i=0;
     }
@@ -279,6 +307,42 @@ static void native_tests(Bench &b){
     b.tick();b.tick();b.external_rqgt=2;b.tick();b.external_rqgt=3;
     for(unsigned i=0;i<200 && b.grant1==0;++i)b.tick();
     require(b.grant1==1,"pending lower-priority RQ/GT lost");++cases;
+    // Minimum-mode status decode: all six bus cycle types and HALT are seen
+    // with the data sheet's IO/M, DT/R, SS0 levels (review #288 finding 1).
+    b.min_mode=true;
+    b.boot({0xbc,0x00,0x80,0xa1,0x00,0x10,0xa3,0x02,0x10,0xe4,0x10,0xe6,0x10,0xfb,0xf4});
+    b.set(0x80,0);b.set(0x81,4);b.set(0x82,0);b.set(0x83,0);b.set(0x400,0xf4);
+    b.step(3);b.step(6);b.step(9);b.step(11);b.step(13);b.step(14);b.step(15);
+    for(unsigned i=0;i<50;++i)b.tick();
+    require(b.dut.halted_o && b.halt_trio_seen,"HALT decode 111 not observed while halted");
+    b.dut.intr_i=1;
+    for(unsigned i=0;i<2000 && b.acknowledgements<2;++i)b.tick();
+    b.dut.intr_i=0;
+    for(unsigned i=0;i<2000 && !(b.dut.halted_o && b.dut.ip_o==0x401);++i)b.tick();
+    require(b.dut.halted_o && b.dut.ip_o==0x401,"status-decode interrupt handler did not halt");
+    require(b.trio_seen==0x77,"cycle types seen with checked decode="+std::to_string(b.trio_seen));
+    ++cases;
+    // HLT entry issues exactly one HALT indication and reissues it when the
+    // bus is returned after HOLD/HLDA or RQ/GT while still halted.
+    for(bool mode:{true,false}){
+        b.min_mode=mode;
+        b.boot({0x90,0xf4});b.step(1);
+        b.halt_indications=0;b.step(2);
+        for(unsigned i=0;i<200;++i)b.tick();
+        require(b.dut.halted_o && b.halt_indications==1,"HALT indications on entry="+std::to_string(b.halt_indications));
+        if(mode)b.dut.hold_i=1;else b.external_rqgt=2;
+        b.tick();if(!mode)b.external_rqgt=3;
+        for(unsigned i=0;i<100 && b.dut.control_oe_o;++i)b.tick();
+        require(!b.dut.control_oe_o,"halted CPU did not grant the bus");
+        for(unsigned i=0;i<20;++i)b.tick();
+        require(b.halt_indications==1,"HALT indication while bus granted");
+        if(mode)b.dut.hold_i=0;else b.external_rqgt=2;
+        b.tick();b.external_rqgt=3;
+        for(unsigned i=0;i<100 && !b.dut.control_oe_o;++i)b.tick();
+        for(unsigned i=0;i<200;++i)b.tick();
+        require(b.dut.halted_o && b.halt_indications==2,"HALT indications after bus return="+std::to_string(b.halt_indications));
+        ++cases;
+    }
     std::cout<<"PASS: "<<cases<<" native minimum/maximum-mode byte-bus, prefetch, arbitration and reset scenarios\n";
 }
 int main(int argc,char **argv){

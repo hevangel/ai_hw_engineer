@@ -26,11 +26,16 @@ public:
     uint32_t first_fetch_address=0,fetch_address=0;
     uint8_t first_fetch_byte=0,fetch_byte=0;
     unsigned qs_seen=0;
+    unsigned halt_indications=0;
+    bool halt_previous=false;
     uint32_t address=0;
     uint8_t lanes=0,status=7,external_rqgt=3;
     bool min_mode=true,random_wait=true;
     bool ready_at_t2=true;
     bool vector_mode=false,vector_instruction_done=false;
+    bool record_cycles=false;
+    std::vector<std::pair<uint8_t,uint32_t>> bus_log;
+    std::vector<bool> bus_lock_n;
     std::unordered_map<uint32_t,uint8_t> fixture_code;
     void set(uint32_t a,uint8_t v){a&=0xfffff;memory[a]=v;touched.push_back(a);}
     bool request(){return dut.rootp->intel_8086_chip__DOT__req;}
@@ -76,7 +81,16 @@ public:
                 require(bool(dut.ad_oe_o)==(status==2 || status==6),"T4 write-data hold");
                 if(min_mode)require(!dut.den_n_o,"T4 data-enable hold");
             }
-            require(bool(dut.ale_o)==(min_mode && phase==1 && dut.control_oe_o),"ALE timing/mode");
+            // HALT entry: one IDLE clock of S2:S0=011 and, in minimum mode,
+            // one ALE with no qualifying strobes (Intel 1979 p. B-7).
+            const bool halt_pulse=phase==0 && dut.control_oe_o && dut.status_o==3;
+            if(halt_pulse){
+                require(dut.halted_o && dut.rd_n_o && dut.wr_n_o && dut.den_n_o && dut.inta_n_o,"HALT indication with bus strobes");
+                require(!halt_previous,"HALT status longer than one clock");
+                ++halt_indications;
+            }
+            halt_previous=halt_pulse;
+            require(bool(dut.ale_o)==(min_mode && dut.control_oe_o && (phase==1 || halt_pulse)),"ALE timing/mode");
             if(!min_mode) require(dut.wr_n_o && dut.den_n_o && dut.inta_n_o,"minimum controls active in maximum mode");
         }
         const auto write_data=dut.ad_o;
@@ -93,6 +107,7 @@ public:
         if(dut.rqgt_oe_o&1)++grant0;
         if(dut.rqgt_oe_o&2)++grant1;
         if(!dut.reset_i && (phase==3 || phase==4) && dut.phase_o==5){
+            if(record_cycles){bus_log.emplace_back(status,address);bus_lock_n.push_back(dut.lock_n_o);}
             if(status==4){require(acknowledgements!=1,"CODE cycle split interrupt acknowledges");++code_reads;}
             if(status==0)++acknowledgements;
             if(status==2 || status==6){
@@ -112,6 +127,7 @@ public:
         cycles=0;acknowledgements=waits=code_reads=write_count=grant0=grant1=qs_seen=0;
         writes.clear();ordered_writes.clear();saw_fetch=false;
         vector_mode=false;vector_instruction_done=false;fixture_code.clear();
+        record_cycles=false;bus_log.clear();bus_lock_n.clear();halt_indications=0;halt_previous=false;
         external_rqgt=3;dut.intr_i=0;dut.nmi_i=0;dut.hold_i=0;dut.test_n_i=0;
         dut.min_mode_i=min_mode;dut.reset_i=1;tick();tick();dut.reset_i=0;
     }
@@ -241,6 +257,203 @@ static void native_tests(Bench &b){
     b.tick();b.tick();b.external_rqgt=2;b.tick();b.external_rqgt=3;
     for(unsigned i=0;i<100 && b.grant1==0;++i)b.tick();
     require(b.grant1==1,"pending lower-priority RQ/GT lost");++cases;
+    // Undocumented POP CS (0Fh), MOV CS (8Eh /1 and /5), and LOCK alias F1h.
+    for(bool mode:{true,false}){
+        b.min_mode=mode;
+        // POP CS redirects BIU and enforces 1-instruction interrupt shadow.
+        b.boot({0xbc,0,0x80,0xfb,0x0f,0xf4});
+        b.set(0x8000,0x00);b.set(0x8001,0x20);
+        b.set(0x80,0x00);b.set(0x81,0x04);b.set(0x82,0x00);b.set(0x83,0x00);
+        b.set(0x400,0xcf);
+        b.set(0x20005,0x90);b.set(0x20006,0xf4);
+        b.step(3);b.dut.intr_i=1;b.step(4);
+        b.retire();require(b.read()[9]==0x2000 && b.dut.ip_o==5,"native POP CS CS:IP");
+        b.retire();require(!b.dut.halted_o && b.read()[9]==0x2000 && b.dut.ip_o==6,"native POP CS shadow/redirect");
+        for(unsigned i=0;i<1000 && !(b.read()[9]==0 && b.dut.ip_o==0x400);++i)b.tick();
+        require(b.acknowledgements==2 && b.read()[4]==0x7ffc && b.memory[0x7ffc]==6 &&
+            b.memory[0x7ffe]==0x00 && b.memory[0x7fff]==0x20,"native POP CS delayed IRQ");
+        b.dut.intr_i=0;b.step(6);b.step(7);require(b.dut.halted_o,"native POP CS HLT");++cases;
+        // MOV CS (/1 and /5) register and memory forms redirect BIU and hold shadow.
+        for(uint8_t modrm:{0xc8,0xe8}){
+            b.boot({0xbc,0,0x80,0xb8,0x00,0x20,0xfb,0x8e,modrm,0xf4});
+            b.set(0x80,0x00);b.set(0x81,0x04);b.set(0x82,0x00);b.set(0x83,0x00);
+            b.set(0x400,0xcf);
+            b.set(0x20009,0x90);b.set(0x2000a,0xf4);
+            b.step(3);b.step(6);b.dut.intr_i=1;b.step(7);b.retire();
+            require(b.read()[9]==0x2000 && b.dut.ip_o==9,"native MOV CS reg CS:IP");
+            b.retire();require(!b.dut.halted_o && b.read()[9]==0x2000 && b.dut.ip_o==10,"native MOV CS reg redirect");
+            for(unsigned i=0;i<1000 && !(b.read()[9]==0 && b.dut.ip_o==0x400);++i)b.tick();
+            require(b.acknowledgements==2 && b.read()[4]==0x7ffa && b.memory[0x7ffa]==10 &&
+                b.memory[0x7ffc]==0x00 && b.memory[0x7ffd]==0x20,"native MOV CS reg delayed IRQ");
+            b.dut.intr_i=0;b.step(10);b.step(11);require(b.dut.halted_o,"native MOV CS HLT");++cases;
+        }
+        b.boot({0x8e,0x0e,0x00,0x20,0xf4});b.set(0x02000,0x00);b.set(0x02001,0x20);
+        b.set(0x20004,0x90);b.set(0x20005,0xf4);
+        b.retire();require(b.read()[9]==0x2000 && b.dut.ip_o==4,"native MOV CS mem CS:IP");
+        b.retire();require(!b.dut.halted_o && b.read()[9]==0x2000 && b.dut.ip_o==5,"native MOV CS mem redirect");
+        b.step(6);require(b.dut.halted_o,"native MOV CS mem HLT");++cases;
+        // F1h LOCK alias blocks HOLD/RQ-GT across read-modify-write.
+        b.boot({0xf1,0xff,0x06,0,0x20,0x90,0xf4});
+        for(unsigned i=0;i<500 && !(b.dut.phase_o==2 && b.status==5);++i)b.tick();
+        if(!mode)require(!b.dut.lock_n_o,"F1 LOCK# not asserted");
+        if(mode)b.dut.hold_i=1;else b.external_rqgt=2;
+        for(unsigned i=0;i<500 && !b.dut.retire_o;++i){b.tick();require(mode ? !b.dut.hlda_o:b.grant0==0,"native grant split F1 LOCK");}
+        require(b.memory[0x2000]==1,"native F1 locked INC");
+        if(!mode)b.external_rqgt=3;
+        for(unsigned i=0;i<100 && b.dut.control_oe_o;++i)b.tick();
+        require(!b.dut.control_oe_o && (mode ? b.dut.hlda_o:b.grant0==1),"native F1 arbitration grant");
+        for(unsigned i=0;i<20;++i){b.tick();require(!b.dut.ad_oe_o,"F1 bus driven while granted");}
+        if(mode)b.dut.hold_i=0;else b.external_rqgt=2;
+        b.tick();b.external_rqgt=3;
+        for(unsigned i=0;i<100 && !b.dut.control_oe_o;++i)b.tick();
+        require(b.dut.control_oe_o,"native F1 arbitration release");++cases;
+    }
+    // Prefetch must stay suspended across interrupt entry even when the queue is refilling after a jump.
+    for(bool mode:{true,false}){
+        b.min_mode=mode;
+        b.random_wait=false;
+        for(unsigned delay:{0u,2u,4u,6u}){
+            b.boot({0xbc,0x00,0x80,0xfb,0xeb,0xfe});
+            b.set(0x80,0x00);b.set(0x81,0x04);b.set(0x82,0x00);b.set(0x83,0x00);
+            b.set(0x400,0xf4);
+            b.step(3);b.step(4);
+            b.record_cycles=true;b.bus_log.clear();
+            for(unsigned d=0;d<delay;++d)b.tick();
+            b.dut.intr_i=1;
+            for(unsigned i=0;i<500 && !b.dut.halted_o;++i)b.tick();
+            require(b.dut.halted_o && b.dut.ip_o==0x401,"post-jump INTR handler did not halt");
+            bool in_entry=false,saw_handler=false;
+            for(auto [st,addr]:b.bus_log){
+                if(st==0)in_entry=true;
+                if(!in_entry)continue;
+                if(st==4 && addr>=0x400 && addr<0x410){saw_handler=true;break;}
+                require(st!=4,"abandoned CODE fetch during INTR entry at addr="+std::to_string(addr));
+            }
+            require(saw_handler,"missing INTR handler fetch");
+        }
+        ++cases;
+        for(unsigned delay:{0u,2u,4u,6u}){
+            b.boot({0xbc,0x00,0x80,0xeb,0xfe});
+            b.set(0x08,0x10);b.set(0x09,0x04);b.set(0x0a,0x00);b.set(0x0b,0x00);
+            b.set(0x410,0xf4);
+            b.step(3);
+            b.record_cycles=true;b.bus_log.clear();
+            for(unsigned d=0;d<delay;++d)b.tick();
+            b.dut.nmi_i=1;
+            for(unsigned i=0;i<500 && !b.dut.halted_o;++i)b.tick();
+            require(b.dut.halted_o && b.dut.ip_o==0x411,"post-jump NMI handler did not halt");
+            bool in_entry=false,saw_handler=false;
+            for(auto [st,addr]:b.bus_log){
+                if(st==5 && addr==0x0008)in_entry=true;
+                if(!in_entry)continue;
+                if(st==4 && addr>=0x410 && addr<0x420){saw_handler=true;break;}
+                require(st!=4,"abandoned CODE fetch during NMI entry at addr="+std::to_string(addr));
+            }
+            require(saw_handler,"missing NMI handler fetch");
+        }
+        ++cases;
+        b.boot({0xbc,0x00,0x80,0xeb,0x00,0xcd,0x21});
+        b.set(0x84,0x20);b.set(0x85,0x04);b.set(0x86,0x00);b.set(0x87,0x00);
+        b.set(0x420,0xf4);
+        b.step(3);b.step(5);
+        b.record_cycles=true;b.bus_log.clear();
+        for(unsigned i=0;i<500 && !b.dut.halted_o;++i)b.tick();
+        require(b.dut.halted_o && b.dut.ip_o==0x421,"post-jump INT 21h handler did not halt");
+        bool in_entry=false,saw_handler=false;
+        for(auto [st,addr]:b.bus_log){
+            if(st==5 && addr==0x0084)in_entry=true;
+            if(!in_entry)continue;
+            if(st==4 && addr>=0x420 && addr<0x430){saw_handler=true;break;}
+            require(st!=4,"abandoned CODE fetch during INT 21h entry at addr="+std::to_string(addr));
+        }
+        require(saw_handler,"missing INT 21h handler fetch");++cases;
+        b.random_wait=true;
+    }
+    // NMI held high across reset release must not trigger a spurious edge;
+    // a subsequent 0->1 rising edge wakes HLT into vector 2.
+    for(bool mode:{true,false}){
+        b.min_mode=mode;
+        b.reset();
+        const uint8_t jump[]={0xea,0x00,0x00,0x00,0x10};
+        for(unsigned i=0;i<5;++i)b.set(0xffff0+i,jump[i]);
+        const uint8_t prog[]={0xbc,0x00,0x80,0xf4,0x90,0xf4};
+        for(unsigned i=0;i<6;++i)b.set(0x10000+i,prog[i]);
+        b.set(0x08,0x20);b.set(0x09,0x04);b.set(0x0a,0x00);b.set(0x0b,0x00);
+        b.set(0x420,0x43);b.set(0x421,0xcf);
+        b.dut.nmi_i=1;b.dut.reset_i=1;b.tick();b.tick();b.dut.reset_i=0;
+        for(unsigned i=0;i<600 && !b.dut.halted_o;++i)b.tick();
+        require(b.dut.halted_o && b.read()[9]==0x1000 && b.dut.ip_o==4 &&
+            b.read()[3]==0 && b.writes.empty(),"spurious NMI on reset release");
+        b.dut.nmi_i=0;for(unsigned i=0;i<4;++i)b.tick();
+        b.dut.nmi_i=1;b.step(0x421);
+        require(b.read()[9]==0 && b.read()[4]==0x7ffa && b.memory[0x7ffa]==4 &&
+            b.memory[0x7ffc]==0x00 && b.memory[0x7ffd]==0x10,"post-reset NMI edge stack");
+        b.dut.nmi_i=0;b.step(4);b.step(5);b.step(6);
+        require(b.dut.halted_o && b.read()[3]==1,"post-NMI re-halt");++cases;
+    }
+    // Interrupting LOCK REP or LOCK WAIT in maximum mode must release LOCK# before vector/stack entry.
+    b.min_mode=false;
+    for(bool use_nmi:{false,true}){
+        // NOP after STI so the STI shadow (assumption A7) does not cover the string.
+        b.boot({0xbc,0x00,0x80,0xb9,0x00,0x10,0xbe,0x00,0x20,0xbf,0x00,0x30,0xfb,0x90,0xf0,0xf3,0xa4,0xf4});
+        b.set(0x80,0x00);b.set(0x81,0x04);b.set(0x82,0x00);b.set(0x83,0x00);
+        b.set(0x08,0x10);b.set(0x09,0x04);b.set(0x0a,0x00);b.set(0x0b,0x00);
+        b.set(0x400,0xf4);b.set(0x410,0xf4);
+        b.record_cycles=true;b.bus_log.clear();b.bus_lock_n.clear();
+        for(unsigned i=0;i<500 && b.write_count==0;++i)b.tick();
+        require(b.write_count>0 && !b.dut.lock_n_o,"native LOCK REP did not drive LOCK#");
+        if(use_nmi)b.dut.nmi_i=1;else b.dut.intr_i=1;
+        for(unsigned i=0;i<1000 && !b.dut.halted_o;++i)b.tick();
+        require(b.dut.halted_o && b.dut.ip_o==(use_nmi ? 0x411:0x401),"LOCK REP interrupt handler did not halt");
+        unsigned vec_reads=0,stack_writes=0;
+        for(size_t i=0;i<b.bus_log.size();++i){
+            auto [st,addr]=b.bus_log[i];
+            if(st==5 && addr<(use_nmi ? 0x10u:0x100u)){require(b.bus_lock_n[i],"LOCK# still low during interrupt vector read");++vec_reads;}
+            if(st==6 && addr>=0x7ff0 && addr<0x8000){require(b.bus_lock_n[i],"LOCK# still low during interrupt stack push");++stack_writes;}
+        }
+        require(vec_reads==2 && stack_writes==3,"missing LOCK REP interrupt vector/stack cycles");++cases;
+    }
+    b.boot({0xbc,0x00,0x80,0xfb,0xf0,0x9b,0xf4});
+    b.set(0x80,0x00);b.set(0x81,0x04);b.set(0x82,0x00);b.set(0x83,0x00);
+    b.set(0x400,0xf4);
+    b.step(3);b.step(4);b.dut.test_n_i=1;
+    for(unsigned i=0;i<30;++i)b.tick();
+    require(!b.dut.lock_n_o,"native LOCK WAIT did not drive LOCK#");
+    b.record_cycles=true;b.bus_log.clear();b.bus_lock_n.clear();
+    b.dut.intr_i=1;
+    for(unsigned i=0;i<1000 && !b.dut.halted_o;++i)b.tick();
+    require(b.dut.halted_o && b.dut.ip_o==0x401,"LOCK WAIT interrupt handler did not halt");
+    unsigned wait_vec=0,wait_stack=0;
+    for(size_t i=0;i<b.bus_log.size();++i){
+        auto [st,addr]=b.bus_log[i];
+        if(st==5 && addr>=0x80 && addr<0x84){require(b.bus_lock_n[i],"LOCK# still low during WAIT vector read");++wait_vec;}
+        if(st==6 && addr>=0x7ff0 && addr<0x8000){require(b.bus_lock_n[i],"LOCK# still low during WAIT stack push");++wait_stack;}
+    }
+    require(wait_vec==2 && wait_stack==3,"missing LOCK WAIT interrupt vector/stack cycles");++cases;
+    // HLT entry issues exactly one HALT indication (max: S2:S0=011 for one
+    // clock; min: one ALE without strobes) and reissues it when the bus is
+    // returned after HOLD/HLDA or RQ/GT while still halted.
+    for(bool mode:{true,false}){
+        b.min_mode=mode;
+        b.boot({0x90,0xf4});b.step(1);
+        b.halt_indications=0;b.step(2);
+        for(unsigned i=0;i<200;++i)b.tick();
+        require(b.dut.halted_o && b.halt_indications==1,
+            "HALT indications on entry="+std::to_string(b.halt_indications));
+        if(mode)b.dut.hold_i=1;else b.external_rqgt=2;
+        b.tick();if(!mode)b.external_rqgt=3;
+        for(unsigned i=0;i<100 && b.dut.control_oe_o;++i)b.tick();
+        require(!b.dut.control_oe_o,"halted CPU did not grant the bus");
+        for(unsigned i=0;i<20;++i)b.tick();
+        require(b.halt_indications==1,"HALT indication while bus granted");
+        if(mode)b.dut.hold_i=0;else b.external_rqgt=2;
+        b.tick();b.external_rqgt=3;
+        for(unsigned i=0;i<100 && !b.dut.control_oe_o;++i)b.tick();
+        for(unsigned i=0;i<200;++i)b.tick();
+        require(b.dut.halted_o && b.halt_indications==2,
+            "HALT indications after bus return="+std::to_string(b.halt_indications));
+        ++cases;
+    }
     std::cout<<"PASS: "<<cases<<" native minimum/maximum-mode bus, prefetch, arbitration and reset scenarios\n";
 }
 int main(int argc,char **argv){

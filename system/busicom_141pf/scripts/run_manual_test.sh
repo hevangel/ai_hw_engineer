@@ -1,11 +1,11 @@
 #!/bin/sh
 # Run the scanned manual's JSON examples without opening a browser.
-# BUSICOM_BACKEND=xezim (default) or verilator; remaining args go to replay_manual.py.
+# BUSICOM_BACKEND=verilator (default) or xezim; remaining args go to replay_manual.py.
 set -eu
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 SYSTEM_DIR=$(dirname "$SCRIPT_DIR")
 export BUSICOM_PORT="${BUSICOM_PORT:-18097}"
-WORK_DIR="$SYSTEM_DIR/work/manual-${BUSICOM_BACKEND:-xezim}-$BUSICOM_PORT"
+WORK_DIR="$SYSTEM_DIR/work/manual-${BUSICOM_BACKEND:-verilator}-$BUSICOM_PORT"
 mkdir -p "$WORK_DIR"
 # Refuse to send replay events to a pre-existing server on the test port.
 python3 -c 'import os,socket; s=socket.socket(); s.bind(("127.0.0.1",int(os.environ["BUSICOM_PORT"]))); s.close()'

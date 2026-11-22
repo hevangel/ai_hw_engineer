@@ -7,7 +7,7 @@
 | `ibm_s360_alu.sby` | The arithmetic unit implements the condition-code and overflow rules of A22-6821-7 pp. 27-30 and 53-55. | `bmc` and `cover`, depth 1, `smtbmc` + z3 | **Exhaustive**: the design is combinational, so one step covers all operand pairs and all eight selectors. |
 | `ibm_s360_addr.sby` | The address adder computes `B + X + D` in 24 bits with zero-field suppression and wrap. | same | **Exhaustive** for the same reason. |
 | `ibm_s360_psw.sby` | Field writes are isolated (address, ILC, CC, program mask, system mask); a whole-word load replaces every bit except the interruption code and ILC; the cycle that leaves reset clears all fields except the address. | `bmc` depth 8, `prove` depth 8 (induction), `cover` depth 12 | Proof by induction over the register state; unbounded in time. |
-| `ibm_s360_cpu.sby` | The retirement contract (address advances by the fetched length or to the branch address, ILC matches, registers change only on retirement) **and** the program-check contract (a suppressed instruction does not retire, leaves CC unchanged, stores an old PSW with the updated address and the code in bits 16-31; interruption entry never coincides with retirement and clears the code/ILC fields; no fetch in the wait state). | `bmc` depth 12, `cover` depth 20, `smtbmc` yices | Bounded to 12 cycles — reset plus one complete instruction and its interruption sequence for the 2- and 4-byte formats. **Not** an instruction-level equivalence proof. |
+| `ibm_s360_cpu.sby` | The retirement contract (address advances by the fetched length or to the branch address, ILC matches, registers change only on retirement or a pair write) **and** the interruption contract: every raise — suppressed program check, divide exception, supervisor call, completed overflow — enters the interruption sequence with the cause in PSW bits 16-31 and the updated instruction address; suppressions and divide exceptions leave the condition code alone; entry never coincides with retirement and clears the code/ILC fields; no fetch in the wait state. | `bmc` depth 12, `smtbmc yices` (≈ 416 s). A `cover` task is defined in the `.sby` but not run by default (see below). | Bounded to 12 cycles — reset plus one complete instruction and its interruption sequence for the 2- and 4-byte formats. **Not** an instruction-level equivalence proof. |
 
 ## Why these formulations
 
@@ -52,8 +52,10 @@ Every job defines covers, and all covers must be reachable:
 - PSW: all field strobes at once, a nonzero whole-word load, program mask 0xF,
   problem and wait state, CC 3.
 - Core: operation exception (1), specification (6), `LPSW`/`SSM`/`SPM`
-  retirement, a load with a nonzero address, interruption pending, overflow
-  flag, wait state, check-state reach.
+  retirement, `LH`/`STH`/`MH`/`SLA`/`SRDA` retirement, interruption pending,
+  overflow flag, wait state, check-state reach. **These are not in the default
+  flow** (see the budget note below); they remain available through
+  `sby ... ibm_s360_cpu.sby cover`.
 
 Covers deliberately **not** claimed, with the reason:
 
@@ -61,6 +63,8 @@ Covers deliberately **not** claimed, with the reason:
 |---|---|
 | Privileged operation (2) | needs a `LPSW` into problem state before the privileged instruction; the cover proof at depth 28 did not converge in a 10-minute budget. Exercised by simulation test 6; the suppression property that would carry code 2 is proven for the cases BMC reaches. |
 | Fixed-point overflow (8) | needs an `SPM` (or masked `LPSW`) before the overflowing operation; same budget limit. Exercised by simulation test 7. |
+| Divide exception (9), supervisor call | need two instructions (a `LOAD`/`LA` to set up the operands, then the operation) beyond the cover budget; exercised by simulation tests 11 and 13. |
+| Core cover job as a whole | since M3 the formal model contains a 64-bit signed divider and two variable shifts; at depth 12 the seven remaining covers exceeded a twelve-minute budget with both z3 and yices. The job is therefore kept out of the default flow and its results are not claimed. Non-vacuity for every M3 instruction comes from the directed simulation tests 9-14, which execute each operation and check its architectural result. |
 | Two-instruction prefixes in general | the core job is a bounded proof; longer prefixes are simulation territory until an abstraction exists. |
 
 ## Defects the formal work found

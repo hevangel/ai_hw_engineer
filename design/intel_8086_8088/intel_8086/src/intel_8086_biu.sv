@@ -72,6 +72,7 @@ module intel_8086_biu (
   logic [1:0] pending, rqgt_previous, grant_pulse, release_delay;
   logic held, owner;
   logic request_hold, request_grant, release_request;
+  logic halt_announced, halt_indicate;
   integer index;
   function automatic logic [2:0] advance(input logic [2:0] pointer, input logic [1:0] amount);
     logic [3:0] sum;
@@ -113,7 +114,14 @@ module intel_8086_biu (
   assign m_io_o = !cycle_io && !cycle_intack;
   assign dt_r_o = cycle_write;
   assign den_n_o = !(owned && min_mode_i && (data_phase || phase == T4));
-  assign ale_o = owned && min_mode_i && phase == T1;
+  // HALT entry (Intel 1979 8086 datasheet p. B-7; AP-67 p. A-39): minimum
+  // mode issues one ALE with no qualifying bus strobes; maximum mode drives
+  // a one-clock passive-to-HALT status (S2:S0=011) so the 8288 issues one
+  // ALE. The indication is reissued when the bus returns after HOLD/RQ-GT.
+  assign halt_indicate = owned && phase == IDLE && halted_i && !halt_announced && !flush_i &&
+      !(eu_req_i && !eu_fetch_i) &&
+      ((!request_hold && !request_grant) || lock_i || lock_delayed || inhibit_i);
+  assign ale_o = owned && min_mode_i && (phase == T1 || halt_indicate);
   assign inta_n_o = !(owned && min_mode_i && data_phase && cycle_intack);
   assign lock_n_o = !(rst_n && !min_mode_i && lock_delayed);
   always_comb begin
@@ -126,7 +134,7 @@ module intel_8086_biu (
       else if (cycle_io) status_o = cycle_write ? 3'b010 : 3'b001;
       else if (cycle_prefetch) status_o = 3'b100;
       else status_o = cycle_write ? 3'b110 : 3'b101;
-    end else if (owned && phase == IDLE && halted_i) status_o = 3'b011;
+    end else if (halt_indicate) status_o = 3'b011;
   end
   always_ff @(posedge clk) begin
     qs_o <= 0;
@@ -160,8 +168,11 @@ module intel_8086_biu (
       owner <= 0;
       release_delay <= 0;
       lock_delayed <= 0;
+      halt_announced <= 0;
       for (index = 0; index < 6; index = index + 1) queue[index] <= 0;
     end else begin
+      if (!halted_i || !owned) halt_announced <= 0;
+      else if (halt_indicate) halt_announced <= 1;
       if (!min_mode_i) begin
         for (index = 0; index < 2; index = index + 1)
         if(rqgt_previous[index] && !rqgt_n_i[index] && !grant_pulse[index] &&
@@ -287,7 +298,13 @@ module intel_8086_biu (
       if (eu_ready_o && eu_fetch_i) assert (count != 0 && !flush_i);
       if (redirects_during_fetch != 0) assert (!prefetch_finish);
       assert (!(grant_pulse[0] && grant_pulse[1]));
+      // HALT status/ALE is a single-clock indication with no bus strobes.
+      if ($past(status_o == 3'b011)) assert (status_o != 3'b011);
+      if (status_o == 3'b011) assert (phase == IDLE && rd_n_o && wr_n_o && den_n_o && inta_n_o);
+      if (ale_o && phase != T1) assert (min_mode_i && status_o == 3'b011 && phase == IDLE);
     end
+    cover (past_valid && status_o == 3'b011);
+    cover (past_valid && min_mode_i && ale_o && phase == IDLE);
     cover (past_valid && phase == TW);
     cover (past_valid && count == 6);
     cover (past_valid && queue_pop && prefetch_finish);

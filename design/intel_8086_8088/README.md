@@ -5,7 +5,7 @@ Two canonical chip issues, each with its own public timeline card. This folder g
 | Chip | Canonical issue | Implementation / sourced history |
 | --- | --- | --- |
 | Intel 8086 (1978) | [#22](https://github.com/hevangel/ai_engineer/issues/22) | [intel_8086](intel_8086/README.md) |
-| Intel 8088 (1979) | [#271](https://github.com/hevangel/ai_engineer/issues/271) | Planned at `intel_8088/`; no tracked implementation found |
+| Intel 8088 (1979) | [#271](https://github.com/hevangel/ai_engineer/issues/271) | [intel_8088](intel_8088/README.md): the shared 8086 execution unit behind a native four-byte byte-fetch BIU |
 
 The two issues were one family tracker (#22 with sub-issues #270 and #271) until the 2026-11-03 split. The IBM PC 5150 and XT 5160 are gated by the 8088 issue; the IBM PS/2 Model 30 by the 8086 issue.
 
