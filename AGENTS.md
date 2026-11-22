@@ -410,6 +410,11 @@ reference model cannot catch shared misreadings (see
   the 286 from fields marked unused or required zero only for compatibility
   with later processors. Do not turn a compatibility note into a 286 fault
   rule; test ignored fields with a nonzero value and check the exact transfer.
+- **286 manual advice versus processor checks**: text that tells the system
+  programmer what to do ("should", "must use a task gate") is not a fault
+  condition unless Intel 210498-005 Appendix B lists the check. Model the
+  Appendix B list, and when spec, RTL, properties and oracle scenarios all
+  encode one reading, test the other reading directly (issue #284).
 - **286 task-fault context**: after loading an incoming TSS, faults during
   incoming LDT/segment validation run in that task's context. Publish only
   validated hidden segment caches; the handler stack must use incoming SS:SP,

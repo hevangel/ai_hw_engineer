@@ -295,11 +295,18 @@ The 2026-11-12 PCE-286 oracle loop (see
   short available TSS is #TS (Table 8-1).
 - Protected-mode PUSHA checks its whole 16-byte frame before the first write.
 - ASSUMPTION A45: LAR accepts system descriptor types 1-5 (TSS, LDT, call
-  gate, task gate) and rejects interrupt and trap gates. No Intel text was
-  available; PCE-286 and 86Box agree.
+  gate, task gate) and rejects interrupt and trap gates. Intel 210498-005
+  gives LAR's conditions as the selector index within the table limit and
+  descriptor DPL >= CPL and >= selector RPL (Appendix B LAR, page B-60;
+  section 11.3, page 11-3) and names no type exclusion, so the type filter
+  rests on PCE-286 and 86Box, which agree.
 - ASSUMPTION A46: WAIT raises exception 7 only when MSW.MP and MSW.TS are
-  both set. PCE-286 agrees; no primary-source quote for TS=1 with MP=0 was
-  retrieved.
+  both set. Intel 210498-005 supports this: Table 10-2 (page 10-5) lists WAIT
+  as causing exception 7 only for the MP=1 encodings with TS=1, section 10.2
+  (page 10-5) says "If MP=1 and TS=1, escape and wait instructions will
+  cause exception 7", and the CLTS page (B-31) says WAIT and ESC are trapped
+  "if the MP flag of MSW is set and the task switched flag is set". PCE-286
+  agrees.
 - ASSUMPTION A47: In protected mode, a near JMP, Jcc, LOOP/LOOPZ/LOOPNZ/JCXZ,
   CALL or RET whose target IP is beyond the CS limit raises #GP(0) at the
   transfer instruction (saved IP = the instruction), with no register change:
@@ -317,12 +324,15 @@ The 2026-11-12 PCE-286 oracle loop (see
   matches on this source; 9 of its scenarios mismatch the earlier source.
 - ASSUMPTION A48: the MOV SS/POP SS and STI interrupt shadows cover the whole
   next instruction, including a WAIT that is still polling BUSY, as they
-  already cover every element of a REP string. Intel says WAIT may be
-  interrupted while BUSY is active and does not say whether a preceding STI
-  or MOV SS changes that; the iAPX 286 data sheet's "after the next
-  instruction" wording is applied literally. So `STI; WAIT` takes a held
-  INTR, and `MOV SS,AX; WAIT` a new NMI, only after WAIT completes (issue
-  #284, finding 15).
+  already cover every element of a REP string. Intel 210498-005 Appendix B
+  (MOV, page B-73) says a move into SS inhibits all interrupts "until after
+  the execution of the next instruction", and the 1983 iAPX 286/10 handbook
+  says WAIT may be interrupted while BUSY is active; neither says which rule
+  wins for a WAIT right after the move. The STI page (B-106) states no delay
+  at all; the STI shadow rests on the pinned 86Box 286 flag handler (see
+  protected_execution.md). The shadow is applied to the whole next
+  instruction, so `STI; WAIT` takes a held INTR, and `MOV SS,AX; WAIT` a
+  new NMI, only after WAIT completes (issue #284, finding 15).
 - An IRET to an outer privilege level opens no interrupt shadow. Intel
   describes the shadow only for MOV SS and POP SS, and the outer-level RETF
   has none; an earlier source held off NMI and INTR for one instruction after

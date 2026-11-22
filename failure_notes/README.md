@@ -26,6 +26,11 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-11-22 - 80286 protected-mode fault rules and CPL found by review](2026-11-22-intel80286-review-284-fault-rules.md)
+  Issue #284: #DF through an interrupt gate shut down, CPL came from the CS
+  selector so most real-mode loaders could not enter protected mode, and five
+  task-switch and call-gate fault rules differed from App. B; programmer
+  advice read as a check, uniform fixtures and a waiver hid them.
 - [2026-11-22 - 8088 SS0 status pin driven inverted](2026-11-22-intel8088-ss0-inverted.md)
   An external review's T2 pin samples showed SS0 at the opposite level to the
   data sheet in every cycle type and toggling in maximum mode; the RTL, spec,
