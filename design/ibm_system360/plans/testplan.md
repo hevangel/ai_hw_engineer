@@ -4,7 +4,7 @@ Scope: the shared engine in `src/` and the self-checking testbench in `tb/`.
 Later increments extend this plan; a test that does not exist yet is listed as
 planned, never as passing.
 
-## Exit criteria (current increment, M2)
+## Exit criteria (current increment, M5)
 
 1. `scripts/run_lint.sh` clean under `verilator --lint-only -Wall` for both the
    RTL and the testbench.
@@ -47,8 +47,37 @@ by the handler.
 | Fixed-point overflow | `LA 2,0x10; SPM; L 4,0x7FFFFFFF; A 4,1` | code 8; old PSW CC 3, ILC 2, program mask 1, IA 0x10E; R4 = 0x8000_0000 |
 | Specification | `LPSW 0x72` (unaligned) | code 6; IA 0x104; PSW not loaded |
 
+### 2.1 Fixed-point completion and supervisor call (M3)
+
+| Test | Program | Checked |
+|---|---|---|
+| Halfword group | `LH 1,0x200; AH 1,0x202; STH 1,0x204; CH 1,0x206; LA 2,7; MH 2,0x208` | R1 = -1 + 2 = 1; R2 = 7 × -2 = 0xFFFF_FFF2; the stored halfword lands in the high half of the word; CH sets CC 1 |
+| Multiply / divide | `LA 4,6; L 3,-7; MR 2,4; ST 2/3; LA 6,0; LA 7,42; LA 8,42; DR 6,8` | 64-bit product 6 × -7 = 0xFFFF_FFFF_FFFF_FFD6 split across the pair; quotient 1 and remainder 0 in the pair |
+| Divide exception | `LA 4,1; LA 6,1; DR 4,1` (dividend 2^32) | code 9, dividend registers unchanged, old PSW IA 0x10A |
+| Shifts | `LA 2,5; SLA 2,1; SRA 2,1; LA 3,4; SLA 3,31` | R2 back to 5; R3 = 0 with CC 3 and the overflow flag; no interruption with mask bit 36 clear |
+| Supervisor call | `SVC 42` | supervisor old PSW at `0x20`: bits 24-31 = 42, bits 16-23 zero; new PSW from `0x60`; handler runs |
+| Odd halfword address | `LH 1,0x201` | code 6, IA 0x104, ILC 2 |
+| Odd pair register | `MR 3,1` | code 6, IA 0x102, ILC 1 |
+
 Suppressed checks also assert that the handler at `0x300` runs, which proves
 the new PSW was fetched from `0x68` and made current.
+
+### 2.2 Character and SS-format group (M4)
+
+| Test | Program | Checked |
+|---|---|---|
+| SS chain | `MVC 0x208(4),0x200; XC; NC; OC; MVN; MVZ` | the four-byte field follows `C1C2C3C4 → 8A8E8E8A → 80828280 → C1828280 → CB828280 → 4B828280` |
+| Compare / character | `CLC`, `IC`, `STC`, three `TM` masks | CC 1 from `CLC`; `R1` low byte 0x4B; stored byte at `0x20C`; `TM` gives CC 0, 1 and 3 for zero, mixed and all-one selections |
+
+### 2.3 Translate and execute (M5)
+
+| Test | Program | Checked |
+|---|---|---|
+| TR | 256-byte table \	able[i] = i+1\, field  20 30 40\ | field becomes 	 21 31 41\ |
+| TRT (match) | table with a function byte at argument 0x20 | GR1 = argument address 0x201, GR2 low byte 0x0F, CC 1 |
+| TRT (no match) | all-zero table | GR1/GR2 untouched, CC 0 |
+| EX | \EX\ with I1 = 0x40 over \MVI 0(1),0x00\ | stores 0x40, the instruction after EXECUTE runs, PSW points past EXECUTE |
+| EX of EX | subject is another EXECUTE | execute exception, code 3, old PSW ILC 2 and IA 0x104 |
 
 ## 3. Arithmetic unit and address checks
 

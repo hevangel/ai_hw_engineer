@@ -464,7 +464,198 @@ module tb_ibm_s360_cpu;
     check_gpr(15, 32'h0000_0304);
 
     // =========================================================================
-    // Test 9: directed arithmetic unit, address generation and decode checks.
+    // Test 9: halfword group -- LH, AH, STH, CH, MH.
+    // =========================================================================
+    start_reset();
+    poke_word(24'h00_0200, 32'hFFFF_0002);  // halfword 0x200 = -1, 0x202 = 2
+    poke_word(24'h00_0204, 32'h0000_0003);  // halfword 0x206 = 3
+    poke_word(24'h00_0208, 32'hFFFE_0000);  // halfword 0x208 = -2
+    poke_hex(24'h00_0100,
+      "481002004A1002024010020449100206412000074C20020841F0011C07FF");
+    run_cycles(80);
+
+    check(int_count == 0, "halfword group caused an unexpected interruption");
+    check_gpr(1, 32'h0000_0001);              // -1 + 2
+    check_gpr(2, 32'hFFFF_FFF2);              // 7 * -2
+    check_word(24'h00_0204, 32'h0001_0003, "STH wrote the high halfword");
+    check(psw[29:28] === 2'd1, "CH did not set CC 1");
+
+    // =========================================================================
+    // Test 10: multiply and divide -- MR with a negative product, DR.
+    // =========================================================================
+    start_reset();
+    poke_word(24'h00_0200, 32'hFFFF_FFF9);  // -7
+    poke_hex(24'h00_0100,
+      "41400006583002001C245020021050300214416000004170002A4180002A1D68506002185070021C41F0012C07FF");
+    run_cycles(120);
+
+    check(int_count == 0, "multiply/divide caused an unexpected interruption");
+    check_gpr(2, 32'hFFFF_FFFF);              // high half of 6 * -7
+    check_gpr(3, 32'hFFFF_FFD6);              // low half
+    check_word(24'h00_0210, 32'hFFFF_FFFF, "MR high half stored");
+    check_word(24'h00_0214, 32'hFFFF_FFD6, "MR low half stored");
+    check_gpr(4, 32'h0000_0006);              // multiplier
+    check_gpr(6, 32'h0000_0001);              // 42 / 42 quotient
+    check_gpr(7, 32'h0000_0000);              // remainder
+    check_word(24'h00_0218, 32'h0000_0001, "DR quotient stored");
+    check_word(24'h00_021C, 32'h0000_0000, "DR remainder stored");
+
+    // =========================================================================
+    // Test 11: fixed-point divide exception (code 9), dividend unchanged.
+    // =========================================================================
+    start_reset();
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
+    poke_handler(24'h00_0300);
+    poke_hex(24'h00_0100, "41400001416000011D46");
+    run_cycles(80);
+
+    check(int_count == 1, "divide exception did not fire once");
+    check(last_int_code == 16'd9, "divide exception code is not 9");
+    check_gpr(4, 32'h0000_0001);              // dividend high unchanged
+    check_gpr(5, 32'h0000_0000);              // dividend low unchanged
+    check_word(24'h00_002C, 32'h4000_010A, "divide old PSW: ILC 1, IA 0x10A");
+    check_gpr(15, 32'h0000_0304);
+
+    // =========================================================================
+    // Test 12: shifts -- SLA, SRA and an SLA overflow.
+    // =========================================================================
+    start_reset();
+    poke_hex(24'h00_0100,
+      "412000058B2000018A200001413000048B30001F41F0011807FF");
+    run_cycles(80);
+
+    check(int_count == 0, "shifts caused an unexpected interruption");
+    check_gpr(2, 32'h0000_0005);              // 5 << 1 >> 1
+    check_gpr(3, 32'h0000_0000);              // sign fixed, field shifted out
+    check(psw[29:28] === 2'd3, "SLA overflow was not reported as CC 3");
+    check(ovf_pending, "shift overflow did not set the overflow flag");
+
+    // =========================================================================
+    // Test 13: supervisor call -- code in old PSW bits 24-31, PSWs at 0x20/0x60.
+    // =========================================================================
+    start_reset();
+    poke_dw(24'h00_0060, 64'h0000_0000_0000_0300);  // supervisor new PSW
+    poke_handler(24'h00_0300);
+    poke_hex(24'h00_0100, "0A2A");                   // SVC 42
+    run_cycles(80);
+
+    check(int_count == 1, "supervisor call did not fire once");
+    check(last_int_code == 16'h002A, "supervisor-call code is not 42");
+    check_word(24'h00_0020, 32'h0000_002A, "supervisor old PSW bits 24-31");
+    check_word(24'h00_0024, 32'h4000_0102, "supervisor old PSW ILC/IA");
+    check_gpr(15, 32'h0000_0304);
+
+    // =========================================================================
+    // Test 14: specification exceptions -- odd halfword address and odd pair.
+    // =========================================================================
+    start_reset();
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
+    poke_handler(24'h00_0300);
+    poke_hex(24'h00_0100, "48100201");              // LH 1,0x201 (odd)
+    run_cycles(60);
+
+    check(int_count == 1, "odd halfword address did not raise a specification");
+    check(last_int_code == 16'd6, "odd halfword code is not 6");
+    check_word(24'h00_002C, 32'h8000_0104, "odd halfword old PSW: ILC 2, IA 0x104");
+
+    start_reset();
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
+    poke_handler(24'h00_0300);
+    poke_hex(24'h00_0100, "1C31");                  // MR 3,1 with odd R1
+    run_cycles(60);
+
+    check(int_count == 1, "odd pair register did not raise a specification");
+    check(last_int_code == 16'd6, "odd pair register code is not 6");
+    check_word(24'h00_002C, 32'h4000_0102, "odd pair old PSW: ILC 1, IA 0x102");
+
+    // =========================================================================
+    // Test 15: character and SS-format group -- MVC, XC, NC, OC, MVN, MVZ,
+    // CLC, IC, STC, TM.
+    // =========================================================================
+    start_reset();
+    poke_word(24'h00_0200, 32'hC1C2_C3C4);  // EBCDIC "ABCD"
+    poke_word(24'h00_0204, 32'h4B4C_4D4E);  // EBCDIC ".<(>+"
+    poke_hex(24'h00_0100,
+      "D20302080200D70302080204D40302080200D60002080200D10002080204D30002080205D50002080205431002084210020C91800208910F02049140020841F0014207FF");
+    run_cycles(400);
+
+    check(int_count == 0, "character group caused an unexpected interruption");
+    check_word(24'h00_0208, 32'h4B82_8280, "MVC/XC/NC/OC/MVN/MVZ result");
+    check_word(24'h00_020C, 32'h4B00_0000, "STC stored the inserted character");
+    check_gpr(1, 32'h0000_004B);
+    check(psw[29:28] === 2'd3, "TM all-ones did not set CC 3");
+
+    // =========================================================================
+    // Test 16: TR -- translate a four-byte field through a 256-byte table.
+    // =========================================================================
+    start_reset();
+    for (int i = 0; i < 256; i++) begin
+      poke_byte(24'h00_0300 + i[23:0], i[7:0] + 8'd1);
+    end
+    poke_hex(24'h00_0200, "10203040");
+    poke_hex(24'h00_0100, "DC030200030041F0010A07FF");
+    run_cycles(300);
+
+    check(int_count == 0, "TR caused an unexpected interruption");
+    check_word(24'h00_0200, 32'h1121_3141, "TR translated each byte");
+
+    // =========================================================================
+    // Test 17: TRT -- a match before the end gives CC 1, an all-zero table CC 0.
+    // =========================================================================
+    start_reset();
+    for (int i = 0; i < 256; i++) begin
+      poke_byte(24'h00_0300 + i[23:0], 8'h00);
+    end
+    poke_byte(24'h00_0320, 8'h0F);          // function byte for argument 0x20
+    poke_hex(24'h00_0200, "10203040");
+    poke_hex(24'h00_0100, "DD030200030041F0010A07FF");
+    run_cycles(300);
+
+    check(int_count == 0, "TRT caused an unexpected interruption");
+    check_gpr(1, 32'h0000_0201);            // argument address of the match
+    check_gpr(2, 32'h0000_000F);            // function byte
+    check(psw[29:28] === 2'd1, "TRT match before the end did not give CC 1");
+
+    start_reset();
+    for (int i = 0; i < 256; i++) begin
+      poke_byte(24'h00_0300 + i[23:0], 8'h00);
+    end
+    poke_hex(24'h00_0200, "10203040");
+    poke_hex(24'h00_0100, "DD030200030041F0010A07FF");
+    run_cycles(300);
+
+    check_gpr(1, 32'h0000_0000);            // untouched
+    check_gpr(2, 32'h0000_0000);
+    check(psw[29:28] === 2'd0, "TRT with all-zero table did not give CC 0");
+
+    // =========================================================================
+    // Test 18: EX -- the I1 byte is ORed into the subject instruction and the
+    // PSW advances past EXECUTE; EXECUTE of EXECUTE raises code 3.
+    // =========================================================================
+    start_reset();
+    poke_hex(24'h00_0210, "92001000");      // MVI 0(1),0x00
+    poke_hex(24'h00_0100, "41100220444002104120005541F0011007FF");
+    run_cycles(120);
+
+    check(int_count == 0, "EX caused an unexpected interruption");
+    check_word(24'h00_0220, 32'h4000_0000, "EX did not OR the I1 byte into MVI");
+    check_gpr(1, 32'h0000_0220);
+    check_gpr(2, 32'h0000_0055);            // instruction after EX ran
+    check(psw[23:0] === 24'h00_0110, "EX did not advance the PSW past itself");
+
+    start_reset();
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
+    poke_handler(24'h00_0300);
+    poke_hex(24'h00_0210, "44000000");      // subject is another EXECUTE
+    poke_hex(24'h00_0100, "44400210");
+    run_cycles(80);
+
+    check(int_count == 1, "EXECUTE of EXECUTE did not raise an interruption");
+    check(last_int_code == 16'd3, "execute exception code is not 3");
+    check_word(24'h00_002C, 32'h8000_0104, "execute old PSW: ILC 2, IA 0x104");
+
+    // =========================================================================
+    // Test 19: directed arithmetic unit, address generation and decode checks.
     // =========================================================================
     t_alu(ALU_ADD, 32'd7, 32'd5, 32'd12, 2'd2, 1'b0, "add positive");
     t_alu(ALU_ADD, 32'h7FFF_FFFF, 32'd1, 32'h8000_0000, 2'd3, 1'b1, "add positive overflow");
@@ -492,16 +683,40 @@ module tb_ibm_s360_cpu;
       check(d.valid && (d.op == OP_SPM) && (d.fmt == FMT_RR), "decode 0x04 as SPM/RR");
       d = s360_decode(8'h00);
       check(!d.valid && (d.fmt == FMT_RR), "decode 0x00 as an unassigned RR opcode");
+      d = s360_decode(8'h1C);
+      check(d.valid && (d.op == OP_MR) && (d.fmt == FMT_RR), "decode 0x1C as MR/RR");
+      d = s360_decode(8'h5D);
+      check(d.valid && (d.op == OP_D) && (d.fmt == FMT_RX), "decode 0x5D as D/RX");
+      d = s360_decode(8'h8F);
+      check(d.valid && (d.op == OP_SLDA) && (d.fmt == FMT_RS_SI), "decode 0x8F as SLDA/RS");
+      d = s360_decode(8'h0A);
+      check(d.valid && (d.op == OP_SVC) && (d.fmt == FMT_RR), "decode 0x0A as SVC/RR");
+      d = s360_decode(8'h4C);
+      check(d.valid && (d.op == OP_MH) && (d.fmt == FMT_RX), "decode 0x4C as MH/RX");
+      d = s360_decode(8'hD2);
+      check(d.valid && (d.op == OP_MVC) && (d.fmt == FMT_SS), "decode 0xD2 as MVC/SS");
+      d = s360_decode(8'hD5);
+      check(d.valid && (d.op == OP_CLC) && (d.fmt == FMT_SS), "decode 0xD5 as CLC/SS");
+      d = s360_decode(8'h91);
+      check(d.valid && (d.op == OP_TM) && (d.fmt == FMT_RS_SI), "decode 0x91 as TM/SI");
+      d = s360_decode(8'h43);
+      check(d.valid && (d.op == OP_IC) && (d.fmt == FMT_RX), "decode 0x43 as IC/RX");
+      d = s360_decode(8'hDC);
+      check(d.valid && (d.op == OP_TR) && (d.fmt == FMT_SS), "decode 0xDC as TR/SS");
+      d = s360_decode(8'hDD);
+      check(d.valid && (d.op == OP_TRT) && (d.fmt == FMT_SS), "decode 0xDD as TRT/SS");
+      d = s360_decode(8'h44);
+      check(d.valid && (d.op == OP_EX) && (d.fmt == FMT_RX), "decode 0x44 as EX/RX");
     end
 
     // =========================================================================
     // Report
     // =========================================================================
     if (errors == 0) begin
-      $display("IBM S360 M2 CORE TESTS PASSED (%0d checks)", checks);
+      $display("IBM S360 M5 CORE TESTS PASSED (%0d checks)", checks);
       $finish;
     end else begin
-      $display("IBM S360 M2 CORE TESTS FAILED: %0d error(s) in %0d checks", errors, checks);
+      $display("IBM S360 M5 CORE TESTS FAILED: %0d error(s) in %0d checks", errors, checks);
       $fatal(1, "testbench failures");
     end
   end

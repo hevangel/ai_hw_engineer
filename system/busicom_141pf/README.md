@@ -18,7 +18,7 @@ From the repository root, using the rebuilt tool image:
 ```sh
 docker run --rm -p 127.0.0.1:8081:8080 -p 127.0.0.1:18080:18080 \
   -v "$PWD:/workspace" \
-  -e BUSICOM_BACKEND=verilator -e BUSICOM_REALTIME=1 ai-hw-engineer:latest \
+  -e BUSICOM_REALTIME=1 ai-hw-engineer:latest \
   sh /workspace/system/busicom_141pf/scripts/run_system.sh
 ```
 
@@ -70,8 +70,9 @@ JIT/AOT ran at approximately 17 ticks per second on that host, so it remains
 phase accurate but slower than the historical hardware. `paceLagTicks` in
 `state.json` counts missed pacing deadlines. Batch replay leaves pacing off.
 
-`BUSICOM_BACKEND=xezim` is the script default. Native compilation can be enabled
-with `XEZIM_JIT=1 XEZIM_AOT=1`. Verilator provides a faster interactive panel.
+Verilator is the default backend (`BUSICOM_BACKEND=verilator`). Set
+`BUSICOM_BACKEND=xezim` to run the xezim simulator instead; native compilation
+can be enabled there with `XEZIM_JIT=1 XEZIM_AOT=1`.
 `BUSICOM_PORT` selects the internal HTTP port; `BUSICOM_SPIN` defaults to 1481.
 Build outputs are separated by backend and port. Wait for startup to finish.
 The panel bridge listens on every interface and serves permissive CORS by

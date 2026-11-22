@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-11-06T16:25:46.646249+00:00",
+  "recordedAt": "2026-11-16T07:10:04.245292+00:00",
   "checks": [
     {
       "tool": "versions",
@@ -488,6 +488,638 @@
       "log": "logs/nvc-vhpi-plugin-loads.log"
     },
     {
+      "tool": "ghdl",
+      "check": "shared-adder_exhaustive-analyse",
+      "command": [
+        "ghdl",
+        "-a",
+        "--std=08",
+        "/work/eda_extended/nvc/corpus/adder_exhaustive/01_adder.vhd",
+        "/work/eda_extended/nvc/corpus/adder_exhaustive/02_tb_adder.vhd"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-shared-adder_exhaustive-analyse.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "shared-adder_exhaustive-elaborate",
+      "command": [
+        "ghdl",
+        "-e",
+        "--std=08",
+        "tb_adder"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-shared-adder_exhaustive-elaborate.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "shared-adder_exhaustive-simulate",
+      "command": [
+        "ghdl",
+        "-r",
+        "--std=08",
+        "tb_adder"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-shared-adder_exhaustive-simulate.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "shared-counter-analyse",
+      "command": [
+        "ghdl",
+        "-a",
+        "--std=08",
+        "/work/eda_extended/nvc/corpus/counter/01_counter.vhd",
+        "/work/eda_extended/nvc/corpus/counter/02_tb_counter.vhd"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-shared-counter-analyse.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "shared-counter-elaborate",
+      "command": [
+        "ghdl",
+        "-e",
+        "--std=08",
+        "tb_counter"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-shared-counter-elaborate.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "shared-counter-simulate",
+      "command": [
+        "ghdl",
+        "-r",
+        "--std=08",
+        "tb_counter"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-shared-counter-simulate.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "shared-crc8-analyse",
+      "command": [
+        "ghdl",
+        "-a",
+        "--std=08",
+        "/work/eda_extended/nvc/corpus/crc8/01_crc8.vhd",
+        "/work/eda_extended/nvc/corpus/crc8/02_tb_crc8.vhd"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-shared-crc8-analyse.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "shared-crc8-elaborate",
+      "command": [
+        "ghdl",
+        "-e",
+        "--std=08",
+        "tb_crc8"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-shared-crc8-elaborate.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "shared-crc8-simulate",
+      "command": [
+        "ghdl",
+        "-r",
+        "--std=08",
+        "tb_crc8"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-shared-crc8-simulate.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "shared-records_generics-analyse",
+      "command": [
+        "ghdl",
+        "-a",
+        "--std=08",
+        "/work/eda_extended/nvc/corpus/records_generics/01_pkg.vhd",
+        "/work/eda_extended/nvc/corpus/records_generics/02_chain.vhd",
+        "/work/eda_extended/nvc/corpus/records_generics/03_tb.vhd"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-shared-records_generics-analyse.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "shared-records_generics-elaborate",
+      "command": [
+        "ghdl",
+        "-e",
+        "--std=08",
+        "tb_records"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-shared-records_generics-elaborate.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "shared-records_generics-simulate",
+      "command": [
+        "ghdl",
+        "-r",
+        "--std=08",
+        "tb_records"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-shared-records_generics-simulate.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "shared-std93-analyse",
+      "command": [
+        "ghdl",
+        "-a",
+        "--std=93",
+        "/work/eda_extended/nvc/corpus/std93/01_gate.vhd"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-shared-std93-analyse.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "shared-std93-elaborate",
+      "command": [
+        "ghdl",
+        "-e",
+        "--std=93",
+        "tb_gate93"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-shared-std93-elaborate.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "shared-std93-simulate",
+      "command": [
+        "ghdl",
+        "-r",
+        "--std=93",
+        "tb_gate93"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-shared-std93-simulate.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "shared-textio_strings-analyse",
+      "command": [
+        "ghdl",
+        "-a",
+        "--std=08",
+        "/work/eda_extended/nvc/corpus/textio_strings/01_tb.vhd"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-shared-textio_strings-analyse.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "shared-textio_strings-elaborate",
+      "command": [
+        "ghdl",
+        "-e",
+        "--std=08",
+        "tb_strings"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-shared-textio_strings-elaborate.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "shared-textio_strings-simulate",
+      "command": [
+        "ghdl",
+        "-r",
+        "--std=08",
+        "tb_strings"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-shared-textio_strings-simulate.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "std93-analyse",
+      "command": [
+        "ghdl",
+        "-a",
+        "--std=93",
+        "/work/eda_extended/ghdl/corpus/std93/01_gate.vhd",
+        "/work/eda_extended/ghdl/corpus/std93/02_tb_gate93.vhd"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-std93-analyse.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "std93-elaborate",
+      "command": [
+        "ghdl",
+        "-e",
+        "--std=93",
+        "tb_gate93"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-std93-elaborate.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "std93-simulate",
+      "command": [
+        "ghdl",
+        "-r",
+        "--std=93",
+        "tb_gate93"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-std93-simulate.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "wave-analyse",
+      "command": [
+        "ghdl",
+        "-a",
+        "--std=08",
+        "/work/eda_extended/ghdl/corpus/wave/01_counter.vhd",
+        "/work/eda_extended/ghdl/corpus/wave/02_tb_wave.vhd"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-wave-analyse.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "wave-elaborate",
+      "command": [
+        "ghdl",
+        "-e",
+        "--std=08",
+        "tb_wave"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-wave-elaborate.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "wave-simulate",
+      "command": [
+        "ghdl",
+        "-r",
+        "--std=08",
+        "tb_wave",
+        "--vcd=wave.vcd"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-wave-simulate.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "wave-vcd-written",
+      "command": [
+        "bash",
+        "-c",
+        "grep -q \"\\$var\" wave.vcd && echo VCD WRITTEN"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-wave-vcd-written.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "wave-fst-written",
+      "command": [
+        "bash",
+        "-c",
+        "ghdl -r --std=08 tb_wave --fst=wave.fst > /dev/null 2>&1 && test -s wave.fst && echo FST WRITTEN"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-wave-fst-written.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "assert_failure-rejected",
+      "command": [
+        "bash",
+        "-c",
+        "ghdl -a --std=08 /work/eda_extended/ghdl/negative/assert_failure.vhd && ghdl -r --std=08 assert_failure"
+      ],
+      "returncode": 1,
+      "expectedExit": "nonzero",
+      "passed": true,
+      "log": "logs/ghdl-assert_failure-rejected.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "missing_body-rejected",
+      "command": [
+        "bash",
+        "-c",
+        "ghdl -a --std=08 /work/eda_extended/ghdl/negative/missing_body.vhd && ghdl -e --std=08 missing_body"
+      ],
+      "returncode": 1,
+      "expectedExit": "nonzero",
+      "passed": true,
+      "log": "logs/ghdl-missing_body-rejected.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "std2008_only-rejected",
+      "command": [
+        "ghdl",
+        "-a",
+        "--std=93",
+        "/work/eda_extended/ghdl/negative/std2008_only.vhd"
+      ],
+      "returncode": 1,
+      "expectedExit": "nonzero",
+      "passed": true,
+      "log": "logs/ghdl-std2008_only-rejected.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "syntax_error-rejected",
+      "command": [
+        "ghdl",
+        "-a",
+        "--std=08",
+        "/work/eda_extended/ghdl/negative/syntax_error.vhd"
+      ],
+      "returncode": 1,
+      "expectedExit": "nonzero",
+      "passed": true,
+      "log": "logs/ghdl-syntax_error-rejected.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "vhdl2008-construct-accepted-under-std08",
+      "command": [
+        "ghdl",
+        "-a",
+        "--std=08",
+        "/work/eda_extended/ghdl/negative/std2008_only.vhd"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/ghdl-vhdl2008-construct-accepted-under-std08.log"
+    },
+    {
+      "tool": "ghdl",
+      "check": "vhdl2008-construct-rejected-under-std93",
+      "command": [
+        "ghdl",
+        "-a",
+        "--std=93",
+        "/work/eda_extended/ghdl/negative/std2008_only.vhd"
+      ],
+      "returncode": 1,
+      "expectedExit": "nonzero",
+      "passed": true,
+      "log": "logs/ghdl-vhdl2008-construct-rejected-under-std93.log"
+    },
+    {
+      "tool": "icarus",
+      "check": "counter-compile",
+      "command": [
+        "iverilog",
+        "-g2012",
+        "-s",
+        "counter",
+        "-o",
+        "/work/scratchpad/eda-ext-full/icarus/counter.vvp",
+        "/work/eda_extended/icarus/corpus/counter/counter.sv"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/icarus-counter-compile.log"
+    },
+    {
+      "tool": "icarus",
+      "check": "counter-simulate",
+      "command": [
+        "vvp",
+        "/work/scratchpad/eda-ext-full/icarus/counter.vvp"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/icarus-counter-simulate.log"
+    },
+    {
+      "tool": "icarus",
+      "check": "four_state-compile",
+      "command": [
+        "iverilog",
+        "-g2012",
+        "-s",
+        "four_state",
+        "-o",
+        "/work/scratchpad/eda-ext-full/icarus/four_state.vvp",
+        "/work/eda_extended/icarus/corpus/four_state/four_state.sv"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/icarus-four_state-compile.log"
+    },
+    {
+      "tool": "icarus",
+      "check": "four_state-simulate",
+      "command": [
+        "vvp",
+        "/work/scratchpad/eda-ext-full/icarus/four_state.vvp"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/icarus-four_state-simulate.log"
+    },
+    {
+      "tool": "icarus",
+      "check": "vpi-host-compile",
+      "command": [
+        "iverilog",
+        "-g2012",
+        "-s",
+        "vpi_host",
+        "-o",
+        "/work/scratchpad/eda-ext-full/icarus/vpi/host.vvp",
+        "/work/eda_extended/icarus/vpi/vpi_host.sv"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/icarus-vpi-host-compile.log"
+    },
+    {
+      "tool": "icarus",
+      "check": "vpi-packaged-helper-builds",
+      "command": [
+        "iverilog-vpi",
+        "/work/eda_extended/icarus/vpi/hello_vpi.c"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/icarus-vpi-packaged-helper-builds.log"
+    },
+    {
+      "tool": "icarus",
+      "check": "vpi-module-loads",
+      "command": [
+        "vvp",
+        "-M/work/scratchpad/eda-ext-full/icarus/vpi",
+        "-mhello_vpi",
+        "/work/scratchpad/eda-ext-full/icarus/vpi/host.vvp"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/icarus-vpi-module-loads.log"
+    },
+    {
+      "tool": "icarus",
+      "check": "vpi-direct-cc-build",
+      "command": [
+        "cc",
+        "-std=c11",
+        "-shared",
+        "-fPIC",
+        "-O2",
+        "-I/usr/include/iverilog",
+        "-o",
+        "/work/scratchpad/eda-ext-full/icarus/vpi/direct.vpi",
+        "/work/eda_extended/icarus/vpi/hello_vpi.c"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/icarus-vpi-direct-cc-build.log"
+    },
+    {
+      "tool": "icarus",
+      "check": "vpi-direct-cc-loads",
+      "command": [
+        "vvp",
+        "-M/work/scratchpad/eda-ext-full/icarus/vpi",
+        "-mdirect",
+        "/work/scratchpad/eda-ext-full/icarus/vpi/host.vvp"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/icarus-vpi-direct-cc-loads.log"
+    },
+    {
+      "tool": "icarus",
+      "check": "syntax-error-rejected",
+      "command": [
+        "iverilog",
+        "-g2012",
+        "-s",
+        "broken",
+        "-o",
+        "/work/scratchpad/eda-ext-full/icarus/negative/broken.vvp",
+        "/work/eda_extended/icarus/negative/syntax_error.sv"
+      ],
+      "returncode": 2,
+      "expectedExit": "nonzero",
+      "passed": true,
+      "log": "logs/icarus-syntax-error-rejected.log"
+    },
+    {
+      "tool": "icarus",
+      "check": "fatal-case-compiles",
+      "command": [
+        "iverilog",
+        "-g2012",
+        "-s",
+        "fatal_case",
+        "-o",
+        "/work/scratchpad/eda-ext-full/icarus/negative/fatal.vvp",
+        "/work/eda_extended/icarus/negative/fatal.sv"
+      ],
+      "returncode": 0,
+      "expectedExit": 0,
+      "passed": true,
+      "log": "logs/icarus-fatal-case-compiles.log"
+    },
+    {
+      "tool": "icarus",
+      "check": "fatal-case-exits-nonzero",
+      "command": [
+        "vvp",
+        "/work/scratchpad/eda-ext-full/icarus/negative/fatal.vvp"
+      ],
+      "returncode": 1,
+      "expectedExit": "nonzero",
+      "passed": true,
+      "log": "logs/icarus-fatal-case-exits-nonzero.log"
+    },
+    {
       "tool": "systemc",
       "check": "counter-compile",
       "command": [
@@ -805,7 +1437,7 @@
       "command": [
         "bash",
         "-c",
-        "cd /work/scratchpad/eda-extended/nvc/counter && (surver --port 18101 --token interop-token-18101 counter.fst > surver-nvc-fst.log 2>&1 & echo $! > surver-nvc-fst.pid) && sleep 3 && body=$(curl -s -m 5 http://127.0.0.1:18101/interop-token-18101/get_status); kill $(cat surver-nvc-fst.pid) 2>/dev/null; echo \"$body\""
+        "cd /work/scratchpad/eda-ext-full/nvc/counter && (surver --port 18101 --token interop-token-18101 counter.fst > surver-nvc-fst.log 2>&1 & echo $! > surver-nvc-fst.pid) && sleep 3 && body=$(curl -s -m 5 http://127.0.0.1:18101/interop-token-18101/get_status); kill $(cat surver-nvc-fst.pid) 2>/dev/null; echo \"$body\""
       ],
       "returncode": 0,
       "expectedExit": 0,
@@ -818,7 +1450,7 @@
       "command": [
         "bash",
         "-c",
-        "cd /work/scratchpad/eda-extended/nvc/counter && (surver --port 18103 --token interop-token-18103 counter.vcd > surver-nvc-vcd.log 2>&1 & echo $! > surver-nvc-vcd.pid) && sleep 3 && body=$(curl -s -m 5 http://127.0.0.1:18103/interop-token-18103/get_status); kill $(cat surver-nvc-vcd.pid) 2>/dev/null; echo \"$body\""
+        "cd /work/scratchpad/eda-ext-full/nvc/counter && (surver --port 18103 --token interop-token-18103 counter.vcd > surver-nvc-vcd.log 2>&1 & echo $! > surver-nvc-vcd.pid) && sleep 3 && body=$(curl -s -m 5 http://127.0.0.1:18103/interop-token-18103/get_status); kill $(cat surver-nvc-vcd.pid) 2>/dev/null; echo \"$body\""
       ],
       "returncode": 0,
       "expectedExit": 0,
@@ -831,7 +1463,7 @@
       "command": [
         "bash",
         "-c",
-        "cd /work/scratchpad/eda-extended/systemc && (surver --port 18102 --token interop-token-18102 counter.vcd > surver-systemc-vcd.log 2>&1 & echo $! > surver-systemc-vcd.pid) && sleep 3 && body=$(curl -s -m 5 http://127.0.0.1:18102/interop-token-18102/get_status); kill $(cat surver-systemc-vcd.pid) 2>/dev/null; echo \"$body\""
+        "cd /work/scratchpad/eda-ext-full/systemc && (surver --port 18102 --token interop-token-18102 counter.vcd > surver-systemc-vcd.log 2>&1 & echo $! > surver-systemc-vcd.pid) && sleep 3 && body=$(curl -s -m 5 http://127.0.0.1:18102/interop-token-18102/get_status); kill $(cat surver-systemc-vcd.pid) 2>/dev/null; echo \"$body\""
       ],
       "returncode": 0,
       "expectedExit": 0,

@@ -10,7 +10,7 @@ reaches implementation.
 - Source and provenance ledger: [spec/sources.md](spec/sources.md)
 - Architecture specification and current milestone report:
   [spec/spec.md](spec/spec.md),
-  [report/2026-11-08-m2-status-switching.md](report/2026-11-08-m2-status-switching.md)
+  [report/2026-11-20-m5-translate-execute.md](report/2026-11-20-m5-translate-execute.md)
 
 ## History
 
@@ -54,6 +54,9 @@ compatibility implies cycle fidelity.
 | Source/provenance ledger | started — [spec/sources.md](spec/sources.md) |
 | Shared CPU engine, M1 | implemented: 23 instructions, PSW, address generation, self-checking simulation, formal properties |
 | Status switching and program interruptions (M2) | implemented: `SPM`, `SSM`, `LPSW`, program interruptions 1/2/6/8, problem state, wait state |
+| Fixed-point completion and SVC (M3) | implemented: halfword group, `MR`/`M`, `DR`/`D`, shifts, `SVC` with supervisor-call interruption, specification and divide exceptions |
+| Character and SS-format group (M4) | implemented: `MVC`, `MVN`, `MVZ`, `NC`, `OC`, `XC`, `CLC`, `TM`, `IC`, `STC` with a byte-loop SS engine |
+| Translate and execute (M5) | implemented: `TR`, `TRT`, `EXECUTE` with the execute exception and EX's own address/ILC rule |
 | Storage, channel I/O, protection/DAT, SVC/external/I/O interruptions | not started |
 | Model members (20, 22, 25, 30, 40, 44, 50, 65, 67, 75, 85, 91, 95, 195) | not started; each will be a member folder |
 | Independent emulator oracle, IBM diagnostics, real OS boot | not started (issues #383, #441, #429 and later) |
@@ -65,8 +68,13 @@ adder, the PSW field contract, the retirement contract and the program-check
 suppression rules. It does **not** yet run historical S/360 software, does not
 implement protection or DAT, has only program interruptions, and has no timing
 or microarchitecture claim. See
-[report/2026-11-05-m1-core.md](report/2026-11-05-m1-core.md) and
+[report/2026-11-05-m1-core.md](report/2026-11-05-m1-core.md),
 [report/2026-11-08-m2-status-switching.md](report/2026-11-08-m2-status-switching.md)
+and
+[report/2026-11-17-m3-fixedpoint.md](report/2026-11-17-m3-fixedpoint.md) and
+[report/2026-11-18-m4-character-ss.md](report/2026-11-18-m4-character-ss.md)
+and
+[report/2026-11-20-m5-translate-execute.md](report/2026-11-20-m5-translate-execute.md)
 for the measured evidence and the exact list of limitations.
 
 ## Folder layout

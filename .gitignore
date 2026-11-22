@@ -57,6 +57,9 @@ __pycache__/
 .firecrawl/
 /references/amd/*.pdf
 
+# Scraped reference website mirrors (large third-party content)
+/references/websites/
+
 # Local scratch space and Git worktrees (AGENTS.md)
 /scratchpad/
 /worktree/

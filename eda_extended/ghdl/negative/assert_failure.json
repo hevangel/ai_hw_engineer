@@ -1,0 +1,4 @@
+{"kind": "run", "std": "08", "expect": "nonzero",
+ "marker": "report failure",
+ "forbidden": "AFTER FAILURE",
+ "notes": "severity failure stops the run; the statement after it must not execute. GHDL reports it as a 'report failure' assertion."}

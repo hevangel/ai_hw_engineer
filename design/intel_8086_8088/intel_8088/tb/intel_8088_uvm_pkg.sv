@@ -37,7 +37,7 @@ package intel_8088_uvm_pkg;
     bit [19:0] address;
     bit [7:0] ad_out, high_address;
     bit [3:0] address_status;
-    bit ale, den_n, dt_r, wr_n, rd_n, inta_n, io_m, sso_n, sso_oe, ad_oe;
+    bit ale, den_n, dt_r, wr_n, rd_n, inta_n, io_m, ss0, sso_oe, ad_oe;
     bit high_address_oe, address_status_oe, control_oe, hlda;
     bit [1:0] rqgt_oe, qs;
     bit [2:0] queue_count;
@@ -90,7 +90,7 @@ package intel_8088_uvm_pkg;
       tr.address = cycle_address; tr.ad_out = vif.ad_out; tr.high_address = vif.high_address;
       tr.address_status = vif.address_status;
       tr.ale = vif.ale; tr.den_n = vif.den_n; tr.dt_r = vif.dt_r; tr.wr_n = vif.wr_n;
-      tr.rd_n = vif.rd_n; tr.inta_n = vif.inta_n; tr.io_m = vif.io_m; tr.sso_n = vif.sso_n;
+      tr.rd_n = vif.rd_n; tr.inta_n = vif.inta_n; tr.io_m = vif.io_m; tr.ss0 = vif.ss0;
       tr.sso_oe = vif.sso_oe; tr.ad_oe = vif.ad_oe; tr.high_address_oe = vif.high_address_oe;
       tr.address_status_oe = vif.address_status_oe; tr.control_oe = vif.control_oe;
       tr.hlda = vif.hlda; tr.rqgt_oe = vif.rqgt_oe; tr.qs = vif.qs;
@@ -181,19 +181,38 @@ package intel_8088_uvm_pkg;
   class intel_8088_scoreboard extends uvm_subscriber #(intel_8088_item);
     `uvm_component_utils(intel_8088_scoreboard)
     int snapshots = 0, waits = 0;
+    bit prev_halt_status = 0;
     function new(string name, uvm_component parent);
       super.new(name, parent);
     endfunction
     function void write(intel_8088_item tr);
       if (tr.reset) begin
+        prev_halt_status = 0;
         if (tr.ip !== 16'h0000 || tr.flags !== 16'hf002 ||
             tr.segs !== 64'h00000000ffff0000 || tr.regs !== 128'h0)
           `uvm_error("RESET", "incorrect reset state")
         return;
       end
       snapshots++;
-      if (tr.ale !== (tr.min_mode && tr.pre_phase == 3'd1 && tr.control_oe))
+      // ALE at T1, plus one ALE the clock after HALT entry (8088 data sheet
+      // p. B-32: delayed one clock so the HALT status is latched with it).
+      if (tr.ale !== (tr.min_mode && tr.control_oe && (tr.pre_phase == 3'd1 || prev_halt_status)))
         `uvm_error("ALE", "ALE timing/mode")
+      prev_halt_status = tr.control_oe && tr.pre_phase == 3'd0 && tr.status_pins == 3'd3;
+      // Pin 34 is always high in maximum mode (p. B-34).
+      if (!tr.min_mode && tr.control_oe && tr.ss0 !== 1'b1)
+        `uvm_error("SS0", "pin 34 not high in maximum mode")
+      // Minimum-mode {IO/M, DT/R, SS0} in T2, literal data sheet table (p. B-33).
+      if (tr.min_mode && tr.control_oe && tr.pre_phase == 3'd2) begin
+        logic [2:0] trio, expected;
+        trio = {tr.io_m, tr.dt_r, tr.ss0};
+        case (tr.status)
+          3'd0: expected = 3'b100; 3'd1: expected = 3'b101; 3'd2: expected = 3'b110;
+          3'd4: expected = 3'b000; 3'd5: expected = 3'b001; 3'd6: expected = 3'b010;
+          default: expected = 3'bxxx;
+        endcase
+        if (trio !== expected) `uvm_error("SS0", "IO/M, DT/R, SS0 differ from the data sheet table")
+      end
       if (tr.hlda && (tr.ad_oe || tr.high_address_oe || tr.address_status_oe ||
                       tr.control_oe || tr.sso_oe))
         `uvm_error("HOLD", "pins did not float during HLDA")
@@ -228,8 +247,6 @@ package intel_8088_uvm_pkg;
            (tr.pre_phase == 3'd3 ? !tr.ready_at_t2 : !tr.ready_driven))) begin
         if (tr.status_pins !== tr.status)
           `uvm_error("STATUS", "active cycle status lost during READY wait")
-        if (tr.min_mode && tr.sso_n !== !tr.status[0])
-          `uvm_error("SS0", "SS0 does not mirror status bit 0")
       end
       if (tr.control_oe && tr.pre_phase == 3'd5) begin
         if (tr.ad_oe !== (tr.status == 3'd2 || tr.status == 3'd6))
@@ -430,12 +447,12 @@ package intel_8088_uvm_pkg;
       set_signal(1, 0);
       completed++;
 
-      // Undefined opcode 60h and undocumented MOV CS fail explicitly.
+      // Diagnostic fault on invalid register-form LEA and undefined FE /2.
       for (int scenario = 0; scenario < 2; scenario++) begin
-        if (scenario == 0) program_bytes(20'h10000, '{8'h60, 8'h90});
-        else program_bytes(20'h10000, '{8'h8e, 8'hc8});
+        if (scenario == 0) program_bytes(20'h10000, '{8'h8d, 8'hc0});
+        else program_bytes(20'h10000, '{8'hfe, 8'h10});
         boot();
-        instruction(scenario == 0 ? 16'h0001 : 16'h0002, 0, 1);
+        instruction(16'h0002, 0, 1);
         repeat (10) tick();
         completed++;
       end

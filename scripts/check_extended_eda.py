@@ -14,6 +14,7 @@ Generated files, binaries and logs stay in the ignored work directory.
 import argparse
 from datetime import datetime, timezone
 import json
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -21,7 +22,7 @@ import sys
 ROOT = Path(__file__).resolve().parent.parent / 'eda_extended'
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--work-dir', default='scratchpad/eda-extended')
-parser.add_argument('--tools', default='versions,nvc,systemc,interop')
+parser.add_argument('--tools', default='versions,nvc,systemc,ghdl,icarus,interop')
 args = parser.parse_args()
 work = Path(args.work_dir).resolve()
 work.mkdir(parents=True, exist_ok=True)
@@ -39,15 +40,20 @@ def execute(command, cwd, timeout=600):
         return None, '', str(error)
 
 
-def keep_lines(text, drop_info=False):
+def keep_lines(text, drop_info=False, drop_prefix=None, drop_regex=None):
     lines = [line for line in text.replace('\r', '').split('\n') if line.strip()]
     if drop_info:
         lines = [line for line in lines if not line.startswith('Info:')]
+    if drop_prefix:
+        lines = [line for line in lines if not line.startswith(drop_prefix)]
+    if drop_regex:
+        pattern = re.compile(drop_regex)
+        lines = [line for line in lines if not pattern.search(line)]
     return lines
 
 
 def check(tool, name, command, cwd, exit_code=0, marker=None, forbidden=None,
-          expected_file=None, drop_info=False):
+          expected_file=None, drop_info=False, drop_prefix=None, drop_regex=None):
     """exit_code: an int, or 'nonzero'. marker/forbidden are searched in stdout+stderr."""
     code, out, err = execute(command, cwd)
     combined = out + err
@@ -62,7 +68,7 @@ def check(tool, name, command, cwd, exit_code=0, marker=None, forbidden=None,
         passed = forbidden not in combined
     if passed and expected_file:
         want = keep_lines(Path(expected_file).read_text(encoding='utf-8'))
-        passed = keep_lines(out, drop_info) == want
+        passed = keep_lines(out, drop_info, drop_prefix, drop_regex) == want
     results.append(dict(tool=tool, check=name, command=[str(c) for c in command], returncode=code,
                         expectedExit=exit_code, passed=passed, log=f'logs/{tool}-{name}.log'))
     print(('PASS' if passed else 'FAIL') + ' ' + tool + ' ' + name, flush=True)
@@ -78,6 +84,12 @@ if 'versions' in selected:
     check('versions', 'nvc-llvm', ['nvc', '--version'], work, marker='Using LLVM 21')
     check('versions', 'systemc-library', ['bash', '-c', 'test -f /opt/systemc/lib/libsystemc.a && test -f /opt/systemc/include/systemc && echo SYSTEMC LIBRARY PRESENT'], work, marker='SYSTEMC LIBRARY PRESENT')
     check('versions', 'compiler', ['g++', '--version'], work, marker='g++')
+    check('versions', 'ghdl', ['ghdl', '--version'], work, marker='GHDL 5.0.1')
+    check('versions', 'ghdl-backend', ['ghdl', '--version'], work, marker='mcode JIT code generator')
+    check('versions', 'icarus', ['iverilog', '-V'], work, marker='Icarus Verilog version 12.0')
+    check('versions', 'icarus-vpi-helper-flags-fixed',
+          ['bash', '-c', "! grep -q ' 0-3 ' /usr/bin/iverilog-vpi && echo VPI FLAGS CLEAN"],
+          work, marker='VPI FLAGS CLEAN')
 
 if 'nvc' in selected:
     nvc_dir = work / 'nvc'
@@ -128,6 +140,143 @@ if 'nvc' in selected:
     check('nvc', 'vhpi-plugin-builds', ['gcc', '-shared', '-fPIC', '-I/opt/nvc/include', '-o', 'hello_vhpi.so', str(ROOT / 'nvc' / 'vhpi' / 'hello_vhpi.c')], vhpi)
     check('nvc', 'vhpi-plugin-loads', ['bash', '-c', f'nvc --std=08 -a {counter}/01_counter.vhd {counter}/02_tb_counter.vhd && nvc --std=08 -e tb_counter && nvc --std=08 -r tb_counter --load=./hello_vhpi.so'], vhpi,
           marker='VHPI STARTUP PASS')
+
+
+if 'ghdl' in selected:
+    ghdl_dir = work / 'ghdl'
+    ghdl_dir.mkdir(parents=True, exist_ok=True)
+
+    # Differential check: run the shared VHDL corpus that the NVC profile is
+    # held to through GHDL as well, and compare against the same expected.txt.
+    # GHDL appends a "simulation finished @<time>" line when std.env.finish
+    # runs; that is a tool difference, not a behavioural one, so it is dropped
+    shared = ROOT / 'nvc' / 'corpus'
+    for directory in sorted(p for p in shared.iterdir() if p.is_dir()):
+        name = directory.name
+        description = case_json(directory)
+        std, top = description['std'], description['top']
+        sources = [str(p) for p in sorted(directory.glob('*.vhd'))]
+        case_work = ghdl_dir / ('shared-' + name)
+        case_work.mkdir(parents=True, exist_ok=True)
+        label = 'shared-' + name
+        if not check('ghdl', label + '-analyse', ['ghdl', '-a', f'--std={std}', *sources], case_work):
+            continue
+        if not check('ghdl', label + '-elaborate', ['ghdl', '-e', f'--std={std}', top], case_work):
+            continue
+        check('ghdl', label + '-simulate', ['ghdl', '-r', f'--std={std}', top], case_work,
+              expected_file=directory / 'expected.txt',
+              drop_prefix='simulation finished @')
+
+    # GHDL-specific corpus: waveform output and a VHDL-93 case.
+    for directory in sorted(p for p in (ROOT / 'ghdl' / 'corpus').iterdir() if p.is_dir()):
+        name = directory.name
+        description = case_json(directory)
+        std, top = description['std'], description['top']
+        sources = [str(p) for p in sorted(directory.glob('*.vhd'))]
+        case_work = ghdl_dir / name
+        case_work.mkdir(parents=True, exist_ok=True)
+        if not check('ghdl', name + '-analyse', ['ghdl', '-a', f'--std={std}', *sources], case_work):
+            continue
+        if not check('ghdl', name + '-elaborate', ['ghdl', '-e', f'--std={std}', top], case_work):
+            continue
+        run_command = ['ghdl', '-r', f'--std={std}', top]
+        if description.get('wave'):
+            run_command.append(f'--vcd={name}.vcd')
+        check('ghdl', name + '-simulate', run_command, case_work,
+              expected_file=directory / 'expected.txt',
+              drop_prefix='simulation finished @')
+        if description.get('wave'):
+            check('ghdl', name + '-vcd-written',
+                  ['bash', '-c', f'grep -q "\\$var" {name}.vcd && echo VCD WRITTEN'],
+                  case_work, marker='VCD WRITTEN')
+            check('ghdl', name + '-fst-written',
+                  ['bash', '-c', f'ghdl -r --std={std} {top} --fst={name}.fst '
+                                 f'> /dev/null 2>&1 && test -s {name}.fst && echo FST WRITTEN'],
+                  case_work, marker='FST WRITTEN')
+
+    # Negative cases: each must exit nonzero with its recorded diagnostic.
+    negative = ROOT / 'ghdl' / 'negative'
+    neg = ghdl_dir / 'negative'
+    neg.mkdir(parents=True, exist_ok=True)
+    for spec in sorted(negative.glob('*.json')):
+        description = json.loads(spec.read_text(encoding='utf-8'))
+        source = spec.with_suffix('.vhd')
+        std = description['std']
+        kind = description['kind']
+        stem = spec.stem
+        if kind == 'analyse':
+            command = ['ghdl', '-a', f'--std={std}', str(source)]
+        else:
+            # analyse then elaborate or run
+            command = ['bash', '-c',
+                       f'ghdl -a --std={std} {source} && ghdl -{"e" if kind == "elaborate" else "r"} '
+                       f'--std={std} {stem}']
+        check('ghdl', stem + '-rejected', command, neg,
+              exit_code='nonzero', marker=description['marker'])
+
+    # A VHDL-2008 construct must be accepted under --std=08.
+    std2008 = negative / 'std2008_only.vhd'
+    check('ghdl', 'vhdl2008-construct-accepted-under-std08',
+          ['ghdl', '-a', '--std=08', str(std2008)], neg)
+    check('ghdl', 'vhdl2008-construct-rejected-under-std93',
+          ['ghdl', '-a', '--std=93', str(std2008)], neg,
+          exit_code='nonzero', marker='not allowed before VHDL 2008')
+
+if 'icarus' in selected:
+    icarus_dir = work / 'icarus'
+    icarus_dir.mkdir(parents=True, exist_ok=True)
+
+    def iverilog_build(source, binary, top='top'):
+        return check('icarus', binary + '-compile',
+                     ['iverilog', '-g2012', '-s', top, '-o', binary, str(source)],
+                     icarus_dir)
+
+    for directory in sorted(p for p in (ROOT / 'icarus' / 'corpus').iterdir() if p.is_dir()):
+        name = directory.name
+        sources = sorted(directory.glob('*.sv'))
+        binary = str(icarus_dir / (name + '.vvp'))
+        if not check('icarus', name + '-compile',
+                     ['iverilog', '-g2012', '-s', name, '-o', binary, *[str(s) for s in sources]],
+                     icarus_dir):
+            continue
+        check('icarus', name + '-simulate', ['vvp', binary], icarus_dir,
+              expected_file=directory / 'expected.txt',
+              drop_regex=r'\$finish called at')
+
+    # Packaged VPI helper: the 12.0-3 flag fix must let the helper build.
+    vpi = icarus_dir / 'vpi'
+    vpi.mkdir(parents=True, exist_ok=True)
+    host = ROOT / 'icarus' / 'vpi' / 'vpi_host.sv'
+    plugin = ROOT / 'icarus' / 'vpi' / 'hello_vpi.c'
+    if check('icarus', 'vpi-host-compile',
+             ['iverilog', '-g2012', '-s', 'vpi_host', '-o', str(vpi / 'host.vvp'), str(host)],
+             vpi):
+        check('icarus', 'vpi-packaged-helper-builds',
+              ['iverilog-vpi', str(plugin)], vpi)
+        check('icarus', 'vpi-module-loads',
+              ['vvp', '-M' + str(vpi), '-mhello_vpi', str(vpi / 'host.vvp')], vpi,
+              marker='VPI HELLO PASS')
+        # The documented direct-cc path must keep working alongside the helper.
+        check('icarus', 'vpi-direct-cc-build',
+              ['cc', '-std=c11', '-shared', '-fPIC', '-O2', '-I/usr/include/iverilog',
+               '-o', str(vpi / 'direct.vpi'), str(plugin)], vpi)
+        check('icarus', 'vpi-direct-cc-loads',
+              ['vvp', '-M' + str(vpi), '-mdirect', str(vpi / 'host.vvp')], vpi,
+              marker='VPI HELLO PASS')
+
+    # Negative cases: compile failure and a required nonzero run.
+    negative = ROOT / 'icarus' / 'negative'
+    neg = icarus_dir / 'negative'
+    neg.mkdir(parents=True, exist_ok=True)
+    check('icarus', 'syntax-error-rejected',
+          ['iverilog', '-g2012', '-s', 'broken', '-o', str(neg / 'broken.vvp'),
+           str(negative / 'syntax_error.sv')], neg, exit_code='nonzero')
+    if check('icarus', 'fatal-case-compiles',
+             ['iverilog', '-g2012', '-s', 'fatal_case', '-o', str(neg / 'fatal.vvp'),
+              str(negative / 'fatal.sv')], neg):
+        check('icarus', 'fatal-case-exits-nonzero', ['vvp', str(neg / 'fatal.vvp')], neg,
+              exit_code='nonzero', marker='EXPECTED AUDIT FAILURE',
+              forbidden='AFTER FATAL')
 
 if 'systemc' in selected:
     sc_dir = work / 'systemc'

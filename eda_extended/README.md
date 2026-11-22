@@ -1,6 +1,6 @@
-# Extended EDA overlay: NVC and SystemC
+# Extended EDA overlay: NVC, SystemC, GHDL and Icarus
 
-This folder holds the overlay that adds two upstream reference tools to the
+This folder holds the overlay that adds four upstream reference tools to the
 qualified SystemVerilog tools image, and the shared reference corpus for the
 later Rust ports.
 
@@ -8,23 +8,33 @@ later Rust ports.
 | --- | --- | --- | --- |
 | [#82](https://github.com/hevangel/ai_hw_engineer/issues/82) | NVC VHDL compiler/simulator | `r1.23.1`, `fab54a9e96964b431050d837e163c22282a1df6c` | [docs/nvc](../docs/nvc/README.md) |
 | [#83](https://github.com/hevangel/ai_hw_engineer/issues/83) | Accellera SystemC | `3.0.2`, `70b0fc8e4a74acc677b0fc73cea08f940c2115d5` | [docs/systemc](../docs/systemc/README.md) |
+| [#466](https://github.com/hevangel/ai_engineer/issues/466) | GHDL VHDL compiler/simulator | Ubuntu `5.0.1+dfsg-1ubuntu1` (mcode backend) | [docs/ghdl](../docs/ghdl/README.md) |
+| [#467](https://github.com/hevangel/ai_engineer/issues/467) | Icarus Verilog | Ubuntu `iverilog=12.0-3` | [docs/iverilog](../docs/iverilog/README.md) |
 
 The overlay is not the whole extended image of
 [#84](https://github.com/hevangel/ai_hw_engineer/issues/84): e1647-rs and the
 NVC and SystemC Rust ports are separate trackers and are not installed here.
+GHDL and Icarus have no Rust port tracked at the time of writing.
 
 ## Layout
 
 ```text
 eda_extended/
-├── Dockerfile                 overlay: nvc-build, systemc-build, final
+├── Dockerfile                 overlay: nvc-build, systemc-build, final (ghdl, icarus)
 ├── nvc/
 │   ├── corpus/<case>/         VHDL sources, case.json, expected.txt (+ reference.py)
 │   ├── negative/              inputs that must fail, with their expected diagnostics
 │   └── vhpi/hello_vhpi.c      minimal VHPI plugin
-└── systemc/
-    ├── corpus/<case>/<case>.cpp, expected.txt (+ reference.py)
-    └── negative/              programs that must report failure
+├── systemc/
+│   ├── corpus/<case>/<case>.cpp, expected.txt (+ reference.py)
+│   └── negative/              programs that must report failure
+├── ghdl/
+│   ├── corpus/<case>/         VHDL sources, case.json, expected.txt
+│   └── negative/              inputs that must fail, each with a .json case
+└── icarus/
+    ├── corpus/<case>/         SystemVerilog sources and expected.txt
+    ├── negative/              inputs that must fail
+    └── vpi/                   hello_vpi.c plugin plus a host module
 ```
 
 ## Build and run

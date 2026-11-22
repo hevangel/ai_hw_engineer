@@ -9,6 +9,7 @@ metadata = json.loads((ROOT / 'work/reference/v1/metadata.json').read_text())['o
 directed = {0x9b: 'WAIT busy/ready/interrupt restart (control + native)',
             0xf4: 'HLT idle/wakeup (control + native + UVM + formal)',
             0xf0: 'LOCK/HOLD atomicity (control + native)',
+            0xf1: 'LOCK prefix alias: directed EU + native LOCK/HOLD/RQ-GT tests',
             0xf2: 'REPNE physical string fixtures', 0xf3: 'REP/REPE physical fixtures and interrupted restart'}
 directed.update({op: 'ESC: all eight groups, register and odd-word memory (control)'
                  for op in range(0xd8, 0xe0)})
@@ -23,6 +24,8 @@ for op in range(256):
         status = detail.get('status', info.get('status', 'unspecified'))
         stem = f'{op:02X}' + (f'.{group}' if group else '')
         count = selection['files'].get(f'v1/{stem}.json.gz', 0)
+        if not count and group:
+            count = selection.get('groups', {}).get(stem, 0)
         if group == '0' and not count:
             count = selection['files'].get(f'v1/{op:02X}.json.gz', 0)
         evidence = f'{count:,} physical-chip fixtures per interface' if count else directed.get(op, '')
@@ -31,14 +34,18 @@ for op in range(256):
             # undocumented; the upstream README omits it, and die research
             # identifies it explicitly as undocumented POP CS.
             status = 'undocumented (upstream labels normal)'
-            evidence = ('Outside documented contract: POP CS; omitted by upstream. '
-                        '[Original die analysis](https://www.righto.com/2023/07/undocumented-8086-instructions.html)')
-        if status in ('normal', 'fpu') and not evidence:
+            evidence = ('POP CS implemented with BIU redirect: directed EU + native tests '
+                        '(absent from corpus; [original die analysis](https://www.righto.com/2023/07/undocumented-8086-instructions.html))')
+        elif op in (0x8d, 0xc4, 0xc5) or stem in ('FF.3', 'FF.5'):
+            evidence += '; mod=3 register form enters diagnostic fault_o (UVM/formal/directed)'
+        elif op == 0x8e:
+            evidence += '; MOV CS (/1, /5) covered by directed EU + native tests'
+        elif op == 0xfe and int(group) > 1:
+            evidence = 'Unimplemented undefined FE group; enters diagnostic fault_o (UVM/directed; 0 corpus fixtures)'
+        if (status in ('normal', 'fpu', 'alias', 'undocumented', 'prefix') or op in (0x8f, 0xc6, 0xc7)) and not evidence:
             gaps.append(stem)
         if not evidence:
-            evidence = 'Outside documented contract; excluded with upstream status'
-        if op == 0x82:
-            evidence = 'Original DEBUG.COM exercises this 80h alias; alias corpus excluded explicitly'
+            evidence = 'Outside documented contract; enters diagnostic fault_o'
         rows.append(f'| {stem} | {status} | {evidence} |')
 if gaps:
     raise ValueError('Documented encoding coverage gaps: ' + ', '.join(gaps))

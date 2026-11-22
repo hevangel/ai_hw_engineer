@@ -20,7 +20,7 @@ module tb_top;
       .high_address_oe_o(vif.high_address_oe),
       .address_status_o(vif.address_status),
       .address_status_oe_o(vif.address_status_oe),
-      .sso_n_o(vif.sso_n),
+      .ss0_o(vif.ss0),
       .sso_oe_o(vif.sso_oe),
       .rd_n_o(vif.rd_n),
       .wr_n_o(vif.wr_n),

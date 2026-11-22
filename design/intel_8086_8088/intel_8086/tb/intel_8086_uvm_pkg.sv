@@ -326,10 +326,10 @@ package intel_8086_uvm_pkg;
       if (last.req) `uvm_fatal("RESET", "reset request still active")
       completed++;
 
-      // Undefined opcode 60h and undocumented MOV CS fail explicitly.
+      // Diagnostic fault on invalid register-form LEA and undefined FE /2.
       for (int scenario = 0; scenario < 2; scenario++) begin
-        if (scenario == 0) program_bytes('{8'h60, 8'h90});
-        else program_bytes('{8'h8e, 8'hc8});
+        if (scenario == 0) program_bytes('{8'h8d, 8'hc0});
+        else program_bytes('{8'hfe, 8'h10});
         boot();
         begin
           bit found = 0;
@@ -340,7 +340,7 @@ package intel_8086_uvm_pkg;
           end
           if (!found) `uvm_fatal("FAULT", "unsupported instruction did not stop")
         end
-        check(scenario == 0 ? 1 : 2, 0, 1);
+        check(2, 0, 1);
         repeat (10) tick();
         if (last.req || last.retire) `uvm_fatal("FAULT", "fault state not idle")
         completed++;

@@ -37,6 +37,7 @@ module zilog_z80
     input  logic [7:0]  bus_rdata_i,
     output logic        bus_io_o,
     output logic        bus_intack_o,
+    output logic        bus_m1_o,      // opcode fetch (M1) cycle
 
     input  logic        int_i,
     input  logic        nmi_i,
@@ -444,11 +445,15 @@ module zilog_z80
     bus_wdata_o  = mem_data;
     bus_io_o     = 1'b0;
     bus_intack_o = 1'b0;
+    bus_m1_o     = 1'b0;
 
     case (state)
       S_FETCH, S_PFX, S_IMM1, S_IMM2, S_ED, S_IDX, S_IDX_D, S_DCB_D, S_DCB_OP: begin
         bus_write_o = 1'b0;
         bus_addr_o  = pc;
+        // Opcode fetches are M1 cycles; operand reads are not.
+        bus_m1_o    = (state == S_FETCH) || (state == S_PFX) ||
+                      (state == S_ED) || (state == S_IDX);
       end
       S_MRD: begin
         bus_write_o = 1'b0;

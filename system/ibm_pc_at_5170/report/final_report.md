@@ -42,7 +42,9 @@ operating system has been booted yet.
 
 Each card machine is checked in one scenario (no added wait states).
 `run_post_card.sh ega|vga` is the one regression for either card;
-`run_post_ega.sh` and `run_post_vga.sh` are wrappers.
+`run_post_ega.sh` and `run_post_vga.sh` are wrappers. `run_post_ega.sh` takes
+about 35 minutes (15 of simulation and screen and device checks, 20 for the
+Unicorn replay); `run_all.sh` does not run either.
 
 Details, findings and limits:
 [Diskette adapter and DMA report](2026-11-17-diskette-adapter-and-dma.md),

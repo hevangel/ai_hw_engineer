@@ -59,15 +59,36 @@ the index pages.
 | Formal cover | **PASS**, all cover points reached (depth 25) | `sby -f formal/zilog_z80.sby cover` |
 | Formal prove | **PASS** by k-induction | `sby -f formal/zilog_z80.sby prove` |
 | Synthesis (generic) | **PASS**, 27,378 cells, 373 flops | `scripts/run_synth.sh generic`, Yosys 0.69 |
+| Synthesis (iCE40 target) | **PASS**, 3,803 LUT4 + 369 flops | `scripts/run_synth.sh ice40` |
+| Native engine timing (bus-cycle-exact subset) | **PASS**, 16/16 instructions | `scripts/run_native.sh` |
 | ZEXDOC / ZEXALL / z80test | Not run | needs the CP/M harness; ZEXALL is ~5.8e9 instructions |
 | Historical software | Not run | needs a CP/M BDOS harness |
 | Synthesis | **PASS** (generic cells; no timing or area target set) | `scripts/run_synth.sh generic` |
-| Native timing comparison | Not run | native engine not started |
+| Native timing, internal T-states | Not modelled | `zilog_z80_native` reproduces M1/memory/I-O cycle shapes and totals for the bus-cycle-exact subset. An attempt to add a per-opcode internal-T table (INC (HL), JR, PUSH, CALL, EX (SP),HL, block groups) was reverted: the extra T-states land after the core's retire pulse, so measuring them needed a repeated-instruction average, and the resulting totals still carried a one-cycle artefact from the wrapper's request handshake. Getting this right needs the internal cycles injected inside the last bus cycle (or a core-level timing output), not after retirement |
 
-The `scripts/` directory also holds `run_alu.sh`, `run_instr.sh` and
-`run_int.sh`, which are the gates above; `run_all.sh`, `run_formal.sh`,
-`run_sim.sh`, `run_coverage.sh` and `run_synth.sh` are the repository scaffold
-entry points.
+### Real historical software
+
+`tb/cpm_harness.cpp` + `scripts/run_cpm.sh` load a CP/M-80 `.com` at 0x0100,
+trap the BDOS entry at 0x0005 (functions 2 and 9 only) and the warm boot at
+0x0000, and capture console output. Binaries live in the ignored `work/cpm/`
+directory; SHA-256 values are recorded in [references/README.md](../references/README.md).
+
+| Image | Result | Instructions |
+|---|---|---|
+| `prelim.com` (Z80 preliminary exerciser) | **PASS** — prints `Preliminary tests complete` | 898 |
+| `8080pre.com` (8080 preliminary test) | **PASS** — prints `8080 Preliminary tests complete` | 1,060 |
+| `tst8080.com` (Microcosm 8080 diagnostic) | **fails at 0x01FB, as expected on a Z80** — the test branches on parity after `ADD A,70`, but on a Z80 bit 2 is P/V (overflow for arithmetic) rather than the 8080's parity | 106 |
+| `zexdoc.com` (Frank D. Cringle, GPL) | starts and enters its first subtest; a full run is ~5.7e9 instructions | — |
+
+The TST8080 result is a genuine ISA difference, not a core defect: the Z80
+replaces the 8080's always-parity bit 2 with P/V. It is recorded here so the
+difference is not mistaken for a regression later.
+
+The gate scripts are `run_alu.sh`, `run_instr.sh`, `run_int.sh` and `run_cpm.sh`;
+`run_all.sh`, `run_formal.sh`, `run_sim.sh`, `run_coverage.sh` and `run_synth.sh`
+are the repository scaffold entry points.
+
+
 
 ## 4. Known issues and limitations
 

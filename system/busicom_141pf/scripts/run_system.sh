@@ -9,7 +9,7 @@
 #
 # Environment:
 #   BUSICOM_PORT  web panel port (default 8080)
-#   BUSICOM_BACKEND  xezim (default) or verilator
+#   BUSICOM_BACKEND  verilator (default) or xezim
 #   BUSICOM_SPIN  machine cycles per drum half-spin (default 1481)
 #   BUSICOM_REALTIME  1 paces interactive drum ticks to the 4004 clock;
 #                     default 0 keeps batch regressions unpaced
@@ -19,8 +19,8 @@ set -eu
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 SYSTEM_DIR=$(dirname "$SCRIPT_DIR")
-DESIGN_DIR="$SYSTEM_DIR/../../design"
-BACKEND="${BUSICOM_BACKEND:-xezim}"
+DESIGN_DIR="$SYSTEM_DIR/../../design/intel_mcs4"
+BACKEND="${BUSICOM_BACKEND:-verilator}"
 PORT="${BUSICOM_PORT:-8080}"
 WORK_DIR="$SYSTEM_DIR/work/system-$BACKEND-$PORT"
 LOG_FILE="$WORK_DIR/busicom_141pf.log"

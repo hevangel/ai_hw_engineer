@@ -156,5 +156,169 @@ static void control(Bench &b) {
         }
         step(b,0x103);++cases;
     }
+    // Undocumented POP CS (0Fh), MOV CS (8Eh /1 and /5), LOCK alias F1h, and SALC (D6h).
+    setup(b,{0x0f,0x90,0xf4},0xf302); put_word(b,0x8000,0x2000);
+    code(b,0x20101,{0x90,0xf4}); code(b,0x10101,{0xcc,0xf4});
+    step(b,0x101,0x2000); b.dut.nmi_i=1; step(b,0x102,0x2000);
+    for(unsigned i=0;i<1000 && !(b.dut.redirect_o && b.dut.ip_o==0x420);++i) b.tick();
+    require(b.read()[4]==0x7ffc && word(b,0x7ffc)==0x102 && word(b,0x7ffe)==0x2000,"POP CS interrupt shadow/target");
+    ++cases;
+    for(uint8_t modrm:{0xc8,0xe8}) {
+        setup(b,{0x8e,modrm,0x90,0xf4},0xf302);
+        auto rcs=b.read(); rcs[0]=0x2000; b.load(rcs);
+        code(b,0x20102,{0x90,0xf4}); code(b,0x10102,{0xcc,0xf4});
+        step(b,0x102,0x2000); b.dut.nmi_i=1; step(b,0x103,0x2000);
+        for(unsigned i=0;i<1000 && !(b.dut.redirect_o && b.dut.ip_o==0x420);++i) b.tick();
+        require(b.read()[4]==0x7ffa && word(b,0x7ffa)==0x103 && word(b,0x7ffc)==0x2000,"MOV CS reg shadow/target");
+        ++cases;
+    }
+    setup(b,{0x8e,0x0e,0x00,0x20,0x90,0xf4},0xf302); put_word(b,0x2000,0x2000);
+    code(b,0x20104,{0x90,0xf4}); code(b,0x10104,{0xcc,0xf4});
+    step(b,0x104,0x2000); b.dut.nmi_i=1; step(b,0x105,0x2000);
+    for(unsigned i=0;i<1000 && !(b.dut.redirect_o && b.dut.ip_o==0x420);++i) b.tick();
+    require(b.read()[4]==0x7ffa && word(b,0x7ffa)==0x105 && word(b,0x7ffc)==0x2000,"MOV CS mem shadow/target");
+    ++cases;
+    setup(b,{0xf1,0x87,0x06,0,0x20,0x90}); put_word(b,0x2000,0x1234);
+    for(unsigned i=0;i<500 && !(b.dut.bus_req_o && !b.dut.bus_fetch_o);++i) b.tick();
+    b.dut.hold_i=1;
+    for(unsigned i=0;i<500 && !b.dut.retire_o;++i) {b.tick(); require(!b.dut.hlda_o,"HOLD split F1 LOCK");}
+    require(b.read()[0]==0x1234 && word(b,0x2000)==0,"F1 LOCK XCHG effects");
+    for(unsigned i=0;i<20 && !b.dut.hlda_o;++i) b.tick(); require(b.dut.hlda_o,"F1 HOLD grant absent");
+    b.dut.hold_i=0; step(b,0x106); ++cases;
+    for(uint16_t flags:{0xf002,0xf003}) {
+        setup(b,{0xd6,0x90},flags); auto sr=b.read(); sr[0]=0x1234; b.load(sr);
+        step(b,0x101);
+        require(b.read()[0]==((flags&1) ? 0x12ff:0x1200) && b.read()[13]==flags,"SALC value/flags");
+        ++cases;
+    }
+    // NMI held high across reset and release must not trigger a spurious edge;
+    // a subsequent 0->1 rising edge wakes HLT into vector 2.
+    b.reset();
+    put_word(b,8,0x420); put_word(b,10,0); code(b,0x420,{0x43,0xcf});
+    code(b,0xffff0,{0xea,0x00,0x00,0x00,0x10}); code(b,0x10000,{0xbc,0x00,0x80,0xf4,0x90,0xf4});
+    b.dut.nmi_i=1; b.dut.rst_n=0; b.tick(); b.tick(); b.dut.rst_n=1;
+    b.retire(); require(b.read()[9]==0x1000 && b.dut.ip_o==0 && b.writes.empty(),"spurious NMI before reset jump");
+    b.retire(); require(b.read()[9]==0x1000 && b.dut.ip_o==3 && b.writes.empty(),"spurious NMI on reset release");
+    b.retire(); require(b.dut.halted_o && b.read()[9]==0x1000 && b.dut.ip_o==4 &&
+        b.read()[3]==0 && b.writes.empty(),"spurious NMI before HLT");
+    b.dut.nmi_i=0; b.tick(); b.tick(); b.dut.nmi_i=1;
+    for(unsigned i=0;i<1000 && !(b.dut.redirect_o && b.dut.ip_o==0x420);++i) b.tick();
+    require(b.read()[9]==0 && b.dut.ip_o==0x420 && b.read()[4]==0x7ffa &&
+        word(b,0x7ffa)==4 && word(b,0x7ffc)==0x1000,"post-reset NMI rising edge wake");
+    b.dut.nmi_i=0; step(b,0x421,0); step(b,4); step(b,5); step(b,6);
+    require(b.dut.halted_o && b.read()[3]==1,"post-NMI re-halt"); ++cases;
+    // Interrupting LOCK REP or LOCK WAIT must release LOCK before vector/stack entry.
+    for(bool use_nmi:{false,true}) {
+        setup(b,{0xf0,0xf3,0xa4,0x90},0xf202);
+        auto lr=b.read(); lr[1]=16; lr[6]=0x200; lr[7]=0x300; lr[8]=0x2000; lr[11]=0x3000; b.load(lr);
+        for(unsigned i=0;i<500 && b.writes.empty();++i) b.tick();
+        require(b.dut.lock_o,"LOCK REP did not assert lock_o");
+        if(use_nmi) b.dut.nmi_i=1; else b.dut.intr_i=1;
+        bool in_vec_stack=false;
+        for(unsigned i=0;i<1000 && !(b.dut.redirect_o && b.read()[9]==0);++i) {
+            b.tick((b.cycles%7)<3);
+            if(b.dut.bus_req_o && !b.dut.bus_fetch_o && !b.dut.bus_intack_o &&
+               (b.dut.bus_addr_o<0x400 || (b.dut.bus_addr_o>=0x7ff0 && b.dut.bus_addr_o<0x8000)))
+                in_vec_stack=true;
+            if(in_vec_stack && b.dut.bus_req_o)
+                require(!b.dut.lock_o,"LOCK remained asserted during interrupted REP entry");
+        }
+        require(in_vec_stack && b.read()[9]==0 && b.dut.ip_o==(use_nmi ? 0x420:0x600),"LOCK REP IRQ entry");
+        ++cases;
+    }
+    setup(b,{0xf0,0x9b,0x90},0xf202); b.dut.test_n_i=1;
+    for(unsigned i=0;i<30;++i) b.tick();
+    require(b.dut.waiting_o && b.dut.lock_o,"LOCK WAIT did not assert lock_o");
+    b.dut.intr_i=1;
+    bool wait_vec_stack=false;
+    for(unsigned i=0;i<1000 && !(b.dut.redirect_o && b.read()[9]==0);++i) {
+        b.tick((b.cycles%7)<3);
+        if(b.dut.bus_req_o && !b.dut.bus_fetch_o && !b.dut.bus_intack_o &&
+           (b.dut.bus_addr_o<0x400 || (b.dut.bus_addr_o>=0x7ff0 && b.dut.bus_addr_o<0x8000)))
+            wait_vec_stack=true;
+        if(wait_vec_stack && b.dut.bus_req_o)
+            require(!b.dut.lock_o,"LOCK remained asserted during interrupted WAIT entry");
+    }
+    require(wait_vec_stack && b.read()[9]==0 && b.dut.ip_o==0x600,"LOCK WAIT IRQ entry"); ++cases;
+    // Shadows cover the whole following REP string (review #286 finding 8,
+    // assumption A7): STI then REP MOVSB with INTR held, and MOV SS then
+    // REP MOVSB with an NMI edge during the first element, each complete all
+    // ten elements before the interrupt, which returns past the REP.
+    for(bool segment_load:{false,true}) {
+        if(segment_load) setup(b,{0x8e,0xd0,0xf3,0xa4,0x90,0xf4},0xf002); // MOV SS,AX; REP MOVSB
+        else setup(b,{0xfb,0xf3,0xa4,0x90,0xf4},0xf002);                  // STI; REP MOVSB
+        auto sr=b.read(); sr[0]=0; sr[1]=10; sr[6]=0x200; sr[7]=0x300; sr[8]=0x2000; sr[11]=0x3000; b.load(sr);
+        for(unsigned i=0;i<10;++i) b.set(0x30200+i,0x40+i);
+        if(!segment_load) b.dut.intr_i=1;
+        step(b,segment_load ? 0x102:0x101);
+        require(b.acknowledgements==0,"shadow-setting instruction accepted an interrupt");
+        if(segment_load) {
+            for(unsigned i=0;i<500 && b.writes.empty();++i) b.tick();
+            b.dut.nmi_i=1;
+            entry(b,2,0x104,0xf002);
+        } else entry(b,0x20,0x103,0xf202);
+        bool copied=b.read()[1]==0;
+        for(unsigned i=0;i<10;++i) copied=copied && b.memory[0x20300+i]==0x40+i;
+        require(copied,std::string(segment_load ? "MOV SS":"STI")+" shadow did not cover the whole REP string");
+        b.dut.intr_i=0; b.dut.nmi_i=0; ++cases;
+    }
+    // WAIT is exempt (assumption A8): STI; WAIT with TEST high takes a held
+    // INTR while waiting and returns to the WAIT itself.
+    setup(b,{0xfb,0x9b,0x90,0xf4},0xf002); b.dut.test_n_i=1; b.dut.intr_i=1;
+    step(b,0x101); require(b.acknowledgements==0,"STI accepted IRQ too early before WAIT");
+    entry(b,0x20,0x101,0xf202); b.dut.intr_i=0; b.dut.test_n_i=0; ++cases;
+    // A second NMI rising edge in the very clock a pending NMI is accepted
+    // must stay latched and be taken after the first handler (review #286
+    // finding 9). The handler is INC BX; IRET, so BX counts NMI entries.
+    setup(b,{0x90,0x90,0x90,0x90,0x90,0xf4},0xf002);
+    b.dut.nmi_i=1; b.tick(); b.dut.nmi_i=0;
+    bool second_edge=false;
+    for(unsigned i=0;i<1000 && !second_edge;++i) {
+        b.dut.eval();
+        if(b.dut.rootp->intel_8086__DOT__state==0 && b.dut.rootp->intel_8086__DOT__nmi_pending) {
+            b.dut.nmi_i=1; second_edge=true;
+        }
+        b.tick();
+    }
+    require(second_edge,"NMI accept clock not reached");
+    for(unsigned i=0;i<3000 && !b.dut.halted_o;++i) b.tick();
+    require(b.dut.halted_o && b.read()[3]==2,"NMI edge in the accepting clock was lost, BX="+
+        std::to_string(b.read()[3]));
+    b.dut.nmi_i=0; ++cases;
+    // Once REP or HLT yields to INTR the acknowledge is committed even if the
+    // request is withdrawn the next clock (review #286 finding 10,
+    // assumption A9). STRING_UPDATE is state 43 of the EU state enum.
+    constexpr unsigned string_update_state=43;
+    setup(b,{0x2e,0xf3,0xa4,0x90,0xf4},0xf202); // CS: REP MOVSB with IF set
+    {
+        auto cr=b.read(); cr[1]=10; cr[6]=0x200; cr[7]=0x300; cr[8]=0x2000; cr[11]=0x3000; b.load(cr);
+        bool pulsed=false;
+        for(unsigned i=0;i<1000 && !pulsed;++i) {
+            b.dut.eval();
+            if(b.dut.rootp->intel_8086__DOT__state==string_update_state) {
+                b.dut.intr_i=1; b.tick(); b.dut.intr_i=0; pulsed=true;
+            } else b.tick();
+        }
+        require(pulsed,"REP element boundary not reached");
+        // RPTI backs up two bytes, so the CS override is lost on return.
+        entry(b,0x20,0x101,0xf202);
+        require(b.read()[1]==9 && b.acknowledgements==2,"withdrawn INTR did not complete REP yield");
+        ++cases;
+    }
+    setup(b,{0xfb,0xf4,0x90,0xf4},0xf002); // STI; HLT, INTR pulsed for one clock
+    step(b,0x101); step(b,0x102);
+    for(unsigned i=0;i<20;++i) b.tick();
+    require(b.dut.halted_o,"STI; HLT did not halt");
+    b.dut.intr_i=1; b.tick(); b.dut.intr_i=0;
+    entry(b,0x20,0x102,0xf202); ++cases;
+    // A LOCK prefix followed by an encoding that enters the FAULT stop must
+    // release LOCK: the locked instruction has ended (review #286 finding 4).
+    setup(b,{0xf0,0x8d,0xc3,0x90}); // LOCK LEA AX,BX (register form faults)
+    for(unsigned i=0;i<500 && !b.dut.fault_o;++i) b.tick();
+    require(b.dut.fault_o,"LOCK LEA reg,reg did not reach FAULT");
+    b.tick(); require(!b.dut.lock_o,"LOCK remained asserted in FAULT");
+    b.dut.hold_i=1;
+    for(unsigned i=0;i<20 && !b.dut.hlda_o;++i) b.tick();
+    require(b.dut.hlda_o,"HOLD refused after LOCK then FAULT"); b.dut.hold_i=0; ++cases;
     std::cout<<"PASS: "<<cases<<" documented control, interrupt, REP, WAIT and LOCK scenarios\n";
 }

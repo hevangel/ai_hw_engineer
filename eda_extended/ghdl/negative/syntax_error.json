@@ -1,0 +1,3 @@
+{"kind": "analyse", "std": "08", "expect": "nonzero",
+ "marker": "unexpected end of file",
+ "notes": "GHDL reports the position and what it expected; the exact text is version-specific."}
