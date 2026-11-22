@@ -231,6 +231,10 @@ device and the full POST remain.
 - Boot PC DOS from diskette, run DIR, write and read back a file (done for
   PC DOS 3.00 via `scripts/get_dos.py` and `scripts/run_dos_boot.sh`,
   including `Ctrl+Alt+Del` warm reboot and readback).
+- Run the 8088 PC's PC DOS 1.00 and 2.00 diskette workloads with the same
+  results as the 8088 machines (done: `scripts/run_dos_8086.sh`, drive B,
+  360 KB drive type, 160/180 KB media, FORMAT; see the
+  [8086 compatibility report](../report/2026-11-22-8086-compatibility.md)).
 - AT fixed-disk controller at 1F0h (new design), then boot from it.
 
 ## M6: OS/2 1.0 and CPGREP
