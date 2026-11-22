@@ -20,6 +20,7 @@ import gzip
 import hashlib
 import ipaddress
 import json
+import os
 import re
 import socket
 from pathlib import Path
@@ -28,9 +29,11 @@ import urllib.parse
 import urllib.request
 
 TREE = 'aea84484abc79d09639d855b7b0ab32bc9e4dbeb'
-PER_FILE = 20
+# Accepted tests per corpus file. The former cap of 20 sampled 0.2% of the
+# corpus (review #288 finding 4). I8088_VECTORS_PER_FILE=0 runs every test.
+PER_FILE = int(os.environ.get('I8088_VECTORS_PER_FILE', '2000'))
 REGS = 'ax cx dx bx sp bp si di es cs ss ds ip flags'.split()
-PREFIXES = {0x26, 0x2e, 0x36, 0x3e, 0xf0, 0xf2, 0xf3}
+PREFIXES = {0x26, 0x2e, 0x36, 0x3e, 0xf0, 0xf1, 0xf2, 0xf3}
 SUPPORTED = set(range(256))
 ALLOWED_HOSTS = {'raw.githubusercontent.com', 'api.github.com'}
 
@@ -122,7 +125,7 @@ def main():
                 continue
             count = 0
             for test in json.loads(gzip.decompress((CACHE / path).read_bytes())):
-                if count >= PER_FILE:
+                if PER_FILE and count >= PER_FILE:
                     break
                 code = test['bytes']; pos = 0
                 while pos < len(code) and code[pos] in PREFIXES:
@@ -131,17 +134,21 @@ def main():
                     reason = 'unsupported prefix or opcode'
                 else:
                     op = code[pos]; info = metadata[f'{op:02X}']; reason = None
+                    reg = (code[pos+1] >> 3) & 7 if 'reg' in info else None
                     if 'reg' in info:
-                        info = {**info, **info['reg'].get(str((code[pos+1] >> 3) & 7), {})}
-                    if info.get('status') not in {'normal', 'fpu'}:
-                        reason = 'upstream non-normal encoding'
-                    elif op in {0x8c, 0x8e} and (((code[pos+1] >> 3) & 7) > 3 or
-                                                op == 0x8e and (code[pos+1] >> 3) & 7 == 1):
-                        reason = 'undocumented segment-register field'
+                        info = {**info, **info['reg'].get(str(reg), {})}
+                    # Same acceptance as the shared 8086 execution unit: aliases,
+                    # undocumented forms and the captured undefined 8F/C6/C7 forms
+                    # run as on silicon (review #288 finding 5, #286 finding 1).
+                    if info.get('status') not in {'normal', 'fpu', 'alias', 'undocumented'} and not (
+                            info.get('status') == 'undefined' and op in {0x8f, 0xc6, 0xc7}):
+                        reason = 'upstream unimplemented encoding'
                     elif op in {0x8d, 0xc4, 0xc5} and code[pos+1] >> 6 == 3:
                         reason = 'invalid far-pointer/LEA register form'
-                    elif op in {0xc6, 0xc7} and (code[pos+1] >> 3) & 7:
-                        reason = 'undocumented immediate MOV extension'
+                    elif op == 0xfe and reg > 1:
+                        reason = 'unimplemented FE group extension'
+                    elif op == 0xff and reg in {3, 5} and code[pos+1] >> 6 == 3:
+                        reason = 'invalid far-indirect register form'
                     initial = test['initial']['regs']
                     ram = dict(test['initial']['ram'])
                     if reason is None and any(ram.get(((initial['cs'] << 4) +
