@@ -133,7 +133,8 @@ module intel_8088_biu (
   // Outside a bus cycle IO/M and DT/R give the data sheet's PASSIVE
   // (IO/M=0, DT/R=1) or, while halted, HALT (IO/M=1, DT/R=1) decode (p. B-33).
   assign io_m_o = phase != IDLE ? (cycle_io || cycle_intack) : halted_i;
-  assign dt_r_o = phase != IDLE ? cycle_write : 1'b1;
+  // INTA always receives (DT/R=0), whatever the request's write flag.
+  assign dt_r_o = phase != IDLE ? (cycle_write && !cycle_intack) : 1'b1;
   assign den_n_o = !(owned && min_mode_i && (data_phase || phase == T4));
   // HALT entry (Intel 8088 datasheet; AP-67 p. A-39): minimum mode issues
   // one ALE with no qualifying bus strobes; maximum mode drives a one-clock
