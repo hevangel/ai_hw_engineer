@@ -53,5 +53,10 @@
     "match": "int_gate.taskgate_[nl][ud][lt]*.cpl[03]",
     "reason": "INT through a task gate whose TSS selector is null (0000) or local (TI=1, 0054): RTL #GP(selector), PCE-286 #TS(selector). The RTL follows the repo citation of App. B page B-49 (a null, local or out-of-limit task-gate TSS selector is #GP(TSS selector)); 86Box raises #GP for the 80286 and #TS only for the 386/486/P5. Oracle defect (386-style rule).",
     "source": "Intel 210498-005 Appendix B page B-49 as cited in src/intel_80286.sv EVENT task-gate check; 86Box x86seg.c pmodeint task-gate case comment ('#GP(TSS selector) on the 80286 and P6 books'). Page not re-read in this session (offline)."
+  },
+  {
+    "match": "far_xfer.*.taskgate_[nl][ud][lt]*.rpl0.cpl0",
+    "reason": "CALL or JMP through a task gate whose TSS selector is null (0000) or local (TI=1): RTL #GP(TSS selector), PCE-286 #TS(TSS selector). Intel 210498-005 Appendix B CALL TASK GATE and JUMP TASK GATE: \"Must specify global in the local/global bit else #GP (TSS selector)\" and \"Index must be within GDT limits else #GP (TSS selector)\"; a null selector then fails \"must specify available TSS ... else #GP (TSS selector)\". Only RETURN FROM NESTED TASK (IRET) uses #TS for these checks. The IDT task-gate path is waived for the same oracle rule (int_gate.taskgate_*). Oracle defect (386-style rule); RTL follows the 286 manual (issue #284, finding 3).",
+    "source": "Intel 210498-005 Appendix B pages B-25 (CALL TASK GATE) and B-57 (JUMP TASK GATE), re-read 2026-11-22 from the local 210498-005.pdf text layer; review in issue #284."
   }
 ]
