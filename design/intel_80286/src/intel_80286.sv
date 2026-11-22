@@ -906,10 +906,9 @@ module intel_80286 #(
         .cpl_i(state==TASK_CODE_START ? task_state_image[11][1:0] :
                (state==IRET_CODE_START && iret_outer_active) ? iret_saved_cs[1:0] :
                (state==RET_CODE_START && ret_outer_active) ? ret_saved_cs[1:0] : cs[1:0]),
-        .call_i(1'b0),.gate_call_i((state==CALL_CODE_START && protected_call_through_gate &&
+        .gate_call_i((state==CALL_CODE_START && protected_call_through_gate &&
                                     !protected_call_direct_jump) ||
                                    state==EVENT_CODE_START),
-        .stack_ok_i(1'b1),
         .ldt_valid_i(task_switch_active ? task_ldtr_valid : ldtr_valid),
         .busy_o(code_load_busy),.done_o(code_load_done),
         .bus_req_o(code_load_req),.bus_write_o(code_load_write),

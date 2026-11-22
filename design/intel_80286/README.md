@@ -429,8 +429,11 @@ order is backed by physical-286 D8 captures; D9h-DFh rely on assumption A30.
 The memory data channel and protected-mode memory forms remain open. See the
 [D8 physical-command report](report/2026-10-30-d8-physical-command.md) and the
 [ESC command-phase report](report/2026-11-03-esc-command-phase.md).
-The unconnected [processor-extension transfer engine](report/2026-10-30-pedc-component.md)
-has separate component tests; it is not yet an operational CPU data channel.
+The processor-extension data channel is implemented inside the core (its
+`PEDC_*` states) and checked by the `Vintel_80286 --pedc` 80287 stand-in
+scenarios; see [the channel spec](spec/processor_extension_channel.md). The
+earlier standalone engine `intel_80286_pedc` was never instantiated and was
+removed with its component tests (issue #284, finding 12).
 
 Full-core Yosys 0.69 synthesis passes `check -assert` with zero problems. The
 pre-correction connected-core depth-24 BMC passed, but its property snapshot

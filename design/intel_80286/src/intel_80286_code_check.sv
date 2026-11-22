@@ -3,7 +3,7 @@
 module intel_80286_code_check (
     input logic [15:0] selector_i, table_limit_i, offset_i,
     input logic [1:0] cpl_i,
-    input logic ldt_valid_i, descriptor_valid_i, call_i, gate_call_i, stack_ok_i,
+    input logic ldt_valid_i, descriptor_valid_i, gate_call_i,
     input logic [47:0] descriptor_i,
     output logic [15:0] descriptor_offset_o,
     output logic descriptor_needed_o, checked_o, cache_valid_o, special_o, fault_o,
@@ -37,8 +37,12 @@ module intel_80286_code_check (
                 fault_o=1; fault_vector_o=13; fault_error_o={selector_i[15:2],2'b00};
             end else if (!rights[7]) begin
                 fault_o=1; fault_vector_o=11; fault_error_o={selector_i[15:2],2'b00};
-            end else if (call_i && !stack_ok_i) begin fault_o=1; fault_vector_o=12; end
-            else if (offset_i>descriptor_i[15:0]) begin fault_o=1; fault_vector_o=13; end
+            end else if (offset_i>descriptor_i[15:0]) begin
+                // Callers that must test stack room first pass offset 0
+                // and test the real offset after their stack checks
+                // (App. B CALL and INT; issue #284 findings 7 and 12).
+                fault_o=1; fault_vector_o=13;
+            end
             else begin
                 cache_valid_o=1;
                 selector_o={selector_i[15:2],

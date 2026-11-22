@@ -54,7 +54,7 @@ struct Test {
         require(!d.busy_o && !d.done_o && packet()==Packet{},"CS reset state");
         d.rst_n=1; d.eval();
     }
-    static Packet reference(unsigned sel,unsigned ip,unsigned cpl,bool call,bool stack_ok,
+    static Packet reference(unsigned sel,unsigned ip,unsigned cpl,
                             unsigned table_limit,bool ldt,uint32_t base,uint16_t limit,unsigned rights) {
         Packet p{}; p.request_selector=sel; p.request_offset=ip;
         const unsigned relative=(sel/8)*8,kind=rights%32,dpl=(rights/32)%4,rpl=sel%4;
@@ -70,17 +70,15 @@ struct Test {
             }
             if (!allowed) { p.fault=1; p.vector=13; p.error=(sel/4)*4; }
             else if (rights<128) { p.fault=1; p.vector=11; p.error=(sel/4)*4; }
-            else if (call && !stack_ok) { p.fault=1; p.vector=12; }
             else if (ip>limit) { p.fault=1; p.vector=13; }
             else { p.valid=1; p.selector=(sel/4)*4+cpl; p.base=base; p.limit=limit; p.access=rights; }
         }
         return p;
     }
-    uint32_t prepare(unsigned sel,unsigned ip,unsigned cpl,bool call,bool stack_ok,unsigned table_limit,
+    uint32_t prepare(unsigned sel,unsigned ip,unsigned cpl,unsigned table_limit,
                      bool ldt,uint32_t base,uint16_t limit,unsigned rights,uint32_t table_base=0x123400) {
         memory.clear(); transfers.clear();
-        d.selector_i=sel; d.offset_i=ip; d.cpl_i=cpl; d.call_i=call; d.gate_call_i=0;
-        d.stack_ok_i=stack_ok; d.ldt_valid_i=ldt;
+        d.selector_i=sel; d.offset_i=ip; d.cpl_i=cpl; d.gate_call_i=0; d.ldt_valid_i=ldt;
         d.gdt_base_i=table_base; d.ldt_base_i=(table_base^0x654300)&0xffffff;
         d.gdt_limit_i=table_limit; d.ldt_limit_i=table_limit;
         const uint32_t address=((sel&4?d.ldt_base_i:d.gdt_base_i)+(sel/8)*8)&0xffffff;
@@ -91,16 +89,16 @@ struct Test {
     }
     void perturb() {
         d.selector_i=next()&0xffff; d.offset_i=next()&0xffff; d.cpl_i=next()&3;
-        d.call_i=next()&1; d.gate_call_i=0; d.stack_ok_i=next()&1; d.ldt_valid_i=next()&1;
+        d.gate_call_i=0; d.ldt_valid_i=next()&1;
         d.gdt_base_i=next()&0xffffff; d.ldt_base_i=next()&0xffffff;
         d.gdt_limit_i=next()&0xffff; d.ldt_limit_i=next()&0xffff;
         d.start_i=cycles%5==2;
     }
-    void run_case(unsigned sel,unsigned ip,unsigned cpl,bool call,bool stack_ok,unsigned table_limit,
+    void run_case(unsigned sel,unsigned ip,unsigned cpl,unsigned table_limit,
                   bool ldt,uint32_t base,uint16_t limit,unsigned rights,uint32_t table_base=0x123400) {
         require(!d.busy_o,"CS request started before idle");
-        const auto expected_packet=reference(sel,ip,cpl,call,stack_ok,table_limit,ldt,base,limit,rights);
-        const uint32_t address=prepare(sel,ip,cpl,call,stack_ok,table_limit,ldt,base,limit,rights,table_base);
+        const auto expected_packet=reference(sel,ip,cpl,table_limit,ldt,base,limit,rights);
+        const uint32_t address=prepare(sel,ip,cpl,table_limit,ldt,base,limit,rights,table_base);
         const bool needed=sel/4!=0 && (!(sel&4) || ldt) && (sel/8)*8+7<=table_limit;
         std::vector<Transfer> expected;
         if (needed) for (unsigned i=0;i<8;++i) expected.push_back({(address+i)&0xffffff,memory[(address+i)&0xffffff],false});
@@ -119,20 +117,20 @@ struct Test {
     void run() {
         reset();
         for (unsigned rights=0;rights<256;++rights) for (unsigned cpl=0;cpl<4;++cpl)
-            for (unsigned rpl=0;rpl<4;++rpl) for (bool call: {false,true}) for (bool stack_ok: {false,true})
+            for (unsigned rpl=0;rpl<4;++rpl)
                 for (unsigned ip: {0u,0xabcdu,0xabceu}) for (bool local: {false,true})
-            run_case((local?4:8)+rpl,ip,cpl,call,stack_ok,0xffff,true,
+            run_case((local?4:8)+rpl,ip,cpl,0xffff,true,
                 (0xa50001^(rights*7919))&0xffffff,0xabcd,rights);
-        for (unsigned sel=0;sel<4;++sel) run_case(sel,0xffff,3,true,false,0,false,0xffffff,0,0xff);
-        run_case(4,0,0,false,true,7,false,0x123456,0xffff,0x9a);
+        for (unsigned sel=0;sel<4;++sel) run_case(sel,0xffff,3,0,false,0xffffff,0,0xff);
+        run_case(4,0,0,7,false,0x123456,0xffff,0x9a);
         for (unsigned index: {1u,2u,0x123u,0x1fffu}) {
             const unsigned sel=index*8,last=index*8+7;
-            run_case(sel,0,0,false,true,last-1,true,0xffffff,0xffff,0x9a);
-            run_case(sel,0xffff,0,true,true,last,true,0xffffff,0xffff,0x9a);
+            run_case(sel,0,0,last-1,true,0xffffff,0xffff,0x9a);
+            run_case(sel,0xffff,0,last,true,0xffffff,0xffff,0x9a);
         }
-        run_case(8,0x1234,0,false,true,15,true,0xabcdef,0x1234,0x9a,0xfffff4);
+        run_case(8,0x1234,0,15,true,0xabcdef,0x1234,0x9a,0xfffff4);
         for (unsigned cut=0;cut<=9;++cut) {
-            prepare(8,0x1234,0,false,true,15,true,0xabcdef,0x1234,0x9a);
+            prepare(8,0x1234,0,15,true,0xabcdef,0x1234,0x9a);
             d.start_i=1; tick(false); d.start_i=0;
             for (unsigned n=0;n<64 && transfers.size()<cut;++n) tick(true);
             require(transfers.size()==cut,"CS reset transfer cut missing");
@@ -141,8 +139,8 @@ struct Test {
             ++cases;
         }
         // Hold a write with an older packet, then cancel it through reset.
-        run_case(8,0x1234,0,false,true,15,true,0x102030,0x4050,0x9b);
-        prepare(16,0x5678,0,true,true,23,true,0xabcdef,0x9876,0x9a);
+        run_case(8,0x1234,0,15,true,0x102030,0x4050,0x9b);
+        prepare(16,0x5678,0,23,true,0xabcdef,0x9876,0x9a);
         d.start_i=1; tick(false); d.start_i=0;
         for (unsigned n=0;n<64 && !(d.bus_req_o && d.bus_write_o);++n) tick(true);
         require(d.bus_req_o && d.bus_write_o && transfers.size()==8,"CS accessed-write phase missing");

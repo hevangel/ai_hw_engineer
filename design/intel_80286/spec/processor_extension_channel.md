@@ -67,12 +67,15 @@ or the data transfer, but it does not establish whether the CPU must observe
 an intervening low on its sampling clock. Validate A26 against a real 80287
 or an independent pin trace before sign-off.
 
-## Standalone engine
+## Implementation
 
-`intel_80286_pedc` remains a separately verified standalone transaction engine.
-It is not instantiated in the core. The core channel above reuses the core's
-own memory engine so that both the byte-compatible and native beat interfaces
-are covered.
+The channel is implemented only inside the core (its `PEDC_*` states), which
+reuses the core's own memory engine so that both the byte-compatible and
+native beat interfaces are covered. The earlier standalone engine
+`intel_80286_pedc` was never instantiated, so its separate formal task and
+component tests said nothing about this path; it was removed with them
+(issue #284, finding 12). The bus owner's PEDC request port is tied off in
+the core for the same reason.
 
 ## Verification
 
