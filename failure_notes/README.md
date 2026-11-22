@@ -26,6 +26,15 @@ author is the same agent in every session — the useful question is never
 
 ## Index
 
+- [2026-11-22 - 8088 SS0 status pin driven inverted](2026-11-22-intel8088-ss0-inverted.md)
+  An external review's T2 pin samples showed SS0 at the opposite level to the
+  data sheet in every cycle type and toggling in maximum mode; the RTL, spec,
+  bench, scoreboard and formal covers all checked the RTL's own formula.
+- [2026-11-21 - 8086 review: prefetch in interrupt entry, NMI at reset, shadows in REP](2026-11-21-intel8086-review-interrupt-edges.md)
+  An external review's pin-level probes found CODE prefetch during interrupt
+  entry with a partly empty queue, a spurious NMI from a line held high
+  through reset, and STI/MOV SS shadows that did not hold inside a REP
+  string; each rule had only been tested in its easiest state.
 - [2026-11-16 - IBM EGA dropped attribute-controller writes to port 3C1](2026-11-16-ibm-ega-attribute-3c1.md)
   The real EGA BIOS on the AT failed its POST dot test: its OUT_DX helper writes
   index/data to 3C0/3C1, the decode accepted only 3C0, and the BIOS replay had
