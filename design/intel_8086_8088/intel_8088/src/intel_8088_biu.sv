@@ -37,7 +37,7 @@ module intel_8088_biu (
     output logic high_address_oe_o,
     output logic [3:0] address_status_o,
     output logic address_status_oe_o,
-    sso_n_o,
+    ss0_o,
     sso_oe_o,
     output logic rd_n_o,
     wr_n_o,
@@ -80,7 +80,7 @@ module intel_8088_biu (
   logic [1:0] pending, rqgt_previous, grant_pulse, release_delay;
   logic held, owner;
   logic request_hold, request_grant, release_request;
-  logic halt_announced, halt_indicate;
+  logic halt_announced, halt_indicate, halt_ale;
   integer index;
   function automatic logic [1:0] advance(input logic [1:0] pointer);
     advance = pointer == 2'd3 ? 2'd0 : pointer + 2'd1;
@@ -122,13 +122,18 @@ module intel_8088_biu (
   assign high_address_oe_o = owned;
   assign address_status_o = phase == T1 ? cycle_addr[19:16] : {1'b0, if_i, cycle_segment};
   assign address_status_oe_o = owned;
-  assign sso_n_o = !status_o[0];
+  // SS0 is logically equivalent to S0 (Intel 1979 p. B-33; hardware
+  // reference p. 4-11), and status_o already holds pin levels, so the pin
+  // equals status_o[0]. Pin 34 is always high in maximum mode (p. B-34).
+  assign ss0_o = min_mode_i ? status_o[0] : 1'b1;
   assign sso_oe_o = owned;
   assign control_oe_o = owned;
   assign rd_n_o = !(owned && data_phase && !cycle_write && !cycle_intack);
   assign wr_n_o = !(owned && min_mode_i && data_phase && cycle_write);
-  assign io_m_o = cycle_io || cycle_intack;
-  assign dt_r_o = cycle_write;
+  // Outside a bus cycle IO/M and DT/R give the data sheet's PASSIVE
+  // (IO/M=0, DT/R=1) or, while halted, HALT (IO/M=1, DT/R=1) decode (p. B-33).
+  assign io_m_o = phase != IDLE ? (cycle_io || cycle_intack) : halted_i;
+  assign dt_r_o = phase != IDLE ? cycle_write : 1'b1;
   assign den_n_o = !(owned && min_mode_i && (data_phase || phase == T4));
   // HALT entry (Intel 8088 datasheet; AP-67 p. A-39): minimum mode issues
   // one ALE with no qualifying bus strobes; maximum mode drives a one-clock
@@ -137,7 +142,9 @@ module intel_8088_biu (
   assign halt_indicate = owned && phase == IDLE && halted_i && !halt_announced && !flush_i &&
       !(eu_req_i && !eu_fetch_i) &&
       ((!request_hold && !request_grant) || lock_i || lock_delayed || inhibit_i);
-  assign ale_o = owned && min_mode_i && (phase == T1 || halt_indicate);
+  // Minimum-mode ALE is delayed one clock when entering HALT so the status
+  // is latched with it (8088 data sheet p. B-32).
+  assign ale_o = owned && min_mode_i && (phase == T1 || halt_ale);
   assign inta_n_o = !(owned && min_mode_i && data_phase && cycle_intack);
   assign lock_n_o = !(rst_n && !min_mode_i && lock_delayed);
   always_comb begin
@@ -186,8 +193,10 @@ module intel_8088_biu (
       release_delay <= 0;
       lock_delayed <= 0;
       halt_announced <= 0;
+      halt_ale <= 0;
       for (index = 0; index < 4; index = index + 1) queue[index] <= 0;
     end else begin
+      halt_ale <= halt_indicate && min_mode_i;
       if (!halted_i || !owned) halt_announced <= 0;
       else if (halt_indicate) halt_announced <= 1;
       if (!min_mode_i) begin
@@ -324,6 +333,18 @@ module intel_8088_biu (
       end
       if (held || release_delay != 0) assert (!ad_oe_o && !high_address_oe_o &&
           !address_status_oe_o && !control_oe_o && !sso_oe_o);
+      // Minimum-mode {IO/M, DT/R, SS0} decode, written out from the data
+      // sheet table (p. B-33), not from the RTL formula; pin 34 high in max.
+      if (!min_mode_i) assert (ss0_o);
+      // Status is active in T1/T2 and returns passive in T3/Tw (p. B-33).
+      if (owned && min_mode_i && (phase == T1 || phase == T2)) begin
+        if (cycle_intack) assert ({io_m_o, dt_r_o, ss0_o} == 3'b100);
+        else if (cycle_io) assert ({io_m_o, dt_r_o, ss0_o} == (cycle_write ? 3'b110 : 3'b101));
+        else if (cycle_prefetch) assert ({io_m_o, dt_r_o, ss0_o} == 3'b000);
+        else assert ({io_m_o, dt_r_o, ss0_o} == (cycle_write ? 3'b010 : 3'b001));
+      end
+      if (owned && min_mode_i && phase == IDLE)
+        assert ({io_m_o, dt_r_o, ss0_o} == (halted_i ? 3'b111 : 3'b011));
       if (ad_oe_o && phase != T1) assert (cycle_write);
       if (cycle_intack) assert (!ad_oe_o);
       if (owned && phase == TW && !ready_i) assert (status_o != 3'b111);
@@ -345,8 +366,8 @@ module intel_8088_biu (
     cover (past_valid && flush_i && cycle_prefetch && phase == T3);
     cover (past_valid && redirects_during_fetch == 2 && phase == T4 && !flush_i);
     cover (past_valid && cycle_word && cycle_second && phase == T4);
-    cover (past_valid && owned && min_mode_i && status_o == 3'b101 && !sso_n_o);
-    cover (past_valid && owned && min_mode_i && status_o == 3'b110 && sso_n_o);
+    cover (past_valid && owned && min_mode_i && phase == T2 && {io_m_o, dt_r_o, ss0_o} == 3'b001);
+    cover (past_valid && owned && min_mode_i && phase == T2 && {io_m_o, dt_r_o, ss0_o} == 3'b010);
     cover (past_valid && owned && cycle_io);
   end
 `endif
