@@ -12,8 +12,9 @@ MUTATIONS=[
     ('tf_uses_post_instruction_flags','assign async_step = instruction_tf &&','assign async_step = flags[8] &&'),
     ('software_int_steps_handler','state==BOUNDARY && retire_o && !event_o','state==BOUNDARY && retire_o'),
     ('rep_has_no_element_step','(state==STRING_BOUNDARY && element_o)','(1\'b0)'),
-    ('hlt_loses_step_boundary','8\'hf4: begin state <= BOUNDARY; halt_latch<=1; end',
-     '8\'hf4: begin state <= HALTED; halt_latch<=1; end'),
+    # Privileged HLT path (real mode or CPL 0); CPL>0 raises #GP(0) instead.
+    ('hlt_loses_step_boundary','end else begin state <= BOUNDARY; halt_latch<=1; end',
+     'end else begin state <= HALTED; halt_latch<=1; end'),
 ]
 
 

@@ -37,6 +37,7 @@ else
 fi
 export INTEL_80286_WORK_DIR="$WORK_DIR"
 python3 "$SCRIPT_DIR/preflight.py"
+python3 "$SCRIPT_DIR/check_mutation_patterns.py"
 python3 -m unittest discover -s "$SCRIPT_DIR" -p 'test_preflight.py'
 python3 -m unittest discover -s "$SCRIPT_DIR" -p 'test_audit_formal.py'
 python3 -m unittest discover -s "$SCRIPT_DIR" -p 'test_build_runner.py'
