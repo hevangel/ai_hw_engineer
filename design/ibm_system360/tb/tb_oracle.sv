@@ -58,6 +58,7 @@ module tb_oracle;
   ibm_s360_cpu #(.RESET_IA(24'h00_0100)) dut (
       .clk             (clk),
       .rst_n           (rst_n),
+      .ext_timer_req   (1'b0),
       .mem_addr        (mem_addr),
       .mem_we          (mem_we),
       .mem_wdata       (mem_wdata),
