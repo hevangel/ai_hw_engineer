@@ -32,14 +32,15 @@ stamps. No 80286 or board defect was found: nothing in the RTL changed.
 
 | Check | Command | Result |
 |---|---|---|
-| AT, PC DOS 1.00 workload | `scripts/run_dos_8086.sh "$ROM"` | Pass: 16 steps; 36,719,857 instructions, 579,600,000 clocks (about 37 min wall with the trace); 3 CPU resets (POST), 2,024 interrupt acknowledges, 77,312 DMA writes and 8,544 DMA reads, no DMA outside RAM; drive B formatted and written (169,984 media bytes); DONKEY in BIOS mode 4 |
+| AT, PC DOS 1.00 workload | `scripts/run_dos_8086.sh "$ROM"` | Pass: 16 steps; 36,719,857 instructions, 579,600,000 clocks (about 27 min wall, writing the trace); 3 CPU resets (POST), 2,024 interrupt acknowledges, 77,312 DMA writes and 8,544 DMA reads, no DMA outside RAM; drive B formatted and written (169,984 media bytes); DONKEY in BIOS mode 4 |
 | PC 5150, same keystrokes | same | Pass: 18,418,962 instructions, 328,863,636 clocks |
 | PC/AT comparison, DOS 1.00 | same (`scripts/compare_8086.py`) | Pass: 13 text screens identical (DONKEY's graphics screen is compared as a picture: both in a graphics mode, picture changes after the space bar); CHKDSK `40 disk files`, `160256 bytes total disk space`, `6144 bytes remain available` on both; `CLOCK.COM` on drive B equals `TIME.COM` of the DOS diskette (250 bytes) on both, read by the script's own FAT12 reader; the two 163,840-byte drive B images are identical |
-| AT, PC DOS 2.00 workload | same | Pass: 12 steps; 21,070,788 instructions, 326,000,000 clocks; 3 CPU resets, 1,244 interrupt acknowledges, 91,648 DMA writes and 5,120 DMA reads |
+| AT, PC DOS 2.00 workload | same | Pass: 11 steps; 21,070,788 instructions, 326,000,000 clocks; 3 CPU resets, 1,244 interrupt acknowledges, 91,648 DMA writes and 5,120 DMA reads |
 | XT 5160, same keystrokes | same | Pass: 13,590,621 instructions, 228,000,000 clocks |
 | XT/AT comparison, DOS 2.00 | same | Pass: 11 text screens identical after the time-of-day line; `ECHO.TXT` = `AT 5170 8086 COMPAT\r\n` and `KEYED.TXT` = `HELLO FROM COPY CON\r\n` on both; the 184,320-byte drive B images differ only in the two new directory entries' time fields (root directory sector 5 and the stale directory copy in the unused tail of the files' sectors 190 and 191) |
-| 80286 against Unicorn, DOS 1.00 run | same (`check_post_trace.py --boot`) | See "Unicorn replay" below |
-| 80286 against Unicorn, DOS 2.00 run | same | See "Unicorn replay" below |
+| 80286 against Unicorn, DOS 1.00 run | same (`check_post_trace.py --boot`) | Pass: all 36,719,857 instructions from power-on match (after extending the oracle; see "Unicorn replay") |
+| 80286 against Unicorn, DOS 2.00 run | same | Pass: all 21,070,788 instructions match |
+| 80286 design software regressions (oracle scripts changed) | `design/intel_80286/scripts/run_software.sh` | Pass: 17 checks (firmware trace to the ROM checksum, 196,846 states; hex-helper, IRQ8 timer and system-register cases; timer/DMA/page and native-bus BIOS replays) |
 | 286-vs-8086 instruction differences | `scripts/scan_286_differences.py` on both traces | See "Genuine 286 differences" below |
 | PC DOS 3.00 regression (simulator changes) | `scripts/run_dos_boot.sh "$ROM"` | Pass, unchanged: 460,000,000 clocks, 29,043,745 instructions, 5 CPU resets, `HELLO` read back (1,119 s wall) |
 | Waveform capture invariant (simulator changes) | `scripts/test_capture.py` on the two-drive build | Pass: captures of 1,024, 4,096 and 65,536 clocks leave the state as an ordinary run |
@@ -128,8 +129,11 @@ instruction fetches above 1 MB.
   PC. With A20 enabled the same program would fetch from 1000C0h (no
   memory there in this machine) and fail.
 - Offset-FFFFh word accesses and #UD: the Unicorn replay compares every
-  transfer and fault; the event counts it prints (`exceptions`) list what
-  was taken.
+  transfer and fault. Each run takes 4 exceptions, all in the system BIOS's
+  POST tests (13 at F000:1CAC and F000:1E02, 5 at F000:1D3B and F000:1D5F);
+  none in DOS or BASIC, so neither a word access at offset FFFFh nor an
+  undefined opcode was hit.
+- NT/IOPL in FLAGS: hit once, without effect (see "Unicorn replay").
 
 ## Unicorn replay
 
@@ -154,7 +158,41 @@ AAA/AAS: OF, SF, ZF, PF) out of the comparison, and folds an instruction
 fetch at 1 MB or above to the low address while the A20 gate is low, as it
 already did for data transfers.
 
-Result: see `report/final_report.md` (filled in when the replays finish).
+Two more oracle defects showed up in the next replays (failure note
+[2026-11-22-intel80286-oracle-dos-coverage](../../../failure_notes/2026-11-22-intel80286-oracle-dos-coverage.md)):
+
+- ROM BASIC at F600:26DC runs `OR` then `LAHF`. OR leaves AF undefined
+  (210498-005 Appendix B); the RTL keeps the old AF (AH = 12h), Unicorn
+  clears it (02h). The replay excluded AF from the flags comparison but
+  compared LAHF's AH with a fixed mask. LAHF's AH is now compared only in
+  the flags still defined, and the CPU's AH is adopted
+  (`lahf_undefined_adopted`).
+- PC DOS 2.00's IBMBIO at 0070:0A1D stores into its own code a few bytes
+  ahead (`MOV CS:[0A2E],DL`). Unicorn 2.1.4 stepped with `count=1` abandons
+  such an instruction to retranslate the page and returns with IP
+  unchanged, every time (reproduced in a ten-line Unicorn script). The
+  replay now runs a sequential instruction that Unicorn left in place again
+  up to its next address, then compares its transfers as usual
+  (`self_modifying_restarts`).
+
+None of the three stops was a CPU disagreement, and no RTL changed. Results
+with the extended oracle:
+
+| Run | Result |
+|---|---|
+| PC DOS 2.00 | Pass (1,443 s wall): 21,070,788 instruction states and data transfers match up to `00DB:1683`, 0 trailing transfers; 13 of 13 POST checkpoints; 622 hardware interrupts (`08r` 136, `09r` 361, `0er` 125), 37,960 software interrupts, 4 exceptions (all in the BIOS's POST tests), 3 resets, 1 A20 change, 6 interrupted repeats, 91,648 DMA writes and 5,120 DMA reads, 5 self-modifying restarts, 2 ESC without a coprocessor |
+| PC DOS 1.00 | Pass (2,464 s wall): 36,719,857 instruction states and data transfers match up to `F600:6BB0`, 0 trailing transfers; 13 of 13 POST checkpoints; 1,012 hardware interrupts (`08r` 497, `09r` 217, `0er` 298), 22,023 software interrupts, 4 exceptions (all in the BIOS's POST tests), 3 resets, 1 A20 change, 62 fetches folded at 1000C0h, 5 interrupted repeats, 77,312 DMA writes and 8,544 DMA reads, 70 LAHF results with an undefined AF adopted, 2 ESC without a coprocessor |
+
+The replay also adopts the CPU's flags image where it differs only in
+flags Unicorn cannot judge for a 286 (`flags_image_differences`): nearly
+all are AF after logical instructions (undefined). One, at 0534:0180 in the
+DOS 2.00 session (an INT n frame), differs in bits 12-14: the program had
+loaded FLAGS with POPF or IRET, which on the 286 in real mode leave NT and IOPL
+unchanged (210498-005 B-86; `design/intel_80286/spec/memory_execution.md`)
+while Unicorn, modelling a later CPU, loads them. An 8086 would show bits
+12-15 as ones there. This is a genuine 286/8086 difference executed by the
+software; it changed nothing visible (the screens and files agree with the
+XT).
 
 ## DOS 2.00 note
 
