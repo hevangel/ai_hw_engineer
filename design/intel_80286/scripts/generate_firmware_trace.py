@@ -35,7 +35,8 @@ def decode(uc, pc, extended=False):
     prefix, in any order with segment prefixes) and 0F 01 /0-/3 with a memory
     operand (SGDT/SIDT/LGDT/LIDT) and /4 with a register operand (SMSW).
     It also accepts EXTENDED_OPS, BOUND (62, memory operand only), ARPL (63),
-    LMSW (0F 01 /6), SLDT/STR/LLDT/LTR/VERR/VERW (0F 00 /0-/5) and LAR/LSL
+    AAM/AAD (D4 0A/D5 0A), ESC (D8-DF, handled by bios_replay when
+    no_coprocessor=True), LMSW (0F 01 /6), SLDT/STR/LLDT/LTR/VERR/VERW (0F 00 /0-/5) and LAR/LSL
     (0F 02/03), the forms the BIOS protected-mode tests use,
     MUL/IMUL/DIV/IDIV (F6/F7 /4-/7) and the indirect far CALL FF /3 with a
     memory operand (the AT BIOS's adapter-ROM scan calls a card ROM's
@@ -58,6 +59,8 @@ def decode(uc, pc, extended=False):
     if extended and op in EXTENDED_OPS: return op,raw[n:]
     if extended and op==0x62: return (op,raw[n:]) if raw[n+1]<0xc0 else None
     if extended and op==0x63: return op,raw[n:]
+    if extended and op in (0xd4,0xd5): return (op,raw[n:]) if raw[n+1]==0x0a else None
+    if extended and 0xd8<=op<=0xdf: return op,raw[n:]
     if extended and op==0x0f:
         if n>7: return None
         second=raw[n+1]; m=raw[n+2]; extension=(m>>3)&7

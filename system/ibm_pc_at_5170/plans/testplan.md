@@ -134,11 +134,36 @@ regression (`scripts/run_post_card.sh ega|vga`).
   - Synthesis of `ibm_pc_at_5170_vga` (129,054 generic cells, plane RAMs
     and ROM black-boxed).
   - Not checked: graphics modes and the DAC in the machine (only the
-    card's own suite covers them), the VGA ROM against an IBM listing, and
-    the M4a "not checked" items. The bare-board regression was rerun on
-    this branch and is unchanged.
+    card's own suite covers them), the VGA ROM against an IBM listing, the
+    bare-board regression (last run for M4a), and the M4a "not checked"
+    items.
+- M4b diskette adapter and DMA (done): `scripts/run_boot_diskette.sh`
+  boots the VGA machine from a 1.2 MB diskette built by
+  `scripts/make_test_diskette.py`; results in the
+  [diskette report](../report/2026-11-17-diskette-adapter-and-dma.md).
+  Checks:
+  - Screen: the boot program's lines (`tb/expected_screen_boot.txt`); the
+    POST screens of `run_post_vga.sh` and `run_post_ega.sh` show no 601.
+  - The boot sector arrives at 0000:7C00 by DMA (D records equal the image).
+  - The boot program's own checks: the whole test file (79 cylinders, reads
+    across the head boundary) sums to the value the script computed; the
+    sector it writes reads back; it prints PASS.
+  - The written-back image holds the written sector and nothing else
+    changed.
+  - `scripts/check_fdc_log.py`: an independent model of the adapter, the
+    765/8272 command and result protocol and the drive checks every result
+    byte, status read, change-line read and DMA byte, and the final image.
+  - 8042 (now with the F1 bench stimulus's keyboard line changes, K
+    records) and MC146818 against their models.
+  - Unicorn for the whole run, with DMA memory transfers (D records) and A20
+    gate changes (G records) applied; `scripts/test_board_records.py`
+    shows that corrupted, dropped, misordered or misplaced D/G records are
+    rejected.
+  - Not checked: DMA and controller timing (AT25, AT27), the adapter's
+    gate-level logic (AT28-AT33), 360 KB media in a regression, format,
+    multiple drives.
 - M4b (remaining): POST completes with no error text; screen text matches
-  86Box; keyboard input reaches the BIOS buffer; diskette read through DMA.
+  86Box; keyboard input reaches the BIOS buffer.
 - M5: PC DOS boot, DIR, file write and readback, reboot and readback.
 - M6: OS/2 1.0 prompt and the CPGREP output line.
 

@@ -1,0 +1,10 @@
+# Text on the VGA screen when the boot run stops (scripts/run_boot_diskette.sh):
+# the boot program's lines. After F1 the BIOS sets the video mode again,
+# which clears the POST lines, and then boots drive A. The boot program
+# prints its own name, READ OK when the whole test file read with INT 13h
+# has the sum make_test_diskette.py computed, WRITE OK when the sector it
+# wrote reads back equal, and PASS when both hold; then it halts.
+AT DISKETTE BOOT TEST
+READ OK
+WRITE OK
+PASS

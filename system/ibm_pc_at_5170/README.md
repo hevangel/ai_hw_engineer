@@ -5,21 +5,27 @@ refresh logic, the 8042 keyboard controller running IBM's own firmware, the
 MC146818 clock, two 8259A interrupt controllers, the math-coprocessor ports
 and the shutdown-to-reset path. A second machine top adds an I/O channel and
 an IBM Enhanced Graphics Adapter (EGA) in an expansion slot. The unchanged
-IBM BIOS and the card's own BIOS run about 18.2 million instructions of the
+IBM BIOS and the card's own BIOS run about 18.0 million instructions of the
 power-on self-test: both interrupt controllers are set up, memory is tested
 in protected mode, the processor is reset through the 8042 three times, and
 seven timer interrupts are taken. The EGA BIOS's own self-test passes and
-its display shows `00640 KB OK`, ` 301-Keyboard Error` and
-` 601-Diskette Error`; both errors are correct, because no keyboard is
-plugged in and no diskette adapter is modeled. The run stops at POST
+its display shows `00640 KB OK` and ` 301-Keyboard Error`; the error is
+correct, because no keyboard is plugged in (before the diskette adapter
+was fitted it also showed ` 601-Diskette Error`). The run stops at POST
 checkpoint 3Ch on the BIOS's first read of port 1F7h, the fixed-disk status
-register; no fixed-disk adapter is fitted. The board alone, without a
-card, stops at the same read. Nothing boots.
+register. The board alone, without a card, stops at the same read.
+
+Since the diskette milestone both display machines also have the IBM Fixed
+Disk and Diskette Drive Adapter's diskette function in a slot and the
+board's DMA controllers move data: the 601 error is gone, and the VGA
+machine boots a script-built 1.2 MB test diskette whose boot program reads
+the whole diskette, writes a sector and prints PASS (see "Diskette and
+DMA"). No operating system has been booted yet.
 
 A third machine top puts the IBM PS/2 Display Adapter (VGA) in the slot
-instead of the EGA. The same BIOS and the card's BIOS run 16,294,929
+instead of the EGA. The same BIOS and the card's BIOS run 16,610,979
 instructions to the same stop, and the 720 x 400 display shows the same
-three lines. The VGA BIOS sets its 80-column text mode (inferred from the
+two lines. The VGA BIOS sets its 80-column text mode (inferred from the
 screen); graphics modes and the DAC are not exercised by this run.
 
 The IBM Personal Computer AT (model 5170) was IBM's first 80286 machine. It
@@ -37,11 +43,13 @@ repository's [`intel_80286`](../../design/intel_80286/) RTL. The goal is to
 boot PC DOS and then Microsoft OS/2 1.0.
 
 Important chips: Intel 80286, 8254 timer, two 8259A interrupt controllers,
-two 8237A DMA controllers (register interface), 74LS612 page registers,
+two 8237A DMA controllers, 74LS612 page registers,
 8042 keyboard controller with IBM firmware 1503033, Motorola MC146818 clock
 and the IBM EGA (five custom LSI devices, 256 KB display memory, IBM ROM
 6277356) in the EGA machine, or the IBM PS/2 Display Adapter (VGA; 256 KB,
-DAC, 24 KB adapter BIOS) in the VGA machine.
+DAC, 24 KB adapter BIOS) in the VGA machine; in both machines the IBM
+Fixed Disk and Diskette Drive Adapter's diskette function with an Intel
+8272 (NEC 765-compatible) controller.
 
 ## Web interface and waveform
 
@@ -111,6 +119,35 @@ scenario, makes the same five checks (stop point in
 8042, MC146818, Unicorn) and writes `work/post_vga/frame.png`. `run_all.sh`
 does not run it either. `run_synth.sh` also synthesizes the VGA machine.
 
+## Diskette and DMA
+
+Both display machines have the diskette function of the IBM Fixed Disk
+and Diskette Drive Adapter in a slot (`src/at_diskette_adapter.sv`, with
+the repository's `intel_8272`), and the board's two 8237s now move data
+(DMA channel 2, page registers, arbitration with refresh, T/C). Drive A is
+a 1.2 MB drive; images are raw sector files (`--fda=IMG`, `--fdb=IMG`,
+`--fda-type=1.2|360`, `--fda-ro`, `--write-back`). The BIOS's diskette test
+passes, so the 601 line is gone from the POST screens. Expansion RAM above
+1 MB is a runner option (`--ext-kb=N`, CMOS image `tb/cmos_vga_2mb.hex`
+for 2 MB).
+
+```sh
+ROM=$(sh system/ibm_pc_at_5170/scripts/get_bios.sh)
+sh system/ibm_pc_at_5170/scripts/run_boot_diskette.sh "$ROM"
+```
+
+`run_boot_diskette.sh` builds test diskettes with
+`scripts/make_test_diskette.py` (no copyrighted content; the boot program
+is `tb/boot_diskette.S`), powers on the VGA machine, presses F1 at the
+BIOS's 301 prompt with a bench stimulus on the keyboard lines (there is no
+keyboard device yet), lets the BIOS boot drive A and checks the boot
+program's own read/checksum/write test, the written-back image, an
+independent model of the adapter and controller
+(`scripts/check_fdc_log.py`), the 8042 and MC146818 models and Unicorn for
+the whole run. See the
+[diskette report](report/2026-11-17-diskette-adapter-and-dma.md) for
+results, timing assumptions (AT25-AT35) and limits.
+
 ## Verification and boundaries
 
 The board answers an I/O read only from modeled devices. On the bare board
@@ -123,19 +160,19 @@ port 1F7h (fixed-disk status) at POST checkpoint 3Ch. In the EGA machine
 the channel and the card answer video memory and the card's ports, and the
 run ends after the same read, at `F000:1454`.
 
-Every 80286 instruction of all four runs (two bare-board scenarios, the EGA
-machine and the VGA machine) matches Unicorn, in the system BIOS and, for
-the card machines, in the card's BIOS. The 8042 and the MC146818 match their
-reference models in all four. The display is checked as the text of one
-frame against the ROM's own font. The board synthesizes to 86,864 generic
-cells, the EGA machine to 94,169 and the VGA machine to 129,054 (the cards'
-plane RAMs and ROMs are black boxes; the VGA DAC's palette is in logic). The
-bare-board regression, rerun on the VGA branch, is unchanged in both
-scenarios.
+Every 80286 instruction of all four POST runs (two bare-board scenarios,
+the EGA machine and the VGA machine) and both diskette boot runs (640 KB
+and 2 MB) matches Unicorn, in the system BIOS, the adapter BIOS and the boot
+program. The 8042 and the MC146818 match their reference models in all six.
+The display is checked as the text of one frame against the ROM's own font.
+The board synthesizes to 86,879 generic cells, the diskette adapter to
+6,920, the EGA machine to 100,510 and the VGA machine to 136,117 (the
+cards' plane RAMs and ROMs are black boxes; the VGA DAC's palette is in
+logic).
 
 Limits:
 
-- No keyboard device, diskette adapter, fixed-disk adapter or 80287; NMI is
+- No keyboard device, fixed disk or 80287; NMI is
   not connected; only the timer interrupt (IRQ 0) has been taken, and the
   8259s are checked only by the BIOS's own tests and by the vectors and
   in-service values seen.
@@ -157,8 +194,9 @@ Limits:
   screen also shows `(RESUME = "F1" KEY)` and the BIOS waits for the F1
   key; the bare board with readable empty slots also reaches 3Fh.
 
-The VGA card is done (M4b part 1). The rest of M4b is keyboard input,
-diskette and a complete POST; see the [implementation plan](plans/implementation_plan.md).
+The VGA card is done (M4b part 1). The diskette adapter and real DMA are
+done (see "Diskette and DMA" below). The rest of M4b is keyboard input and
+a complete POST; see the [implementation plan](plans/implementation_plan.md).
 Tracking issue: https://github.com/hevangel/ai_hw_engineer/issues/254.
 
 - [Specification](spec/spec.md)
@@ -169,4 +207,5 @@ Tracking issue: https://github.com/hevangel/ai_hw_engineer/issues/254.
 - [M3 report](report/2026-11-15-m3-interrupts-and-protected-mode.md)
 - [M4a report](report/2026-11-16-m4a-io-channel-and-ega.md)
 - [M4b part 1 report](report/2026-11-16-m4b-vga.md)
+- [Diskette adapter and DMA report](report/2026-11-17-diskette-adapter-and-dma.md)
 - [Verification report](report/final_report.md)

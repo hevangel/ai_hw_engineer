@@ -44,13 +44,27 @@ CHECKPOINTS = {
 
 
 def main():
-    if len(sys.argv) not in (4, 5):
-        raise SystemExit('usage: check_post_trace.py ROM TRACE STOP_CS:IP [ADAPTER_BASE:ADAPTER_ROM]')
+    # Options: --ext-kb=N (expansion RAM from 100000h, KiB) and --boot (the
+    # run ends outside the BIOS, so the stop segment is not required to be
+    # F000; the stop IP is still compared).
+    argv = [a for a in sys.argv if not a.startswith('--')]
+    ext_kb = 0
+    boot = False
+    for a in sys.argv[1:]:
+        if a.startswith('--ext-kb='):
+            ext_kb = int(a[9:])
+        elif a == '--boot':
+            boot = True
+        elif a.startswith('--'):
+            raise SystemExit(f'unknown option {a}')
+    if len(argv) not in (4, 5):
+        raise SystemExit('usage: check_post_trace.py ROM TRACE STOP_CS:IP [ADAPTER_BASE:ADAPTER_ROM] '
+                         '[--ext-kb=N] [--boot]')
     adapter_roms = []
-    if len(sys.argv) == 5:
-        base, _, path = sys.argv[4].partition(':')
+    if len(argv) == 5:
+        base, _, path = argv[4].partition(':')
         adapter_roms.append((int(base, 16), Path(path).read_bytes()))
-    stop_cs, stop_ip = (int(part, 16) for part in sys.argv[3].split(':'))
+    stop_cs, stop_ip = (int(part, 16) for part in argv[3].split(':'))
     reached = []
     last_next = None
 
@@ -62,14 +76,16 @@ def main():
                 reached.append(name)
 
     stats = {}
-    steps, last_pc, trailing = replay(sys.argv[1], sys.argv[2], on_step, allow_trailing=True,
-                                      stats=stats, adapter_roms=adapter_roms)
-    # The BIOS stays in segment F000 for all code reached so far, so the
-    # stop is checked as F000:IP; a far transfer elsewhere would fail here.
-    if stop_cs != 0xf000 or last_next != stop_ip:
-        raise ValueError(f'oracle ends at F000:{last_next or 0:04X}, runner reported {sys.argv[3]}')
+    steps, last_pc, trailing = replay(argv[1], argv[2], on_step, allow_trailing=True,
+                                      stats=stats, adapter_roms=adapter_roms, ext_ram_kb=ext_kb,
+                                      no_coprocessor=True)
+    # The BIOS stays in segment F000 for all code reached in a POST run, so
+    # the stop is checked as F000:IP; a far transfer elsewhere would fail
+    # here. A boot run ends in the boot program; its IP is compared.
+    if (stop_cs != 0xf000 and not boot) or last_next != stop_ip:
+        raise ValueError(f'oracle ends at IP {last_next or 0:04X}, runner reported {argv[3]}')
     print(f'PASS: {steps} instruction states and data transfers match Unicorn up to '
-          f'{sys.argv[3]}; {len(trailing)} data transfers in the unfinished instruction')
+          f'{argv[3]}; {len(trailing)} data transfers in the unfinished instruction')
     missing = [name for name in CHECKPOINTS if name not in reached]
     if missing:
         raise ValueError('BIOS checkpoints not reached: ' + ', '.join(missing))
