@@ -11,8 +11,11 @@ card's BIOS run 16,610,979 instructions to the same point and the 720 x 400
 display shows the same two lines. With a bench F1 stimulus at checkpoint 3Fh and
 the empty 80287 socket decoded at F8h-FFh, the VGA machine boots a script-built
 1.2 MB test diskette through the 8272 controller and board DMA (`27,368,206`
-instructions at 640 KB, `39,749,282` instructions with `--ext-kb=1024`). No
-operating system has been booted yet.
+instructions at 640 KB, `39,749,282` instructions with `--ext-kb=1024`). Since then the web/batch
+host boots IBM PC DOS 3.00 (`scripts/run_dos_boot.sh`), and
+`scripts/run_dos_8086.sh` runs the 8088 IBM PC's PC DOS 1.00 and 2.00
+diskette workloads with the same results as the 8088 machines (see the
+[8086 compatibility report](2026-11-22-8086-compatibility.md)).
 
 | Check | Command | Result |
 |---|---|---|
@@ -42,6 +45,12 @@ operating system has been booted yet.
 | Host wrapper & capture | `scripts/build_host.sh` + `scripts/test_capture.py` | Clean lint on `ibm_pc_at_5170_vga_host`; waveform captures of `1,024`, `4,096` and `65,536` clocks match ordinary runs |
 | Keyboard against 8042 | `scripts/run_keyboard_test.sh` | Pass (`--fda-type=none`, `187,000,000` clocks): reset `FF` -> `AA FA AA`, no `301`, F1 (`3B`/`BB`) resumes POST past `3Fh` and the `0F8h` probe to `43` |
 | Web/batch host diskette boot (AT keyboard) | `scripts/run_host_boot.sh` | Pass (`962 s` wall, `423,466,672` clocks, `27,788,811` instructions): cold power-on without `301` or `601` halts at `0000:7EEC`, screen matches `tb/expected_screen_boot.txt`, DMA `1,209,344`/`512`, `LBA 2399` written back |
+| 8086/8088 compatibility: PC DOS 1.00 on the AT | `scripts/run_dos_8086.sh` (2026-11-22) | Pass: date, DIR, CHKDSK, FORMAT B: (360 KB drive B, 40 tracks), COPY TIME.COM B:CLOCK.COM, DIR B:, BASIC `PRINT 6*7` = `42`, BASICA DONKEY in graphics; 36,719,857 instructions, 579,600,000 clocks |
+| Same keystrokes on the PC 5150 (8088), compared | same (`scripts/compare_8086.py`) | Pass: 13 text screens identical except CHKDSK's memory lines (64 KB against 640 KB); CHKDSK disk numbers equal; drive B images identical (163,840 bytes); `CLOCK.COM` = `TIME.COM` by an independent FAT12 reader |
+| 8086/8088 compatibility: PC DOS 2.00 on the AT | same | Pass: date, time, DIR, ECHO and COPY CON into files on B:, TYPE, BASIC `PRINT 6*7`; 21,070,788 instructions, 326,000,000 clocks |
+| Same keystrokes on the PC XT 5160 (8088), compared | same | Pass: 11 text screens identical except DOS 2.00's time of day (the AT BIOS starts it from the MC146818); `ECHO.TXT`/`KEYED.TXT` identical; drive B images differ only in file time fields |
+| Unicorn, every instruction of both DOS runs | same (`check_post_trace.py --boot`) | Pass (after extending the oracle for DOS code, failure note `2026-11-22-intel80286-oracle-dos-coverage`): 36,719,857 (DOS 1.00) and 21,070,788 (DOS 2.00) instruction states and data transfers match from power-on, 13/13 POST checkpoints each; exceptions only in the BIOS's POST tests |
+| 286-vs-8086 differences executed | `scripts/scan_286_differences.py` | DOS, BASIC and DONKEY execute no PUSH SP, no shift by CL >= 32 and no 186/286-only opcode; BASICA under DOS 1.00 calls `F01D:FEF0` (1000C0h) 62 times, which reaches 000C0h through the A20 gate (off after POST: one A20 change in each run) |
 | PC DOS 3.00 diskette boot & warm reboot | `scripts/run_dos_boot.sh` | Pass (`1,118 s` wall, `460,000,000` clocks, `29,043,745` instructions, `5` CPU resets): boots PC DOS 3.00, runs `DIR`, writes `TEST.TXT`, warm-reboots with `Ctrl+Alt+Del`, reads back `HELLO` on screen and `b'HELLO\r\n'` in cluster 255 |
 
 Each card machine is checked in one scenario (no added wait states).

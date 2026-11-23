@@ -31,6 +31,10 @@ author is the same agent in every session — the useful question is never
   selector so most real-mode loaders could not enter protected mode, and five
   task-switch and call-gate fault rules differed from App. B; programmer
   advice read as a check, uniform fixtures and a waiver hid them.
+- [2026-11-22 - 80286 Unicorn replay: PC DOS code outside its coverage](2026-11-22-intel80286-oracle-dos-coverage.md)
+  Whole PC DOS 1.00/2.00 sessions on the AT stopped the replay at forms its
+  decoder did not list, at LAHF compared with an undefined AF, and at
+  self-modifying code Unicorn will not step; all oracle defects, no RTL change.
 - [2026-11-22 - 8088 SS0 status pin driven inverted](2026-11-22-intel8088-ss0-inverted.md)
   An external review's T2 pin samples showed SS0 at the opposite level to the
   data sheet in every cycle type and toggling in maximum mode; the RTL, spec,
