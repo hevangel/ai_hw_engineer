@@ -119,6 +119,22 @@ sh design/ibm_system360/scripts/run_synth.sh    # Yosys synthesis smoke test
 The scripts expect `verilator`, `yosys` and `sby` on `PATH`, as provided by the
 image; results and logs land in the ignored `design/ibm_system360/work/` tree.
 
+### Differential check against an independent emulator
+
+`tools/oracle/run_diff.py` runs the same program images on this RTL and on an
+independent System/360 emulator and compares registers, PSW fields and storage.
+It runs on the host (needs `python3` and `node`) and uses the project image for
+the RTL side:
+
+```sh
+python design/ibm_system360/tools/oracle/run_diff.py
+```
+
+The emulator is **not** in this repository: it is fetched into the ignored
+`work/` tree and located through `ORACLE_ROOT`; URL, commit and licence status
+are in [spec/sources.md](spec/sources.md). Results:
+[report/2026-11-22-oracle-differential.md](report/2026-11-22-oracle-differential.md).
+
 ## Sources
 
 The architecture in this folder is derived from IBM System/360 Principles of

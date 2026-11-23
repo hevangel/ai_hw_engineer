@@ -1,53 +1,95 @@
 # Independent oracle plan (issue #383)
 
-Status: **candidate selected; not integrated**. Nothing in this repository is
-yet validated against an independent implementation, and no compatibility claim
-is made.
+Status: **differential suite implemented and passing**. Thirty-seven programs —
+thirteen directed and twenty-four deterministic randomised — are executed on
+both the RTL and an independent emulator and their architectural state is
+compared. The comparison has found three real architectural defects so far
+(`DR` placement, the `EX` mask source and the `CLI` operand order) and one bug in
+the reference itself (`NC`/`OC`/`XC` set the condition code).
 
 ## Why an oracle is required
 
 Every expectation in `tb/` and every reference expression in `formal/` is a
 reading of the same manual (A22-6821-7) by the same author. Agreement between
 them cannot detect a shared misreading — the failure mode recorded in
-`failure_notes/README.md`. Issue #383 requires an external artifact that was
-produced independently of this project.
+`failure_notes/README.md`. Issue #383 requires an external artifact produced
+independently of this project.
 
-## Requirements
+## The artifact
 
-1. Executes S/360 machine code instruction by instruction, not only whole
-   operating-system jobs.
-2. Exposes architectural state (general registers, PSW, storage) after an
-   instruction, so traces can be compared.
-3. Runs headless on Linux without proprietary media.
-4. Has a usable licence for local differential testing (redistribution is not
-   required; the artifact stays in the ignored `work/` tree).
-5. Can be pinned to an exact commit and hashed.
+| Field | Value |
+|---|---|
+| Project | `luiscunhacsc/s360-model30-v01` — IBM System/360 Model 30 instruction-level emulator in JavaScript, with a headless Node mode |
+| URL | https://github.com/luiscunhacsc/s360-model30-v01 |
+| Commit | `4c379fceda39250fad7385eac15630d99281debf` (2026-09-24) |
+| File used | `src/core.js`, 42,903 bytes, SHA-256 `5034225ECB1378FE6FA990DEDA251619843E1E878E39AF127DC759EB2C903BDB` |
+| Licence | **none stated** in the repository (no LICENSE file and no licence statement in the README). It is therefore treated as all rights reserved: used locally for verification only, never redistributed, never committed |
+| Location | ignored `work/s360/oracle/s360-model30-v01-main/`, located through `ORACLE_ROOT` |
 
-## Candidates surveyed (2026-11-18)
+Other candidates considered: `rcornwell/S370` (Go, diagnostics pedigree, but
+drifting to S/370), `rcornwell/microsim360` and `shirriff/ibm-system-360-50-simulator`
+(both need recovered microcode images), `thejohnmathews/IBM-System-360-Simulator`
+(partial coverage).
 
-| Candidate | What it is | Assessment |
-|---|---|---|
-| `luiscunhacsc/s360-model30-v01` (https://github.com/luiscunhacsc/s360-model30-v01) | JavaScript S/360 Model 30 instruction-level emulator (`src/core.js`: CPU, interruptions, channel programs, storage keys, interval timer) with a headless Node mode (`test/dos4.js`) and unit tests; runs genuine DOS/360 26.2 on embedded 2311 packs | **Primary candidate.** Instruction level, no build tool, Node-runnable, and the DOS images give a path to a real-software regression later. Licence not yet recorded; the per-commit hash and an instruction-level API still need to be established. |
-| `rcornwell/S370` (https://github.com/rcornwell/S370) | Go emulator derived from a SimH-based 360/370 emulator; reportedly passes CPU diagnostics | **Secondary.** Strong diagnostics pedigree, but it is drifting toward S/370-only and needs a Go toolchain. Useful for S/370-era cross-checks, not for S/360-specific behaviour. |
-| `rcornwell/microsim360` | Microcode-level Model 30/50/65 simulator | Needs recovered microcode ROMs plus SDL; valuable for the microarchitecture milestone (#388), not usable as an ISA oracle today. |
-| `shirriff/ibm-system-360-50-simulator` | Model 50 microcode simulator | Same limitation: requires the microcode image. |
-| `thejohnmathews/IBM-System-360-Simulator` | Student C simulator with a cache model | Partial instruction coverage; not usable as an oracle on its own. |
+## What the suite does
 
-## Chosen approach
+`tools/oracle/run_diff.py` (host, needs python3 and node):
 
-1. Pin `luiscunhacsc/s360-model30-v01` at a recorded commit, download it into
-   the ignored `work/` tree, and record URL, commit, file hashes and licence in
-   `spec/sources.md`.
-2. Build a small driver in `design/ibm_system360/tools/oracle/` that:
-   loads a program image into both engines, steps **one instruction at a time**,
-   and compares general registers, the PSW fields the core implements
-   (instruction address, condition code, ILC) and the storage bytes a test
-   declares.
-3. Start with the 51 implemented operations, one directed case each, then add
-   pseudo-random operand/state generation.
-4. Feed divergences back as failures against the RTL (with the manual page as
-   the arbiter) and record the outcome in the report.
+1. writes a program image for each case in `tools/oracle/cases.py` — words from
+   address 0x000, program at 0x100, optional data/PSW words;
+2. runs all cases on the RTL inside the project image
+   (`tools/oracle/rtl_dump.py`, which builds `tb/tb_oracle.sv` once), because
+   only the image has Verilator;
+3. runs the same images on the emulator (`tools/oracle/js_run.js`), stepping by
+   *retired instruction* (`cpu.instrCount`), not by `step()` calls;
+4. compares PSW fields (IA, CC, ILC, program mask, system mask, P/W), all 16
+   general registers, the program old PSW at 0x28/0x2C and words
+   0x200-0x23F of storage.
 
-Until step 2 exists and passes, the "no independent oracle" limitation stands in
-every report, and no wording stronger than "implements what this project read in
-the manual" may be used.
+Run it with:
+
+```sh
+python design/ibm_system360/tools/oracle/run_diff.py
+```
+
+The RTL image defaults to `ai-hw-engineer:latest`; override with
+`--rtl-image`. `ORACLE_ROOT` points at the emulator checkout.
+
+## Cases covered (37)
+
+`LA`/`LR`, `AR` (CC 2), `SR` (CC 1), `LTR` (CC 0), `A` overflow (CC 3),
+`CR` across the 32-bit boundary, `MVI`+`TM`, `TR` through a table, `MVN`,
+`MR` across a register pair, `DR` quotient/remainder, `EX` with the R1 mask,
+and `SLA`.
+
+## Defects this found
+
+1. **`DR`/`D` register placement.** The RTL put the quotient in the even
+   register and the remainder in the odd one; A22-6821-7 p. 31 puts the
+   **remainder in the even register and the quotient in the odd one**. Fixed in
+   M5, with the testbench expectations corrected.
+2. **`EX` mask source.** The RTL OR'ed its own instruction byte into the
+   subject; p. 67 says bits 8-15 of the subject are OR'ed with bits 24-31 of
+   the **register named by R1**, and R1 = 0 means no modification. Fixed in M5.
+
+3. **`CLI` operand order.** The RTL treated the immediate byte as the first
+   operand, so CC 1 and CC 2 were reported for the wrong side (p. 54 makes the
+   storage byte the first operand). Fixed.
+
+One reference bug: the emulator sets CC on `NC`/`OC`/`XC`, which pp. 55-56 say
+must be unchanged. The comparison ignores CC for those cases and labels them.
+
+An apparent divergence, the PSW ILC after an interruption, turned out to be a
+harness accounting difference: the emulator performs the interruption
+inside `step()` while the RTL retires only real instructions. Interruption
+cases are therefore excluded from this suite until an event-aligned driver
+exists (tracked as follow-up).
+
+## Next steps
+
+1. Add cases for every implemented operation (51 before M5, 54 after) and for
+   pseudo-random operand/state combinations.
+2. Compare interruption entry with an event-aligned driver (stop on old-PSW
+   store instead of a retire count).
+3. Use the emulator's DOS/360 support for the real-software regression #429
+   once IPL and channels exist.
