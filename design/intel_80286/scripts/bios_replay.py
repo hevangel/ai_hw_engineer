@@ -837,6 +837,29 @@ class _Replay:
                         break
                     if repetitions > 65536:
                         raise ValueError(f'oracle repeat at {pc:06x} did not finish within the CX range')
+                control = (0x70 <= op <= 0x7f or 0xe0 <= op <= 0xe3 or 0xe8 <= op <= 0xeb or
+                           op in (0x9a, 0xc2, 0xc3, 0xcc, 0xcd, 0xce, 0xcf, 0xf4) or
+                           op == 0xff and (raw[1] >> 3) & 7 in (2, 3, 4, 5))
+                if (not repeated and op not in (0xca, 0xcb) and not escape and not self.intr and
+                        not control and g.seen and all(address == pc for address, _ in g.seen) and
+                        (uc.reg_read(UC_X86_REG_CS), uc.reg_read(UC_X86_REG_IP)) == (cs, ip)):
+                    # A sequential instruction that left IP unchanged:
+                    # self-modifying code, the instruction stored into the code
+                    # page Unicorn is executing from (PC DOS 2.00's IBMBIO
+                    # patches an immediate of a later instruction). With
+                    # count=1, Unicorn 2.1.4 abandons the instruction to
+                    # retranslate the page and ends with IP unchanged, every
+                    # time. Run it again from a clean transfer list until the
+                    # next sequential address instead (not a control
+                    # transfer, so it is reached; the length is Unicorn's own
+                    # from the code hook). A store that is not idempotent
+                    # would then differ from the CPU's transfers and fail the
+                    # comparison below.
+                    length = g.seen[0][1]
+                    g.bus.clear()
+                    g.seen.clear()
+                    uc.emu_start(cs*16 + ip, cs*16 + ip + length, timeout=1000000)
+                    stats['self_modifying_restarts'] = stats.get('self_modifying_restarts', 0) + 1
                 self.unfold()
                 if len(g.seen) != repetitions or any(address != pc for address, _ in g.seen):
                     raise ValueError(f'oracle synchronization error at {pc:06x}')
@@ -927,7 +950,11 @@ class _Replay:
                 regs = [uc.reg_read(r) for r in REGS]
                 reg_masks = [0xffff] * 8
                 if op == 0x9f:
-                    reg_masks[0] = 0xd5ff
+                    # LAHF copies SF/ZF/AF/PF/CF into AH; a flag that is
+                    # undefined at this point (valid_flags, for example AF
+                    # after OR/AND/XOR, 210498-005 Appendix B) is not
+                    # compared in AH either, and the CPU's AH is adopted.
+                    reg_masks[0] = 0x00ff | ((0xd5 & valid_flags) << 8)
                 if system == 4:
                     # SMSW r16: Unicorn stores a later CPU's CR0 low word. Only
                     # PE/MP/EM/TS (bits 0-3) are defined MSW bits on the 286;
@@ -1009,6 +1036,9 @@ class _Replay:
                             uc.mem_write(address, bytes([value]))
                             g.shadow[address] = value
                             stats['accessed_adopted'] += 1
+                if op == 0x9f and regs[0] != actual_regs[0]:
+                    stats['lahf_undefined_adopted'] = stats.get('lahf_undefined_adopted', 0) + 1
+                    uc.reg_write(REGS[0], actual_regs[0])
                 if system == 4:
                     if (regs[raw[2] & 7] ^ actual_regs[raw[2] & 7]) & 0xfff0:
                         stats['smsw_adopted'] += 1
