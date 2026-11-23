@@ -45,6 +45,12 @@ stamps. No 80286 or board defect was found: nothing in the RTL changed.
 | PC DOS 3.00 regression (simulator changes) | `scripts/run_dos_boot.sh "$ROM"` | Pass, unchanged: 460,000,000 clocks, 29,043,745 instructions, 5 CPU resets, `HELLO` read back (1,119 s wall) |
 | Waveform capture invariant (simulator changes) | `scripts/test_capture.py` on the two-drive build | Pass: captures of 1,024, 4,096 and 65,536 clocks leave the state as an ordinary run |
 
+The whole regression, `sh system/ibm_pc_at_5170/scripts/run_dos_8086.sh "$ROM"`,
+was then run once more end to end with the final scripts and passed
+(`PASS: the AT runs the 8088 PC's DOS 1.00 and 2.00 diskette workloads with
+the same results`, 4,212 s wall), with the same instruction counts and both
+Unicorn replays passing.
+
 All runs were made on 2026-11-22 in the `ai-hw-engineer:latest` image
 (Verilator 5.052) in container `claude-at-8086`, the four workload runs in
 parallel on a 32-thread host. The instruction counts of the AT runs were the
