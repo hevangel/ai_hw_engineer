@@ -11,8 +11,8 @@ WORK_ROOT = get_work_root(ROOT)
 WORK = WORK_ROOT / 'reference_mutations'
 MUTATIONS = [
     ('fetch_asserts_write',
-     'assign bus_write_o = state == BUS && memory_write;',
-     'assign bus_write_o = (state == BUS && memory_write) || bus_fetch_o;'),
+     'assign core_bus_write = state == BUS && memory_write;',
+     'assign core_bus_write = (state == BUS && memory_write) || core_bus_fetch;'),
     ('wrong_segment_role', 'memory_role<=role;', "memory_role<=role ^ 2'd1;"),
     ('wrong_operand_offset', 'memory_offset<=offset_value;', "memory_offset<=offset_value+16'd1;"),
     ('rmw_loses_write_check', 'memory_kind<=3;', 'memory_kind<=0;'),

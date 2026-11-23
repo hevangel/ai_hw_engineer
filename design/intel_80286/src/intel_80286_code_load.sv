@@ -6,7 +6,7 @@ module intel_80286_code_load (
     input logic [15:0] selector_i, offset_i, gdt_limit_i, ldt_limit_i,
     input logic [23:0] gdt_base_i, ldt_base_i,
     input logic [1:0] cpl_i,
-    input logic call_i, gate_call_i, stack_ok_i, ldt_valid_i,
+    input logic gate_call_i, ldt_valid_i,
     output logic busy_o, done_o,
     output logic bus_req_o, bus_write_o,
     output logic [23:0] bus_addr_o,
@@ -28,7 +28,7 @@ module intel_80286_code_load (
     logic [15:0] saved_selector, saved_offset, saved_table_limit;
     logic [23:0] saved_table_base, descriptor_address;
     logic [1:0] saved_cpl;
-    logic saved_call, saved_gate_call, saved_stack_ok, saved_ldt_valid;
+    logic saved_gate_call, saved_ldt_valid;
     logic [47:0] descriptor;
     logic [15:0] descriptor_tail;
     logic check_needed, check_done, check_valid, check_special, check_fault;
@@ -37,7 +37,7 @@ module intel_80286_code_load (
     logic [23:0] check_base;
 
     intel_80286_code_check check_code(.selector_i(saved_selector),.offset_i(saved_offset),.cpl_i(saved_cpl),
-        .call_i(saved_call),.gate_call_i(saved_gate_call),.stack_ok_i(saved_stack_ok),
+        .gate_call_i(saved_gate_call),
         .ldt_valid_i(saved_ldt_valid),.table_limit_i(saved_table_limit),
         .descriptor_valid_i(state==VALIDATE || state==WRITE_ACCESSED),.descriptor_i(descriptor),
         .descriptor_offset_o(check_offset),.descriptor_needed_o(check_needed),.checked_o(check_done),
@@ -65,7 +65,7 @@ module intel_80286_code_load (
         if (!rst_n) begin
             state<=IDLE; byte_index<=0; descriptor<=0; descriptor_tail<=0; descriptor_address<=0;
             saved_selector<=0; saved_offset<=0; saved_table_base<=0; saved_table_limit<=0;
-            saved_cpl<=0; saved_call<=0; saved_gate_call<=0; saved_stack_ok<=0; saved_ldt_valid<=0;
+            saved_cpl<=0; saved_gate_call<=0; saved_ldt_valid<=0;
             done_o<=0; fault_o<=0; fault_vector_o<=0; fault_error_o<=0;
             cache_valid_o<=0; special_o<=0; selector_o<=0; base_o<=0; limit_o<=0; access_o<=0;
             request_selector_o<=0; request_offset_o<=0; special_descriptor_o<=0; special_tail_o<=0;
@@ -74,8 +74,7 @@ module intel_80286_code_load (
             case (state)
                 IDLE: if (start_i) begin
                     saved_selector<=selector_i; saved_offset<=offset_i; saved_cpl<=cpl_i;
-                    saved_call<=call_i; saved_gate_call<=gate_call_i;
-                    saved_stack_ok<=stack_ok_i; saved_ldt_valid<=ldt_valid_i;
+                    saved_gate_call<=gate_call_i; saved_ldt_valid<=ldt_valid_i;
                     saved_table_base<=selector_i[2] ? ldt_base_i : gdt_base_i;
                     saved_table_limit<=selector_i[2] ? ldt_limit_i : gdt_limit_i;
                     descriptor<=0; descriptor_tail<=0; byte_index<=0; state<=PRECHECK;

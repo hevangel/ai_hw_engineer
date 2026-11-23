@@ -11,19 +11,28 @@ WORK=WORK_ROOT/'irq_mutations'
 MUTATIONS=[
     ('intr_ignores_if', '.if_i(flags[9] &&', '.if_i(1\'b1 &&'),
     ('sti_shadow_missing',
-     '.if_i(flags[9] && !sti_shadow && !(state==STRING_BOUNDARY && instruction_sti_shadow))',
+     '.if_i(flags[9] && !sti_shadow &&\n'
+     '              !((state==STRING_BOUNDARY || state==WAIT_BUSY) && instruction_sti_shadow))',
      '.if_i(flags[9])'),
     ('ss_shadow_missing',
-     '.inhibit_i(ss_shadow || (state==STRING_BOUNDARY && instruction_ss_shadow))',
+     '.inhibit_i(ss_shadow || ((state==STRING_BOUNDARY || state==WAIT_BUSY) && instruction_ss_shadow))',
      '.inhibit_i(1\'b0)'),
-    ('iret_does_not_unblock_nmi', '.iret_i(state==FAR_RETURN_DONE && opcode==8\'hcf)', '.iret_i(1\'b0)'),
+    # Every IRET form (real mode, protected same-task, nested-task return)
+    # stops unblocking NMI.
+    ('iret_does_not_unblock_nmi',
+     '.iret_i((state==FAR_RETURN_DONE && opcode==8\'hcf && !msw[0]) ||\n'
+     '                (state==IRET_COMMIT && protected_iret_active) ||\n'
+     '                (state==TASK_ENTRY_COMMIT && task_return_active))',
+     '.iret_i(1\'b0)'),
     ('rep_restart_skips_prefix', 'state==STRING_POLL ? instruction_ip : ip',
      'state==STRING_POLL ? instruction_ip+16\'d1 : ip'),
     ('hlt_restart_reexecutes_hlt', 'state==STRING_POLL ? instruction_ip : ip',
      'state==STRING_POLL ? instruction_ip : (halt_latch ? ip-16\'d1 : ip)'),
     ('hardware_entry_retires_instruction',
-     'enter_event(async_vector,state==STRING_POLL ? instruction_ip : ip,1\'b0)',
-     'enter_event(async_vector,state==STRING_POLL ? instruction_ip : ip,1\'b1)'),
+     'enter_event(async_vector,state==STRING_POLL ? instruction_ip : ip,\n'
+     '                                    1\'b0,',
+     'enter_event(async_vector,state==STRING_POLL ? instruction_ip : ip,\n'
+     '                                    1\'b1,'),
     ('rep_cannot_be_interrupted',
      'if (repeat_valid && gpr[1]!=1 && (!string_compare || alu_flags[6]!=repeat_ne)) state<=STRING_BOUNDARY;',
      'if (repeat_valid && gpr[1]!=1 && (!string_compare || alu_flags[6]!=repeat_ne)) state<=STRING_START;'),

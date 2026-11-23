@@ -32,7 +32,6 @@ static void sample(Vintel_80286_code_check& d) {
             if (kind<16) special=true;
             else if (!allowed) { fault=true; vector=13; error=(sel/4)*4; }
             else if (rights<128) { fault=true; vector=11; error=(sel/4)*4; }
-            else if (d.call_i && !d.stack_ok_i) { fault=true; vector=12; }
             else if (d.offset_i>uint16_t(d.descriptor_i)) { fault=true; vector=13; }
             else valid=true;
         }
@@ -56,11 +55,9 @@ int main(int argc,char** argv) {
         Vintel_80286_code_check d;
         d.table_limit_i=0xffff; d.ldt_valid_i=1; d.descriptor_valid_i=1;
         for (unsigned rights=0;rights<256;++rights) for (unsigned cpl=0;cpl<4;++cpl)
-            for (unsigned rpl=0;rpl<4;++rpl) for (bool call: {false,true})
-                for (bool gate_call: {false,true})
-                for (bool stack_ok: {false,true}) for (unsigned ip: {0u,0xabcdu,0xabceu}) {
-            d.selector_i=uint16_t(0x1234+rpl); d.cpl_i=cpl; d.call_i=call;
-            d.gate_call_i=gate_call; d.stack_ok_i=stack_ok;
+            for (unsigned rpl=0;rpl<4;++rpl) for (bool gate_call: {false,true})
+                for (unsigned ip: {0u,0xabcdu,0xabceu}) {
+            d.selector_i=uint16_t(0x1234+rpl); d.cpl_i=cpl; d.gate_call_i=gate_call;
             d.offset_i=ip; d.descriptor_i=(uint64_t(rights)<<40)|0x123456abcdULL; sample(d);
         }
         // GDT null versus LDT index zero, inclusive final descriptor byte,
@@ -69,7 +66,7 @@ int main(int argc,char** argv) {
             for (unsigned limit: {0u,6u,7u,14u,15u,0xfffeu,0xffffu})
                 for (bool ldt: {false,true}) for (bool available: {false,true}) {
             d.selector_i=sel; d.table_limit_i=limit; d.ldt_valid_i=ldt; d.descriptor_valid_i=available;
-            d.cpl_i=3; d.call_i=0; d.gate_call_i=0; d.stack_ok_i=0; d.offset_i=0xffff;
+            d.cpl_i=3; d.gate_call_i=0; d.offset_i=0xffff;
             d.descriptor_i=available?0xfa123456ffffULL:0x001234560000ULL; sample(d);
         }
         std::cout<<"PASS: "<<cases<<" ordinary protected CS check cases, deferred system types and exact exception priority\n";

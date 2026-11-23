@@ -5,7 +5,7 @@
 module intel_80286_code_check_props (
     input logic [15:0] selector, table_limit, ip_value,
     input logic [1:0] cpl,
-    input logic ldt_valid, descriptor_valid, is_call, gate_call, stack_ok,
+    input logic ldt_valid, descriptor_valid, gate_call,
     input logic [47:0] descriptor
 );
     logic needed, checked_result, valid_cache, special_result, fault;
@@ -18,7 +18,7 @@ module intel_80286_code_check_props (
     logic [15:0] expected_error;
     intel_80286_code_check dut(.selector_i(selector),.table_limit_i(table_limit),.offset_i(ip_value),
         .cpl_i(cpl),.ldt_valid_i(ldt_valid),.descriptor_valid_i(descriptor_valid),
-        .call_i(is_call),.gate_call_i(gate_call),.stack_ok_i(stack_ok),.descriptor_i(descriptor),
+        .gate_call_i(gate_call),.descriptor_i(descriptor),
         .descriptor_offset_o(offset),.descriptor_needed_o(needed),.checked_o(checked_result),
         .cache_valid_o(valid_cache),.special_o(special_result),.fault_o(fault),
         .fault_vector_o(vector),.fault_error_o(error),.selector_o(code_selector),
@@ -45,8 +45,7 @@ module intel_80286_code_check_props (
                     expected_fault=1; expected_vector=13; expected_error=16'((sel/4)*4);
                 end else if (rights<128) begin
                     expected_fault=1; expected_vector=11; expected_error=16'((sel/4)*4);
-                end else if (is_call && !stack_ok) begin expected_fault=1; expected_vector=12; end
-                else if ({16'h0,ip_value}>{16'h0,descriptor[15:0]}) begin expected_fault=1; expected_vector=13; end
+                end else if ({16'h0,ip_value}>{16'h0,descriptor[15:0]}) begin expected_fault=1; expected_vector=13; end
                 else expected_valid=1;
             end
         end
@@ -63,8 +62,8 @@ module intel_80286_code_check_props (
         cover(valid_cache && gate_call && kind>=24 && kind<=27 && privilege<{30'h0,cpl});
         cover(special_result && rights==4);
         cover(fault && vector==13 && rights==16);
-        cover(fault && vector==11 && is_call && !stack_ok && ip_value>descriptor[15:0]);
-        cover(fault && vector==12 && ip_value>descriptor[15:0]);
+        cover(fault && vector==11 && ip_value>descriptor[15:0]);
+        cover(fault && vector==13 && error==0 && needed && rights>=128 && ip_value>descriptor[15:0]);
         cover(fault && vector==13 && error==0 && needed);
         cover(valid_cache && selector==7 && ldt_valid);
         cover(valid_cache && selector==16'hfff8 && table_limit==16'hffff);

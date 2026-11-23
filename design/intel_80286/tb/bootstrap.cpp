@@ -3103,20 +3103,23 @@ static void protected_outer_iret_ss_faults() {
     const uint8_t ring3_ss_not_present[]={0xff,0x0f,0x00,0x00,0x05,0x72,0x00,0x00};
     const uint8_t ring3_ss_wrong_dpl[]={0xff,0x0f,0x00,0x00,0x05,0xd2,0x00,0x00};
     const uint8_t ring3_code_descriptor[]={0xff,0x0f,0x00,0x00,0x01,0xfa,0x00,0x00};
+    const uint8_t ring3_ro_data_descriptor[]={0xff,0x0f,0x00,0x00,0x05,0xf0,0x00,0x00};
     struct FaultCase {
         const char* label;
         uint16_t selector, error_code;
         const uint8_t* descriptor;
+        uint8_t vector;
     };
     const FaultCase cases[]={
-        {"null SS selector",0x0003,0x0000,nullptr},
-        {"non-present SS descriptor",0x0043,0x0040,ring3_ss_not_present},
-        {"code descriptor in SS slot",0x004b,0x0048,ring3_code_descriptor},
-        {"SS selector RPL mismatch",0x0042,0x0040,ring3_ss_wrong_dpl},
-        {"SS selector beyond GDT limit",0x00c3,0x00c0,nullptr}
+        {"null SS selector",0x0003,0x0000,nullptr,13},
+        {"non-present SS descriptor",0x0043,0x0040,ring3_ss_not_present,12},
+        {"code descriptor in SS slot",0x004b,0x0048,ring3_code_descriptor,13},
+        {"read-only data descriptor in SS slot",0x004b,0x0048,ring3_ro_data_descriptor,13},
+        {"SS selector RPL mismatch",0x0042,0x0040,ring3_ss_wrong_dpl,13},
+        {"SS selector beyond GDT limit",0x00c3,0x00c0,nullptr,13}
     };
     const uint8_t repair_handler[]={
-        0x83,0xc4,0x02,             // 0300 discard #SS(selector)
+        0x83,0xc4,0x02,             // 0300 discard error code
         0xb8,0x28,0x00,             // 0303 MOV AX, ring-0 SS
         0x8e,0xd8,                   // 0306 MOV DS,AX
         0xb8,0x53,0x00,             // 0308 MOV AX, valid ring-3 SS
@@ -3137,8 +3140,10 @@ static void protected_outer_iret_ss_faults() {
                            fault.descriptor[3],fault.descriptor[4],fault.descriptor[5],
                            fault.descriptor[6],fault.descriptor[7]});
         }
-        for (unsigned i=0;i<8;++i)
+        for (unsigned i=0;i<8;++i) {
             b.memory[kIdtBase+12*8+i]=kVector13Gate[i];
+            b.memory[kIdtBase+13*8+i]=kVector13Gate[i];
+        }
         for (std::size_t i=0;i<sizeof(repair_handler);++i)
             b.memory[kHandlerBase+kHandlerIp+uint32_t(i)]=repair_handler[i];
         b.put(kCodeBase+0x0400,{0x90});
@@ -3158,7 +3163,7 @@ static void protected_outer_iret_ss_faults() {
         for (unsigned n=0;n<100000 && !b.d.event_o && !b.d.fault_o;++n) b.tick(wait);
         check(!b.d.fault_o && b.d.event_o && b.d.event_packet_valid_o &&
               b.d.event_packet_protected_o && b.d.event_packet_error_valid_o &&
-              b.d.event_packet_restartable_o && b.d.event_vector_o==12 &&
+              b.d.event_packet_restartable_o && b.d.event_vector_o==fault.vector &&
               b.d.event_packet_error_code_o==fault.error_code &&
               b.d.event_packet_saved_cs_o==kCodeSelector &&
               b.d.event_packet_saved_ip_o==0x0208 &&
@@ -3167,7 +3172,7 @@ static void protected_outer_iret_ss_faults() {
               b.cs()==kHandlerSelector && b.d.cs_base_o==kHandlerBase &&
               b.d.ip_o==kHandlerIp && b.reg(4)==0x0078,
               (std::string("outer IRET ")+fault.label+
-               " did not deliver restartable #SS(selector)").c_str());
+               " did not deliver restartable App. B SS fault").c_str());
         const uint8_t expected_error_frame[]={uint8_t(fault.error_code),
             uint8_t(fault.error_code>>8),0x08,0x02,0x08,0x00,
             uint8_t(kSavedFlags),uint8_t(kSavedFlags>>8)};
@@ -3217,8 +3222,8 @@ static void protected_outer_iret_ss_faults() {
               "repaired outer IRET did not execute the exact ring-3 successor");
         ++executions;
     }
-    check(executions==10,"outer IRET SS fault matrix missed a fault or READY mode");
-    std::cout<<"PASS: null, absent, wrong-type, wrong-RPL and out-of-limit outer SS faults raise #SS(selector), repair/retry, and reach the exact successor in both READY modes\n";
+    check(executions==12,"outer IRET SS fault matrix missed a fault or READY mode");
+    std::cout<<"PASS: null, absent, wrong-type, read-only, wrong-RPL and out-of-limit outer SS faults follow App. B (#GP or #SS for absent), repair/retry, and reach the exact successor in both READY modes\n";
 }
 
 static void protected_outer_iret_frame_faults() {
@@ -3373,7 +3378,7 @@ static void protected_outer_iret_fault_priorities() {
         {"full-frame #SS before null return-CS #GP",0x0080,0x0087,0x0003,0x0000,0x0400,12,false,false,false,0,6,0,0,0},
         {"null return-CS #GP before null outer-SS #SS",0x0080,0x008f,0x0003,0x0000,0x0400,13,false,false,false,0,6,0,0,0},
         {"non-present return-CS #NP before null outer-SS #SS",0x0080,0x008f,0x004b,0x0000,0x0400,11,true,false,false,0x0048,6,8,0,0},
-        {"null outer-SS #SS before over-limit return-IP #GP(0)",0x0080,0x008f,0x004b,0x0000,0x0400,12,false,true,false,0,10,8,0,1},
+        {"null outer-SS #GP before over-limit return-IP #GP(0)",0x0080,0x008f,0x004b,0x0000,0x0400,13,false,true,false,0,10,8,0,1},
         {"non-present outer-SS #SS before over-limit return-IP #GP(0)",0x0080,0x008f,0x004b,0x0043,0x0400,12,false,true,true,0x0040,10,8,8,1}
     };
     unsigned executions=0;
@@ -3720,7 +3725,44 @@ static void protected_far_call_not_present() {
         ++runs;
     }
     check(runs==8,"not-present far-transfer cases incomplete");
-    std::cout<<"PASS: protected far CALL and JMP to a not-present code segment raise restartable #NP(selector), with type and privilege #GP(selector) taking priority, in both READY modes\n";
+    unsigned call_stack_before_ip_cases=0;
+    for (bool wait:{false,true}) for (uint16_t sp:{uint16_t(0x0002),uint16_t(0x0080)}) {
+        const uint8_t program[]={
+            0xb8,0x58,0x00, 0x0f,0x00,0xd8,      // 0200 LTR 0058
+            0xb8,0x28,0x00, 0x8e,0xd0,           // 0206 MOV SS,0028
+            0xbc,uint8_t(sp),uint8_t(sp>>8),     // 020B MOV SP,sp
+            0x9a,0x00,0x10,0x48,0x00,            // 020E CALL 0048:1000
+            0xf4
+        };
+        Bench b;
+        place_selector_fixture(b,program,sizeof(program));
+        b.put(kGdtBase+0x48,{0xff,0x00,0x00,0x00,0x06,0x9b,0x00,0x00}); // CS limit 00ff
+        b.put(kGdtBase+0x50,{0x2b,0x00,0x40,0x07,0x00,0x81,0x00,0x00}); // #SS task TSS
+        b.put(kGdtBase+0x58,{0x2b,0x00,0x80,0x07,0x00,0x81,0x00,0x00}); // current TSS for switch
+        b.put(0x00000740+14,{0x00,0x03, 0x02,0x00, 0,0,0,0,0,0,0,0, 0x80,0x00, 0,0,0,0,0,0,
+                             0x10,0x00, 0x30,0x00, 0x28,0x00, 0x10,0x00, 0x00,0x00});
+        b.put(kIdtBase+12*8,{0x00,0x00,0x50,0x00,0x00,0x85,0x00,0x00}); // task gate so SP=2 does not #DF
+        b.put(kHandlerBase+kHandlerIp,{0xf4});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x0f,kCodeSelector,0x0206,wait);
+        b.step(kCodeBase+0x0206,0xb8,kCodeSelector,0x0209,wait);
+        b.step(kCodeBase+0x0209,0x8e,kCodeSelector,0x020b,wait);
+        b.step(kCodeBase+0x020b,0xbc,kCodeSelector,0x020e,wait);
+        b.data_transfers.clear();
+        for (unsigned n=0;n<60000 && !b.d.event_o && !b.d.fault_o && !b.d.shutdown_o;++n) b.tick(wait);
+        const uint8_t expected_vec=(sp==0x0002) ? 12 : 13;
+        check(b.d.event_o && !b.d.fault_o && !b.d.shutdown_o && b.d.event_vector_o==expected_vec &&
+              b.d.event_packet_error_code_o==0 && b.d.event_packet_saved_ip_o==0x020e &&
+              b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp &&
+              std::none_of(b.data_transfers.begin(),b.data_transfers.end(),[](const auto& t) {
+                  return t.write && !t.io && t.address>=kStackBase && t.address<kStackBase+8;
+              }),
+              "far CALL did not check stack room (#SS(0)) before target IP limit (#GP(0))");
+        ++call_stack_before_ip_cases;
+    }
+    check(call_stack_before_ip_cases==4,"far CALL stack-before-IP cases incomplete");
+    std::cout<<"PASS: protected far CALL and JMP to a not-present code segment raise restartable #NP(selector), type/privilege #GP(selector) take priority, and far CALL checks stack room before target IP limit in both READY modes\n";
 }
 
 // ASSUMPTION A44: a protected-mode frame pushed from SP=0000 occupies the
@@ -4450,7 +4492,8 @@ static void protected_call_gate_tss_stack_faults() {
         {"SS0 DPL mismatch",0x002b,0x0100,0x0040,0x00ff,0x93,10,0x0040,true,true},
         {"SS0 not present",0x002b,0x0100,0x0028,0x00ff,0x12,12,0x0028,true,true},
         {"SP0 underflow",0x002b,0x0007,0x0028,0x00ff,0x93,12,0x0000,true,true},
-        {"SS0 limit",0x002b,0x0008,0x0028,0x0006,0x93,12,0x0000,true,true}
+        {"SS0 limit",0x002b,0x0008,0x0028,0x0006,0x93,12,0x0000,true,true},
+        {"expand-down SS0 underflow",0x002b,0x1007,0x0028,0x0fff,0x97,12,0x0000,true,true}
     };
     const uint8_t ring0_program[]={
         0xb8,0x48,0x00,             // 0200 MOV AX, dedicated ring-0 setup SS
@@ -4561,8 +4604,49 @@ static void protected_call_gate_tss_stack_faults() {
                   (std::string("CALL-gate ")+test.name+" exception stack image mismatch").c_str());
         ++executions;
     }
-    check(executions==18,"CALL-gate TSS/stack fault matrix did not cover every case and READY mode");
-    std::cout<<"PASS: CALL-gate TSS bounds, SS0 selector/type/privilege/presence and stack-span failures deliver exact #TS/#SS frames without partial privilege-switch writes in both READY modes\n";
+    check(executions==20,"CALL-gate TSS/stack fault matrix did not cover every case and READY mode");
+    unsigned gate_stack_before_ip_cases=0;
+    for (bool wait:{false,true}) for (uint16_t ss0:{uint16_t(0x0000),uint16_t(0x0028)}) {
+        Bench b;
+        place_selector_fixture(b,ring0_program,sizeof(ring0_program));
+        b.memory[0x41]=0x00; b.memory[0x40]=0x77; // Include 0070 short CS descriptor.
+        b.put(kGdtBase+0x38,{ring3_cs[0],ring3_cs[1],ring3_cs[2],ring3_cs[3],
+                              ring3_cs[4],ring3_cs[5],ring3_cs[6],ring3_cs[7]});
+        b.put(kGdtBase+0x40,{ring3_ss[0],ring3_ss[1],ring3_ss[2],ring3_ss[3],
+                              ring3_ss[4],ring3_ss[5],ring3_ss[6],ring3_ss[7]});
+        b.put(kGdtBase+0x48,{0xff,0x00,0x00,0x00,0x05,0x93,0x00,0x00});
+        b.put(kGdtBase+0x28,{0xff,0x00,0x00,0x00,0x05,0x93,0x00,0x00});
+        b.put(kGdtBase+0x58,{0x2b,0x00,0x00,0x07,0x00,0x81,0x00,0x00});
+        b.put(kGdtBase+0x70,{0xff,0x00,0x00,0x00,0x01,0x9b,0x00,0x00}); // Short ring0 CS limit 00ff
+        b.put(kGdtBase+0x68,{0x00,0x05,0x70,0x00,0x00,0xe4,0x00,0x00}); // Gate -> 0070:0500 (IP > limit)
+        b.put(0x00000702,{0x00,0x01,uint8_t(ss0),uint8_t(ss0>>8)});
+        b.put(kIdtBase+10*8,{0x00,0x03,0x3b,0x00,0x00,0x86,0x00,0x00});
+        b.put(kIdtBase+13*8,{0x00,0x03,0x3b,0x00,0x00,0x86,0x00,0x00});
+        b.put(0x00060000+0x0400,{ring3_program[0],ring3_program[1],ring3_program[2],
+                                  ring3_program[3],ring3_program[4],ring3_program[5]});
+        b.put(0x00060000+0x0300,{0xf4});
+        b.put(kStackBase+0x0080,{0x00,0x04,0x3b,0x00,0x02,0x02,0x00,0x01,0x43,0x00});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+        b.step(kCodeBase+0x020b,0x0f,kCodeSelector,0x020e,wait);
+        b.step(kCodeBase+0x020e,0xcf,0x003b,0x0400,wait);
+        b.data_transfers.clear();
+        for (unsigned cycle=0;cycle<30000 && !b.d.event_o && !b.d.fault_o;++cycle) b.tick(wait);
+        const uint8_t expected_vec=(ss0==0x0000) ? 10 : 13;
+        check(b.d.event_o && !b.d.fault_o && b.d.event_vector_o==expected_vec &&
+              b.d.event_packet_error_code_o==0 && b.d.event_packet_saved_ip_o==0x0400 &&
+              b.cs()==0x003b && b.d.ip_o==0x0300 &&
+              std::none_of(b.data_transfers.begin(),b.data_transfers.end(),[](const auto& t) {
+                  return t.write && !t.io && t.address>=kStackBase+0xf0 && t.address<kStackBase+0x100;
+              }),
+              "CALL gate did not validate TSS stack before target IP limit");
+        ++gate_stack_before_ip_cases;
+    }
+    check(gate_stack_before_ip_cases==4,"CALL-gate stack-before-IP cases incomplete");
+    std::cout<<"PASS: CALL-gate TSS bounds, SS0 selector/type/privilege/presence and stack-span failures precede IP-limit #GP(0) and deliver exact #TS/#SS frames without partial privilege-switch writes in both READY modes\n";
 }
 
 static void protected_call_gate_outer_level() {
@@ -4668,7 +4752,89 @@ static void protected_call_gate_outer_level() {
         ++executions;
     }
     check(executions==6,"inter-level call gate did not cover zero, one and 31 parameters in both READY modes");
-    std::cout<<"PASS: protected ring-3 CALL gates copy 0, 1 and 31 parameters, switch through TSS, and return across privilege levels in both READY modes\n";
+    unsigned expand_down_cases=0;
+    for (bool wait:{false,true}) for (bool inner_down:{true,false}) for (unsigned wc:{0u,2u}) {
+        if (!inner_down && wc==0) continue; // caller expand-down with 2 parameters; plus inner expand-down with 0/2 params.
+        Bench b;
+        place_selector_fixture(b,ring0_program,sizeof(ring0_program));
+        b.memory[0x41]=0x00; b.memory[0x40]=0x6f;
+        b.put(kGdtBase+0x38,{ring3_cs[0],ring3_cs[1],ring3_cs[2],ring3_cs[3],
+                              ring3_cs[4],ring3_cs[5],ring3_cs[6],ring3_cs[7]});
+        if (inner_down) {
+            b.put(kGdtBase+0x48,{0xff,0x0f,0x00,0x00,0x05,0x97,0x00,0x00});
+            b.put(kGdtBase+0x40,{ring3_ss[0],ring3_ss[1],ring3_ss[2],ring3_ss[3],
+                                  ring3_ss[4],ring3_ss[5],ring3_ss[6],ring3_ss[7]});
+            b.put(0x00000702,{0xf0,0xff,0x48,0x00}); // SP0=FFF0, SS0=0048
+            b.put(kStackBase+0x0080,{0x00,0x04,0x3b,0x00,0x02,0x02,0x00,0x01,0x43,0x00});
+        } else {
+            b.put(kGdtBase+0x40,{0xff,0x0f,0x00,0x00,0x07,0xf7,0x00,0x00});
+            b.put(0x00000702,{0x00,0x01,0x28,0x00}); // SP0=0100
+            b.put(kStackBase+0x0080,{0x00,0x04,0x3b,0x00,0x02,0x02,0x00,0x80,0x43,0x00});
+        }
+        b.put(kGdtBase+0x58,{tss[0],tss[1],tss[2],tss[3],tss[4],tss[5],tss[6],tss[7]});
+        b.put(kGdtBase+0x68,{0x00,0x05,0x08,0x00,uint8_t(wc),0xe4,0x00,0x00});
+        b.put(0x00060000+0x0400,{ring3_program[0],ring3_program[1],ring3_program[2],
+                                  ring3_program[3],ring3_program[4],ring3_program[5]});
+        const uint16_t adjust=uint16_t(wc*2);
+        if (wc==0) b.put(kCodeBase+0x0500,{0xcb});
+        else b.put(kCodeBase+0x0500,{0xca,uint8_t(adjust),uint8_t(adjust>>8)});
+        const uint16_t outer_sp=inner_down ? 0x0100 : 0x8000;
+        for (unsigned i=0;i<wc;++i) {
+            const uint16_t value=uint16_t(0x2000+i);
+            b.put(0x00070000+outer_sp+2*i,{uint8_t(value),uint8_t(value>>8)});
+        }
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+        b.step(kCodeBase+0x020b,0x0f,kCodeSelector,0x020e,wait);
+        b.step(kCodeBase+0x020e,0xcf,0x003b,0x0400,wait);
+        b.step(0x00060400,0x9a,kCodeSelector,0x0500,wait);
+        const uint16_t expected_inner_sp=uint16_t((inner_down ? 0xfff0 : 0x0100)-(8+wc*2));
+        check(uint16_t(b.d.segs_o>>32)==(inner_down ? 0x0048 : kSsSelector) && b.reg(4)==expected_inner_sp,
+              "expand-down call-gate stack switch failed");
+        for (unsigned i=0;i<wc;++i) {
+            const uint16_t got=uint16_t(b.memory[kStackBase+expected_inner_sp+4+2*i]|
+                                       (uint16_t(b.memory[kStackBase+expected_inner_sp+5+2*i])<<8));
+            check(got==uint16_t(0x2000+i),"expand-down call-gate parameter copy mismatch");
+        }
+        b.step(kCodeBase+0x0500,wc==0 ? 0xcb : 0xca,0x003b,0x0405,wait);
+        check(uint16_t(b.d.segs_o>>32)==0x0043 && b.reg(4)==uint16_t(outer_sp+adjust),
+              "expand-down outer RETF did not restore caller stack");
+        ++expand_down_cases;
+    }
+    for (bool wait:{false,true}) for (uint16_t bad_sp:{uint16_t(0x0fff),uint16_t(0xfffe)}) {
+        Bench b;
+        place_selector_fixture(b,ring0_program,sizeof(ring0_program));
+        b.memory[0x41]=0x00; b.memory[0x40]=0x6f;
+        b.put(kGdtBase+0x38,{ring3_cs[0],ring3_cs[1],ring3_cs[2],ring3_cs[3],
+                              ring3_cs[4],ring3_cs[5],ring3_cs[6],ring3_cs[7]});
+        b.put(kGdtBase+0x40,{0xff,0x0f,0x00,0x00,0x07,0xf7,0x00,0x00});
+        b.put(kGdtBase+0x58,{tss[0],tss[1],tss[2],tss[3],tss[4],tss[5],tss[6],tss[7]});
+        b.put(kGdtBase+0x68,{0x00,0x05,0x08,0x00,0x02,0xe4,0x00,0x00});
+        b.put(0x00000702,{0x00,0x01,0x28,0x00});
+        b.put(kIdtBase+12*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+        b.put(kHandlerBase+0x0300,{0xf4});
+        b.put(0x00060000+0x0400,{ring3_program[0],ring3_program[1],ring3_program[2],
+                                  ring3_program[3],ring3_program[4],ring3_program[5]});
+        b.put(kStackBase+0x0080,{0x00,0x04,0x3b,0x00,0x02,0x02,
+                                 uint8_t(bad_sp),uint8_t(bad_sp>>8),0x43,0x00});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+        b.step(kCodeBase+0x020b,0x0f,kCodeSelector,0x020e,wait);
+        b.step(kCodeBase+0x020e,0xcf,0x003b,0x0400,wait);
+        for (unsigned n=0;n<30000 && !b.d.event_o && !b.d.fault_o;++n) b.tick(wait);
+        check(b.d.event_o && !b.d.fault_o && b.d.event_vector_o==12 &&
+              b.d.event_packet_error_code_o==0 && b.cs()==kHandlerSelector && b.d.ip_o==0x0300,
+              "expand-down caller stack parameter fault did not raise #SS(0)");
+        ++expand_down_cases;
+    }
+    check(expand_down_cases==10,"expand-down call-gate test matrix missed a case");
+    std::cout<<"PASS: protected ring-3 CALL gates copy 0, 1 and 31 parameters, handle expand-down inner/caller stacks, switch through TSS, and return across privilege levels in both READY modes\n";
 }
 
 static void protected_call_gate_ring1_ring2() {
@@ -7254,6 +7420,11 @@ static void protected_event_ring12_async_delivery(bool nmi_mode) {
         check(uint16_t(b.d.segs_o>>32)==level.stack_selector &&
               b.reg(4)==ring_level_sp && b.d.flags_o==saved_flags,
               "initial outer IRET did not establish the external-event ring");
+        // The outer IRET opens no interrupt shadow (issue #284, finding 17;
+        // tested by protected_outer_iret_no_shadow). Run the first ring-level
+        // NOP before raising the line so the event is taken at the NOP's
+        // boundary, with its successor as the saved IP.
+        b.step(level.code_base+first_ip,0x90,level.code_selector,successor_ip,wait);
 
         const unsigned retired_before=b.retired;
         const unsigned acknowledgements_before=b.acknowledgements;
@@ -7269,13 +7440,7 @@ static void protected_event_ring12_async_delivery(bool nmi_mode) {
         for (unsigned cycle=0;cycle<50000 && !b.d.fault_o &&
              b.cs()!=kHandlerSelector;++cycle) {
             b.tick(wait);
-            if (b.d.retire_o) {
-                check(!first_nop_retired && b.d.retire_pc_o==level.code_base+first_ip &&
-                      b.d.retire_opcode_o==0x90 && b.cs()==level.code_selector &&
-                      b.d.ip_o==successor_ip,
-                      "external INTR was not sampled after exactly the first ring-level NOP");
-                first_nop_retired=true;
-            }
+            if (b.d.retire_o) first_nop_retired=true;  // must not happen: checked below
             event_seen=event_seen || b.d.event_o;
             if (b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp) {
                 handler_entered=true;
@@ -7297,7 +7462,7 @@ static void protected_event_ring12_async_delivery(bool nmi_mode) {
               (nmi_mode ? (b.acknowledgements==acknowledgements_before &&
                            b.d.nmi_blocked_o && !b.d.nmi_pending_o) :
                           b.acknowledgements>acknowledgements_before) &&
-              first_nop_retired && b.retired==retired_before+1 &&
+              !first_nop_retired && b.retired==retired_before &&
               b.cs()==kHandlerSelector &&
               b.d.ip_o==kHandlerIp && uint16_t(b.d.segs_o>>32)==kSsSelector &&
               b.reg(4)==expected_stack_pointer;
@@ -7499,8 +7664,94 @@ static void protected_event_delivery_faults() {
         ++executions;
     }
     check(executions==10,"delivery-fault matrix did not run every case in both READY modes");
+    unsigned df_gate_executions=0;
+    for (bool wait:{false,true}) for (uint8_t gate_type:{uint8_t(0x86),uint8_t(0x87)}) {
+        Bench b;
+        const uint8_t program[]={
+            0xb8,0x28,0x00, 0x8e,0xd0, // 0200 MOV SS,0028
+            0xbc,0x80,0x00,             // 0205 MOV SP,0080
+            0xfb,                       // 0208 STI
+            0xcd,0x40,                  // 0209 INT 40h -> #GP(0202) -> not-present #GP gate -> #DF(0)
+            0xf4
+        };
+        place_selector_fixture(b,program,sizeof(program));
+        b.put(kIdtBase+13*8,{0x00,0x03,0x30,0x00,0x00,0x06,0x00,0x00});
+        b.put(kIdtBase+8*8,{0x00,0x03,0x30,0x00,0x00,gate_type,0x00,0x00});
+        b.put(kHandlerBase+kHandlerIp,{0xf4});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xfb,kCodeSelector,0x0209,wait);
+        const uint16_t flags_before=b.d.flags_o;
+        const unsigned retired_before=b.retired;
+        for (unsigned cycle=0;cycle<50000 && !b.d.fault_o && !b.d.shutdown_o &&
+             !(b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp);++cycle)
+            b.tick(wait);
+        const std::string name=std::string(gate_type==0x86 ? "#DF interrupt gate" : "#DF trap gate")+
+                               (wait ? " (wait)" : "");
+        check(!b.d.shutdown_o && !b.d.fault_o &&
+              b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp && b.reg(4)==0x0078 &&
+              b.d.event_vector_o==8 && b.d.event_packet_error_valid_o &&
+              b.d.event_packet_error_code_o==0 && b.retired==retired_before,
+              (name+": #DF handler was not entered without shutdown").c_str());
+        const bool expected_if=(gate_type==0x87);
+        check(bool((b.d.flags_o>>9)&1)==expected_if,
+              (name+": unexpected IF state on #DF entry").c_str());
+        const uint32_t frame=kStackBase+0x0078;
+        auto word=[&](uint32_t a){ return uint16_t(b.memory[a]|(b.memory[a+1]<<8)); };
+        check(word(frame)==0x0000 && word(frame+2)==0x0209 &&
+              word(frame+4)==kCodeSelector && word(frame+6)==flags_before,
+              (name+": stacked #DF error/IP/CS/FLAGS differ").c_str());
+        ++df_gate_executions;
+    }
+    check(df_gate_executions==4,"#DF interrupt/trap gate matrix missed a case");
+    unsigned int_stack_before_ip_cases=0;
+    for (bool wait:{false,true}) for (uint16_t ss0:{uint16_t(0x0000),uint16_t(0x0028)}) {
+        const uint8_t ring0_prog[]={
+            0xb8,0x48,0x00, 0x8e,0xd0, // 0200 MOV SS,0048
+            0xbc,0x80,0x00,             // 0205 MOV SP,0080
+            0xb8,0x58,0x00, 0x0f,0x00,0xd8, // 0208 LTR 0058
+            0xcf, 0xf4                  // 020E IRET to 003b:0400
+        };
+        Bench b;
+        place_selector_fixture(b,ring0_prog,sizeof(ring0_prog));
+        b.memory[0x41]=0x00; b.memory[0x40]=0x77;
+        b.memory[0x46]=0x0f; b.memory[0x47]=0x01; // IDT covers vector 20h
+        b.put(kGdtBase+0x38,{0xff,0x0f,0x00,0x00,0x06,0xfa,0x00,0x00});
+        b.put(kGdtBase+0x40,{0xff,0x01,0x00,0x00,0x07,0xf2,0x00,0x00});
+        b.put(kGdtBase+0x48,{0xff,0x00,0x00,0x00,0x05,0x93,0x00,0x00});
+        b.put(kGdtBase+0x58,{0x2b,0x00,0x00,0x07,0x00,0x81,0x00,0x00});
+        b.put(kGdtBase+0x70,{0xff,0x00,0x00,0x00,0x01,0x9b,0x00,0x00}); // Short CS limit 00ff
+        b.put(0x00000702,{0x00,0x01,uint8_t(ss0),uint8_t(ss0>>8)});
+        b.put(kIdtBase+0x20*8,{0x80,0x04,0x70,0x00,0x00,0xe6,0x00,0x00}); // Gate -> 0070:0480 (IP > limit)
+        b.put(kIdtBase+10*8,{0x00,0x03,0x3b,0x00,0x00,0x86,0x00,0x00});
+        b.put(kIdtBase+13*8,{0x00,0x03,0x3b,0x00,0x00,0x86,0x00,0x00});
+        b.put(0x00060000+0x0400,{0xcd,0x20,0xf4});
+        b.put(0x00060000+0x0300,{0xf4});
+        b.put(kStackBase+0x0080,{0x00,0x04,0x3b,0x00,0x02,0x02,0x00,0x01,0x43,0x00});
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+        b.step(kCodeBase+0x020b,0x0f,kCodeSelector,0x020e,wait);
+        b.step(kCodeBase+0x020e,0xcf,0x003b,0x0400,wait);
+        b.data_transfers.clear();
+        for (unsigned n=0;n<30000 && !b.d.event_o && !b.d.fault_o;++n) b.tick(wait);
+        const uint8_t expected_vec=(ss0==0x0000) ? 10 : 13;
+        check(b.d.event_o && !b.d.fault_o && b.d.event_vector_o==expected_vec &&
+              b.d.event_packet_error_code_o==0 && b.d.event_packet_saved_ip_o==0x0400 &&
+              b.cs()==0x003b && b.d.ip_o==0x0300 &&
+              std::none_of(b.data_transfers.begin(),b.data_transfers.end(),[](const auto& t) {
+                  return t.write && !t.io && t.address>=kStackBase+0xf0 && t.address<kStackBase+0x100;
+              }),
+              "INT CPL3->0 did not check inner SS0 (#TS(0)) before handler IP limit (#GP(0))");
+        ++int_stack_before_ip_cases;
+    }
+    check(int_stack_before_ip_cases==4,"INT inner-stack-before-IP cases incomplete");
     std::cout<<"PASS: 10 protected handler-invocation faults raise App. B #GP/#NP/#SS codes with EXT, "
-               "point INT faults at the INT, and escalate #SS to #DF and shutdown per 9.6.2\n";
+               "point INT faults at the INT, escalate #SS to #DF and shutdown per 9.6.2, 4 #DF interrupt/trap-gate runs enter vector 8, and 4 inner-stack-before-IP cases order #TS(0) before #GP(0)\n";
 }
 
 static void protected_event_task_gate_delivery() {
@@ -7601,6 +7852,10 @@ static void protected_event_task_gate_delivery() {
         check(uint16_t(b.d.segs_o>>32)==level.stack_selector &&
               b.reg(4)==ring_level_sp && b.d.flags_o==saved_flags,
               "task-gate event fixture did not establish CPL1/CPL2 state");
+        // No interrupt shadow after the outer IRET (issue #284, finding 17):
+        // run the first NOP before raising an external line.
+        if (!software_int)
+            b.step(level.code_base+first_ip,0x90,level.code_selector,successor_ip,wait);
 
         const unsigned retired_before=b.retired;
         const unsigned acknowledgements_before=b.acknowledgements;
@@ -7621,14 +7876,7 @@ static void protected_event_task_gate_delivery() {
         for (unsigned cycle=0;cycle<100000 && !b.d.fault_o &&
              !(b.cs()==0x0030 && b.d.ip_o==0x0500);++cycle) {
             b.tick(wait);
-            if (b.d.retire_o) {
-                check(!software_int && !first_instruction_retired &&
-                      b.d.retire_pc_o==level.code_base+first_ip &&
-                      b.d.retire_opcode_o==0x90 && b.cs()==level.code_selector &&
-                      b.d.ip_o==successor_ip,
-                      "external task-gate interrupt was not sampled after exactly one NOP");
-                first_instruction_retired=true;
-            }
+            if (b.d.retire_o) first_instruction_retired=true;  // must not happen: checked below
             if (b.d.event_o) {
                 event_seen=true;
                 packet_valid=b.d.event_packet_valid_o;
@@ -7660,10 +7908,10 @@ static void protected_event_task_gate_delivery() {
               (software_int ? (b.acknowledgements==acknowledgements_before &&
                                !first_instruction_retired) :
                nmi_mode ? (b.acknowledgements==acknowledgements_before &&
-                           first_instruction_retired && b.d.nmi_blocked_o &&
+                           !first_instruction_retired && b.d.nmi_blocked_o &&
                            !b.d.nmi_pending_o) :
                           (b.acknowledgements==acknowledgements_before+1 &&
-                           first_instruction_retired)) &&
+                           !first_instruction_retired)) &&
               b.cs()==0x0030 && b.d.ip_o==0x0500 &&
               uint16_t(b.d.segs_o>>32)==0x0028 &&
               b.reg(4)==(software_int ? 0x007e : 0x0080),
@@ -7720,7 +7968,7 @@ static void protected_event_task_gate_delivery() {
                       "task IRET did not release the serviced NMI");
             b.step(level.code_base+successor_ip,0x90,level.code_selector,successor_ip+1,wait);
             check(b.cs()==level.code_selector && b.d.ip_o==successor_ip+1 &&
-                  b.reg(4)==ring_level_sp && b.retired==retired_before+3,
+                  b.reg(4)==ring_level_sp && b.retired==retired_before+2,
                   "task-gate external interrupt missed the exact resumed successor");
         }
         ++cases;
@@ -9240,9 +9488,9 @@ static void protected_iopl_controls() {
               "task IRET did not save its post-instruction IP, cleared NT and current SP");
         const uint16_t outgoing_words[]={
             0x0400,old_flags,old_regs[0],old_regs[1],old_regs[2],old_regs[3],old_sp,
-            old_regs[4],old_regs[5],old_regs[6],0x0000,old_cs,old_ss,0x0000,0x0000
+            old_regs[4],old_regs[5],old_regs[6],0x0000,old_cs,old_ss,0x0000
         };
-        for (unsigned i=0;i<15;++i)
+        for (unsigned i=0;i<14;++i)
             check(read_word(0x00070000+0x0e + 2*i)==outgoing_words[i],
                   "#DF task switch did not save the outgoing task-state image");
         const auto first_task_iret=std::find(b.accepted.begin(),b.accepted.end(),kHandlerBase+kHandlerIp);
@@ -9565,7 +9813,9 @@ static void protected_iopl_controls() {
         {"GDT-limit backlink",0x0080,0x83,0x002b,10,0x0080},
         {"non-TSS backlink",0x0030,0x83,0x002b,10,0x0030},
         {"not-present backlink TSS",0x0058,0x03,0x002b,11,0x0058},
-        {"available backlink TSS with RPL",0x005b,0x81,0x002b,13,0x0058},
+        {"available backlink TSS with RPL",0x005b,0x81,0x002b,10,0x0058},
+        {"not-present available backlink TSS",0x0058,0x01,0x002b,10,0x0058},
+        {"not-present non-TSS backlink",0x0058,0x1a,0x002b,10,0x0058},
         {"short backlink TSS",0x0058,0x83,0x0020,10,0x0058}
     };
     unsigned backlink_fault_cases=0;
@@ -9659,9 +9909,24 @@ static void protected_iopl_controls() {
         }
         ++backlink_fault_cases;
     }
-    check(backlink_fault_cases==14,
+    check(backlink_fault_cases==18,
           "task-return backlink fault matrix missed a READY policy or descriptor case");
-    std::cout<<"PASS: 14 invalid task-return backlink cases deliver restartable #TS/#NP/#GP with selector errors before TSS save or busy-bit changes in both READY modes\n";
+    unsigned idt_tss_type_before_present_cases=0;
+    for (bool wait:{false,true}) for (uint8_t bad_access:{uint8_t(0x03),uint8_t(0x1a)}) {
+        Bench b;
+        const Context context=prepare(b,wait,0,0,{0xcd,0x20,0xf4},true,0x010f);
+        b.put(kGdtBase+0x50,{0x2b,0x00,0x00,0x00,0x08,bad_access,0x00,0x00});
+        b.put(kIdtBase+0x20*8,{0x00,0x00,0x50,0x00,0x00,0x85,0x00,0x00});
+        for (unsigned cycle=0;cycle<100000 && !b.d.halted_o && !b.d.fault_o;++cycle) b.tick(wait);
+        check(b.d.halted_o && !b.d.fault_o && !b.d.shutdown_o &&
+              b.cs()==0x0030 && b.d.ip_o==0x0301 &&
+              b.d.event_vector_o==13 && b.d.event_packet_error_code_o==0x0050 &&
+              b.d.event_packet_saved_cs_o==context.level.cs && b.d.event_packet_saved_ip_o==0x0400,
+              "IDT task gate did not test TSS type (#GP) before presence (#NP)");
+        ++idt_tss_type_before_present_cases;
+    }
+    check(idt_tss_type_before_present_cases==4,"IDT task-gate type-before-present cases incomplete");
+    std::cout<<"PASS: 18 invalid task-return backlink cases (including type-before-present) and 4 IDT task-gate type-before-present cases deliver exact #TS/#NP/#GP selector errors in both READY modes\n";
 
     struct IncomingLdtrFaultCase {
         const char* name;
@@ -12787,7 +13052,52 @@ static void protected_iopl_controls() {
     }
     check(direct_task_switch_cases==8,
           "direct TSS CALL/JMP task-transfer matrix missed a transfer or READY policy");
-    std::cout<<"PASS: 8 protected far CALL/JMP transfers through available TSS descriptors and task gates check nested backlink/NT return versus non-nested busy clearing and exact successors in both READY modes\n";
+    unsigned outgoing_tss_limit_cases=0;
+    for (bool wait:{false,true}) for (uint16_t out_limit:{uint16_t(0x0029),uint16_t(0x0028)}) {
+        const std::vector<uint8_t> program={
+            0xb8,0x48,0x00, 0x0f,0x00,0xd8,                 // 0400 MOV AX,0048; LTR AX
+            0xea,0x00,0x05,
+            uint8_t(direct_task_tss_selector),uint8_t(direct_task_tss_selector>>8),
+            0xf4
+        };
+        Bench b;
+        const Context context=prepare(b,wait,0,0,program,true);
+        b.put(kGdtBase+0x48,{uint8_t(out_limit),uint8_t(out_limit>>8),0x00,0x00,0x07,0x81,0x00,0x00});
+        b.put(kGdtBase+direct_task_tss_selector,
+              {direct_task_tss_descriptor[0],direct_task_tss_descriptor[1],
+               direct_task_tss_descriptor[2],direct_task_tss_descriptor[3],
+               direct_task_tss_descriptor[4],direct_task_tss_descriptor[5],
+               direct_task_tss_descriptor[6],direct_task_tss_descriptor[7]});
+        for (unsigned i=0;i<14;++i)
+            put_task_word(b,direct_task_tss_base+0x000e + 2*i,direct_task_words[i]);
+        put_task_word(b,0x0007002a,0xbeef);
+        b.put(kHandlerBase+0x0500,{0xf4});
+        b.put(kIdtBase+10*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
+        b.step(context.level.code_base+0x0400,0xb8,context.level.cs,0x0403,wait);
+        b.step(context.level.code_base+0x0403,0x0f,context.level.cs,0x0406,wait);
+        b.data_transfers.clear();
+        for (unsigned cycle=0;cycle<150000 && !b.d.halted_o && !b.d.fault_o && !b.d.shutdown_o;++cycle)
+            b.tick(wait);
+        if (out_limit==0x0029) {
+            check(b.d.halted_o && !b.d.fault_o && !b.d.shutdown_o &&
+                  b.cs()==0x0030 && b.d.ip_o==0x0501 &&
+                  uint16_t(b.memory[0x0007002a]|(uint16_t(b.memory[0x0007002b])<<8))==0xbeef &&
+                  std::none_of(b.data_transfers.begin(),b.data_transfers.end(),[](const auto& t) {
+                      return t.write && !t.io && (t.address==0x0007002a || t.address==0x0007002b);
+                  }),
+                  "outgoing TSS limit=41 did not complete or overwrote word +42");
+        } else {
+            check(b.d.halted_o && !b.d.fault_o && !b.d.shutdown_o &&
+                  b.cs()==0x0030 && b.d.ip_o==0x0301 &&
+                  b.d.event_vector_o==10 && b.d.event_packet_error_valid_o &&
+                  b.d.event_packet_error_code_o==direct_task_tss_selector &&
+                  b.d.event_packet_saved_ip_o==0x0406,
+                  "outgoing TSS limit=40 did not raise #TS(new TSS selector)");
+        }
+        ++outgoing_tss_limit_cases;
+    }
+    check(outgoing_tss_limit_cases==4,"outgoing TSS limit/save cases missed a case");
+    std::cout<<"PASS: 8 protected far CALL/JMP transfers through available TSS descriptors and task gates check nested backlink/NT return versus non-nested busy clearing and exact successors, plus 4 outgoing-TSS limit>=41 and +42 preservation cases in both READY modes\n";
 
     // Intel 210498-005 §8.5 applies the task-gate DPL check to the effective
     // privilege of the far selector: max(CPL,RPL) must be <= gate DPL.
@@ -13152,6 +13462,7 @@ static void protected_iopl_controls() {
         uint16_t error;
         bool read_target_descriptor;
         uint16_t gdt_limit=0x007f;
+        uint16_t gate_tss_selector=0x0078;
     };
     const DirectTaskFaultCase direct_task_faults[]={
         {"null direct selector",false,false,0x0000,0x85,0,0x81,0x002b,0,0xff,13,0x0000,false},
@@ -13170,16 +13481,18 @@ static void protected_iopl_controls() {
         {"short task-gate TSS",true,false,0x0070,0x85,0,0x81,0x002a,0,0xff,10,0x0078,true},
         {"busy task-gate TSS CALL",true,true,0x0070,0x85,0,0x83,0x002b,0,0xff,13,0x0078,true},
         {"busy task-gate TSS JMP",true,false,0x0070,0x85,0,0x83,0x002b,0,0xff,13,0x0078,true},
+        {"not-present busy task-gate TSS CALL",true,true,0x0070,0x85,0,0x03,0x002b,0,0xff,13,0x0078,true},
+        {"not-present code task-gate target JMP",true,false,0x0070,0x85,0,0x1a,0x002b,0,0xff,13,0x0078,true},
         // A task-gate target that is not a TSS at all (here an executable
         // code segment) is #GP(target selector), as for INT through a task
         // gate: App. B CALL/JMP task-gate entries; 86Box task_target_check
         // (80286 path); PCE-286 oracle scenarios far_xfer.*.taskgate_to_code.
         {"code-segment task-gate target CALL",true,true,0x0070,0x85,0,0x9a,0x002b,0,0xff,13,0x0078,true},
         {"code-segment task-gate target JMP",true,false,0x0070,0x85,0,0x9a,0x002b,0,0xff,13,0x0078,true},
-        {"out-of-GDT task-gate TSS CALL",true,true,0x0070,0x85,0,0x81,0x002b,0,0xff,10,0x0078,false,0x0077},
-        {"out-of-GDT task-gate TSS JMP",true,false,0x0070,0x85,0,0x81,0x002b,0,0xff,10,0x0078,false,0x0077},
-        {"available current TR",false,true,0x0078,0x85,0,0x81,0x002b,0,0x81,10,0x0058,true},
-        {"not-present current TR",true,false,0x0070,0x85,0,0x81,0x002b,0,0x03,10,0x0058,true}
+        {"out-of-GDT task-gate TSS CALL",true,true,0x0070,0x85,0,0x81,0x002b,0,0xff,13,0x0078,false,0x0077},
+        {"out-of-GDT task-gate TSS JMP",true,false,0x0070,0x85,0,0x81,0x002b,0,0xff,13,0x0078,false,0x0077},
+        {"null task-gate TSS CALL",true,true,0x0070,0x85,0,0x81,0x002b,0,0xff,13,0x0000,false,0x007f,0x0000},
+        {"LDT task-gate TSS JMP",true,false,0x0070,0x85,0,0x81,0x002b,0,0xff,13,0x0034,false,0x007f,0x0034}
     };
     unsigned direct_task_fault_cases=0;
     constexpr uint32_t outgoing_task_tss_base=0x00070000;
@@ -13197,8 +13510,8 @@ static void protected_iopl_controls() {
               {tss_descriptor[0],tss_descriptor[1],tss_descriptor[2],tss_descriptor[3],
                tss_descriptor[4],tss_descriptor[5],tss_descriptor[6],tss_descriptor[7]});
         b.put(kGdtBase+direct_task_gate_selector,
-              {test.gate_offset,0x00,uint8_t(direct_task_tss_selector),
-               uint8_t(direct_task_tss_selector>>8),0x00,test.gate_access,0x00,0x00});
+              {test.gate_offset,0x00,uint8_t(test.gate_tss_selector),
+               uint8_t(test.gate_tss_selector>>8),0x00,test.gate_access,0x00,0x00});
         for (uint8_t vector:{10,11,13})
             b.put(kIdtBase+uint32_t(vector)*8,{0x00,0x03,0x30,0x00,0x00,0x86,0x00,0x00});
         if (test.current_access!=0xff)
@@ -13304,9 +13617,40 @@ static void protected_iopl_controls() {
               (std::string("rejected task switch read or changed task state/busy state: ")+test.name).c_str());
         ++direct_task_fault_cases;
     }
-    check(direct_task_fault_cases==44,
+    check(direct_task_fault_cases==48,
           "direct TSS/task-gate fault matrix missed an exception case or READY policy");
-    std::cout<<"PASS: 44 rejected direct TSS/task-gate CALL/JMP cases check exact #GP/#NP/#TS priority packets and no task-image/busy-bit side effects in both READY modes\n";
+    unsigned current_tr_gdt_ignored_cases=0;
+    for (bool wait:{false,true}) for (bool far_call:{false,true})
+        for (uint8_t cur_access:{uint8_t(0x81),uint8_t(0x03)}) {
+        const uint16_t sel=far_call ? direct_task_tss_selector : direct_task_gate_selector;
+        const std::vector<uint8_t> program=far_call ?
+            std::vector<uint8_t>{0x9a,0x00,0x05,uint8_t(sel),uint8_t(sel>>8),0xf4} :
+            std::vector<uint8_t>{0xea,0x00,0x05,uint8_t(sel),uint8_t(sel>>8),0xf4};
+        Bench b;
+        prepare(b,wait,0,0,program,true);
+        b.put(kGdtBase+direct_task_tss_selector,
+              {direct_task_tss_descriptor[0],direct_task_tss_descriptor[1],
+               direct_task_tss_descriptor[2],direct_task_tss_descriptor[3],
+               direct_task_tss_descriptor[4],direct_task_tss_descriptor[5],
+               direct_task_tss_descriptor[6],direct_task_tss_descriptor[7]});
+        if (!far_call)
+            b.put(kGdtBase+direct_task_gate_selector,
+                  {0x00,0x00,uint8_t(direct_task_tss_selector),
+                   uint8_t(direct_task_tss_selector>>8),0x00,0x85,0x00,0x00});
+        for (unsigned i=0;i<14;++i)
+            put_task_word(b,direct_task_tss_base+0x000e + 2*i,direct_task_words[i]);
+        b.put(kHandlerBase+0x0500,{0xf4});
+        b.memory[kGdtBase+current_task_tss_selector+5]=cur_access;
+        for (unsigned cycle=0;cycle<150000 && !b.d.halted_o && !b.d.fault_o && !b.d.shutdown_o;++cycle)
+            b.tick(wait);
+        check(b.d.halted_o && !b.d.fault_o && !b.d.shutdown_o &&
+              b.cs()==0x0030 && b.d.ip_o==0x0501 &&
+              b.memory[kGdtBase+direct_task_tss_selector+5]==0x83,
+              "direct task switch faulted on current TSS GDT access byte instead of cached TR");
+        ++current_tr_gdt_ignored_cases;
+    }
+    check(current_tr_gdt_ignored_cases==8,"current-TR GDT-ignored cases incomplete");
+    std::cout<<"PASS: 48 rejected direct TSS/task-gate CALL/JMP cases and 8 cached-TR-only direct task-switch cases pass in both READY modes\n";
 
     // Reset after every accepted data transfer in direct task entry. Accepted
     // writes survive RESET; the partially completed task switch must not resume.
@@ -14180,29 +14524,62 @@ static void processor_extension_contract() {
         check(nmi_wait.reg(3)==2,"NMI return restarted or skipped interrupted WAIT");
         nmi_wait.step(0xf010b,0xf4,0xf000,0x010c,false);
     }
+    // A NOP separates STI from WAIT so that the STI shadow (A48) has ended
+    // and only WAIT's own interruptibility is tested here.
     {
         Bench intr_wait;
         interrupt_setup(intr_wait); interrupt_vector(intr_wait,0x20);
-        intr_wait.put(0xf0109,{0xfb,0x9b,0x43,0xf4});
+        intr_wait.put(0xf0109,{0xfb,0x90,0x9b,0x43,0xf4});
         intr_wait.step(0xf0109,0xfb,0xf000,0x010a,false);
+        intr_wait.step(0xf010a,0x90,0xf000,0x010b,false);
         intr_wait.d.busy_i=1;
-        for(unsigned n=0;n<64 && intr_wait.accepted.back()!=0xf010a;++n) intr_wait.tick(false);
+        for(unsigned n=0;n<64 && intr_wait.accepted.back()!=0xf010b;++n) intr_wait.tick(false);
         for(unsigned n=0;n<24;++n) intr_wait.tick(false);
-        check(intr_wait.d.ip_o==0x010b && !intr_wait.d.bus_req_o &&
+        check(intr_wait.d.ip_o==0x010c && !intr_wait.d.bus_req_o &&
               !intr_wait.d.retire_o,"INTR/WAIT setup did not remain stalled after WAIT");
         const auto retired=intr_wait.retired;
         intr_wait.d.intr_i=1; intr_wait.interrupt_vector=0x20; intr_wait.acknowledge=true;
         for(unsigned n=0;n<32 && !intr_wait.d.inta_req_o;++n) intr_wait.tick(false);
         check(intr_wait.d.inta_req_o,"INTR was not acknowledged while WAIT was busy");
-        interrupt_entry(intr_wait,0x20,0x010b,0x0202);
+        interrupt_entry(intr_wait,0x20,0x010c,0x0202);
         check(intr_wait.retired==retired && intr_wait.acknowledgements==1,
               "INTR while WAIT busy fabricated retirement or missed acknowledgement");
         intr_wait.d.intr_i=0; intr_wait.acknowledge=false;
         intr_wait.step(0x20100,0x43,0x2000,0x0101,false);
-        intr_wait.step(0x20101,0xcf,0xf000,0x010b,false);
-        intr_wait.step(0xf010b,0x43,0xf000,0x010c,false);
+        intr_wait.step(0x20101,0xcf,0xf000,0x010c,false);
+        intr_wait.step(0xf010c,0x43,0xf000,0x010d,false);
         check(intr_wait.reg(3)==2,"INTR return restarted or skipped interrupted WAIT");
-        intr_wait.step(0xf010c,0xf4,0xf000,0x010d,false);
+        intr_wait.step(0xf010d,0xf4,0xf000,0x010e,false);
+    }
+    // Issue #284 finding 15, ASSUMPTION A48: the STI and MOV SS shadows cover
+    // a WAIT that follows them for as long as it polls BUSY, as they cover
+    // every element of a REP string. STI;WAIT with INTR held, and MOV SS;WAIT
+    // with an NMI edge, are both taken only after WAIT completes, with the
+    // IP after WAIT saved.
+    for (bool nmi_case:{false,true}) {
+        Bench b;
+        interrupt_setup(b);
+        const unsigned vector=nmi_case ? 2 : 0x20;
+        interrupt_vector(b,vector,0x2100);
+        if (nmi_case) b.put(0xf0109,{0x8e,0xd0,0x9b,0x43,0xf4});  // MOV SS,AX; WAIT
+        else b.put(0xf0109,{0xfb,0x9b,0x43,0xf4});                // STI; WAIT
+        const uint32_t wait_pc=nmi_case ? 0xf010b : 0xf010a;
+        const uint16_t after_wait=nmi_case ? 0x010c : 0x010b;
+        b.step(0xf0109,nmi_case ? 0x8e : 0xfb,0xf000,uint16_t(wait_pc-0xf0000),false);
+        b.d.busy_i=1;
+        for(unsigned n=0;n<64 && b.accepted.back()!=wait_pc;++n) b.tick(false);
+        if (nmi_case) b.d.nmi_i=1;
+        else { b.d.intr_i=1; b.interrupt_vector=0x20; b.acknowledge=true; }
+        for(unsigned n=0;n<400;++n) {
+            b.tick(false);
+            check(!b.d.inta_req_o && !b.d.event_o && !b.d.retire_o,
+                  nmi_case ? "NMI taken inside the MOV SS shadow while WAIT polled BUSY"
+                           : "INTR taken inside the STI shadow while WAIT polled BUSY");
+        }
+        b.d.busy_i=0;
+        b.step(wait_pc,0x9b,0xf000,after_wait,false);
+        interrupt_entry(b,vector,after_wait,nmi_case ? 0x0002 : 0x0202,0x2100);
+        check(b.acknowledgements==(nmi_case ? 0u : 1u),"shadowed WAIT event acknowledgement count");
     }
 
     // EM without TS does not make WAIT raise vector 7 in Intel 80287 Table 4.
@@ -14333,10 +14710,12 @@ static void processor_extension_contract() {
         Bench race;
         interrupt_setup(race);
         interrupt_vector(race,0x20,0x2000);
-        race.put(0xf0109,{0xfb,0x9b,0x9b,0xf4});
+        // NOP ends the STI shadow (A48) before the WAIT under test.
+        race.put(0xf0109,{0xfb,0x90,0x9b,0x9b,0xf4});
         race.step(0xf0109,0xfb,0xf000,0x010a,wait);
+        race.step(0xf010a,0x90,0xf000,0x010b,wait);
         race.d.busy_i=1;
-        for (unsigned n=0;n<128 && race.d.ip_o!=0x010b;++n) race.tick(wait);
+        for (unsigned n=0;n<128 && race.d.ip_o!=0x010c;++n) race.tick(wait);
         for (unsigned n=0;n<24;++n) race.tick(wait);
         race.d.intr_i=1; race.interrupt_vector=0x20;
         for (unsigned n=0;n<64 && !race.d.inta_req_o;++n) race.tick(wait);
@@ -14348,13 +14727,13 @@ static void processor_extension_contract() {
                   !race.d.bus_req_o,"WAIT abandoned an outstanding INTR acknowledge");
         }
         race.acknowledge=true;
-        interrupt_entry(race,0x20,0x010b,0x0202,0x2000);
+        interrupt_entry(race,0x20,0x010c,0x0202,0x2000);
         check(race.acknowledgements==1,"WAIT error race duplicated INTA");
         race.d.intr_i=0; race.acknowledge=false;
         race.step(0x20100,0x43,0x2000,0x0101,wait);
-        race.step(0x20101,0xcf,0xf000,0x010b,wait);
-        race.processor_fault(16,0x010b,wait);
-        check(race.d.event_packet_saved_ip_o==0x010b && !race.d.retire_o,
+        race.step(0x20101,0xcf,0xf000,0x010c,wait);
+        race.processor_fault(16,0x010c,wait);
+        check(race.d.event_packet_saved_ip_o==0x010c && !race.d.retire_o,
               "following WAIT did not report the deferred extension error");
     }
 
@@ -14785,6 +15164,122 @@ static void processor_extension_data_channel() {
     std::cout<<"PASS: "<<cases<<" processor-extension channel runs: FLD qword loads memory-then-FAh, FSTP tbyte stores FAh-then-memory at an odd address, PEACK# on each first operation, transfers while halted, and interrupt 9 for a word past FFFFh, in both READY modes\n";
 }
 
+// Issue #284, finding 17. An IRET to an outer privilege level does not open an
+// interrupt shadow: Intel describes one only for MOV SS and POP SS, and the
+// outer-level RETF has none. With INTR held and masked at level 0, an IRET to
+// level 1 or 2 that sets IF must take the interrupt at its own boundary, with
+// the IRET target as the saved IP and nothing executed at the outer level.
+static void protected_outer_iret_no_shadow() {
+    using namespace protected_mode_fixture;
+    const uint8_t ring0_program[]={
+        0xb8,0x28,0x00, 0x8e,0xd0,   // 0200 MOV SS,0028
+        0xbc,0x80,0x00,              // 0205 MOV SP,0080
+        0xb8,0x68,0x00, 0x0f,0x00,0xd8, // 0208 MOV AX,0068 / LTR AX
+        0xfa,                        // 020E CLI: INTR stays masked at level 0
+        0xcf,0xf4                    // 020F IRET to the outer level
+    };
+    struct Level { uint16_t code_selector, stack_selector; uint32_t code_base, stack_base;
+                   uint32_t code_descriptor, stack_descriptor; uint8_t code_access, stack_access; };
+    const Level levels[]={
+        {0x0049,0x0051,0x00081000,0x00080000,0x48,0x50,0xba,0xb2},
+        {0x005a,0x0062,0x00083000,0x00082000,0x58,0x60,0xda,0xd2}
+    };
+    constexpr uint16_t first_ip=0x0400, ring_level_sp=0x0100, saved_flags=0x0202;
+    auto put_descriptor=[](Bench& b,uint32_t address,uint16_t limit,uint32_t base,uint8_t access) {
+        b.put(address,{uint8_t(limit),uint8_t(limit>>8),uint8_t(base),uint8_t(base>>8),
+                       uint8_t(base>>16),access,0,0});
+    };
+    unsigned cases=0;
+    for (const auto& level:levels) for (bool wait:{false,true}) {
+        Bench b;
+        place_selector_fixture(b,ring0_program,sizeof(ring0_program));
+        b.memory[0x40]=0x77;
+        for (const auto& l:levels) {
+            put_descriptor(b,kGdtBase+l.code_descriptor,0x0fff,l.code_base,l.code_access);
+            put_descriptor(b,kGdtBase+l.stack_descriptor,0x0fff,l.stack_base,l.stack_access);
+        }
+        b.put(kGdtBase+0x68,{0x2b,0x00,0x00,0x07,0x00,0x81,0x00,0x00});
+        b.put(0x00000700+2,{0x00,0x01,0x28,0x00});          // SP0:SS0 = 0100:0028
+        b.put(level.code_base+first_ip,{0x90,0x43,0xf4});   // NOP; INC BX; HLT
+        b.memory[kHandlerBase+kHandlerIp]=0xf4;
+        protected_mode_boot(b,wait);
+        b.step(kCodeBase+0x0200,0xb8,kCodeSelector,0x0203,wait);
+        b.step(kCodeBase+0x0203,0x8e,kCodeSelector,0x0205,wait);
+        b.step(kCodeBase+0x0205,0xbc,kCodeSelector,0x0208,wait);
+        b.step(kCodeBase+0x0208,0xb8,kCodeSelector,0x020b,wait);
+        b.step(kCodeBase+0x020b,0x0f,kCodeSelector,0x020e,wait);
+        b.step(kCodeBase+0x020e,0xfa,kCodeSelector,0x020f,wait);
+        b.put(kStackBase+0x0080,{uint8_t(first_ip),uint8_t(first_ip>>8),
+                                  uint8_t(level.code_selector),uint8_t(level.code_selector>>8),
+                                  uint8_t(saved_flags),uint8_t(saved_flags>>8),
+                                  uint8_t(ring_level_sp),uint8_t(ring_level_sp>>8),
+                                  uint8_t(level.stack_selector),uint8_t(level.stack_selector>>8)});
+        b.d.intr_i=1; b.acknowledge=true; b.interrupt_vector=13;
+        b.step(kCodeBase+0x020f,0xcf,level.code_selector,first_ip,wait);
+        const unsigned retired_after_iret=b.retired;
+        bool entered=false;
+        for (unsigned n=0;n<50000 && !b.d.fault_o && !entered;++n) {
+            b.tick(wait);
+            entered=b.cs()==kHandlerSelector && b.d.ip_o==kHandlerIp;
+        }
+        b.d.intr_i=0; b.acknowledge=false;
+        const std::string name="outer IRET to CPL "+std::to_string(level.code_selector&3)+
+            (wait?" (wait states)":"");
+        check(entered && !b.d.fault_o && b.retired==retired_after_iret &&
+              b.d.event_vector_o==13 && b.d.event_packet_saved_ip_o==first_ip &&
+              b.d.event_packet_saved_cs_o==level.code_selector,
+              (name+": INTR was not taken at the IRET boundary (an outer-level instruction ran first)").c_str());
+        ++cases;
+    }
+    check(cases==4,"outer IRET shadow matrix missed a case");
+}
+
+// Issue #284, finding 14. Setting PE leaves CS at its real-mode value, and the
+// processor runs at privilege level 0 until the first protected CS load
+// (210498-005 section 10.4.2, page 10-7: set PE, intra-segment JMP, then the
+// privileged LTR/LLDT before the far JMP). CPL must therefore not be taken from
+// the low bits of the real-mode CS value. Enter protected mode from segments
+// whose low two bits are 00, 01, 10 and 11, run LLDT and LTR between LMSW and
+// the far jump, and require the far jump to the DPL-0 code segment to land
+// with no exception.
+static void protected_entry_from_real_segments() {
+    using namespace protected_mode_fixture;
+    unsigned cases=0;
+    for (bool wait:{false,true}) for (uint16_t segment:{0x2000,0x2001,0x2002,0x2003}) {
+        const uint8_t target[]={0xf4};  // 0008:0200 HLT
+        Bench b;
+        place_selector_fixture(b,target,sizeof(target));
+        b.put(kResetVector,{0xea,0x00,0x00,uint8_t(segment),uint8_t(segment>>8)});
+        b.put(uint32_t(segment)<<4,{
+            0x0f,0x01,0x16,0x40,0x00,  // LGDT [0040]
+            0x0f,0x01,0x1e,0x46,0x00,  // LIDT [0046]
+            0xb8,0x01,0x00,            // MOV AX,0001
+            0x0f,0x01,0xf0,            // LMSW AX: PE set, CS unchanged
+            0xeb,0x00,                 // JMP $+2
+            0xb8,0x38,0x00,            // MOV AX,0038 (LDT descriptor)
+            0x0f,0x00,0xd0,            // LLDT AX, privileged
+            0xb8,0x40,0x00,            // MOV AX,0040 (available TSS)
+            0x0f,0x00,0xd8,            // LTR AX, privileged
+            0xea,0x00,0x02,0x08,0x00   // JMP FAR 0008:0200 (DPL-0 code)
+        });
+        b.wait_mode=wait;
+        b.reset();
+        bool event=false;
+        for (unsigned n=0;n<40000 && !b.d.halted_o && !b.d.fault_o && !b.d.shutdown_o;++n) {
+            b.tick(wait);
+            event=event || b.d.event_o;
+        }
+        const std::string name="PE entry from real-mode segment "+std::to_string(segment&3)+
+            (wait?" (wait states)":"");
+        check(!event && !b.d.fault_o && !b.d.shutdown_o && b.d.halted_o && (b.d.msw_o&1),
+              (name+": an exception, fault or shutdown before the protected far JMP landed").c_str());
+        check(b.cs()==kCodeSelector && b.d.ip_o==0x0201,
+              (name+": the far JMP did not land at 0008:0201").c_str());
+        ++cases;
+    }
+    check(cases==8,"PE entry segment matrix missed a case");
+}
+
 int main(int argc, char** argv) {
     Verilated::commandArgs(argc,argv);
     try {
@@ -14863,8 +15358,10 @@ int main(int argc, char** argv) {
         else if (argc==3 && std::string(argv[1])=="--firmware") vectors(argv[2],true);
         else if (argc==3 && std::string(argv[1])=="--bios-decimal") vectors(argv[2],false,true);
         else if (argc==2 && std::string(argv[1])=="--processor-extension") processor_extension_contract();
+        else if (argc==2 && std::string(argv[1])=="--pe-entry") protected_entry_from_real_segments();
+        else if (argc==2 && std::string(argv[1])=="--outer-iret-shadow") protected_outer_iret_no_shadow();
         else {
-            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); loadall_contract(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); stack_wrap_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); processor_extension_data_channel(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_delivery_faults(); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_jump(); protected_far_call_not_present(); protected_full_stack_frames(); protected_lock_iopl(); protected_reserved_descriptor_fields(); protected_outer_retf_frame_overrun(); protected_nt_flag_contracts(); protected_enter_stack_limit(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix();
+            directed(false); directed(true); boundaries(); rejection_and_reset(); undefined_opcode_contracts(); loadall_contract(); protection_fault_contracts(); intel_shift_carry(); memory_boundaries(); manufacturer_stack_contracts(); stack_wrap_contracts(); bounds_translation_contracts(); procedure_reset_contracts(); string_contracts(); decimal_contracts(); hardware_interrupt_contracts(); debug_trap_contracts(); system_register_contracts(); processor_extension_contract(); processor_extension_data_channel(); protected_selector_opcode_decode(); protected_selector_state_execution(); protected_selector_descriptor_faults(); protected_segment_pop_and_far_pointer_loads(); protected_task_switch_stale_modrm(); protected_selector_privilege_faults(); protected_null_ldt_invalidation(); protected_selector_query_execution(); protected_selector_query_ring3_execution(); protected_selector_query_ring12_matrix(); protected_outer_iret(); protected_outer_iret_faults(); protected_outer_iret_inward_faults(); protected_outer_iret_ss_faults(); protected_outer_iret_frame_faults(); protected_outer_iret_fault_priorities(); protected_event_outer_delivery(); protected_event_ring12_delivery(); protected_event_ring12_exception_delivery(); protected_event_ring12_async_delivery(false); protected_event_delivery_faults(); protected_event_task_gate_delivery(); protected_event_task_gate_fault_recovery(); protected_event_task_gate_handler_entry_fault(); protected_event_ring12_async_delivery(true); protected_wait_async_delivery(); protected_call_gate_same_level(); protected_call_gate_jump(); protected_far_call_not_present(); protected_full_stack_frames(); protected_lock_iopl(); protected_reserved_descriptor_fields(); protected_outer_retf_frame_overrun(); protected_nt_flag_contracts(); protected_enter_stack_limit(); protected_call_gate_access_faults(); protected_call_gate_target_faults(); protected_call_gate_ldt_target_faults(); protected_call_gate_tss_stack_faults(); protected_call_gate_outer_level(); protected_call_gate_ring1_ring2(); protected_call_gate_conforming_target(); protected_call_gate_outer_return_faults(); protected_call_gate_ldt(); protected_iopl_controls(); protected_shutdown_nmi_recovery(); protected_shutdown_nmi_task_gate_recovery(); cache_state_contracts(); reference_routing_contracts(); protected_mode_segment_integration(); protected_arpl_contracts(); protected_arpl_reachable_privilege_matrix(); protected_entry_from_real_segments(); protected_outer_iret_no_shadow();
             std::cout << "PASS: 80286 bootstrap reset, register aliases, flags, exact branches, stalls and diagnostic boundaries\n";
         }
     } catch (const std::exception& error) {

@@ -113,6 +113,17 @@ struct Test {
         d.nmi_i=0; tick(); d.nmi_i=1; d.iret_i=1; tick();
         d.iret_i=0; consume(2);
         require(!d.nmi_pending_o && d.nmi_blocked_o,"simultaneous IRET/edge duplicated NMI");
+        // Issue #284 finding 16: an NMI edge in the clock that selects an
+        // already pending NMI is a second NMI. It stays pending, blocked until
+        // the first handler's IRET, and is then delivered.
+        reset(); d.boundary_i=1; d.inhibit_i=1; d.nmi_i=1; tick(); idle();
+        require(d.nmi_pending_o,"inhibited NMI not remembered");
+        d.nmi_i=0; tick(); idle();
+        d.inhibit_i=0; d.nmi_i=1; tick(); delivery(2);
+        require(d.nmi_pending_o && d.nmi_blocked_o,"NMI edge in the selecting clock was lost");
+        consume(2); tick(); idle();
+        d.iret_i=1; tick(); d.iret_i=0; delivery(2); consume(2);
+        require(!d.nmi_pending_o && d.nmi_blocked_o,"second NMI not delivered exactly once");
         std::cout<<"PASS event-controller transaction contracts: "<<checks<<" checks\n";
     }
 };

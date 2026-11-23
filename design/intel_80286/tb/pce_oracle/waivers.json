@@ -10,16 +10,6 @@
     "source": "spec/protected_privilege_transition.md (Table 7-4 discussion: 'A valid CS descriptor may have its accessed bit set before a later SS or IP fault'); report/2026-10-28-protected-iret-fault-priority.md; 86Box x86seg.c pmoderetf sets accessed after SS validation (second opinion only)."
   },
   {
-    "match": "far_return.iret.cs_*.ss_[cdlr]*",
-    "reason": "Outer-level IRET with an invalid return SS (code, DPL0, beyond GDT limit, read-only, RPL mismatch): the RTL raises #SS(SS selector) per ASSUMPTION A31 (Table 7-4 lists every outer-return SS check as a stack fault); PCE-286 raises #GP(SS selector) as Appendix B page B-50 lists. Intel's two texts conflict; unresolved until physical 286 evidence exists. Note the RTL's RETF path uses #GP here (see report), so the two RTL paths also disagree.",
-    "source": "Intel 210498-005 Table 7-4 (page 7-22, visually reviewed per report/2026-10-28-protected-iret-fault-recovery.md) versus Appendix B page B-50; spec/spec.md and spec/protected_privilege_transition.md ASSUMPTION A31."
-  },
-  {
-    "match": "far_return.iret.cs_*.ss_null",
-    "reason": "Outer-level IRET with a null return SS: RTL #SS(0) per ASSUMPTION A31 (Table 7-4), PCE-286 #GP(0) per Appendix B page B-50. Same source conflict as the entry above.",
-    "source": "Intel 210498-005 Table 7-4 versus Appendix B page B-50; spec/protected_privilege_transition.md ASSUMPTION A31."
-  },
-  {
     "match": "selector_query.arpl.*.src000[0-3].cpl*",
     "reason": "ARPL with a null (index 0, TI 0, any RPL) source selector: RTL raises #GP(0) per the Intel 80286 B-2/B-3 information sheet; PCE-286 and 86Box (x86_ops_pmode.h opARPL) execute ARPL as a plain RPL adjustment. Intel 210498-005 Appendix B ARPL does not mention the case. Oracle omits an errata-documented behavior; RTL kept.",
     "source": "Intel 80286 (B-2/B-3) Information Sheet 1984-11-21 (docs.pcjs.org/manuals/intel/80286/80286_B2_B3_Errata-1984-11-21.pdf), cited in spec/protected_execution.md; report/2026-10-28-arpl-reachable-privilege-matrix.md. Not re-read in this session (offline)."
@@ -63,5 +53,10 @@
     "match": "int_gate.taskgate_[nl][ud][lt]*.cpl[03]",
     "reason": "INT through a task gate whose TSS selector is null (0000) or local (TI=1, 0054): RTL #GP(selector), PCE-286 #TS(selector). The RTL follows the repo citation of App. B page B-49 (a null, local or out-of-limit task-gate TSS selector is #GP(TSS selector)); 86Box raises #GP for the 80286 and #TS only for the 386/486/P5. Oracle defect (386-style rule).",
     "source": "Intel 210498-005 Appendix B page B-49 as cited in src/intel_80286.sv EVENT task-gate check; 86Box x86seg.c pmodeint task-gate case comment ('#GP(TSS selector) on the 80286 and P6 books'). Page not re-read in this session (offline)."
+  },
+  {
+    "match": "far_xfer.*.taskgate_[nl][ud][lt]*.rpl0.cpl0",
+    "reason": "CALL or JMP through a task gate whose TSS selector is null (0000) or local (TI=1): RTL #GP(TSS selector), PCE-286 #TS(TSS selector). Intel 210498-005 Appendix B CALL TASK GATE and JUMP TASK GATE: \"Must specify global in the local/global bit else #GP (TSS selector)\" and \"Index must be within GDT limits else #GP (TSS selector)\"; a null selector then fails \"must specify available TSS ... else #GP (TSS selector)\". Only RETURN FROM NESTED TASK (IRET) uses #TS for these checks. The IDT task-gate path is waived for the same oracle rule (int_gate.taskgate_*). Oracle defect (386-style rule); RTL follows the 286 manual (issue #284, finding 3).",
+    "source": "Intel 210498-005 Appendix B pages B-25 (CALL TASK GATE) and B-57 (JUMP TASK GATE), re-read 2026-11-22 from the local 210498-005.pdf text layer; review in issue #284."
   }
 ]

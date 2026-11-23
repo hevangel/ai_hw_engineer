@@ -37,6 +37,7 @@ else
 fi
 export INTEL_80286_WORK_DIR="$WORK_DIR"
 python3 "$SCRIPT_DIR/preflight.py"
+python3 "$SCRIPT_DIR/check_mutation_patterns.py"
 python3 -m unittest discover -s "$SCRIPT_DIR" -p 'test_preflight.py'
 python3 -m unittest discover -s "$SCRIPT_DIR" -p 'test_audit_formal.py'
 python3 -m unittest discover -s "$SCRIPT_DIR" -p 'test_build_runner.py'
@@ -63,6 +64,10 @@ python3 "$SCRIPT_DIR/run_protected_string_mutations.py" \
     "$WORK_DIR/$PROTECTED_MODE_RUN_NAME/build_manifest.json" \
     "protected_string_mutations_release_${RUN_STAMP}"
 sh "$SCRIPT_DIR/run_software.sh"
+# The PCE-286 protected-mode oracle is the only independent protected-mode
+# check; it is part of the release gate (issue #284, finding 13). It needs
+# the opt-in submodule external/pce-286.
+sh "$SCRIPT_DIR/run_pce_oracle.sh"
 sh "$SCRIPT_DIR/run_synth.sh"
 python3 "$SCRIPT_DIR/audit_formal.py" --work-dir "$FORMAL_WORK_DIR" --output "$FORMAL_WORK_DIR/audit.json"
 echo '=== Intel 80286 implemented-subset regression PASSED; full CPU remains incomplete ==='

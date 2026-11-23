@@ -15,9 +15,9 @@ MUTATIONS = [
      'rights[2] ? (rights[6:5]<=cpl_i && selector_i[1:0]<=cpl_i) :'),
     ('absence_precedes_bad_type', '!rights[3] || !privilege_valid',
      '(!rights[3] || !privilege_valid) && rights[7]'),
-    ('bad_ip_precedes_bad_stack', 'call_i && !stack_ok_i',
-     'call_i && !stack_ok_i && offset_i<=descriptor_i[15:0]'),
-    ('cs_rpl_not_normalized', 'selector_o={selector_i[15:2],cpl_i};', 'selector_o=selector_i;'),
+    ('cs_rpl_not_normalized', 'selector_o={selector_i[15:2],\n'
+     '                    gate_call_i && rights[4] && rights[3] && !rights[2] ? rights[6:5] : cpl_i};',
+     'selector_o=selector_i;'),
     ('accepts_system_descriptor', 'if (!rights[4]) special_o=1;', 'if (!rights[4]) cache_valid_o=1;'),
     ('rejects_inclusive_code_limit', 'offset_i>descriptor_i[15:0]', 'offset_i>=descriptor_i[15:0]'),
 ]

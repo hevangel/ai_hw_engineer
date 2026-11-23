@@ -138,7 +138,7 @@ stage.
 Several stale properties were also corrected:
 - An outer-level IRET requests CS offset 0.
 - A task JMP also clears the busy bit in `TASK_RETURN_CLEAR_BUSY`.
-- The #DF handler must be a task gate (9.6.2).
+- The #DF handler must be a task gate (9.6.2 — later corrected per App. B p. B-49 in issue #284: hardware INT delivery accepts interrupt, trap, and task gates for vector 8).
 - Real-mode exception 8 or 13 outside the IDT limit shuts down.
 - A real-mode NMI may recover from shutdown.
 

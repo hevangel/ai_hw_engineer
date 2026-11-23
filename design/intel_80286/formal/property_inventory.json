@@ -49,13 +49,8 @@
     "assume": 1,
     "cover": 4
   },
-  "formal/intel_80286_pedc_props.sv": {
-    "assert": 10,
-    "assume": 1,
-    "cover": 4
-  },
   "formal/intel_80286_props.sv": {
-    "assert": 440,
+    "assert": 441,
     "assume": 1,
     "cover": 54
   },

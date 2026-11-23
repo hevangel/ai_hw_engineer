@@ -228,10 +228,13 @@ to go outside of the stack limit within any part of the instruction
 execution" as covering the final allocation as well as the pushes. No
 protected-mode capture confirms it.
 
-ASSUMPTION A41: the core keeps using the CS selector RPL as CPL,
-whereas Intel defines CPL as the CS cache DPL after LOADALL. The two differ
-only for an image whose CS selector RPL differs from its CS cache DPL. The
-core also uses the trusted-CS fetch rule, so an execute-only, execute/read
+ASSUMPTION A41 (revised for issue #284, finding 14): CPL is a register of
+its own, not the CS selector RPL. Reset sets it to 0; real-mode CS loads and
+LMSW leave it unchanged, so setting PE keeps level 0 until the first
+protected CS load (210498-005 section 10.4.2, page 10-7); every protected CS
+load, gate or interrupt entry and task switch writes the new CS RPL; LOADALL
+writes the CS cache DPL, as Intel defines CPL after LOADALL. The core also
+uses the trusted-CS fetch rule, so an execute-only, execute/read
 or writable-data CS cache can all fetch. The TSS and LDT cache access bytes
 supply only their valid bits.
 
@@ -292,14 +295,59 @@ The 2026-11-12 PCE-286 oracle loop (see
   short available TSS is #TS (Table 8-1).
 - Protected-mode PUSHA checks its whole 16-byte frame before the first write.
 - ASSUMPTION A45: LAR accepts system descriptor types 1-5 (TSS, LDT, call
-  gate, task gate) and rejects interrupt and trap gates. No Intel text was
-  available; PCE-286 and 86Box agree.
+  gate, task gate) and rejects interrupt and trap gates. Intel 210498-005
+  gives LAR's conditions as the selector index within the table limit and
+  descriptor DPL >= CPL and >= selector RPL (Appendix B LAR, page B-60;
+  section 11.3, page 11-3) and names no type exclusion, so the type filter
+  rests on PCE-286 and 86Box, which agree.
 - ASSUMPTION A46: WAIT raises exception 7 only when MSW.MP and MSW.TS are
-  both set. PCE-286 agrees; no primary-source quote for TS=1 with MP=0 was
-  retrieved.
+  both set. Intel 210498-005 supports this: Table 10-2 (page 10-5) lists WAIT
+  as causing exception 7 only for the MP=1 encodings with TS=1, section 10.2
+  (page 10-5) says "If MP=1 and TS=1, escape and wait instructions will
+  cause exception 7", and the CLTS page (B-31) says WAIT and ESC are trapped
+  "if the MP flag of MSW is set and the task switched flag is set". PCE-286
+  agrees.
+- ASSUMPTION A47: In protected mode, a near JMP, Jcc, LOOP/LOOPZ/LOOPNZ/JCXZ,
+  CALL or RET whose target IP is beyond the CS limit raises #GP(0) at the
+  transfer instruction (saved IP = the instruction), with no register change:
+  LOOP does not decrement CX, RET does not advance SP. Intel 210498-005
+  Appendix B lists #GP(0) for an out-of-limit target under JMP (p. B-58),
+  CALL (p. B-25) and RET; it does not state the saved IP or partial effects.
+  A near CALL checks the return-address push room first (#SS(0)), matching
+  the far-CALL stack-before-IP order, then raises #GP(0) without writing the
+  stack. The check is applied only in protected mode; real-mode transfers wrap
+  within the 64 KiB segment as before (PCE-286 also checks a real-mode CS
+  limit, which differs from FFFFh only after LOADALL). PCE-286
+  (`e86_check_near_target`, `ea.c` lines 457-464; `opcodes.c` Jcc, LOOP,
+  CALL/JMP rel and r/m, RET) applies the same check before any state change. The
+  `near_limit` PCE oracle family (23 scenarios, issue #284 finding 10)
+  matches on this source; 9 of its scenarios mismatch the earlier source.
+- ASSUMPTION A48: the MOV SS/POP SS and STI interrupt shadows cover the whole
+  next instruction, including a WAIT that is still polling BUSY, as they
+  already cover every element of a REP string. Intel 210498-005 Appendix B
+  (MOV, page B-73) says a move into SS inhibits all interrupts "until after
+  the execution of the next instruction", and the 1983 iAPX 286/10 handbook
+  says WAIT may be interrupted while BUSY is active; neither says which rule
+  wins for a WAIT right after the move. The STI page (B-106) states no delay
+  at all; the STI shadow rests on the pinned 86Box 286 flag handler (see
+  protected_execution.md). The shadow is applied to the whole next
+  instruction, so `STI; WAIT` takes a held INTR, and `MOV SS,AX; WAIT` a
+  new NMI, only after WAIT completes (issue #284, finding 15).
+- An IRET to an outer privilege level opens no interrupt shadow. Intel
+  describes the shadow only for MOV SS and POP SS, and the outer-level RETF
+  has none; an earlier source held off NMI and INTR for one instruction after
+  an outer IRET (issue #284, finding 17).
+- An NMI edge in the clock that selects an already pending NMI is a second
+  NMI: it stays pending, blocked until the first handler's IRET (issue #284,
+  finding 16).
 
-ASSUMPTION A31: an invalid outer-level return SS raises #SS(selector) per
-Table 7-4, although Appendix B lists #GP/#NP. See
+ASSUMPTION A31: Intel 210498-005 disagrees internally on an invalid
+outer-level return SS: Table 7-4 (RET table, page 7-22) lists "SF" for every
+SS row, whereas Appendix B lists the same rules for both IRET (page B-52) and
+RET (page B-95): #GP(selector) for null, limit, RPL, non-data, read-only, and
+DPL checks, and #SS(selector) only for not-present. The core follows Appendix
+B for both outer IRET and outer RETF (matching PCE-286 and 86Box); physical
+286 evidence remains uncaptured. See
 [the privilege-transition spec](protected_privilege_transition.md).
 
 ASSUMPTION A30: ESC D9h-DFh use the D8h command protocol captured on a physical

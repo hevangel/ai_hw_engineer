@@ -500,6 +500,43 @@ def limits():
 
 
 @family
+def near_limit():
+    """Near transfers whose target IP is beyond the CS limit (finding 10 of
+    issue #284, assumption A47): the fault, its saved IP and which registers
+    the faulting instruction changed. The code runs at T0:0500 in a segment
+    whose limit is 0510h. MOV CX,3 at 0500h makes a LOOP's decrement visible;
+    the transfer under test is at 0503h and aims at 0520h (beyond the limit)
+    or at 050Ch (inside, a HLT) as the control."""
+    def rel8(op, target): return bytes([op, (target - 0x0505) & 0xff])
+    def rel16(op, target): return bytes([op]) + w16((target - 0x0506) & 0xffff)
+    forms = [('jmp_short', lambda t: rel8(0xeb, t)), ('jmp_near', lambda t: rel16(0xe9, t)),
+             ('jz_taken', lambda t: b'\x31\xc0' + bytes([0x74, (t - 0x0507) & 0xff])),
+             ('jz_not_taken', lambda t: b'\x40' + bytes([0x74, (t - 0x0506) & 0xff])),
+             ('loop', lambda t: rel8(0xe2, t)), ('jcxz_not_taken', lambda t: rel8(0xe3, t)),
+             ('call_near', lambda t: rel16(0xe8, t)),
+             ('call_rm', lambda t: mov_r(3, t) + b'\xff\xd3'),
+             ('jmp_rm', lambda t: mov_r(3, t) + b'\xff\xe3'),
+             ('ret', lambda t: push_imm(t) + b'\xc3'), ('ret_imm', lambda t: push_imm(t) + b'\xc2\x04\x00')]
+    for flabel, form in forms:
+        for tlabel, target in (('beyond', 0x0520), ('inside', 0x050c)):
+            e = Env()
+            e.gdt(T0, desc(0x0510, CODE0, 0x9a))
+            body = mov_r(1, 3) + form(target)
+            assert len(body) <= 0x0c, flabel
+            e.put(CODE0 + 0x0500, body + HLT * (0x11 - len(body)))
+            e.ring0(jmp_far(T0, 0x0500))
+            yield f'near_limit.{flabel}.{tlabel}', e
+    # A near CALL past the limit with no room for the return address: which
+    # fault is reported.
+    e = stack_fault_tasks(Env())
+    e.gdt(T0, desc(0x0510, CODE0, 0x9a))
+    e.gdt(T1, desc(0x00ff, BIGSTACK, 0x92))
+    e.put(CODE0 + 0x0500, mov_ax(T1) + MOV_SS_AX + mov_sp(0x0001) + b'\xe8' + w16(0x0020) + HLT)
+    e.ring0(jmp_far(T0, 0x0500))
+    yield 'near_limit.call_near.beyond_no_stack', e
+
+
+@family
 def tasks():
     """Task switches by JMP, CALL, INT and NT IRET, with incoming-state faults."""
     variants = [('ok', {}), ('ldt_bad', {14: 0x0010}), ('ldt_null', {14: 0}), ('cs_null', {11: 0}),
@@ -596,6 +633,19 @@ def review_2026_11_09():
             e.put(CODE0 + 0x0a00, HLT)
             e.ring0(int_n(0x2a))
             yield f'review.gate{gbits}.unused{unused:02x}.tail{tail:04x}', e
+
+
+@family
+def review_2026_11_18():
+    """Protected-mode fault rules fixed for review issue #284."""
+    for cpl in (0, 3):
+        for glabel, gbits in (('intgate', 0x06), ('trapgate', 0x07)):
+            e = Env()
+            e.idt(13, gate(0x0a00, S_CODE0, 0x06))
+            e.idt(8, gate(0x0904, S_CODE0, access(gbits, 0)))
+            e.put(CODE0 + 0x0904, HLT)
+            e.run(cpl, jmp_far(0x0088, 0), flags=0x0202)
+            yield f'review284.df.{glabel}.cpl{cpl}', e
 
 
 def main():

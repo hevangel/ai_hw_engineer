@@ -38,7 +38,11 @@ module intel_80286_event_control (
             nmi_previous<=nmi_i;
             if (nmi_edge) nmi_pending_o<=1;
             if (iret_i) nmi_blocked_o<=0;
-            if (select_nmi) begin nmi_pending_o<=0; nmi_blocked_o<=1; end
+            // Selecting consumes the pending NMI. A new edge in the same
+            // clock is a second NMI and stays pending; when nothing was
+            // pending, the edge itself is the one selected (issue #284,
+            // finding 16).
+            if (select_nmi) begin nmi_pending_o<=nmi_pending_o && nmi_edge; nmi_blocked_o<=1; end
             // The caller drops shutdown_nmi_enable_i only after an NMI
             // recovery attempt faulted. Intel 210498-005 9.6.2: shutdown can
             // then be exited only via RESET, so no NMI remains pending.
