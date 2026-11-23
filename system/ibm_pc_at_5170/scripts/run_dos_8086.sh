@@ -22,9 +22,9 @@
 #   --no-reference  run only the AT (no 8088 runs, no comparison)
 #   --no-oracle     no processor trace and no Unicorn replay
 # Output: $IBM_PC_AT_WORK_DIR (default work)/dos_8086/
-# Takes about 1.5 hours of simulation (the four runs in parallel) and about
-# 2 hours more for the Unicorn replays (also in parallel); traces need about
-# 10 GB.
+# Takes about 70 minutes on a 32-thread host (4,212 s on 2026-11-22): about
+# 30 for the four runs in parallel, about 40 more for the two Unicorn
+# replays in parallel; the two traces need about 4.5 GB.
 set -eu
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 SYS_DIR=$(dirname "$SCRIPT_DIR")
