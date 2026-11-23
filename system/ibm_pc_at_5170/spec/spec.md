@@ -47,6 +47,7 @@ recorded as an assumption; see open decision D1.
 | Schematic | [IBM 5170 type-1 system board schematic](https://www.minuszerodegrees.net/misc/schematic_5170_motherboard_type_1.pdf) | Already cited by the 286 AT fixtures |
 | BIOS | PCjs `machines/pcx86/ibm/5170/rom/bios/1984-01-10/ATBIOS-REV1.json5` at commit `1a91d38eb12e5fdf91116b21ad9ef1935710a496`; archive SHA-256 `3b1a6c8c…b2bde6`, extracted ROM SHA-256 `74e7b36b4ec0adc5ac3277a887579996c1d2aa755b9892ef3afe7485c10ce04f` | Pinned by `design/intel_80286/scripts/prepare_software.py`; downloaded into ignored `work/`, never committed |
 | Keyboard controller firmware | IBM 8042 firmware part 1503033 for the 5170, rebuilt by `design/intel_mcs48/intel_8042/scripts/rebuild_1503033.py`; SHA-1 `0100f8789fb4de74706ae7f9473a12ec2b9bd729`, matching MAME's `1503033.bin` | Hash-verified; the image is written to an ignored work folder, never committed |
+| PC DOS 3.00 Disk 1 | PCjs `pcx86/sys/dos/ibm/3.00/PCDOS300-DISK1.json` at commit `cd3433748b09837a4c60ca7066f3642772b2d711`; blob SHA-1 `db4c0627c37d8e7ecd33b56dcdb1960a0c4da4c1`, 368,640-byte image SHA-256 `b3682877c0db8e2757b3c4d0b4a30af69e3f3827782f0fe5a385b9a1bde7d93f` | Pinned by `scripts/get_dos.py`; downloaded into ignored `work/`, never committed |
 | OS/2 media | MS OS/2 1.0 install image and OS/2 SDK 1.00 Samples disk used by the PCjs baseline | Provenance recorded in the PCjs report; stays outside tracked paths |
 
 Technical reference pages confirmed so far (PDF page numbers):
@@ -101,7 +102,7 @@ port 80h manufacturing checkpoint convention.
 | Function | Tracking |
 |---|---|
 | AT fixed-disk controller and drive (port 1F0h) | Not tracked yet; the display machines have only the idle task file of the combined adapter (AT37); the bare board's run still stops at its status read at 1F7h |
-| Keyboard (a device on the 8042's keyboard connector) | Branch `system/ibm-pc-at-5170-web`; with none attached the BIOS reports error 301 (the batch runner's F1 bench stimulus gets past the prompt) |
+| Keyboard (a device on the 8042's keyboard connector) | Modeled in the web/batch host (`host/at_keyboard.hpp`, 2026-11-17); the POST runner has none, so its runs report error 301 (its `--f1-at-post=3F` bench stimulus gets past the prompt) |
 
 The diskette adapter row is no longer missing: see "Diskette adapter"
 (the 8272 on the IBM Fixed Disk and Diskette Drive Adapter, since the
@@ -438,11 +439,79 @@ panel with video, keyboard, power/reset/pause/step, diskette mount and
 export, and a CPU/bus waveform. Host code must never intercept BIOS or DOS
 interrupts.
 
-Not built yet. The only host is the POST runner (`tb/post_runner.cpp`):
-it supplies RAM, ROM and the mapping of unpopulated memory, and in the EGA
-machine it rebuilds one video frame from the card's monitor connector and
-writes it as a PPM (`--frame`). It has no keyboard, diskette, panel or
-waveform.
+Two hosts exist. The POST runner (`tb/post_runner.cpp`) is the regression
+host: it supplies RAM, ROM and the mapping of unpopulated memory, writes
+the trace and device logs for the oracles, and rebuilds one video frame
+(`--frame`). It has no keyboard.
+
+The web and batch host (`host/`, VGA machine only) was added on
+2026-11-17; see
+[the report](../report/2026-11-17-web-front-end-and-keyboard.md):
+
+- `host/ibm_pc_at_5170_vga_host.sv` instantiates `ibm_pc_at_5170_vga`
+  unchanged and adds read-only taps (retirement, CS, IP, flags, read data,
+  8042 port 2). It is the top of the simulator and the waveform scope.
+- `host/simulator.cpp` clocks the machine exactly as `post_runner.cpp`
+  clocks the VGA machine in `scripts/run_post_card.sh` (no added wait
+  states, the 8254 clock from OSC / 12 on the AT19 time base, two video
+  clocks per processor clock, the same refresh acknowledge, memory map and
+  open-bus rules, readable empty slots). Instead of ending a run, a
+  condition that stops the regression (an unclaimed I/O cycle below 100h,
+  an undriven read, a protocol error, a fault, an 8042 illegal opcode or a
+  fetch from unpopulated memory) stops the machine and is reported. It has
+  a line protocol for the web server and a batch mode that runs a fixed
+  number of clocks while saving the latest frame, the frames that changed,
+  the screen text and a status file.
+- Memory size is chosen at start: 640 KB of base RAM plus `--ext-kb=N` KB
+  of host RAM from 100000h (1408 for a 2 MB machine). It stands for a
+  memory expansion card; no card's timing or decoding is modeled, and the
+  CMOS image still records 640 KB.
+- A keyboard model (`host/at_keyboard.hpp`) is on the keyboard connector;
+  see "Keyboard" and AT20-AT24.
+- `host/server.py` serves the page (`host/web/`): the monitor, power,
+  reset, run and pause, status and speed, keyboard input and a waveform
+  capture shown in the self-hosted Surfer, and the progress and saved
+  frames of a batch run.
+- Integration point for the diskette adapter branch: `simulator.cpp`
+  includes `tb/at_diskette_media.hpp` when built with `-DAT_DISKETTE`,
+  calls its per-clock DMA host service after the memory cycle and passes
+  it the `--fda`/`--fdb` options. Nothing of the diskette is implemented
+  here.
+
+The host never intercepts BIOS interrupts: key input enters only as
+keyboard line activity, and everything else is the RTL.
+
+### Keyboard
+
+`host/at_keyboard.hpp`, header-only so that the POST runner can use it
+later. Sources: the Technical Reference, Section 4 (printed pages 4-3 to
+4-16, PDF pages 117-130), and two commented disassemblies by A. Tarpai in
+`external/halicery/8042`: the AT keyboard's own 8048 firmware 1503099
+(`8048_AT_INTERN.TEXT`) and the 8042 firmware 1503033
+(`8042_1503033.TXT`), which shows the timing the 8042 expects on T0 and T1.
+
+- 11-bit frames, keyboard-clocked: start 0, eight data bits LSB first, odd
+  parity, stop 1. Keyboard to system: data changes while the clock is high
+  and is read on the falling edge; the system can abort by holding the
+  clock low before the rising edge of the tenth clock, and the byte is
+  sent again later. System to keyboard: on a request-to-send (clock high,
+  data low) the keyboard clocks ten bits in, sampling while the clock is
+  high, then pulls data low for the eleventh clock as the acknowledge.
+- Inhibit: nothing is sent while the system holds the clock low; codes
+  wait in a 16-entry FIFO with the overrun code 00h in position 17.
+- Commands, following the 8048 firmware's mode register: FFh Reset (ACK,
+  then after the clock is released the BAT and AAh), FEh Resend (the last
+  byte other than FEh), EEh Echo, EDh Set/Reset Mode Indicators (ACK,
+  option byte, ACK), F3h Set Typematic Rate/Delay (ACK, parameter with bit
+  7 clear, ACK), F4h Enable, F5h Default Disable, F6h Set Default, the
+  NOPs EFh-F2h and F7h-FDh (ACK); a parity error or any other byte gets
+  FEh. A pending reply is dropped when the system sends a new byte.
+- Scan code set 2 make codes for the 84-key keyboard (one byte each; F7 is
+  83h, SysRq 84h), F0h break prefix, typematic repeat of the last key
+  pressed with delay (1 + bits 6-5) x 250 ms and period (8 + A) x 2^B x
+  4.17 ms; a repeat is queued only when the FIFO is empty.
+- The 8042 translates set 2 to set 1 for the BIOS (command byte XLAT),
+  which the keyboard test checks at port 60h.
 
 ## Assumptions
 
@@ -535,8 +604,32 @@ waveform.
   slowly and miscounts (224 of 350). The 8042 and the MC146818 keep the
   board's processor-clock ratios (AT1), so they run four times fast
   relative to video. Nothing here is IBM AT physical timing.
-- (AT20-AT24 are reserved for the keyboard and web front end, on another
-  branch.)
+- ASSUMPTION AT20: the keyboard model's time base is the 8042's: 6
+  processor clocks per microsecond, the board's real ratio (AT1). The
+  keyboard talks only to the 8042, so their timing keeps its real
+  relation; like the 8042 the keyboard runs four times fast relative to
+  video and the 8254 (AT19). Typematic delay and rate use the same base.
+- ASSUMPTION AT21: the Technical Reference gives no keyboard clock
+  frequency. Each clock phase lasts 40 us (12.5 kHz). The lines must be
+  idle (both high) for 100 us before the keyboard starts sending, and a
+  request-to-send must be stable for 100 us before it clocks a byte in.
+  The 8042 firmware allows a whole received byte 1,024 machine cycles
+  from its first falling edge, each transmitted bit 160, and the first
+  clock of a transmission 8,192, so these values are well inside its
+  timeouts.
+- ASSUMPTION AT22: power-on reset 300 ms and BAT 600 ms, the minimum of
+  each range on printed page 4-4 (300 ms to 9 s and 600 to 900 ms); after
+  a Reset command only the BAT runs. The keyboard treats its ACK of Reset
+  as accepted once the clock line is released, as the 8048 firmware does
+  (00B5-00BB), not after the 500 us of clock and data high that page 4-5
+  asks of the system.
+- ASSUMPTION AT23: a key change is sensed immediately: no matrix scan
+  time, debounce, triple sensing or sense-amplifier test, so the keyboard
+  never reports FDh. Key events from scripts and on-screen buttons are
+  applied 30 ms apart (180,000 processor clocks on the AT20 base).
+- ASSUMPTION AT24: if the system holds the clock low while the keyboard
+  is clocking a byte in, the keyboard abandons that byte. The Technical
+  Reference describes contention only for keyboard output.
 - ASSUMPTION AT25: both 8237s are clocked by the processor clock, not the
   half-rate DMA CLK of sheet 3, and their READY (DMA RDY, sheet 15) is tied
   active, so a DMA transfer is the 8237 core's S1-S4 states (S1 only after a
@@ -588,6 +681,10 @@ waveform.
   is set; the change line is active at power-on and after a medium change
   and is cleared by a step pulse to the selected drive while a medium is
   inserted.
+- ASSUMPTION AT35: expansion RAM (runner option `--ext-kb`) is plain RAM
+  from 100000h, served by the host like base RAM, powering up as zero
+  (AT6); it stands for an IBM memory expansion card, whose own timing and
+  parity are not modeled.
 - ASSUMPTION AT36: the 80287 socket is empty. On sheet 1 (PDF page 79)
   the socket's ERROR (26), BUSY (25), PEACK (36) and PEREQ (24) pins are
   wired to the 80286's ERROR, BUSY, PEACK and PEREQ; -BUSY 286 comes from
@@ -604,10 +701,6 @@ waveform.
   write-precompensation register, the data register 1F0h, the fixed disk
   register 3F6h and IRQ 14 have no effect. The real controller's status
   with no drive cabled was not found in the documents.
-- ASSUMPTION AT35: expansion RAM (runner option `--ext-kb`) is plain RAM
-  from 100000h, served by the host like base RAM, powering up as zero
-  (AT6); it stands for an IBM memory expansion card, whose own timing and
-  parity are not modeled.
 
 ## Strict decoding
 
@@ -664,7 +757,8 @@ by the runner and rejected by the Unicorn replay.
 4. Lint, chip regressions, system simulation and synthesis pass, and the
    README shows a real panel and waveform screenshot. Met so far: lint,
    the 8042 and MC146818 checks, system simulation of POST to checkpoint
-   3Ch (bare board, EGA machine and VGA machine) and synthesis. Not met: POST does not
-   complete (no keyboard, diskette or fixed disk), no 86Box or PCjs
-   comparison has been made, and there is no panel or waveform; the README
-   shows one captured POST frame only.
+   3Ch (bare board, EGA machine and VGA machine) and synthesis; a web panel
+   with waveform capture exists for the VGA machine (2026-11-17). Not met:
+   POST does not complete (no diskette or fixed disk; with the keyboard
+   model it stops at the 80287 probe, port 0F8h), and no 86Box or PCjs
+   comparison has been made.

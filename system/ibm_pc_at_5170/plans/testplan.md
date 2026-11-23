@@ -134,9 +134,31 @@ regression (`scripts/run_post_card.sh ega|vga`).
   - Synthesis of `ibm_pc_at_5170_vga` (129,054 generic cells, plane RAMs
     and ROM black-boxed).
   - Not checked: graphics modes and the DAC in the machine (only the
-    card's own suite covers them), the VGA ROM against an IBM listing, the
-    bare-board regression (last run for M4a), and the M4a "not checked"
-    items.
+    card's own suite covers them), the VGA ROM against an IBM listing, and
+    the M4a "not checked" items.
+- Keyboard and web host (2026-11-17), `scripts/run_keyboard_test.sh` and
+  `scripts/run_host_boot.sh`:
+  - `run_keyboard_test.sh` runs with `--fda-type=none` (`187,000,000` clocks):
+    the BIOS's keyboard reset reaches the keyboard (FFh received, FAh and
+    AAh sent); the frame when the F1 prompt appears matches
+    `scripts/expected_screen_keyboard.txt` (no 301-Keyboard Error); F1
+    pressed through the keyboard model delivers 3Bh then BBh at port 60h,
+    clears the prompt, and advances POST past checkpoint 3Fh and the empty
+    80287 socket probe (`0F8h`) to checkpoint 43h.
+  - `run_host_boot.sh` boots the 1.2 MB test diskette (`boot_1200.img`)
+    with the AT keyboard attached and no F1 bench stimulus (`423,466,672`
+    clocks, `27,788,811` instructions): POST reports neither 301 nor 601,
+    DMA moves the data (`1,209,344` writes, `512` reads), the screen
+    matches `tb/expected_screen_boot.txt`, and written-back `LBA 2399`
+    holds the expected pattern.
+  - `scripts/test_capture.py`: a waveform capture leaves the machine as
+    an ordinary run would (passed).
+  - The web page itself (monitor, controls, keyboard capture, waveform)
+    is checked by a real headless-browser screenshot; it has no automated
+    regression.
+  - Not checked: typematic repeat and LED commands against an
+    independent oracle (they are exercised only if the BIOS or a user
+    uses them), and the keyboard in `tb/post_runner.cpp`.
 - M4b diskette adapter and DMA (done): `scripts/run_boot_diskette.sh`
   boots the VGA machine from a 1.2 MB diskette built by
   `scripts/make_test_diskette.py`; results in the
@@ -164,7 +186,13 @@ regression (`scripts/run_post_card.sh ega|vga`).
     multiple drives.
 - M4b (remaining): POST completes with no error text; screen text matches
   86Box; keyboard input reaches the BIOS buffer.
-- M5: PC DOS boot, DIR, file write and readback, reboot and readback.
+- M5 (diskette part, done): `scripts/run_dos_boot.sh` fetches pinned IBM
+  PC DOS 3.00 Disk 1 (`scripts/get_dos.py`), boots drive A in
+  `host/simulator.cpp` (`460,000,000` clocks, `29,043,745` instructions),
+  answers Date and Time, runs `DIR`, writes `TEST.TXT`, warm-reboots with
+  `Ctrl+Alt+Del`, answers Date and Time again, and verifies `TYPE TEST.TXT`
+  prints `HELLO` and `TEST.TXT` (`HELLO\r\n`, cluster 255) in the
+  written-back FAT12 image. Fixed-disk controller and hard-disk boot remain.
 - M6: OS/2 1.0 prompt and the CPGREP output line.
 
 ## Every milestone

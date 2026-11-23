@@ -192,10 +192,19 @@ device and the full POST remain.
   The VGA ROM is a legally fetched input; it could not be cross-checked
   against an IBM listing.
 - Keyboard device on the 8042's keyboard connector, with scan codes from
-  the host (branch `system/ibm-pc-at-5170-web`). Without it the BIOS
-  reports error 301 and waits at `(RESUME = "F1" KEY)` (checkpoint 3Fh).
-  Until it lands, the batch runner's bench stimulus `--f1-at-post=3F`
-  sends F1 on the keyboard lines (see the diskette report).
+  the host (done 2026-11-17 for the web/batch host:
+  `host/at_keyboard.hpp`, assumptions AT20-AT24, checked against the
+  real 8042 by `scripts/run_keyboard_test.sh`; see
+  [the web front end and keyboard report](../report/2026-11-17-web-front-end-and-keyboard.md)).
+  Without it in `tb/post_runner.cpp`, POST reports error 301 and waits
+  at `(RESUME = "F1" KEY)` (checkpoint 3Fh); the batch runner's bench
+  stimulus `--f1-at-post=3F` sends F1 on the keyboard lines (see the
+  diskette report).
+- Web front end and batch host (done 2026-11-17, same report): persistent
+  simulator, page with monitor, controls, keyboard and Surfer waveform,
+  unattended batch runs with saved frames and scripted keys, and memory
+  size chosen at start (`--ext-kb`, for the 2 MB machine). Integrated with
+  `tb/at_diskette_media.hpp` at `AT_DISKETTE` in `host/simulator.cpp`.
 - AT diskette adapter with the 8272 and real DMA (done; see
   [the diskette report](../report/2026-11-17-diskette-adapter-and-dma.md)):
   the board's 8237s move data (cascade, page map, arbiter grant, T/C),
@@ -205,11 +214,11 @@ device and the full POST remain.
   media backend, and `scripts/run_boot_diskette.sh` boots a script-built
   1.2 MB diskette whose boot program reads the whole image, writes a
   sector and prints PASS. Error 601 is gone. Expansion RAM above 1 MB
-  (`--ext-kb`) and the A20 gate are handled by the runner and the Unicorn
-  replay.
-- Remaining after the diskette: the fixed-disk adapter (1F0h-1F7h), a
-  keyboard device, and booting an operating system (PC DOS; the MS OS/2
-  1.0 1.2 MB install diskette on a 2 MB machine is next).
+  (`--ext-kb`) and the A20 gate are handled by the runners and the
+  Unicorn replay.
+- Remaining after merging the web host and diskette branches: fixed-disk
+  adapter (1F0h-1F7h) and booting an operating system (PC DOS; the MS
+  OS/2 1.0 1.2 MB install diskette on a 2 MB machine is next).
 - The fixed disk at 1F0h–1F7h comes first in the BIOS's order; the
   regression's stop is the read of 1F7h. Either fit the controller (M5) or
   decide how far the regression should run past it.
@@ -219,7 +228,9 @@ device and the full POST remain.
 
 ## M5: PC DOS
 
-- Boot PC DOS from diskette, run DIR, write and read back a file.
+- Boot PC DOS from diskette, run DIR, write and read back a file (done for
+  PC DOS 3.00 via `scripts/get_dos.py` and `scripts/run_dos_boot.sh`,
+  including `Ctrl+Alt+Del` warm reboot and readback).
 - AT fixed-disk controller at 1F0h (new design), then boot from it.
 
 ## M6: OS/2 1.0 and CPGREP
@@ -240,4 +251,9 @@ device and the full POST remain.
   before M6.
 - Simulation speed: OS/2 boot is hundreds of millions of instructions.
   M1 runs about 12 cycles per instruction; measure host speed once the
-  BIOS runs longer and plan checkpointing if needed.
+  BIOS runs longer and plan checkpointing if needed. Measured on
+  2026-11-17: about 450,000 processor clocks per second (single thread;
+  `--threads 4` was far slower), so 3 billion clocks take about 2 hours;
+  with the keyboard the F1 prompt comes after 210 million clocks.
+  Long boots run as unattended batch runs (`scripts/run_batch.sh`);
+  save/restore checkpoints are not implemented yet.
