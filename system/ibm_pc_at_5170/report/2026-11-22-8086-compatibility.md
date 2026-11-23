@@ -49,7 +49,11 @@ The whole regression, `sh system/ibm_pc_at_5170/scripts/run_dos_8086.sh "$ROM"`,
 was then run once more end to end with the final scripts and passed
 (`PASS: the AT runs the 8088 PC's DOS 1.00 and 2.00 diskette workloads with
 the same results`, 4,212 s wall), with the same instruction counts and both
-Unicorn replays passing.
+Unicorn replays passing. After the branch was rebased onto `main` (which
+had taken the #284 review changes to the 80286 RTL), the regression was run
+end to end again and passed (4,431 s wall) with identical instruction
+counts, comparisons and replays, and `design/intel_80286/scripts/run_software.sh`
+passed (17 checks).
 
 All runs were made on 2026-11-22 in the `ai-hw-engineer:latest` image
 (Verilator 5.052) in container `claude-at-8086`, the four workload runs in
