@@ -52,6 +52,11 @@ module ibm_s360_cpu #(
     input  logic        rst_n,
     // External-interruption request (interval timer). Held until taken.
     input  logic        ext_timer_req,
+    // Storage-key array load port (test aid until SET STORAGE KEY exists).
+    input  logic        key_we,
+    input  logic [5:0]  key_block,
+    input  logic [3:0]  key_data,
+    input  logic        key_fetch_protect,
     // Storage port.
     output logic [23:0] mem_addr,
     output logic        mem_we,
@@ -85,7 +90,9 @@ module ibm_s360_cpu #(
   localparam logic [15:0] CODE_OVERFLOW    = 16'd8;
   localparam logic [15:0] CODE_DIVIDE      = 16'd9;
   localparam logic [15:0] CODE_EXECUTE     = 16'd3;
+  localparam logic [15:0] CODE_PROTECTION  = 16'd4;
   localparam logic [15:0] CODE_ADDRESSING  = 16'd5;
+  localparam int KEY_BLOCKS = 64;   // 2 KiB blocks covering 128 KiB
   localparam logic [15:0] CODE_TIMER       = 16'h0080;
   localparam logic [23:0] EXTERNAL_OLD_PSW = 24'h00_0018;
   localparam logic [23:0] EXTERNAL_NEW_PSW = 24'h00_0058;
@@ -245,6 +252,8 @@ module ibm_s360_cpu #(
   logic is_shift_double;
   logic is_addsub;        // ALU add/subtract that can overflow
   logic ss_op;            // SS-format storage-to-storage operation
+  logic needs_operand_fetch;  // fetches a storage operand (not an instruction)
+  logic needs_store;          // writes storage
 
   always_comb begin
     is_halfword_op = (dec.op == OP_LH) || (dec.op == OP_STH) ||
@@ -259,6 +268,18 @@ module ibm_s360_cpu #(
     is_addsub      = (dec.op == OP_AR) || (dec.op == OP_A) ||
                      (dec.op == OP_SR) || (dec.op == OP_S) ||
                      (dec.op == OP_AH) || (dec.op == OP_SH);
+    needs_operand_fetch =
+        (dec.op == OP_L) || (dec.op == OP_A) || (dec.op == OP_S) ||
+        (dec.op == OP_C) || (dec.op == OP_CL) || (dec.op == OP_N) ||
+        (dec.op == OP_O) || (dec.op == OP_X) || (dec.op == OP_LH) ||
+        (dec.op == OP_AH) || (dec.op == OP_SH) || (dec.op == OP_CH) ||
+        (dec.op == OP_MH) || (dec.op == OP_CLI) || (dec.op == OP_TM) ||
+        (dec.op == OP_SSM) || (dec.op == OP_LPSW);
+    needs_store = (dec.op == OP_ST) || (dec.op == OP_STH) ||
+                  (dec.op == OP_MVI) || (dec.op == OP_MVC) ||
+                  (dec.op == OP_MVN) || (dec.op == OP_MVZ) ||
+                  (dec.op == OP_NC) || (dec.op == OP_OC) ||
+                  (dec.op == OP_XC) || (dec.op == OP_TR);
     ss_op          = (dec.op == OP_MVC) || (dec.op == OP_MVN) ||
                      (dec.op == OP_MVZ) || (dec.op == OP_NC) ||
                      (dec.op == OP_OC) || (dec.op == OP_XC) ||
@@ -269,6 +290,32 @@ module ibm_s360_cpu #(
   // ---------------------------------------------------------------------------
   // Program-check detection (A22-6821-7 pp. 31, 34, 71-74)
   // ---------------------------------------------------------------------------
+  // Storage keys: one 4-bit key and a fetch-protection bit per 2 KiB block
+  // (A22-6821-7 pp. 68-70). Reset to zero, which marks every block
+  // unprotected, so behaviour is unchanged until a test loads keys.
+  logic [4:0] st_key [0:KEY_BLOCKS-1];
+
+  logic [3:0] psw_key;
+  assign psw_key = psw_word[55:52];
+
+  /* verilator lint_off UNUSEDSIGNAL */
+  function automatic logic [5:0] key_index(input logic [23:0] a);
+    key_index = a[16:11];
+  endfunction
+
+  function automatic logic fetch_permitted(input logic [23:0] a);
+    logic [4:0] k;
+    k = st_key[key_index(a)];
+    fetch_permitted = (k[3:0] == 4'd0) || (k[3:0] == psw_key) || !k[4];
+  endfunction
+
+  function automatic logic store_permitted(input logic [23:0] a);
+    logic [4:0] k;
+    k = st_key[key_index(a)];
+    store_permitted = (k[3:0] == 4'd0) || (k[3:0] == psw_key);
+  endfunction
+  /* verilator lint_on UNUSEDSIGNAL */
+
   // Any operand or instruction reference outside installed storage.
   function automatic logic out_of_range(input logic [23:0] a);
     out_of_range = (a >= MEM_SIZE_BYTES);
@@ -323,6 +370,10 @@ module ibm_s360_cpu #(
     end else if (operand_out_of_range) begin
       suppress      = 1'b1;
       suppress_code = CODE_ADDRESSING;
+    end else if (needs_operand_fetch && !fetch_permitted(ea)) begin
+      // Operand fetch from a protected block with a different key (pp. 68-70).
+      suppress      = 1'b1;
+      suppress_code = CODE_PROTECTION;
     end else if (lpsw_unaligned || odd_pair_register || odd_halfword_address ||
                  ex_odd_address) begin
       suppress      = 1'b1;
@@ -747,6 +798,9 @@ module ibm_s360_cpu #(
       if (ext_timer_req) begin
         ext_pending_q <= 1'b1;
       end
+      if (key_we) begin
+        st_key[key_block] <= {key_fetch_protect, key_data};
+      end
       unique case (state)
         S_CHECK: begin
           // An external (timer) interruption is accepted before any fetch and
@@ -842,9 +896,18 @@ module ibm_s360_cpu #(
           ovf_int_q  <= 1'b0;
           next_ia_q  <= ia_cur + {20'd0, len_q};
 
-          // Fixed-point divide exception: the division is suppressed and the
-          // dividend registers are unchanged (A22-6821-7 pp. 31, 34).
-          if (is_divide_op && div_overflow) begin
+          // A store into a protected block with a different key is suppressed
+          // and raises the protection exception (A22-6821-7 p. 69). SS
+          // operations are checked with their fields below.
+          if (needs_store && !ss_op && !store_permitted(ea_q)) begin
+            int_code_q     <= CODE_PROTECTION;
+            int_psw_q      <= {psw_word[63:48], CODE_PROTECTION, ilc_q,
+                               psw_word[29:24], (ia_cur + {20'd0, len_q})};
+            int_pending_q  <= 1'b1;
+            int_old_addr_q <= PROGRAM_OLD_PSW;
+            int_new_addr_q <= PROGRAM_NEW_PSW;
+            state          <= S_CHECK;
+          end else if (is_divide_op && div_overflow) begin
             int_code_q     <= CODE_DIVIDE;
             int_psw_q      <= {psw_word[63:48], CODE_DIVIDE, ilc_q,
                                psw_word[29:24], (ia_cur + {20'd0, len_q})};
@@ -1019,10 +1082,13 @@ module ibm_s360_cpu #(
               next_ia_q <= branch_taken ? branch_target : ex_return_ia_q;
               ilc_q     <= 2'd2;
             end
-            if (ss_op && ss_range_bad) begin
-              int_code_q     <= CODE_ADDRESSING;
-              int_psw_q      <= {psw_word[63:48], CODE_ADDRESSING, ilc_q,
-                                 psw_word[29:24], (ia_cur + {20'd0, len_q})};
+            if (ss_op && (ss_range_bad || !store_permitted(ss_addr1) ||
+                          !fetch_permitted(ss_addr2))) begin
+              int_code_q     <= ss_range_bad ? CODE_ADDRESSING : CODE_PROTECTION;
+              int_psw_q      <= {psw_word[63:48],
+                                 ss_range_bad ? CODE_ADDRESSING : CODE_PROTECTION,
+                                 ilc_q, psw_word[29:24],
+                                 (ia_cur + {20'd0, len_q})};
               int_pending_q  <= 1'b1;
               int_old_addr_q <= PROGRAM_OLD_PSW;
               int_new_addr_q <= PROGRAM_NEW_PSW;

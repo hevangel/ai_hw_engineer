@@ -27,6 +27,10 @@ module tb_ibm_s360_cpu;
   logic clk = 1'b0;
   logic rst_n = 1'b0;
   logic ext_timer_req = 1'b0;
+  logic        key_we = 1'b0;
+  logic [5:0]  key_block = 6'd0;
+  logic [3:0]  key_data = 4'd0;
+  logic        key_fetch_protect = 1'b0;
   always #5 clk = ~clk;
 
   // ---------------------------------------------------------------------------
@@ -71,6 +75,10 @@ module tb_ibm_s360_cpu;
       .clk             (clk),
       .rst_n           (rst_n),
       .ext_timer_req   (ext_timer_req),
+      .key_we          (key_we),
+      .key_block       (key_block),
+      .key_data        (key_data),
+      .key_fetch_protect(key_fetch_protect),
       .mem_addr        (mem_addr),
       .mem_we          (mem_we),
       .mem_wdata       (mem_wdata),
@@ -237,6 +245,16 @@ module tb_ibm_s360_cpu;
     int_count = 0;
     last_int_code = 16'd0;
     repeat (2) @(posedge clk);
+  endtask
+
+  task automatic set_key(input int blk, input logic [3:0] key, input bit fetch_protect);
+    key_we          = 1'b1;
+    key_block       = blk[5:0];
+    key_data        = key;
+    key_fetch_protect = fetch_protect;
+    @(posedge clk);
+    #1;
+    key_we = 1'b0;
   endtask
 
   task automatic run_cycles(input int n);
@@ -733,7 +751,64 @@ module tb_ibm_s360_cpu;
     check_gpr(15, 32'h0000_0304);
 
     // =========================================================================
-    // Test 23: directed arithmetic unit, address generation and decode checks.
+    // Test 23: protection exception on a store -- block 0 carries key 1, the
+    // PSW key is 0, so MVI is suppressed (code 4).
+    // =========================================================================
+    start_reset();
+    run_cycles(4);
+    set_key(0, 4'd1, 1'b0);
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
+    poke_handler(24'h00_0300);
+    poke_hex(24'h00_0100, "4110020092551000");
+    run_cycles(80);
+
+    check(int_count == 1, "store protection did not fire once");
+    check(last_int_code == 16'd4, "store protection code is not 4");
+    check_word(24'h00_0028, 32'h0000_0004, "store protection old PSW code");
+    check_word(24'h00_002C, 32'h8000_0108, "store protection old PSW: ILC 2, IA 0x108");
+    check_word(24'h00_0200, 32'h0000_0000, "protected storage was written");
+    check_gpr(15, 32'h0000_0304);
+
+    // =========================================================================
+    // Test 24: protection exception on an operand fetch -- block 0 has key 1
+    // and fetch protection, the PSW key is 0.
+    // =========================================================================
+    start_reset();
+    run_cycles(4);
+    set_key(0, 4'd1, 1'b1);
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
+    poke_handler(24'h00_0300);
+    poke_word(24'h00_0200, 32'h1234_5678);
+    poke_hex(24'h00_0100, "4110020058201000");
+    run_cycles(80);
+
+    check(int_count == 1, "fetch protection did not fire once");
+    check(last_int_code == 16'd4, "fetch protection code is not 4");
+    check_word(24'h00_002C, 32'h8000_0108, "fetch protection old PSW: ILC 2, IA 0x108");
+    check_gpr(2, 32'h0000_0000);            // operand not loaded
+    check_gpr(15, 32'h0000_0304);
+
+    // =========================================================================
+    // Test 25: a matching protection key permits the reference -- block 0 has
+    // key 1 and fetch protection, and LPSW from block 1 installs PSW key 1.
+    // =========================================================================
+    start_reset();
+    run_cycles(4);
+    set_key(0, 4'd1, 1'b1);
+    set_key(1, 4'd0, 1'b0);
+    poke_word(24'h00_0200, 32'h1234_5678);
+    poke_dw(24'h00_0800, 64'h0010_0000_0000_0110);   // key 1, IA 0x110
+    poke_hex(24'h00_0100, "82000800");
+    poke_hex(24'h00_0110, "411002005820100041F0011C07FF");
+    run_cycles(120);
+
+    check(int_count == 0, "matching key still raised an interruption");
+    check_gpr(2, 32'h1234_5678);
+    check(psw[55:52] === 4'h1, "PSW key was not loaded as 1");
+    check(psw[23:0] === 24'h00_011C, "program is not in its self-loop");
+
+    // =========================================================================
+    // Test 26: directed arithmetic unit, address generation and decode checks.
     // =========================================================================
     t_alu(ALU_ADD, 32'd7, 32'd5, 32'd12, 2'd2, 1'b0, "add positive");
     t_alu(ALU_ADD, 32'h7FFF_FFFF, 32'd1, 32'h8000_0000, 2'd3, 1'b1, "add positive overflow");
@@ -791,10 +866,10 @@ module tb_ibm_s360_cpu;
     // Report
     // =========================================================================
     if (errors == 0) begin
-      $display("IBM S360 M7 CORE TESTS PASSED (%0d checks)", checks);
+      $display("IBM S360 M8 CORE TESTS PASSED (%0d checks)", checks);
       $finish;
     end else begin
-      $display("IBM S360 M7 CORE TESTS FAILED: %0d error(s) in %0d checks", errors, checks);
+      $display("IBM S360 M8 CORE TESTS FAILED: %0d error(s) in %0d checks", errors, checks);
       $fatal(1, "testbench failures");
     end
   end

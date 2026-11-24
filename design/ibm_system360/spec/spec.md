@@ -1,6 +1,6 @@
-# IBM System/360 — architecture specification (M7)
+# IBM System/360 — architecture specification (M8)
 
-Status: **seventh functional increment**. This document fixes the architecture
+Status: **eighth functional increment**. This document fixes the architecture
 that `src/` implements, records every deliberate deviation, and lists the
 assumptions that must be validated before any compatibility claim. It is *not*
 the full S/360 specification: the instruction-set and model option matrix is
@@ -34,6 +34,9 @@ In scope and implemented:
 - **instruction-fetch addressing exceptions** (code 5) and the **odd
   instruction-address specification exception** (code 6), completing the
   addressing checks (M7);
+- **storage protection keys** and the **protection exception** (code 4): a
+  4-bit key and fetch-protection bit per 2 KiB block, compared with PSW bits
+  8-11 (M8);
 - **program interruptions** with the causes operation (1), privileged
   operation (2), specification (6) and fixed-point overflow (8), the program
   old PSW at storage `0x28`, the program new PSW at `0x68`, and problem-state
@@ -250,9 +253,26 @@ terminated part way with unpredictable results (p. 34). Suppressing is the
 stronger, deterministic choice, and is recorded rather than presented as
 architecture.
 
-Not implemented: storage protection keys (code 4), I/O and machine-check
-interruptions, and the remaining specification checks (unaligned word operands,
-invalid register fields).
+Not implemented: `SET STORAGE KEY`/`INSERT STORAGE KEY`, I/O and machine-check
+interruptions, instruction-fetch protection, and the remaining specification
+checks (unaligned word operands, invalid register fields).
+
+### 2.11 Storage protection (M8, pp. 68-70)
+
+| Item | Value |
+|---|---|
+| Block size | 2 KiB (`key_index = address[16:11]`) |
+| Block key | 4 bits, plus one fetch-protection bit |
+| PSW key | bits 8-11 (`psw[55:52]`) |
+| Reference permitted | block key = 0, or block key = PSW key |
+| Fetch permitted | a permitted reference, or fetch-protection bit = 0 |
+| Violation | program check **code 4**; a store is suppressed, a protected fetch is suppressed rather than terminated (deviation A-10) |
+
+The key array resets to zero in hardware terms — every block unprotected — so
+behaviour is unchanged until keys are loaded. `SET STORAGE KEY` and `INSERT
+STORAGE KEY` are not implemented, so a **key load port** (`key_we`, `key_block`,
+`key_data`, `key_fetch_protect`) is provided as a test aid; it is documented as
+such rather than presented as an instruction.
 
 ## 3. Storage interface
 
@@ -383,6 +403,7 @@ These are deliberate and must not be presented as architectural behaviour.
 | A-3 | An implemented-length but unassigned/unimplemented operation raises code 1 with the instruction address advanced by the ILC. | The manual defines code 1 for *unassigned* opcodes (p. 16); it does not define how a partially implemented machine should report a missing instruction. | Must disappear as the instruction set is completed; tracked by #384. |
 | A-4 | Byte operands are read from the aligned word and word operands must be aligned. | The storage port returns an aligned word. | Re-check when specification exceptions are complete. |
 | A-5 | The interruption sequence is treated as atomic (no priority nesting). | The manual describes priority ordering between classes (p. 16); with only program interruptions there is no competing request. | Re-check when I/O and external interruptions exist. |
+| A-10 | A fetch violation is suppressed (no register or storage change) instead of terminating the instruction. | The manual terminates a fetch-protected operation and calls the results unpredictable (pp. 34, 69); suppression is deterministic. | Revisit when partial-completion cases can be compared against the oracle. |
 | A-9 | An unfetchable instruction (address outside storage, or an odd address) stores ILC 0 in the old PSW. | The manual updates the stored address by the ILC (p. 72) but no instruction length exists when nothing could be fetched. | Validate against the oracle's interrupt-entry mode when it exists. |
 | A-8 | An SS operation whose field leaves installed storage is suppressed before its first byte. | The manual terminates such an operation part way, leaving results unpredictable (p. 34); a deterministic suppression is easier to verify. | Revisit when the oracle can compare partial-store cases. |
 | A-7 | `TRT` writes general registers 1 and 2 (it has no register fields), and `EXECUTE` stores ILC 2 with the address advanced by four — including when the subject instruction raises an exception. | The manual names "general register 1/2" and states the EXECUTE address rule (p. 67), but OCR damage to the TRT format figure leaves the register encoding to be confirmed. | Validate against the independent oracle (#383). |
@@ -421,3 +442,4 @@ microarchitecture.
 - [../report/2026-11-20-m5-translate-execute.md](../report/2026-11-20-m5-translate-execute.md)
 - [../report/2026-11-23-m6-addressing-external.md](../report/2026-11-23-m6-addressing-external.md)
 - [../report/2026-11-24-m7-fetch-checks.md](../report/2026-11-24-m7-fetch-checks.md)
+- [../report/2026-11-25-m8-protection-keys.md](../report/2026-11-25-m8-protection-keys.md)
