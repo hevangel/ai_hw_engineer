@@ -10,7 +10,7 @@ reaches implementation.
 - Source and provenance ledger: [spec/sources.md](spec/sources.md)
 - Architecture specification and current milestone report:
   [spec/spec.md](spec/spec.md),
-  [report/2026-11-23-m6-addressing-external.md](report/2026-11-23-m6-addressing-external.md)
+  [report/2026-11-24-m7-fetch-checks.md](report/2026-11-24-m7-fetch-checks.md)
 
 ## History
 
@@ -58,6 +58,7 @@ compatibility implies cycle fidelity.
 | Character and SS-format group (M4) | implemented: `MVC`, `MVN`, `MVZ`, `NC`, `OC`, `XC`, `CLC`, `TM`, `IC`, `STC` with a byte-loop SS engine |
 | Translate and execute (M5) | implemented: `TR`, `TRT`, `EXECUTE` with the execute exception and EX's own address/ILC rule |
 | Addressing and external interruptions (M6) | implemented: code 5 for operands outside installed storage, timer interruption with PSWs at `0x18`/`0x58` (code `0x0080`), wait-state exit |
+| Fetch checks (M7) | implemented: code 5 for an unfetchable instruction address and code 6 for an odd instruction address |
 | Storage, channel I/O, protection/DAT, SVC/external/I/O interruptions | not started |
 | Model members (20, 22, 25, 30, 40, 44, 50, 65, 67, 75, 85, 91, 95, 195) | not started; each will be a member folder |
 | Independent emulator oracle, IBM diagnostics, real OS boot | not started (issues #383, #441, #429 and later) |
@@ -78,6 +79,8 @@ and
 [report/2026-11-20-m5-translate-execute.md](report/2026-11-20-m5-translate-execute.md)
 and
 [report/2026-11-23-m6-addressing-external.md](report/2026-11-23-m6-addressing-external.md)
+and
+[report/2026-11-24-m7-fetch-checks.md](report/2026-11-24-m7-fetch-checks.md)
 for the measured evidence and the exact list of limitations.
 
 ## Folder layout

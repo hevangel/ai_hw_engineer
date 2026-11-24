@@ -699,7 +699,41 @@ module tb_ibm_s360_cpu;
     check_gpr(15, 32'h0000_0304);
 
     // =========================================================================
-    // Test 21: directed arithmetic unit, address generation and decode checks.
+    // Test 21: specification exception for an odd instruction address -- the
+    // PSW is loaded with IA 0x105, so no instruction can be fetched.
+    // =========================================================================
+    start_reset();
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
+    poke_handler(24'h00_0300);
+    poke_dw(24'h00_0070, 64'h0000_0000_0000_0105);
+    poke_hex(24'h00_0100, "82000070");
+    run_cycles(80);
+
+    check(int_count == 1, "odd instruction address did not raise an interruption");
+    check(last_int_code == 16'd6, "odd instruction address code is not 6");
+    check_word(24'h00_0028, 32'h0000_0006, "odd IA old PSW code");
+    check_word(24'h00_002C, 32'h0000_0105, "odd IA old PSW: ILC 0, IA 0x105");
+    check_gpr(15, 32'h0000_0304);
+
+    // =========================================================================
+    // Test 22: addressing exception for an instruction address outside the
+    // installed 64 KiB -- PSW IA 0x010000.
+    // =========================================================================
+    start_reset();
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
+    poke_handler(24'h00_0300);
+    poke_dw(24'h00_0070, 64'h0000_0000_0001_0000);
+    poke_hex(24'h00_0100, "82000070");
+    run_cycles(80);
+
+    check(int_count == 1, "unfetchable instruction did not raise an interruption");
+    check(last_int_code == 16'd5, "unfetchable instruction code is not 5");
+    check_word(24'h00_0028, 32'h0000_0005, "unfetchable old PSW code");
+    check_word(24'h00_002C, 32'h0001_0000, "unfetchable old PSW: ILC 0, IA 0x10000");
+    check_gpr(15, 32'h0000_0304);
+
+    // =========================================================================
+    // Test 23: directed arithmetic unit, address generation and decode checks.
     // =========================================================================
     t_alu(ALU_ADD, 32'd7, 32'd5, 32'd12, 2'd2, 1'b0, "add positive");
     t_alu(ALU_ADD, 32'h7FFF_FFFF, 32'd1, 32'h8000_0000, 2'd3, 1'b1, "add positive overflow");
@@ -757,10 +791,10 @@ module tb_ibm_s360_cpu;
     // Report
     // =========================================================================
     if (errors == 0) begin
-      $display("IBM S360 M6 CORE TESTS PASSED (%0d checks)", checks);
+      $display("IBM S360 M7 CORE TESTS PASSED (%0d checks)", checks);
       $finish;
     end else begin
-      $display("IBM S360 M6 CORE TESTS FAILED: %0d error(s) in %0d checks", errors, checks);
+      $display("IBM S360 M7 CORE TESTS FAILED: %0d error(s) in %0d checks", errors, checks);
       $fatal(1, "testbench failures");
     end
   end

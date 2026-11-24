@@ -763,6 +763,25 @@ module ibm_s360_cpu #(
             state <= S_CHECK;
           end else if (int_pending_q) begin
             state <= S_INT_OLD0;
+          end else if (out_of_range(psw_ia)) begin
+            // Instruction halfword outside installed storage (p. 72). No
+            // instruction was fetched, so the old PSW keeps the instruction
+            // address and records ILC 0 (assumption A-9).
+            int_code_q     <= CODE_ADDRESSING;
+            int_psw_q      <= {psw_word[63:48], CODE_ADDRESSING, 2'd0, psw_word[29:0]};
+            int_pending_q  <= 1'b1;
+            int_old_addr_q <= PROGRAM_OLD_PSW;
+            int_new_addr_q <= PROGRAM_NEW_PSW;
+            state          <= S_CHECK;
+          end else if (psw_ia[0]) begin
+            // "A specification exception occurs when the instruction address in
+            // the psw is odd" (p. 72).
+            int_code_q     <= CODE_SPECIF;
+            int_psw_q      <= {psw_word[63:48], CODE_SPECIF, 2'd0, psw_word[29:0]};
+            int_pending_q  <= 1'b1;
+            int_old_addr_q <= PROGRAM_OLD_PSW;
+            int_new_addr_q <= PROGRAM_NEW_PSW;
+            state          <= S_CHECK;
           end else begin
             ia_cur <= psw_ia;
             cnt    <= 3'd0;
