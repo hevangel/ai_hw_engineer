@@ -215,6 +215,31 @@ class _Replay:
                     shadow[a] = byte
         recorder(uc, access, address, size, value, data)
 
+    def fold_fetch(self, pc):
+        """With A20 forced low, an instruction at or above 1 MB is fetched
+        from the folded address: the IBM AT's A20 gate (U129, sheet 1;
+        system/ibm_pc_at_5170/spec/spec.md) masks address bit 20 of every
+        processor memory cycle, code fetches included, as it does for the
+        data transfers read_hook folds. Copy the low bytes to the high
+        addresses Unicorn fetches; unfold() restores them after the
+        instruction. PC DOS
+        1.00's CP/M-style entry (CALL 5 -> CALL F01D:FEF0 = 1000C0h) relies
+        on this wrap, as it does on the 8086."""
+        if self.a20 or not (pc + 10) & 0x100000:
+            return
+        uc, shadow = self.uc, self.g.shadow
+        for a in range(pc, pc + 10):
+            if not a & 0x100000:
+                continue
+            low = a & ~0x100000
+            if a not in self.folded:
+                self.folded[a] = shadow.get(a, 0)
+            byte = shadow.get(low, 0)
+            uc.mem_write(a, bytes([byte]))
+            shadow[a] = byte
+        uc.ctl_remove_cache(pc, pc + 10)
+        self.stats['a20_folded_fetches'] = self.stats.get('a20_folded_fetches', 0) + 1
+
     def unfold(self):
         """After an instruction with A20 forced low: move its writes to the
         folded addresses, restore the high addresses and fold the bus."""
@@ -701,6 +726,7 @@ class _Replay:
                     if cpu_writes is not None:
                         raise ValueError(f'exception during interrupt entry {where}')
                     fault_pc = expected_pc
+                    self.fold_fetch(fault_pc)
                     decoded = decode(uc, fault_pc, extended=True)
                     if decoded is None:
                         raise ValueError(f'PC mismatch {where}: oracle {fault_pc:06x} (unsupported instruction)')
@@ -733,6 +759,7 @@ class _Replay:
                     expected_pc = self.cs_base + ip
                     if pc != expected_pc:
                         raise ValueError(f'PC mismatch after exception {where}: oracle {expected_pc:06x}')
+                self.fold_fetch(pc)
                 decoded = decode(uc, pc, extended=True)
                 if decoded is None or decoded[0] != op:
                     raise ValueError(f'opcode mismatch at {pc:06x}, CPU {op:02x}, oracle {decoded}')
@@ -810,6 +837,29 @@ class _Replay:
                         break
                     if repetitions > 65536:
                         raise ValueError(f'oracle repeat at {pc:06x} did not finish within the CX range')
+                control = (0x70 <= op <= 0x7f or 0xe0 <= op <= 0xe3 or 0xe8 <= op <= 0xeb or
+                           op in (0x9a, 0xc2, 0xc3, 0xcc, 0xcd, 0xce, 0xcf, 0xf4) or
+                           op == 0xff and (raw[1] >> 3) & 7 in (2, 3, 4, 5))
+                if (not repeated and op not in (0xca, 0xcb) and not escape and not self.intr and
+                        not control and g.seen and all(address == pc for address, _ in g.seen) and
+                        (uc.reg_read(UC_X86_REG_CS), uc.reg_read(UC_X86_REG_IP)) == (cs, ip)):
+                    # A sequential instruction that left IP unchanged:
+                    # self-modifying code, the instruction stored into the code
+                    # page Unicorn is executing from (PC DOS 2.00's IBMBIO
+                    # patches an immediate of a later instruction). With
+                    # count=1, Unicorn 2.1.4 abandons the instruction to
+                    # retranslate the page and ends with IP unchanged, every
+                    # time. Run it again from a clean transfer list until the
+                    # next sequential address instead (not a control
+                    # transfer, so it is reached; the length is Unicorn's own
+                    # from the code hook). A store that is not idempotent
+                    # would then differ from the CPU's transfers and fail the
+                    # comparison below.
+                    length = g.seen[0][1]
+                    g.bus.clear()
+                    g.seen.clear()
+                    uc.emu_start(cs*16 + ip, cs*16 + ip + length, timeout=1000000)
+                    stats['self_modifying_restarts'] = stats.get('self_modifying_restarts', 0) + 1
                 self.unfold()
                 if len(g.seen) != repetitions or any(address != pc for address, _ in g.seen):
                     raise ValueError(f'oracle synchronization error at {pc:06x}')
@@ -849,8 +899,8 @@ class _Replay:
                     valid_flags |= 0x8d5
                 # 0F 01 SGDT/SIDT/LGDT/LIDT/SMSW/LMSW change no flags (210498-005
                 # Appendix B entries; spec/system_register_execution.md).
-                if op <= 0x3d and op % 8 <= 5 or op in (0x80, 0x81, 0x83):
-                    kind = (raw[1] >> 3) & 7 if op in (0x80, 0x81, 0x83) else op // 8
+                if op <= 0x3d and op % 8 <= 5 or op in (0x80, 0x81, 0x82, 0x83):
+                    kind = (raw[1] >> 3) & 7 if op in (0x80, 0x81, 0x82, 0x83) else op // 8
                     valid_flags |= 0x8d5
                     if kind in (1, 4, 6):
                         valid_flags &= ~0x10
@@ -881,6 +931,13 @@ class _Replay:
                             valid_flags &= ~1
                 if op == 0x9e:
                     valid_flags |= 0xd5
+                # DAA/DAS define SF/ZF/AF/PF/CF, OF is undefined; AAA/AAS
+                # define AF/CF, OF/SF/ZF/PF are undefined (210498-005
+                # Appendix B).
+                if op in (0x27, 0x2f):
+                    valid_flags = (valid_flags | 0xd5) & ~0x800
+                if op in (0x37, 0x3f):
+                    valid_flags = (valid_flags | 0x11) & ~0x8c4
                 # POPF and IRET load every flag from the stack image.
                 if op in (0x9d, 0xcf):
                     valid_flags = 0x8fd5
@@ -893,7 +950,11 @@ class _Replay:
                 regs = [uc.reg_read(r) for r in REGS]
                 reg_masks = [0xffff] * 8
                 if op == 0x9f:
-                    reg_masks[0] = 0xd5ff
+                    # LAHF copies SF/ZF/AF/PF/CF into AH; a flag that is
+                    # undefined at this point (valid_flags, for example AF
+                    # after OR/AND/XOR, 210498-005 Appendix B) is not
+                    # compared in AH either, and the CPU's AH is adopted.
+                    reg_masks[0] = 0x00ff | ((0xd5 & valid_flags) << 8)
                 if system == 4:
                     # SMSW r16: Unicorn stores a later CPU's CR0 low word. Only
                     # PE/MP/EM/TS (bits 0-3) are defined MSW bits on the 286;
@@ -975,6 +1036,9 @@ class _Replay:
                             uc.mem_write(address, bytes([value]))
                             g.shadow[address] = value
                             stats['accessed_adopted'] += 1
+                if op == 0x9f and regs[0] != actual_regs[0]:
+                    stats['lahf_undefined_adopted'] = stats.get('lahf_undefined_adopted', 0) + 1
+                    uc.reg_write(REGS[0], actual_regs[0])
                 if system == 4:
                     if (regs[raw[2] & 7] ^ actual_regs[raw[2] & 7]) & 0xfff0:
                         stats['smsw_adopted'] += 1

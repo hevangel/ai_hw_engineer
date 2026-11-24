@@ -57,6 +57,14 @@ module ibm_pc_at_5170_vga_host #(
     // 80286 retirement taps.
     output logic        retire_o,
     output logic [15:0] cs_o, ip_o, flags_o,
+    // Trace taps for the Unicorn replay (--trace, the records of
+    // tb/post_runner.cpp): retired PC and opcode, registers, segments and
+    // the 8042's A20 GATE output.
+    output logic [23:0] retire_pc_o,
+    output logic [7:0]  retire_opcode_o,
+    output logic [127:0] regs_o,
+    output logic [63:0] segs_o,
+    output logic        a20_gate_o,
     // 8042 port 2 (P26 drives the keyboard clock low through an inverter,
     // P27 drives data).
     output logic [7:0]  kbc_p2_o
@@ -71,7 +79,7 @@ module ibm_pc_at_5170_vga_host #(
         .refresh_ready_i, .timer_clk_i, .mem_rdata_i, .address_o, .data_o,
         .data_oe_o, .bhe_n_o, .io_cycle_o, .fetch_cycle_o, .completed_bytes_o, .hlda_o,
         .protocol_error_o, .halted_o, .fault_o, .refresh_o,
-        .io_unclaimed_o, .io_read_undriven_o, .io_port_o, .post_code_o,
+        .io_unclaimed_o, .io_read_undriven_o, .io_port_o, .post_code_o, .a20_gate_o,
         .kbd_unlocked_i, .display_mono_i, .mfg_jumper_i, .ram_512k_i, .kbd_clk_i, .kbd_data_i,
         .kbd_clk_o, .kbd_data_o, .kbc_obf_o, .cpu_reset_o, .kbc_illegal_o,
         .chan_irq_i, .intr_o, .inta_cycle_o,
@@ -85,6 +93,10 @@ module ibm_pc_at_5170_vga_host #(
     /* verilator lint_on PINMISSING */
     assign cpu_data_o = machine.unit.board.cpu_data;
     assign retire_o = machine.unit.board.cpu.core.retire_o;
+    assign retire_pc_o = machine.unit.board.cpu.core.retire_pc_o;
+    assign retire_opcode_o = machine.unit.board.cpu.core.retire_opcode_o;
+    assign regs_o = machine.unit.board.cpu.core.regs_o;
+    assign segs_o = machine.unit.board.cpu.core.segs_o;
 
     assign cs_o = machine.unit.board.cpu.core.segs_o[31:16];
     assign ip_o = machine.unit.board.cpu.core.ip_o;

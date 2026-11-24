@@ -144,11 +144,14 @@ module ibm_s360_cpu_props (
       assert (!mem_we || (state == ST_WRITE) || (state == ST_SS_C) ||
               (state == ST_OLD0) || (state == ST_OLD1));
       if (state == ST_OLD0) begin
-        assert (mem_addr == 24'h00_0028 || mem_addr == 24'h00_0020);
+        // Program, supervisor-call and external old PSWs.
+        assert (mem_addr == 24'h00_0028 || mem_addr == 24'h00_0020 ||
+                mem_addr == 24'h00_0018);
         assert (mem_wbe == 4'hF);
       end
       if (state == ST_OLD1) begin
-        assert (mem_addr == 24'h00_002C || mem_addr == 24'h00_0024);
+        assert (mem_addr == 24'h00_002C || mem_addr == 24'h00_0024 ||
+                mem_addr == 24'h00_001C);
       end
 
       assert (!(int_taken && retire));

@@ -11,8 +11,11 @@ card's BIOS run 16,610,979 instructions to the same point and the 720 x 400
 display shows the same two lines. With a bench F1 stimulus at checkpoint 3Fh and
 the empty 80287 socket decoded at F8h-FFh, the VGA machine boots a script-built
 1.2 MB test diskette through the 8272 controller and board DMA (`27,368,206`
-instructions at 640 KB, `39,749,282` instructions with `--ext-kb=1024`). No
-operating system has been booted yet.
+instructions at 640 KB, `39,749,282` instructions with `--ext-kb=1024`). Since then the web/batch
+host boots IBM PC DOS 3.00 (`scripts/run_dos_boot.sh`), and
+`scripts/run_dos_8086.sh` runs the 8088 IBM PC's PC DOS 1.00 and 2.00
+diskette workloads with the same results as the 8088 machines (see the
+[8086 compatibility report](2026-11-22-8086-compatibility.md)).
 
 | Check | Command | Result |
 |---|---|---|

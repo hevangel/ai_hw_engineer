@@ -165,7 +165,11 @@ Technical Reference logic diagrams:
   RESET at the 80286 RESET pin (sheet 1). It resets only the 80286. See
   AT7.
 - P21 = A20 GATE: U129 (74F257, sheet 1) passes CPU A20 when P21 is high
-  and forces the board A20 low when it is low.
+  and forces the board A20 low when it is low. It gates every processor
+  memory cycle, instruction fetches included. PC DOS 1.00 programs that use
+  the CP/M-style entry at PSP:0005 (`CALL F01D:FEF0`, address 1000C0h;
+  BASICA does, `scripts/run_dos_8086.sh`) reach DOS at 000C0h only because
+  the BIOS leaves A20 GATE low after POST, as the 8086 wraps at 1 MB.
 - P24 = +OPT BUF FULL, wired straight to master 8259A IR1 (sheet 16).
 - Keyboard clock: P26 through U120 (74ALS00 as an inverter) and U116 (7407,
   open collector) to KBD CLK, read back on T0. Keyboard data: P27 through
@@ -425,7 +429,16 @@ From the Technical Reference section "Fixed Disk and Diskette Adapter":
   DRIVES SUPPORTED"); 720 KB and 1.44 MB are not modeled.
 - CMOS byte 10h of `tb/cmos_ega.hex` declares drive A as high capacity
   (1.2 MB) and no drive B; the drive configuration the runner fits must
-  agree with it.
+  agree with it. `tb/cmos_vga_2fd.hex` (used by `scripts/run_dos_8086.sh`,
+  built in with `AT_HOST_CMOS`) declares drive A high capacity and drive B
+  a 360 KB (48 TPI double-sided) drive, byte 10h = 21h, and two drives in
+  the equipment byte 14h (bits 7-6 = 01), Technical Reference printed
+  pages 1-45 to 1-52 (AT39). The host fits drive B with `--fdb-type=360`.
+- The 5150's single-sided media, 160 KB (PC DOS 1.00) and 180 KB (PC DOS
+  2.00), are accepted in either drive type as images recorded on side 0
+  only (AT38). The REV1 BIOS reads and writes them as 320/360 KB media: in
+  the 1.2 MB drive at 300 kbit/s with double stepping, in the 360 KB drive
+  at 250 kbit/s.
 
 The display machines' top modules keep their names and ports and add the
 DMA and drive ports (`dma_mem_o`, `dma_mem_write_o`, `fd_*`); the board,
@@ -701,6 +714,19 @@ later. Sources: the Technical Reference, Section 4 (printed pages 4-3 to
   write-precompensation register, the data register 1F0h, the fixed disk
   register 3F6h and IRQ 14 have no effect. The real controller's status
   with no drive cabled was not found in the documents.
+
+- ASSUMPTION AT38: a single-sided image (163,840 bytes, 40 x 1 x 8 x 512;
+  184,320 bytes, 40 x 1 x 9 x 512) is a diskette recorded on side 0 only.
+  With head 1 selected no ID is found (the controller reports a missing
+  address mark, as for an unrecorded side) and writes and format bytes for
+  head 1 are dropped. A real single-sided diskette in a double-sided drive
+  may have a usable second side; the DOS 1.00 and 2.00 workloads never
+  select head 1 on these media (DOS treats them as one-sided by their FAT
+  media byte), so this does not change what they do.
+- ASSUMPTION AT39: the battery-backed CMOS image of a machine with two
+  diskette drives is `tb/cmos_vga_2fd.hex`, the record SETUP would leave
+  for that configuration (not a dump of a machine): drive B type 1 and two
+  drives in the equipment byte, checksum 00E4h over 10h-2Dh.
 
 ## Strict decoding
 

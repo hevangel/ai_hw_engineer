@@ -12,7 +12,7 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 
 | Year | Chip | Description | Design |
 |---:|---|---|---|
-| 1964 (announced 7 April 1964) | IBM System/360 | Family architecture: byte addressing, 24-bit addresses, 16 general registers, PSW, channel I/O; shared core implements 54 instructions including the fixed-point group, SS moves/compares/logical operations, translate, EXECUTE, SVC and program interruptions 1/2/3/6/8 with formal proofs and directed regressions | [ibm_system360](ibm_system360/) |
+| 1964 (announced 7 April 1964) | IBM System/360 | Family architecture: byte addressing, 24-bit addresses, 16 general registers, PSW, channel I/O; shared core implements 54 instructions including the fixed-point group, SS moves/compares/logical operations, translate, EXECUTE and SVC, with program interruptions 1/2/3/5/6/8, addressing exceptions and an external timer interruption | [ibm_system360](ibm_system360/) |
 | 1970* (commercial; silicon 1969) | AMD Am9300 | Four-bit parallel-load/JK serial shift register; asynchronous master clear | [amd_am9300](amd_am9300/) |
 | 1970* | AMD Am2501 | Four-bit binary synchronous up/down counter with preset and carry look-ahead | [amd_am2501](amd_am25xx/amd_am2501//) |
 | 1970 | 74181 / SN74LS181 | 4-bit TTL arithmetic logic unit and function generator | [ttl_74xx](ttl_74xx/) |
