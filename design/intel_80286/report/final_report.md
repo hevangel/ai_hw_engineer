@@ -107,12 +107,13 @@ Non-formal half wall time: 42 minutes.
 - **Connected-core cover** does not finish, so `run_all.sh` cannot run to its end in one pass; the steps after it were run separately (above). This predates the review.
 - **Finding 11** was confirmed fixed with the pinned Verilator only; the
   newer build the review used was not run.
-- **Stale mutation suites outside the gate.** 20 mutation patterns in
-  `run_mutations.py`, `run_irq_mutations.py`, `run_debug_mutations.py`,
-  `run_reference_mutations.py` and two non-mutation tuples in
-  `run_protected_event_mutations.py` no longer match the source; they were
-  already stale on `main`. Those suites are not in `run_all.sh` and cannot
-  currently run. The two IRQ patterns this branch changed are updated.
+- **Mutation suites outside the gate** (fixed after this review, PR #300).
+  A recount found 4 stale patterns, not 20, in `run_irq_mutations.py`,
+  `run_debug_mutations.py` and `run_reference_mutations.py`; all
+  `run_protected_event_mutations.py` patterns matched. With the 4 re-anchored,
+  `run_mutations` (13/13), irq (8/8), debug (4/4) and reference (7/7) detect
+  every mutant. `run_all.sh` now runs `check_mutation_patterns.py`, which
+  fails if any of 62 patterns in 9 suites stops matching exactly once.
 - **Oracle waivers.** 93 PCE-286 differences are waived, each with a cited
   reason; four are new for finding 3 (PCE-286 applies the 386 #TS rule).
 - What remains for a complete 80286 is listed in
