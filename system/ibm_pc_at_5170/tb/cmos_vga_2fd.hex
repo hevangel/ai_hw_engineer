@@ -1,0 +1,35 @@
+// Power-on contents of the MC146818 (U117) for a display machine with two
+// diskette drives: drive A a high-capacity (1.2 MB) drive and drive B a
+// double-sided double-density (360 KB) drive, 640 KB of base memory: 64 hex
+// bytes in $readmemh form. Written for this model from the CMOS RAM address
+// map in the IBM PC AT Technical Reference, March 1984, printed pages 1-45
+// to 1-52 (diskette byte 10h: high nibble drive A, low nibble drive B,
+// 0 = none, 1 = 48 TPI double-sided, 2 = high capacity; equipment byte 14h
+// bits 7-6 = number of drives minus one). It is tb/cmos_ega.hex with bytes
+// 10h, 14h and the checksum changed; not a dump of any machine.
+// 00-09: 12:00:00, Tuesday (day 3) 14 August 1984, BCD, 24-hour; alarms 00
+00 00 00 00 12 00 03 14 08 84
+// 0A-0D: A = 26h (32.768 kHz time base, 1.024 kHz rate), B = 02h (24-hour,
+// BCD, interrupts off), C = 00h, D = 80h (valid RAM and time)
+26 02 00 80
+// 0E diagnostic status 00h, 0F shutdown status 00h
+00 00
+// 10 diskette types: A = high capacity (2), B = 360 KB double-sided (1);
+// 11 reserved
+21 00
+// 12 fixed disk types: none; 13 reserved
+00 00
+// 14 equipment: two diskette drives (bits 7-6 = 01, bit 0 = 1), primary
+// display has its own BIOS (bits 5-4 = 00), no math coprocessor (bit 1 = 0)
+41
+// 15-16 base memory 0280h KB (640K), low byte first; 17-18 expansion 0
+80 02 00 00
+// 19-2D reserved
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+// 2E-2F checksum of 10h-2Dh, high byte first: 21h+41h+80h+02h = 00E4h
+00 E4
+// 30-31 expansion memory found by POST, 32 century 19h, 33 information
+// flags: bit 7 = 128K base memory expansion installed
+00 00 19 80
+// 34-3F reserved
+00 00 00 00 00 00 00 00 00 00 00 00

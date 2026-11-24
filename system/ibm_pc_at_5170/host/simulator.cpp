@@ -30,12 +30,19 @@
 //   --until-script     batch: end when the last script rule has fired and
 //                      its keys have been typed
 //   --fst=PATH         where CAPTURE writes its waveform
+//   --trace=PATH       write the processor trace of tb/post_runner.cpp (B, D,
+//                      R, A, Z and G records, for scripts/check_post_trace.py)
+//                      from power-on; with --trace-clocks=N it ends at the
+//                      first instruction boundary after N processor clocks
+//                      (the state reports traceEnd CS:IP and traceInstructions)
 // Diskette media options (--fda/--fdb) belong to the diskette adapter's
 // branch; see the integration point marked DISKETTE below.
 //
 // Commands (one reply line each, JSON):
-//   STATE | RUN n | RESET | KEY code make | TYPE tokens... | FRAME | TEXT
-//   PPM path | PEEK addr len | CAPTURE n | QUIT
+//   STATE | RUN n | RESET | KEY code make | TYPE tokens... | FRAME | TEXT | CODES
+//   PPM path | PEEK addr len | CAPTURE n | SAVE unit path | QUIT
+// (SAVE writes drive unit's current image, 0 = A, 1 = B; CODES gives the
+// screen's character codes, -1 where no glyph matches.)
 #include "Vibm_pc_at_5170_vga_host.h"
 #include "verilated.h"
 #include "verilated_fst_c.h"
@@ -220,8 +227,9 @@ std::vector<std::pair<uint8_t, bool>> parse_keys(const std::string& text) {
 
 // Reads 80 x 25 text from a 720 x 400 frame with the 8 x 16 font of the
 // VGA ROM, as scripts/check_frame.py does (9-dot cells, the ROM's
-// replacement glyphs, ninth column repeated for C0h-DFh). Unknown cells
-// (the cursor, graphics) read as '?'.
+// replacement glyphs, ninth column repeated for C0h-DFh); a two-colour cell
+// that matches no glyph is tried in reverse video. Unknown cells (the
+// cursor, graphics) read as '?'.
 class ScreenReader {
 public:
     explicit ScreenReader(const std::vector<uint8_t>& rom) {
@@ -247,11 +255,12 @@ public:
         }
     }
     bool ok() const { return !font_.empty(); }
-    std::vector<std::string> read(const std::vector<std::vector<uint32_t>>& f) const {
-        std::vector<std::string> rows;
+    // Character codes of the 80 x 25 cells (-1: no glyph matches).
+    std::vector<std::vector<int>> codes(const std::vector<std::vector<uint32_t>>& f) const {
+        std::vector<std::vector<int>> rows;
         if (font_.empty() || f.size() != 400) return rows;
         for (int r = 0; r < 25; r++) {
-            std::string text;
+            std::vector<int> row;
             for (int c = 0; c < 80; c++) {
                 uint32_t lo = 0xffffffff, hi = 0;
                 for (int y = 0; y < 16; y++)
@@ -268,9 +277,25 @@ public:
                         if (p == hi && hi != lo) g[y] |= uint16_t(1 << (8 - x));
                     }
                 auto it = font_.find(g);
-                const int code = two && it != font_.end() ? it->second : -1;
-                text += code >= 0x20 && code < 0x7f ? char(code) : (code == 0 || code == 0xff) ? ' ' : code < 0 ? '?' : '.';
+                if (two && it == font_.end() && hi != lo) {
+                    // Reverse video (BASIC's function-key line): the
+                    // background is the brighter colour.
+                    Glyph inv{};
+                    for (int y = 0; y < 16; y++) inv[y] = uint16_t(~g[y] & 0x1ff);
+                    it = font_.find(inv);
+                }
+                row.push_back(two && it != font_.end() ? it->second : -1);
             }
+            rows.push_back(row);
+        }
+        return rows;
+    }
+    std::vector<std::string> read(const std::vector<std::vector<uint32_t>>& f) const {
+        std::vector<std::string> rows;
+        for (const auto& row : codes(f)) {
+            std::string text;
+            for (int code : row)
+                text += code >= 0x20 && code < 0x7f ? char(code) : (code == 0 || code == 0xff) ? ' ' : code < 0 ? '?' : '.';
             while (!text.empty() && text.back() == ' ') text.pop_back();
             rows.push_back(text);
         }
@@ -349,6 +374,13 @@ public:
     // Waveform capture.
     std::unique_ptr<VerilatedFstC> fst;
     uint64_t fst_time = 0, capture_start = 0, capture_clocks = 0, capture_version = 0;
+    // Processor trace (--trace): open from the first power-on until the
+    // first retirement at or after trace_until clocks.
+    std::ofstream trace;
+    uint64_t trace_until = ~0ull, trace_retired = 0;
+    std::string trace_end;
+    bool was_a20 = true;   // the 8042 output port resets to FFh: A20 GATE high
+    uint8_t inta_byte = 0;
     // Key events waiting to be applied, spaced kKeyGap clocks apart.
     std::deque<std::pair<uint8_t, bool>> key_queue;
     uint64_t next_key = 0;
@@ -420,6 +452,8 @@ public:
     // again from its battery image (tb/cmos_ega.hex).
     void power_on() {
         close_capture();
+        if (trace.is_open() && power_ons) end_trace("power-on");
+        was_a20 = true; inta_byte = 0;
         // Each power-on gets its own context: tracing a second model in a
         // shared context crashed (Verilator 5.052).
         d.reset();
@@ -538,6 +572,7 @@ public:
           << ",\"typematic\":" << unsigned(kbd.typematic_byte())
           << ",\"receivedLog\":\"" << hexbytes(kbd.received_log()) << "\",\"sentLog\":\""
           << hexbytes(kbd.sent_log()) << "\"}"
+          << ",\"biosMode\":" << unsigned(ram[0x449]) << ",\"biosColumns\":" << unsigned(ram[0x44a])
           << ",\"kbdFlags\":\"" << hex(ram[0x417], 2) << hex(ram[0x418], 2) << "\",\"kbdHead\":\""
           << hex(ram[0x41a] | (ram[0x41b] << 8), 4) << "\",\"kbdTail\":\"" << hex(ram[0x41c] | (ram[0x41d] << 8), 4)
           << "\",\"kbdBuffer\":\"" << [&] { std::string h; for (unsigned i = 0x41e; i < 0x43e; i++) h += hex(ram[i], 2); return h; }()
@@ -552,9 +587,21 @@ public:
           << ",\"headA\":" << (fd ? fd->drive[0].position : 0)
           << ",\"headB\":" << (fd ? fd->drive[1].position : 0) << "}"
 #endif
+          << ",\"traceEnd\":" << json_string(trace_end) << ",\"traceInstructions\":" << trace_retired
           << ",\"captureStart\":" << capture_start << ",\"captureClocks\":" << capture_clocks
           << ",\"captureVersion\":" << capture_version << "}";
         return s.str();
+    }
+
+    // Ends the trace; "boundary" records the CS:IP after the last retired
+    // instruction (the STOP_CS:IP argument of check_post_trace.py).
+    void end_trace(const std::string& why) {
+        trace.flush();
+        if (!trace) throw std::runtime_error("trace write failed");
+        trace.close();
+        trace_end = why == "boundary" ? hex(cs, 4) + ":" + hex(ip, 4) : why;
+        trace_retired = retired;
+        std::cerr << "TRACE end=" << trace_end << " instructions=" << trace_retired << " clocks=" << cycle << '\n';
     }
 
 private:
@@ -658,7 +705,26 @@ private:
             if (!stop.empty()) return;
         }
         d->eval();
+        const bool tracing = trace.is_open();
 
+#ifdef AT_DISKETTE
+        // A DMA memory transfer commits at this edge (post_runner's D record,
+        // written before the processor's B records of the same clock).
+        if (d->dma_mem_o) {
+            const uint8_t value = d->dma_mem_write_o ? uint8_t(d->data_o) : byte(a);
+            if (d->dma_mem_write_o) {
+                if (is_ram(a)) ram_byte(a) = value;
+                else ++dma_open;
+                ++dma_writes;
+            } else {
+                if (!is_ram(a)) ++dma_open;
+                ++dma_reads;
+            }
+            if (tracing)
+                trace << "D " << std::hex << a << ' ' << unsigned(value) << ' '
+                      << unsigned(d->dma_mem_write_o) << std::dec << '\n';
+        }
+#endif
         if (d->completed_bytes_o) {
             const bool io = d->io_cycle_o, write = d->data_oe_o, fetch = d->fetch_cycle_o;
             for (unsigned b = 0; b < d->completed_bytes_o; b++) {
@@ -681,28 +747,37 @@ private:
                     if (port60_log.size() == 32) port60_log.erase(port60_log.begin());
                     port60_log.push_back(value);
                 }
+                if (!fetch && tracing)
+                    trace << "B " << std::hex << x << ' ' << unsigned(value) << ' ' << write << ' '
+                          << io << std::dec << '\n';
             }
         }
-#ifdef AT_DISKETTE
-        if (d->dma_mem_o) {
-            if (d->dma_mem_write_o) {
-                if (is_ram(a)) ram_byte(a) = uint8_t(d->data_o);
-                else ++dma_open;
-                ++dma_writes;
-            } else {
-                if (!is_ram(a)) ++dma_open;
-                ++dma_reads;
-            }
+        // An interrupt-acknowledge cycle ends when inta_cycle_o falls; the
+        // byte on the data bus in its last clock is what the CPU took.
+        if (d->inta_cycle_o) { inta_active = true; inta_byte = uint8_t(d->cpu_data_o); }
+        else if (inta_active) {
+            inta_active = false; ++inta_cycles;
+            if (tracing) trace << "A " << std::hex << unsigned(inta_byte) << std::dec << '\n';
         }
-#endif
-        if (d->inta_cycle_o) inta_active = true;
-        else if (inta_active) { inta_active = false; ++inta_cycles; }
-        if (d->cpu_reset_o && !was_reset) ++cpu_resets;
+        if (d->cpu_reset_o && !was_reset) { ++cpu_resets; if (tracing) trace << "Z\n"; }
+        if (d->a20_gate_o != was_a20) {
+            was_a20 = d->a20_gate_o;
+            if (tracing) trace << "G " << unsigned(was_a20) << '\n';
+        }
         halt_clocks = (d->halted_o && !(d->flags_o & 0x200)) ? halt_clocks + 1 : 0;
         was_reset = d->cpu_reset_o;
 
         d->clk_i = 1; d->clk_2x_i = 1; d->vid_clk_i = 1; d->eval();
-        if (d->retire_o) { ++retired; cs = d->cs_o; ip = d->ip_o; }
+        if (d->retire_o) {
+            ++retired; cs = d->cs_o; ip = d->ip_o;
+            if (tracing) {
+                trace << "R " << std::hex << d->retire_pc_o << ' ' << unsigned(d->retire_opcode_o) << ' '
+                      << cs << ' ' << ip << ' ' << d->flags_o << ' ' << d->segs_o;
+                for (unsigned r = 0; r < 8; r++) trace << ' ' << uint16_t(d->regs_o[r / 2] >> ((r % 2) * 16));
+                trace << std::dec << '\n';
+                if (cycle + 1 >= trace_until) end_trace("boundary");
+            }
+        }
         video_sample();
         dump();
         d->clk_2x_i = 0;
@@ -901,6 +976,8 @@ int main(int argc, char** argv) {
         uint64_t batch_clocks = 0, save_every = 50000000;
         std::string out_dir, script_path, fst = "cpu-waveform.fst";
         bool until_script = false;
+        std::string trace_path;
+        uint64_t trace_clocks = ~0ull;
 #ifdef AT_DISKETTE
         DisketteConfig fd_cfg;
         auto diskette_options = [&](const std::string& o) -> bool {
@@ -925,6 +1002,8 @@ int main(int argc, char** argv) {
             else if (o.rfind("--script=", 0) == 0) script_path = val("--script=");
             else if (o.rfind("--fst=", 0) == 0) fst = val("--fst=");
             else if (o == "--until-script") until_script = true;
+            else if (o.rfind("--trace=", 0) == 0) trace_path = val("--trace=");
+            else if (o.rfind("--trace-clocks=", 0) == 0) trace_clocks = std::stoull(val("--trace-clocks="));
 #ifdef AT_DISKETTE
             else if (diskette_options(o)) {}   // DISKETTE: --fda=/--fdb=
 #endif
@@ -936,11 +1015,19 @@ int main(int argc, char** argv) {
 #endif
                   );
         if (!m.screen.ok()) throw std::runtime_error("8 x 16 font not found in the VGA ROM");
+        if (!trace_path.empty()) {
+            // The constructor powered the machine on: the trace starts at
+            // the first clock after the power-on reset, as in post_runner.
+            m.trace.open(trace_path);
+            if (!m.trace) throw std::runtime_error("cannot open trace " + trace_path);
+            m.trace_until = trace_clocks;
+        }
         Script script;
         if (!script_path.empty()) script.rules = read_script(script_path);
         if (batch_clocks) {
             if (out_dir.empty()) throw std::runtime_error("--batch needs --out=DIR");
             const int rc = batch(m, script, batch_clocks, save_every, out_dir, until_script);
+            if (m.trace.is_open()) m.end_trace("boundary");
 #ifdef AT_DISKETTE
             m.save_diskettes();
 #endif
@@ -984,6 +1071,16 @@ int main(int argc, char** argv) {
                               << ",\"height\":" << m.last_frame.size() << ",\"png\":\""
                               << (m.frame_width ? base64(m.frame_png()) : "") << "\"}" << std::endl;
                     continue;
+                } else if (cmd == "CODES") {
+                    std::cout << "{\"frames\":" << m.frames << ",\"codes\":[";
+                    const auto rows = m.screen.codes(m.last_frame);
+                    for (size_t r = 0; r < rows.size(); r++) {
+                        std::cout << (r ? ",[" : "[");
+                        for (size_t c = 0; c < rows[r].size(); c++) std::cout << (c ? "," : "") << rows[r][c];
+                        std::cout << "]";
+                    }
+                    std::cout << "]}" << std::endl;
+                    continue;
                 } else if (cmd == "TEXT") {
                     std::cout << "{\"frames\":" << m.frames << ",\"screen\":" << screen_json(m.text()) << "}" << std::endl;
                     continue;
@@ -1001,6 +1098,14 @@ int main(int argc, char** argv) {
                     for (unsigned i = 0; i < len; i++) h += hex(m.byte(addr + i), 2);
                     std::cout << "{\"addr\":\"" << hex(addr, 6) << "\",\"hex\":\"" << h << "\"}" << std::endl;
                     continue;
+#ifdef AT_DISKETTE
+                } else if (cmd == "SAVE") {
+                    unsigned unit = 0; std::string path;
+                    in >> unit >> path;
+                    if (unit > 1 || path.empty() || !m.fd || !m.fd->drive[unit].has_medium())
+                        throw std::runtime_error("SAVE 0|1 PATH needs a mounted diskette");
+                    m.fd->save(unit, path);
+#endif
                 } else if (cmd == "CAPTURE") {
                     uint64_t n = 0;
                     in >> n;
@@ -1014,6 +1119,7 @@ int main(int argc, char** argv) {
             }
             (void)t_last;
         }
+        if (m.trace.is_open()) m.end_trace("boundary");
         m.d->final();
 #ifdef AT_DISKETTE
         m.save_diskettes();

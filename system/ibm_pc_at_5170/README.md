@@ -246,7 +246,10 @@ and Diskette Drive Adapter in a slot (`src/at_diskette_adapter.sv`, with
 the repository's `intel_8272`), and the board's two 8237s now move data
 (DMA channel 2, page registers, arbitration with refresh, T/C). Drive A is
 a 1.2 MB drive; images are raw sector files (`--fda=IMG`, `--fdb=IMG`,
-`--fda-type=1.2|360`, `--fda-ro`, `--write-back`). The BIOS's diskette test
+`--fda-type=1.2|360`, `--fda-ro`, `--write-back`): 1.2 MB, 360 KB and
+320 KB, and the 5150's single-sided 160 KB and 180 KB (AT38). Drive B
+(`--fdb-type=360`) needs a CMOS image that declares it
+(`tb/cmos_vga_2fd.hex`, built in with `AT_HOST_CMOS`). The BIOS's diskette test
 passes, so the 601 line is gone from the POST screens. Expansion RAM above
 1 MB is a runner option (`--ext-kb=N`, CMOS image `tb/cmos_vga_2mb.hex`
 for 2 MB).
@@ -267,6 +270,38 @@ independent model of the adapter and controller
 the whole run. See the
 [diskette report](report/2026-11-17-diskette-adapter-and-dma.md) for
 results, timing assumptions (AT25-AT35) and limits.
+
+## 8086/8088 PC compatibility
+
+The AT runs the IBM PC's own diskette software with the same visible
+results as the repository's 8088 machines. `scripts/run_dos_8086.sh`
+drives, through the keyboard only, PC DOS 1.00 (160 KB, single-sided, in
+the 1.2 MB drive A; a blank 160 KB diskette in a 360 KB drive B): date,
+`DIR`, `CHKDSK`, `FORMAT B:`, `COPY TIME.COM B:CLOCK.COM`, `DIR B:`,
+`BASIC` with `PRINT 6*7` and `BASICA DONKEY`; and PC DOS 2.00 (180 KB):
+date, time, `DIR`, `ECHO` and `COPY CON` into files on B:, `TYPE` them,
+`BASIC`. The same keystrokes run on the IBM PC 5150 (DOS 1.00) and the
+PC XT 5160 booted from drive A (DOS 2.00), and `scripts/compare_8086.py`
+compares every step's final screen, CHKDSK's numbers and the files DOS
+wrote on drive B (read by its own FAT12 reader).
+
+```sh
+ROM=$(sh system/ibm_pc_at_5170/scripts/get_bios.sh)
+sh system/ibm_pc_at_5170/scripts/run_dos_8086.sh "$ROM"   # [--no-reference] [--no-oracle]
+```
+
+The media come from the PC and XT systems' pinned, hash-checked
+`prepare_images.py` into their ignored `work/` folders. The AT is built
+with `tb/cmos_vga_2fd.hex` (drive B a 360 KB drive, AT39). Results on
+2026-11-22: all text screens identical except the documented differences
+(CHKDSK's memory, 640 KB against 64 KB; DOS 2.00's time of day, which the
+AT BIOS takes from the MC146818); the DOS 1.00 drive B diskette identical
+byte for byte; the DOS 2.00 diskettes different only in file times.
+BASICA under DOS 1.00 calls DOS through `CALL F01D:FEF0` (1000C0h), which
+works on the AT because the BIOS leaves the A20 gate off; no other
+286-vs-8086 difference (PUSH SP, shift-count masking, 186/286 opcodes) is
+executed by the software. See the
+[8086 compatibility report](report/2026-11-22-8086-compatibility.md).
 
 ## Verification and boundaries
 
@@ -327,7 +362,10 @@ adapter, real DMA and empty 80287 socket: `scripts/run_host_boot.sh`
 boots the 1.2 MB test diskette with zero POST errors, and
 `scripts/run_dos_boot.sh` boots pinned IBM PC DOS 3.00 (`scripts/get_dos.py`),
 runs `DIR`, writes `TEST.TXT`, warm-reboots via `Ctrl+Alt+Del`, and reads
-the file back. Next: fixed disk (1F0h-1F7h) and MS OS/2 1.0; see the
+the file back. `scripts/run_dos_8086.sh` runs the 8088 PC's PC DOS 1.00
+and 2.00 diskette workloads (drive B, 160/180 KB media, FORMAT) and
+compares them with the 8088 machines. Next: fixed disk (1F0h-1F7h) and
+MS OS/2 1.0; see the
 [implementation plan](plans/implementation_plan.md).
 Tracking issue: https://github.com/hevangel/ai_hw_engineer/issues/254.
 
@@ -341,4 +379,5 @@ Tracking issue: https://github.com/hevangel/ai_hw_engineer/issues/254.
 - [M4b part 1 report](report/2026-11-16-m4b-vga.md)
 - [Web front end and keyboard report](report/2026-11-17-web-front-end-and-keyboard.md)
 - [Diskette adapter and DMA report](report/2026-11-17-diskette-adapter-and-dma.md)
+- [8086/8088 compatibility report](report/2026-11-22-8086-compatibility.md)
 - [Verification report](report/final_report.md)

@@ -9,6 +9,9 @@
 # Prints the paths the simulator needs on its last line:
 #   HOST <simulator> <bios> <vga-rom-bin>
 # Environment: AT_HOST_THREADS=N builds a multithreaded model (--threads N).
+# AT_HOST_CMOS=FILE starts the MC146818 from FILE instead of tb/cmos_ega.hex
+# (for example tb/cmos_vga_2fd.hex: drive B a 360 KB drive); use a separate
+# AT_HOST_OBJ directory for each CMOS image, since it is built into the model.
 set -eu
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 SYS_DIR=$(dirname "$SCRIPT_DIR")
@@ -36,6 +39,8 @@ VGA_HEX=$WORK_DIR/vga/firmware/vga_rom.hex
 [ -f "$VGA_BIN" ] && [ -f "$VGA_HEX" ]
 
 THREADS=${AT_HOST_THREADS:-1}
+CMOS=${AT_HOST_CMOS:-$SYS_DIR/tb/cmos_ega.hex}
+[ -f "$CMOS" ]
 OBJ_DIR=${AT_HOST_OBJ:-$OUT_DIR/obj}
 # C++ optimization of the generated model; Verilator's default is -Os.
 OPT=${AT_HOST_OPT:--O2}
@@ -46,7 +51,7 @@ if ! verilator --cc --exe --build -j 8 -O3 -Wall -Wno-SYNCASYNCNET --timescale-o
     -CFLAGS "-std=c++17 -DAT_DISKETTE -I$SYS_DIR/tb" -LDFLAGS "-lz" \
     -MAKEFLAGS "OPT_FAST=$OPT OPT_GLOBAL=$OPT" \
     "-GKBC_ROM_FILE=\"$OUT_DIR/kbc_1503033.hex\"" \
-    "-GRTC_NVRAM_FILE=\"$SYS_DIR/tb/cmos_ega.hex\"" \
+    "-GRTC_NVRAM_FILE=\"$CMOS\"" \
     "-GVGA_ROM_FILE=\"$VGA_HEX\"" \
     --top-module ibm_pc_at_5170_vga_host --Mdir "$OBJ_DIR" $BOARD_RTL $CHANNEL_RTL $VGA_RTL \
     "$SYS_DIR/src/ibm_pc_at_5170_vga.sv" "$SYS_DIR/host/ibm_pc_at_5170_vga_host.sv" \
