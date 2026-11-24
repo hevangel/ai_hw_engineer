@@ -1,6 +1,13 @@
 # IBM PC AT 5170
 
-Milestone M4b part 1: the board has the 80286, timer, DMA and page registers,
+Status: the VGA machine boots unchanged IBM PC DOS 3.00 from diskette, runs
+`DIR`, writes a file, warm-reboots with Ctrl+Alt+Del and reads the file
+back (`scripts/run_dos_boot.sh`; last run 2026-11-24 on `main` at
+`f6d17ef`, pass). There is no fixed disk yet, so the next goals are the
+fixed disk and Microsoft OS/2 1.0. The sections below describe the parts in
+the order they were built.
+
+The board has the 80286, timer, DMA and page registers,
 refresh logic, the 8042 keyboard controller running IBM's own firmware, the
 MC146818 clock, two 8259A interrupt controllers, the math-coprocessor ports
 and the shutdown-to-reset path. A second machine top adds an I/O channel and
@@ -20,7 +27,8 @@ Disk and Diskette Drive Adapter's diskette function in a slot and the
 board's DMA controllers move data: the 601 error is gone, and the VGA
 machine boots a script-built 1.2 MB test diskette whose boot program reads
 the whole diskette, writes a sector and prints PASS (see "Diskette and
-DMA"). No operating system has been booted yet.
+DMA"). With the AT keyboard model in the web/batch host it also boots
+PC DOS 3.00 (see "Verification and boundaries").
 
 A third machine top puts the IBM PS/2 Display Adapter (VGA) in the slot
 instead of the EGA. The same BIOS and the card's BIOS run 16,610,979
@@ -259,8 +267,8 @@ sh system/ibm_pc_at_5170/scripts/run_boot_diskette.sh "$ROM"
 `run_boot_diskette.sh` builds test diskettes with
 `scripts/make_test_diskette.py` (no copyrighted content; the boot program
 is `tb/boot_diskette.S`), powers on the VGA machine, presses F1 at the
-BIOS's 301 prompt with a bench stimulus on the keyboard lines (there is no
-keyboard device yet), lets the BIOS boot drive A and checks the boot
+BIOS's 301 prompt with a bench stimulus on the keyboard lines (this
+runner has no keyboard device; the web/batch host does), lets the BIOS boot drive A and checks the boot
 program's own read/checksum/write test, the written-back image, an
 independent model of the adapter and controller
 (`scripts/check_fdc_log.py`), the 8042 and MC146818 models and Unicorn for
@@ -300,9 +308,14 @@ Limits:
   for the web/batch host integration.)
 - No fixed disk or 80287 (empty socket AT36; idle fixed-disk task file
   AT37); NMI is
-  not connected; only the timer interrupt (IRQ 0) has been taken, and the
-  8259s are checked only by the BIOS's own tests and by the vectors and
-  in-service values seen.
+  not connected. The POST runs take only the timer interrupt (IRQ 0); the
+  diskette and DOS boots also take diskette interrupts (IRQ 6; 211 in the
+  DOS run, 1,096 interrupts in all). The 8259s are checked only by the
+  BIOS's own tests and by the vectors and in-service values seen.
+- The DOS boot is checked only by its screen text and by the file in the
+  written-back diskette image. Unlike the POST and test-diskette runs, it
+  is not compared with Unicorn and does not replay the 8042, MC146818 or
+  diskette logs into their models. No other DOS program has been run.
 - Channel timing is not the real board's (AT18). The video and processor
   clocks have a virtual ratio: the 8042 and the MC146818 run four times
   fast relative to video (AT19).
@@ -327,7 +340,10 @@ adapter, real DMA and empty 80287 socket: `scripts/run_host_boot.sh`
 boots the 1.2 MB test diskette with zero POST errors, and
 `scripts/run_dos_boot.sh` boots pinned IBM PC DOS 3.00 (`scripts/get_dos.py`),
 runs `DIR`, writes `TEST.TXT`, warm-reboots via `Ctrl+Alt+Del`, and reads
-the file back. Next: fixed disk (1F0h-1F7h) and MS OS/2 1.0; see the
+the file back. It passed on 2026-11-17 (#299) and again on 2026-11-24 on
+`main` at `f6d17ef`, after the 80286 review fixes of #296, with the same
+counts (29,043,745 instructions, 460,000,000 clocks, 5 CPU resets).
+Next: fixed disk (1F0h-1F7h) and MS OS/2 1.0; see the
 [implementation plan](plans/implementation_plan.md).
 Tracking issue: https://github.com/hevangel/ai_hw_engineer/issues/254.
 

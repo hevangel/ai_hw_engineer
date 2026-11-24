@@ -42,7 +42,7 @@ operating system has been booted yet.
 | Host wrapper & capture | `scripts/build_host.sh` + `scripts/test_capture.py` | Clean lint on `ibm_pc_at_5170_vga_host`; waveform captures of `1,024`, `4,096` and `65,536` clocks match ordinary runs |
 | Keyboard against 8042 | `scripts/run_keyboard_test.sh` | Pass (`--fda-type=none`, `187,000,000` clocks): reset `FF` -> `AA FA AA`, no `301`, F1 (`3B`/`BB`) resumes POST past `3Fh` and the `0F8h` probe to `43` |
 | Web/batch host diskette boot (AT keyboard) | `scripts/run_host_boot.sh` | Pass (`962 s` wall, `423,466,672` clocks, `27,788,811` instructions): cold power-on without `301` or `601` halts at `0000:7EEC`, screen matches `tb/expected_screen_boot.txt`, DMA `1,209,344`/`512`, `LBA 2399` written back |
-| PC DOS 3.00 diskette boot & warm reboot | `scripts/run_dos_boot.sh` | Pass (`1,118 s` wall, `460,000,000` clocks, `29,043,745` instructions, `5` CPU resets): boots PC DOS 3.00, runs `DIR`, writes `TEST.TXT`, warm-reboots with `Ctrl+Alt+Del`, reads back `HELLO` on screen and `b'HELLO\r\n'` in cluster 255 |
+| PC DOS 3.00 diskette boot & warm reboot | `scripts/run_dos_boot.sh` | Pass (`1,118 s` wall, `460,000,000` clocks, `29,043,745` instructions, `5` CPU resets): boots PC DOS 3.00, runs `DIR`, writes `TEST.TXT`, warm-reboots with `Ctrl+Alt+Del`, reads back `HELLO` on screen and `b'HELLO\r\n'` in cluster 255. Re-run 2026-11-24 on `main` at `f6d17ef` (after the #296 80286 fixes): pass with the same clock, instruction and reset counts (`1,092 s` wall). Checked by screen text and the written image only; no Unicorn or 8042/MC146818/diskette model replay |
 
 Each card machine is checked in one scenario (no added wait states).
 `run_post_card.sh ega|vga` is the one regression for either card;
