@@ -26,6 +26,7 @@ module tb_ibm_s360_cpu;
 
   logic clk = 1'b0;
   logic rst_n = 1'b0;
+  logic ext_timer_req = 1'b0;
   always #5 clk = ~clk;
 
   // ---------------------------------------------------------------------------
@@ -69,6 +70,7 @@ module tb_ibm_s360_cpu;
   ibm_s360_cpu #(.RESET_IA(24'h00_0100)) dut (
       .clk             (clk),
       .rst_n           (rst_n),
+      .ext_timer_req   (ext_timer_req),
       .mem_addr        (mem_addr),
       .mem_we          (mem_we),
       .mem_wdata       (mem_wdata),
@@ -655,7 +657,49 @@ module tb_ibm_s360_cpu;
     check_word(24'h00_002C, 32'h8000_0104, "execute old PSW: ILC 2, IA 0x104");
 
     // =========================================================================
-    // Test 19: directed arithmetic unit, address generation and decode checks.
+    // Test 19: addressing exception (code 5) -- an operand outside the
+    // installed 64 KiB of storage.
+    // =========================================================================
+    start_reset();
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
+    poke_handler(24'h00_0300);
+    poke_word(24'h00_0200, 32'h0001_0000);
+    poke_hex(24'h00_0100, "5810020058201010");   // L 1,0x200; L 2,0x10(1)
+    run_cycles(80);
+
+    check(int_count == 1, "addressing exception did not fire once");
+    check(last_int_code == 16'd5, "addressing exception code is not 5");
+    check_word(24'h00_0028, 32'h0000_0005, "addressing old PSW code");
+    check_word(24'h00_002C, 32'h8000_0108, "addressing old PSW: ILC 2, IA 0x108");
+    check_gpr(2, 32'h0000_0000);            // operand not loaded
+    check_gpr(15, 32'h0000_0304);
+
+    // =========================================================================
+    // Test 20: external (timer) interruption -- taken only when system-mask
+    // bit 7 is set, old/new PSWs at 0x18/0x58, code 0x0080.
+    // =========================================================================
+    start_reset();
+    poke_dw(24'h00_0058, 64'h0000_0000_0000_0300);  // external new PSW
+    poke_handler(24'h00_0300);
+    poke_hex(24'h00_0200, "01000000");              // system mask byte
+    poke_hex(24'h00_0100, "920102008000020041F0010C07FF");
+    run_cycles(40);
+    check(int_count == 0, "timer taken while masked off");
+
+    ext_timer_req = 1'b1;
+    @(posedge clk);
+    #1 ext_timer_req = 1'b0;
+    repeat (40) @(posedge clk);
+    #1;
+
+    check(int_count == 1, "timer interruption did not fire once");
+    check(last_int_code == 16'h0080, "timer interruption code is not 0x0080");
+    check_word(24'h00_0018, 32'h0100_0080, "external old PSW word 0");
+    check_word(24'h00_001C, 32'h4000_010C, "external old PSW word 1 (ILC 1, IA 0x10C)");
+    check_gpr(15, 32'h0000_0304);
+
+    // =========================================================================
+    // Test 21: directed arithmetic unit, address generation and decode checks.
     // =========================================================================
     t_alu(ALU_ADD, 32'd7, 32'd5, 32'd12, 2'd2, 1'b0, "add positive");
     t_alu(ALU_ADD, 32'h7FFF_FFFF, 32'd1, 32'h8000_0000, 2'd3, 1'b1, "add positive overflow");
@@ -713,10 +757,10 @@ module tb_ibm_s360_cpu;
     // Report
     // =========================================================================
     if (errors == 0) begin
-      $display("IBM S360 M5 CORE TESTS PASSED (%0d checks)", checks);
+      $display("IBM S360 M6 CORE TESTS PASSED (%0d checks)", checks);
       $finish;
     end else begin
-      $display("IBM S360 M5 CORE TESTS FAILED: %0d error(s) in %0d checks", errors, checks);
+      $display("IBM S360 M6 CORE TESTS FAILED: %0d error(s) in %0d checks", errors, checks);
       $fatal(1, "testbench failures");
     end
   end

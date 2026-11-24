@@ -43,10 +43,15 @@
 `timescale 1ns/1ps
 
 module ibm_s360_cpu #(
-    parameter logic [23:0] RESET_IA = 24'h00_0100
+    parameter logic [23:0] RESET_IA = 24'h00_0100,
+    // Installed storage. A reference at or beyond this address raises an
+    // addressing exception (A22-6821-7 p. 34, code 5).
+    parameter logic [23:0] MEM_SIZE_BYTES = 24'h01_0000
 ) (
     input  logic        clk,
     input  logic        rst_n,
+    // External-interruption request (interval timer). Held until taken.
+    input  logic        ext_timer_req,
     // Storage port.
     output logic [23:0] mem_addr,
     output logic        mem_we,
@@ -80,6 +85,10 @@ module ibm_s360_cpu #(
   localparam logic [15:0] CODE_OVERFLOW    = 16'd8;
   localparam logic [15:0] CODE_DIVIDE      = 16'd9;
   localparam logic [15:0] CODE_EXECUTE     = 16'd3;
+  localparam logic [15:0] CODE_ADDRESSING  = 16'd5;
+  localparam logic [15:0] CODE_TIMER       = 16'h0080;
+  localparam logic [23:0] EXTERNAL_OLD_PSW = 24'h00_0018;
+  localparam logic [23:0] EXTERNAL_NEW_PSW = 24'h00_0058;
 
   // ---------------------------------------------------------------------------
   // State
@@ -168,6 +177,7 @@ module ibm_s360_cpu #(
   logic [31:0] lpsw_hi_q;
 
   logic        ovf_q;
+  logic        ext_pending_q;   // timer request waiting for an unmasked entry
 
   // ---------------------------------------------------------------------------
   // Decode
@@ -259,6 +269,14 @@ module ibm_s360_cpu #(
   // ---------------------------------------------------------------------------
   // Program-check detection (A22-6821-7 pp. 31, 34, 71-74)
   // ---------------------------------------------------------------------------
+  // Any operand or instruction reference outside installed storage.
+  function automatic logic out_of_range(input logic [23:0] a);
+    out_of_range = (a >= MEM_SIZE_BYTES);
+  endfunction
+
+  logic operand_out_of_range;
+  assign operand_out_of_range = out_of_range(ea);
+
   logic lpsw_unaligned;
   logic privileged;
   logic odd_pair_register;
@@ -267,6 +285,21 @@ module ibm_s360_cpu #(
   logic ex_of_ex;
   logic suppress;
   logic [15:0] suppress_code;
+
+  // Whole-field range check for SS operations, evaluated when the instruction
+  // is about to start (deviation A-8: the core suppresses instead of
+  // terminating part way).
+  logic [23:0] ss_last1, ss_last2;
+  logic        ss_range_bad;
+  assign ss_last1 = ss_addr1 + {15'd0, ib[1]};
+  assign ss_last2 = ss_addr2 + {15'd0, ib[1]};
+  always_comb begin
+    ss_range_bad = ss_op && (out_of_range(ss_addr1) || out_of_range(ss_last1) ||
+                             out_of_range(ss_addr2) || out_of_range(ss_last2));
+    if ((dec.op == OP_TR) || (dec.op == OP_TRT)) begin
+      ss_range_bad = ss_range_bad || out_of_range(ss_addr2 + 24'h00_00FF);
+    end
+  end
 
   assign privileged = (dec.op == OP_LPSW) || (dec.op == OP_SSM);
   assign lpsw_unaligned = (dec.op == OP_LPSW) && (ea[2:0] != 3'b000);
@@ -287,6 +320,9 @@ module ibm_s360_cpu #(
     end else if (ex_of_ex) begin
       suppress      = 1'b1;
       suppress_code = CODE_EXECUTE;
+    end else if (operand_out_of_range) begin
+      suppress      = 1'b1;
+      suppress_code = CODE_ADDRESSING;
     end else if (lpsw_unaligned || odd_pair_register || odd_halfword_address ||
                  ex_odd_address) begin
       suppress      = 1'b1;
@@ -700,6 +736,7 @@ module ibm_s360_cpu #(
       lpsw_lo_q    <= 32'd0;
       lpsw_hi_q    <= 32'd0;
       ovf_q        <= 1'b0;
+      ext_pending_q <= 1'b0;
       for (int i = 0; i < GPR_COUNT; i++) begin
         gpr[i] <= 32'd0;
       end
@@ -707,9 +744,22 @@ module ibm_s360_cpu #(
         ib[i] <= 8'd0;
       end
     end else begin
+      if (ext_timer_req) begin
+        ext_pending_q <= 1'b1;
+      end
       unique case (state)
         S_CHECK: begin
-          if (psw_wait) begin
+          // An external (timer) interruption is accepted before any fetch and
+          // also ends the wait state (A22-6821-7 p. 17). A masked request
+          // stays pending until the system-mask bit 7 is set.
+          if (ext_pending_q && psw_word[56]) begin
+            int_code_q     <= CODE_TIMER;
+            int_psw_q      <= {psw_word[63:48], CODE_TIMER, psw_word[31:0]};
+            int_old_addr_q <= EXTERNAL_OLD_PSW;
+            int_new_addr_q <= EXTERNAL_NEW_PSW;
+            ext_pending_q  <= 1'b0;
+            state          <= S_INT_OLD0;
+          end else if (psw_wait) begin
             state <= S_CHECK;
           end else if (int_pending_q) begin
             state <= S_INT_OLD0;
@@ -950,7 +1000,15 @@ module ibm_s360_cpu #(
               next_ia_q <= branch_taken ? branch_target : ex_return_ia_q;
               ilc_q     <= 2'd2;
             end
-            if (dec.op == OP_LPSW) begin
+            if (ss_op && ss_range_bad) begin
+              int_code_q     <= CODE_ADDRESSING;
+              int_psw_q      <= {psw_word[63:48], CODE_ADDRESSING, ilc_q,
+                                 psw_word[29:24], (ia_cur + {20'd0, len_q})};
+              int_pending_q  <= 1'b1;
+              int_old_addr_q <= PROGRAM_OLD_PSW;
+              int_new_addr_q <= PROGRAM_NEW_PSW;
+              state          <= S_CHECK;
+            end else if (dec.op == OP_LPSW) begin
               state <= S_LPSW_LO;
             end else if (dec.op == OP_EX) begin
               state <= S_FETCH;
