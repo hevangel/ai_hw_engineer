@@ -50,9 +50,9 @@
     "cover": 4
   },
   "formal/intel_80286_props.sv": {
-    "assert": 441,
+    "assert": 442,
     "assume": 1,
-    "cover": 54
+    "cover": 52
   },
   "formal/intel_80286_segment_check_props.sv": {
     "assert": 8,

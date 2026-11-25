@@ -29,11 +29,16 @@ references:
   page-register and refresh tests.
 
 The issue #284 review (protected-mode fault rules, CPL, interrupt shadows)
-is fixed; see the [final report](report/final_report.md) for each finding,
-the release-gate results and the known limits, and the
+and single-pass release-gate closure are complete: `sh design/intel_80286/scripts/run_all.sh`
+runs end-to-end in one pass (`40/40` audited formal tasks passing, `52/52`
+connected-core covers reached via blind depth-15 `cover` + Yosys `sim -assert`
+primary-input witnesses, `16` mutation suites pattern-checked) and passes all
+simulation, oracle, software, and synthesis gates. See the
+[release-gate closure report](report/2026-11-24-release-gate-closure.md),
+the [final report](report/final_report.md) for the #284 findings and release-gate
+summary, and the
 [post-mortem](../../failure_notes/2026-11-22-intel80286-review-284-fault-rules.md).
-Run the release gate with `sh design/intel_80286/scripts/run_all.sh`. What
-remains for a complete 80286 is listed in
+What remains for a complete 80286 is listed in
 [the completion requirements](plans/completion_requirements.md); the
 [2026-11-24 handoff](../../plans/286/2026-11-24-handoff.md) lists it in
 priority order with the latest verified results. The earlier
@@ -41,6 +46,9 @@ append-only status log is archived in
 [report/2026-11-22-readme-status-log.md](report/2026-11-22-readme-status-log.md).
 
 ## Relevant documents
+
+- [Single-pass release-gate closure report (2026-11-24)](report/2026-11-24-release-gate-closure.md)
+- [Verification final report](report/final_report.md)
 
 - [Processor specification](spec/spec.md)
 - [Native 80286 local-bus interface contract](spec/native_bus_interface.md)

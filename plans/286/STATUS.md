@@ -1,3 +1,32 @@
+## Single-pass release gate & connected-core cover closure — 2026-11-24
+
+- **Single-pass `run_all.sh` PASSED.** Executed
+  `sh design/intel_80286/scripts/run_all.sh --work-dir design/intel_80286/work/release_20261124`
+  end-to-end inside `ai-hw-engineer:latest` in `12,907 s` (`3 h 35 m 07 s`, exit `0`)
+  on frozen sources (`src/intel_80286.sv` SHA-256
+  `5dc923fc3573b17c04e65e4e5072745d79631c89cbbe440400dec41b2eda6c81`,
+  `formal/intel_80286_props.sv` SHA-256
+  `b02d3d3f2c5c92d0bf1a985709a0886674f1b774ba9cc0270deb6e0e607f6b5f`).
+- **40/40 formal audit PASS & 52/52 core covers reached.** Resolved the
+  connected-core cover hang by removing the two provably unreachable
+  `fault_code_o == 2/3` covers (replacing with proven invariant
+  `if (rst_n) assert(fault_code_o <= 2'd1);`), reaching `14/14` `cov_shallow_*`
+  covers blindly in `intel_80286_cover` (`depth 15`, `1,100 s`), and verifying all
+  `38/38` `cov_deep_*` covers across 11 deterministic primary-input traces via
+  Yosys formal `sim -q -assert` (no `-zinit`, `560` `$assert` + `6` `$assume`
+  + `52` `$cover` active) in `81 s`. `intel_80286_bmc` (`5,989 s`),
+  `intel_80286_prove` (`1,014 s`), and all `36/36` component tasks pass.
+- **Full non-formal & widened mutation pattern checks PASS.** `scripts/check_mutation_patterns.py`
+  now checks all `16` mutation suites (`119` patterns, all matching cleanly);
+  strict lint, `88` unit tests, directed sims, Harris-286 captures, `4` runtime
+  mutation suites (`29/29`), IBM AT BIOS software, PCE-286 oracle (`3,019`
+  scenarios: `2,926` pass, `93` waived, `0` mismatch), and `13`-target Yosys
+  synthesis all passed in the same frozen-tree run.
+- See [the release-gate closure report](../../design/intel_80286/report/2026-11-24-release-gate-closure.md)
+  and [the final report](../../design/intel_80286/report/final_report.md). Issue
+  `#80` remains open for OS/2 `CPGREP.EXE`, broader ISA/protected-mode/native
+  timing coverage, and silicon verification of `A31`/`A47`/`A48`.
+
 ## Memory bank selection wiring — 2026-10-30
 
 The type-1 U72 PROM address wiring, U63 and U64 transparent latch have a

@@ -341,6 +341,10 @@
                 assert(!$past(state==SEGMENT_LOAD_WAIT));
                 assert(!$past(state==FAR_RETURN_DONE));
             end
+            // Development stops 2 (deleted in f1b8e4a8) and 3 (every entry path
+            // excluded above) are unreachable; only fault_code_o==1 (0F 04h stop
+            // boundary) remains reachable.
+            if (rst_n) assert(fault_code_o <= 2'd1);
             // LOADALL reads its 102-byte physical image in 17 chunks of six
             // bytes from 000800h, only for 0F 05h outside CPL>0 (Intel note).
             if (rst_n && (state==LOADALL_READ || state==LOADALL_COMMIT ||
@@ -936,13 +940,13 @@
             if (state==STRING_BOUNDARY || state==STRING_POLL) begin
                 assert(string_op && repeat_valid && gpr[1]!=0);
             end
-            cover(event_o && event_vector_o==2);
-            cover(inta_req_o && !inta_ready_i);
-            cover(event_o && event_vector_o==8'h20);
-            cover(event_o && witnessed_async && event_vector_o==2);
-            cover(event_o && witnessed_async && witnessed_halt);
-            cover(event_o && witnessed_async && witnessed_rep);
-            cover(event_o && witnessed_async && witnessed_debug && event_vector_o==1);
+            cov_deep_nmi_event: cover(event_o && event_vector_o==2);
+            cov_shallow_inta_stall: cover(inta_req_o && !inta_ready_i);
+            cov_deep_intr_vec20: cover(event_o && event_vector_o==8'h20);
+            cov_deep_async_nmi: cover(event_o && witnessed_async && event_vector_o==2);
+            cov_deep_async_halt: cover(event_o && witnessed_async && witnessed_halt);
+            cov_deep_async_rep: cover(event_o && witnessed_async && witnessed_rep);
+            cov_deep_async_debug_tf: cover(event_o && witnessed_async && witnessed_debug && event_vector_o==1);
             // Strengthen induction with the real continuation invariant rather
             // than assuming arbitrary memory-return encodings are reachable.
             assert(memory_return == FETCH || memory_return == EXECUTE || memory_return == COMMIT_MEMORY ||
@@ -1465,10 +1469,10 @@
             end
             if (retire_o && $past(state == EXECUTE && opcode >= 8'h70 && opcode <= 8'h7f))
                 assert(ip_o == ($past(ip_o) + ($past(jump_taken) ? {{8{$past(immediate[7])}},$past(immediate[7:0])} : 16'h0000)));
-            cover(rst_n && bus_req_o && bus_addr_o == 24'hfffff0);
-            cover(retire_o && retire_opcode_o == 8'hea && cs_base_o == 24'h0f0000);
-            cover(retire_o && retire_opcode_o == 8'hb8 && regs_o[15:0] == 16'h1234);
-            cover(halted_o);
+            cov_shallow_reset_fetch: cover(rst_n && bus_req_o && bus_addr_o == 24'hfffff0);
+            cov_shallow_real_far_jmp: cover(retire_o && retire_opcode_o == 8'hea && cs_base_o == 24'h0f0000);
+            cov_shallow_mov_ax_1234: cover(retire_o && retire_opcode_o == 8'hb8 && regs_o[15:0] == 16'h1234);
+            cov_shallow_halted: cover(halted_o);
             if (rst_n && shutdown_pending && !shutdown_recovery_active) begin
                 assert(shutdown_o && halted_o && !bus_req_o);
                 assert(!fault_o);
@@ -1499,24 +1503,23 @@
             // IDT task gate); no instruction executes until it commits.
             if (rst_n && shutdown_recovery_active && task_switch_active)
                 assert(task_switch_from_event && !task_return_active);
-            cover(shutdown_recovery_active && event_packet.valid &&
+            cov_deep_shutdown_nmi_prot: cover(shutdown_recovery_active && event_packet.valid &&
                   event_packet.protected_mode && event_packet.vector==2);
-            cover(shutdown_nmi_failed && shutdown_pending && !shutdown_recovery_active);
-            cover(fault_o && fault_code_o == 1);
-            cover(fault_o && fault_code_o == 2);
-            cover(retire_o && retire_opcode_o == 8'hd2);
-            cover(retire_o && retire_opcode_o == 8'h83);
-            cover(bus_req_o && bus_write_o && !bus_io_o);
-            cover(bus_req_o && bus_write_o && bus_io_o);
-            cover(retire_o && retire_opcode_o == 8'he8);
-            cover(retire_o && retire_opcode_o == 8'hf7 && modrm[5:3]==6);
-            cover(event_o && event_vector_o==0);
-            cover(retire_o && retire_opcode_o == 8'h60);
-            cover(retire_o && retire_opcode_o == 8'hc8);
-            cover(retire_o && retire_opcode_o == 8'h9a);
-            cover(retire_o && retire_opcode_o == 8'h62);
-            cover(event_o && event_vector_o==5);
-            cover(event_o && event_vector_o==6 && !retire_o && opcode==8'h64);
+            cov_deep_shutdown_nmi_failed: cover(shutdown_nmi_failed && shutdown_pending && !shutdown_recovery_active);
+            cov_shallow_stop_code1: cover(fault_o && fault_code_o == 1);
+            cov_shallow_shift_cl: cover(retire_o && retire_opcode_o == 8'hd2);
+            cov_shallow_alu_imm8: cover(retire_o && retire_opcode_o == 8'h83);
+            cov_shallow_mem_write: cover(bus_req_o && bus_write_o && !bus_io_o);
+            cov_shallow_io_write: cover(bus_req_o && bus_write_o && bus_io_o);
+            cov_deep_near_call: cover(retire_o && retire_opcode_o == 8'he8);
+            cov_deep_div16: cover(retire_o && retire_opcode_o == 8'hf7 && modrm[5:3]==6);
+            cov_deep_div_zero_vec0: cover(event_o && event_vector_o==0);
+            cov_deep_pusha: cover(retire_o && retire_opcode_o == 8'h60);
+            cov_deep_enter: cover(retire_o && retire_opcode_o == 8'hc8);
+            cov_deep_real_far_call: cover(retire_o && retire_opcode_o == 8'h9a);
+            cov_deep_bound_retire: cover(retire_o && retire_opcode_o == 8'h62);
+            cov_deep_bound_vec5: cover(event_o && event_vector_o==5);
+            cov_deep_ud_64h_vec6: cover(event_o && event_vector_o==6 && !retire_o && opcode==8'h64);
             // Real mode: exception 8, or exception 13 (a fault), outside the
             // IDT limit shuts down (1985 PRM App. A "Shutdown").
             if (rst_n && $past(rst_n && state==EVENT_START && !event_packet.protected_mode &&
@@ -1634,36 +1637,35 @@
                 assert(event_packet.instruction_retired && !event_packet.restartable &&
                        !event_packet.external &&
                        event_packet.vector==(opcode==8'hcc ? 8'd3 : opcode==8'hce ? 8'd4 : immediate[7:0]));
-            cover(event_o && event_vector_o==13 && !retire_o);
-            cover(bus_owner==2 && bus_req_o && event_packet.protected_mode &&
+            cov_deep_vec13_fault: cover(event_o && event_vector_o==13 && !retire_o);
+            cov_deep_prot_event_gate_tail: cover(bus_owner==2 && bus_req_o && event_packet.protected_mode &&
                   memory_return==EVENT_GATE_TAIL && bus_addr_o==idt_base+{13'h0,event_vector_o,3'b000});
-            cover(state==EVENT_FRAME_ERROR && event_delivery_active && memory_write);
-            cover(state==IRET_COMMIT && protected_iret_active && code_load_target==2);
-            cover(retire_o && retire_opcode_o==8'hea && msw[0] && cs_base_o==24'h010000);
-            cover(retire_o && retire_opcode_o==8'h8e && msw[0] && segment_load_target==3 && ds_base!=0);
-            cover(retire_o && retire_opcode_o==8'h8e && msw[0] && segment_load_target==0 && es_base!=0);
-            cover(retire_o && retire_opcode_o==8'h8e && msw[0] && segment_load_target==2 && ss_base!=0);
-            cover(retire_o && retire_opcode_o==8'h1f && msw[0] && ds_base!=0);
-            cover(retire_o && retire_opcode_o==8'hc5 && msw[0] && ds_base!=0);
-            cover(bus_owner==2 && event_bus_req && bus_ready_i);
-            cover(event_o && event_vector_o==8 && !retire_o && witnessed_vector_limit);
-            cover(rst_n && state==EVENT_START && event_packet.valid &&
+            cov_deep_prot_event_frame_error: cover(state==EVENT_FRAME_ERROR && event_delivery_active && memory_write);
+            cov_deep_prot_iret_commit: cover(state==IRET_COMMIT && protected_iret_active && code_load_target==2);
+            cov_deep_prot_far_jmp: cover(retire_o && retire_opcode_o==8'hea && msw[0] && cs_base_o==24'h010000);
+            cov_deep_prot_mov_ds: cover(retire_o && retire_opcode_o==8'h8e && msw[0] && segment_load_target==3 && ds_base!=0);
+            cov_deep_prot_mov_es: cover(retire_o && retire_opcode_o==8'h8e && msw[0] && segment_load_target==0 && es_base!=0);
+            cov_deep_prot_mov_ss: cover(retire_o && retire_opcode_o==8'h8e && msw[0] && segment_load_target==2 && ss_base!=0);
+            cov_deep_prot_pop_ds: cover(retire_o && retire_opcode_o==8'h1f && msw[0] && ds_base!=0);
+            cov_deep_prot_lds: cover(retire_o && retire_opcode_o==8'hc5 && msw[0] && ds_base!=0);
+            cov_shallow_event_bus: cover(bus_owner==2 && event_bus_req && bus_ready_i);
+            cov_deep_real_idt_limit_df: cover(event_o && event_vector_o==8 && !retire_o && witnessed_vector_limit);
+            cov_deep_prot_nested_df: cover(rst_n && state==EVENT_START && event_packet.valid &&
                   event_packet.vector==8 && event_packet.error_present &&
                   event_packet.error_code==0 &&
                   $past(rst_n && nested_df_idt_limit_escalation));
-            cover(retire_o && retire_opcode_o == 8'hd7);
-            cover(element_o && !retire_o && repeat_valid);
-            cover(retire_o && retire_opcode_o==8'ha4 && repeat_valid);
-            cover(retire_o && retire_opcode_o==8'ha6 && repeat_valid && gpr[1]!=0);
-            cover(element_o && opcode==8'h6c);
-            cover(retire_o && retire_opcode_o==8'h37 && gpr[0]==16'h0100);
-            cover(retire_o && retire_opcode_o==8'hd4);
-            cover(retire_o && opcode==8'h0f && system_opcode==1 && modrm[5:3]==0);
-            cover(retire_o && opcode==8'h0f && system_opcode==1 && modrm[5:3]==2 && gdt_base!=0);
-            cover(msw[3] && retire_o && opcode==8'h0f);
-            cover(fault_o && fault_code_o==3);
-            cover(retire_o && opcode==8'h8e && modrm[4:3]==2 && ss_base!=0);
-            cover(retire_o && opcode==8'hc5 && ds_base!=0);
+            cov_shallow_xlat: cover(retire_o && retire_opcode_o == 8'hd7);
+            cov_deep_rep_element: cover(element_o && !retire_o && repeat_valid);
+            cov_shallow_rep_movsb_retire: cover(retire_o && retire_opcode_o==8'ha4 && repeat_valid);
+            cov_deep_repe_cmpsb_early: cover(retire_o && retire_opcode_o==8'ha6 && repeat_valid && gpr[1]!=0);
+            cov_deep_insb_element: cover(element_o && opcode==8'h6c);
+            cov_deep_aaa_0100: cover(retire_o && retire_opcode_o==8'h37 && gpr[0]==16'h0100);
+            cov_deep_aam: cover(retire_o && retire_opcode_o==8'hd4);
+            cov_deep_sgdt: cover(retire_o && opcode==8'h0f && system_opcode==1 && modrm[5:3]==0);
+            cov_deep_lgdt_nonzero: cover(retire_o && opcode==8'h0f && system_opcode==1 && modrm[5:3]==2 && gdt_base!=0);
+            cov_deep_msw_ts_0f: cover(msw[3] && retire_o && opcode==8'h0f);
+            cov_shallow_real_mov_ss: cover(retire_o && opcode==8'h8e && modrm[4:3]==2 && ss_base!=0);
+            cov_deep_real_lds: cover(retire_o && opcode==8'hc5 && ds_base!=0);
         end
     end
 `undef I286P_DELIVERY_OUTCOME
