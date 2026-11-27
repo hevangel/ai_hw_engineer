@@ -11,6 +11,7 @@
 // requires.
 #include "Vintel_8087.h"
 #include "verilated.h"
+#include <algorithm>
 #include <array>
 #include <cfloat>
 #include <cmath>
@@ -366,6 +367,83 @@ static void arrsum(Bench &b) {
     std::cout << "PASS original Intel ARRSUM numeric software on the 80387\n";
 }
 
+
+// ------------------------------------------------- transcendentals (M2)
+// Values are compared within a ULP bound (spec A1: results are not
+// bit-specified); exceptional classes, flags IE/D/ZE/SF, C2, TOP and tags
+// are compared exactly. The maximum observed error is reported per form.
+struct TStats { uint64_t run = 0, fail = 0; double max_ulp = 0; std::string first; };
+static std::map<std::string, TStats> tstats;
+static double ulp_diff(const uint8_t *h, const Ext &d) {
+    long double a, b; std::memcpy(&a, h, 10); std::memcpy(&b, d.data(), 10);
+    if (a == b) return 0;
+    int e; std::frexp(a, &e);
+    long double ulp = std::max(std::ldexp(1.0L, e - 64), std::ldexp(1.0L, -16445));
+    return double(std::fabs(a - b) / ulp);
+}
+static void trans_case(Bench &b, Host &h, const char *name, uint8_t md, const Ext &x1, const Ext &x0, double tol) {
+    Op op{name, {0xd9, md}, 0, false, false};
+    uint8_t hmem[16] = {0}, save[108];
+    h.run(op.bytes, 0x037f, x1, x0, hmem, save, false);
+    b.init(); b.cw(0x037f); b.load(x1); b.load(x0);
+    bool unsupported = b.cmd(0xd9, md);
+    auto &s = tstats[name]; ++s.run;
+    uint16_t hsw, htw; std::memcpy(&hsw, save + 4, 2); std::memcpy(&htw, save + 8, 2);
+    uint16_t dsw = b.d.status_o, dtw = b.d.tags_o;
+    const uint16_t m = 0x3c47;   // IE, D, ZE, SF, C2, TOP
+    std::ostringstream why;
+    if (unsupported) why << "rejected";
+    else if ((hsw & m) != (dsw & m)) why << "sw host=" << std::hex << hsw << " dut=" << dsw;
+    else if (htw != dtw) why << "tags host=" << std::hex << htw << " dut=" << dtw;
+    else for (unsigned i = 0; i < 8 && why.str().empty(); ++i) {
+        if (((htw >> (2 * ((((hsw >> 11) & 7) + i) & 7))) & 3) == 3) continue;
+        Ext got = b.st(i);
+        const uint8_t *hv = save + 28 + 10 * i;
+        uint16_t se; std::memcpy(&se, hv + 8, 2);
+        uint64_t hm; std::memcpy(&hm, hv, 8);
+        bool special = (se & 0x7fff) == 0x7fff || ((se & 0x7fff) == 0 && hm == 0);
+        if (special) { if (std::memcmp(got.data(), hv, 10)) why << "ST" << i << " host=" << hex(hv, 10) << " dut=" << hex(got); }
+        else {
+            double u = ulp_diff(hv, got);
+            if (u > s.max_ulp) s.max_ulp = u;
+            if (!(u <= tol)) why << "ST" << i << " " << u << " ulp host=" << hex(hv, 10) << " dut=" << hex(got);
+        }
+    }
+    if (!why.str().empty()) {
+        ++s.fail;
+        if (s.first.empty()) s.first = std::string(name) + " st0=" + hex(x0) + " st1=" + hex(x1) + ": " + why.str();
+    }
+}
+static void transcendentals(Bench &b, Host &h, unsigned n, uint64_t seed, double tol) {
+    std::mt19937_64 r(seed ^ 0x7ac);
+    auto uni = [&](long double lo, long double hi) { return lo + (hi - lo) * (long double)(r() >> 11) / (long double)(1ULL << 53); };
+    auto special = [&]() {
+        switch (r() % 9) {
+        case 0: return encoded((r() & 1) ? 0x8000 : 0, 0);
+        case 1: return encoded(((r() & 1) ? 0x8000 : 0) | 0x7fff, 1ULL << 63);
+        case 2: return encoded(0x7fff, 0xc000000000000000ULL | (r() >> 2));
+        case 3: return encoded(0x7fff, 0x8000000000000000ULL | ((r() >> 2) | 1));
+        case 4: return encoded(uint16_t(((r() & 1) ? 0x8000 : 0) | (0x403e + r() % 30)), r() | (1ULL << 63));
+        case 5: return encoded((r() & 1) ? 0x8000 : 0, (r() >> 1) | 1);
+        case 6: return encoded(uint16_t(1 + r() % 0x7ffe), r() & ~(1ULL << 63));
+        default: return encoded(uint16_t(((r() & 1) ? 0x8000 : 0) | (0x3fff - 70 + r() % 140)), r() | (1ULL << 63));
+        }
+    };
+    for (unsigned k = 0; k < n; ++k) {
+        long double range[] = {0.78L, 10.0L, 1e6L, 1e18L};
+        long double t = uni(-range[k % 4], range[k % 4]);
+        Ext x = bits(t), y = bits(uni(-100, 100));
+        if (k % 10 == 0) x = special();
+        for (uint8_t md : {0xfe, 0xff, 0xfb, 0xf2})
+            trans_case(b, h, md == 0xfe ? "FSIN" : md == 0xff ? "FCOS" : md == 0xfb ? "FSINCOS" : "FPTAN", md, y, x, tol);
+        Ext ax = bits(uni(-1e3, 1e3) * std::pow(10.0L, int(r() % 7) - 3)), ay = bits(uni(-1e3, 1e3) * std::pow(10.0L, int(r() % 7) - 3));
+        if (k % 8 == 0) ax = special(); else if (k % 8 == 1) ay = special();
+        trans_case(b, h, "FPATAN", 0xf3, ay, ax, tol);
+        trans_case(b, h, "F2XM1", 0xf0, y, bits(uni(-1, 1)), tol);
+        trans_case(b, h, "FYL2X", 0xf1, y, bits(std::fabs(uni(1e-6, 1e6))), tol);
+        trans_case(b, h, "FYL2XP1", 0xf9, y, bits(uni(-0.29L, 0.29L)), tol);
+    }
+}
 int main(int argc, char **argv) {
     Verilated::commandArgs(argc, argv);
     unsigned per_op = argc > 1 ? unsigned(std::stoul(argv[1])) : 2000;
@@ -378,6 +456,8 @@ int main(int argc, char **argv) {
         arrsum(b);
         constants(b, h);
         differential(b, h, per_op, seed);
+        double tol = argc > 3 ? std::stod(argv[3]) : 8.0;   // ULP bound
+        transcendentals(b, h, per_op / 4 + 1, seed, tol);
         uint64_t run = 0, fail = 0;
         for (auto &s : stats) {
             run += s.second.run; fail += s.second.fail;
@@ -386,7 +466,17 @@ int main(int argc, char **argv) {
             if (s.second.fail) std::cout << "  first: " << s.second.first;
             std::cout << "\n";
         }
-        std::cout << "TOTAL differential " << run - fail << "/" << run << " match; " << checks
+        uint64_t trun = 0, tfail = 0;
+        for (auto &t : tstats) {
+            trun += t.second.run; tfail += t.second.fail;
+            std::cout << (t.second.fail ? "TRANS-MISMATCH " : "TRANS-MATCH    ") << std::left << std::setw(9) << t.first
+                      << " " << t.second.run - t.second.fail << "/" << t.second.run << "  max " << t.second.max_ulp << " ulp";
+            if (t.second.fail) std::cout << "  first: " << t.second.first;
+            std::cout << "\n";
+        }
+        std::cout << "TOTAL transcendental " << trun - tfail << "/" << trun << " within tolerance\n";
+        fail += tfail;
+        std::cout << "TOTAL differential " << run - fail + tfail << "/" << run << " match; " << checks
                   << " directed checks; " << b.cycles << " cycles\n";
         return fail ? 1 : 0;
     } catch (const std::exception &e) {

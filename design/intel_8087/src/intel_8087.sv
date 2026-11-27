@@ -64,7 +64,9 @@ module intel_8087 #(
     logic alu_round,write_command,bad_encoding,begin_trans,blocked;
     logic [2:0] trans_op;
     logic trans_done;
-    logic [79:0] trans_result;
+    logic [79:0] trans_result,trans_result2;
+    logic [79:0] value2;
+    logic t_two,t_push,t_trig,t_general,t_range;
     logic pending;
     logic [2:0] group;
     logic memory_form;
@@ -188,7 +190,7 @@ module intel_8087 #(
     intel_8087_alu #(.VARIANT(VARIANT)) alu(.enable_i(state==EXEC),.a_i(alu_a),.b_i(alu_b),.op_i(alu_op),.control_i(cw_q),
         .result_o(alu_result),.exceptions_o(alu_flags),.rounded_up_o(alu_round),.condition_o(alu_cc));
     intel_8087_trans #(.VARIANT(VARIANT)) trans(.clk(clk),.rst_n(rst_n),.start_i(state==TRANS_START),
-        .op_i(trans_op),.x_i(st0),.y_i(st1),.done_o(trans_done),.result_o(trans_result));
+        .op_i(trans_op),.x_i(st0),.y_i(st1),.done_o(trans_done),.result_o(trans_result),.result2_o(trans_result2));
     always_comb begin
         alu_a=st0; alu_b=source; alu_op=0;
         if(!memory_form&&(opcode==8'hdc||opcode==8'hde)) begin alu_a=sti; alu_b=st0; end
@@ -228,6 +230,9 @@ module intel_8087 #(
             8'hf1:trans_op=1;
             8'hf2:trans_op=2;
             8'hf3:trans_op=3;
+            8'hfe:trans_op=5;
+            8'hff:trans_op=6;
+            8'hfb:trans_op=7;
             default:trans_op=4;
         endcase
     end
@@ -392,7 +397,8 @@ module intel_8087 #(
         next_inst_sel=inst_sel; next_operand_sel=operand_sel; next_pm=pm_q;
         stack_fault=0; stack_c1=0; ax_request=0;
         write_buffer=0; write_command=0; bad_encoding=0; begin_trans=0;
-        flags=0; converted=0; value=0; exponent=0; blocked=0;
+        flags=0; converted=0; value=0; value2=0; exponent=0; blocked=0;
+        t_two=0; t_push=0; t_trig=0; t_general=0; t_range=0;
         if(state==EXEC||state==TRANS_WAIT||state==WRITE) begin
         if(opcode<8'hd8||opcode>8'hdf) bad_encoding=1;
         else if((opcode==8'hd8||opcode==8'hdc||opcode==8'hda||opcode==8'hde)&&
@@ -492,7 +498,59 @@ module intel_8087 #(
                     8'he8:push_value(ONE);
                     8'he9,8'hea,8'heb,8'hec,8'hed:push_value(fp_constant(modrm[2:0],cw_q[11:10]));
                     8'hee:push_value(80'd0);
-                    8'hf0,8'hf1,8'hf2,8'hf3,8'hf9:begin
+                    8'hf0,8'hf1,8'hf2,8'hf3,8'hf9,8'hfe,8'hff,8'hfb:if(VARIANT==2) begin
+                        // 80387 transcendentals (387PRM 4.6, App. C.4):
+                        // FSIN/FCOS/FSINCOS/FPTAN take |x| < 2^63 (else C2=1
+                        // and ST is unchanged); FPATAN is unrestricted.
+                        t_two=modrm==8'hf1||modrm==8'hf3||modrm==8'hf9;
+                        t_push=modrm==8'hf2||modrm==8'hfb;
+                        t_trig=modrm==8'hf2||modrm==8'hfe||modrm==8'hff||modrm==8'hfb;
+                        need_top();
+                        if(t_two&&tags_q[index_one*2+:2]==3) stack_underflow();
+                        if(t_push&&tags_q[index_push*2+:2]!=3) stack_overflow();
+                        value=FP_INDEF; value2=FP_INDEF;
+                        if(flags[0]) begin end
+                        else if(fp_bad(st0)||(t_two&&fp_bad(st1))) flags[0]=1;
+                        else if(fp_nan(st0)||(t_two&&fp_nan(st1))) begin
+                            flags[0]=fp_snan(st0)||(t_two&&fp_snan(st1));
+                            if(t_two&&fp_nan(st0)&&fp_nan(st1)) begin
+                                if(fp_snan(st0)!=fp_snan(st1)) value=fp_snan(st0) ? st1:st0;
+                                else if(st0[63:0]==st1[63:0]) value=(st1[79]&&!st0[79]) ? st0:st1;
+                                else value=(st0[63:0]>st1[63:0]) ? st0:st1;
+                            end else value=fp_nan(st0) ? st0:st1;
+                            value[62]=1; value2=value;
+                        end else if(t_trig&&!fp_inf(st0)&&st0[78:64]>=15'h403e) t_range=1;
+                        else if(t_trig&&fp_inf(st0)) flags[0]=1;
+                        else if((t_trig||modrm==8'hf0)&&fp_zero(st0)) begin
+                            value=modrm==8'hff ? ONE:st0; value2=ONE;
+                        end else if(modrm==8'hf3&&(fp_zero(st0)||fp_zero(st1)||fp_inf(st0)||fp_inf(st1))) begin
+                            // FPATAN(y=ST1, x=ST0) special operands.
+                            if(fp_zero(st1)) value=st0[79] ? 80'h4000c90fdaa22168c235 : 80'd0;
+                            else if(fp_inf(st1)) value=fp_inf(st0) ? (st0[79] ? 80'h400096cbe3f9990e91a8 : 80'h3ffec90fdaa22168c235)
+                                                                   : 80'h3fffc90fdaa22168c235;
+                            else if(fp_zero(st0)) value=80'h3fffc90fdaa22168c235;
+                            else value=st0[79] ? 80'h4000c90fdaa22168c235 : 80'd0;
+                            value[79]=st1[79];
+                            if(!fp_zero(value)) flags[5]=1;
+                        end else t_general=1;
+                        if(t_general) begin
+                            if((st0[78:64]==0&&st0[63:0]!=0)||(t_two&&st1[78:64]==0&&st1[63:0]!=0)) flags[1]=1;
+                            begin_trans=1;
+                        end
+                        if(!t_general||(state==TRANS_WAIT&&trans_done)) begin
+                            if(t_general) begin
+                                value=trans_result; value2=modrm==8'hfb ? trans_result2:ONE; flags[5]=1;
+                            end
+                            if(t_range) begin end
+                            else if(t_two) begin pop_value(); put_value(next_top,value); end
+                            else begin
+                                put_value(top_q,value);
+                                if(t_push) push_value(value2);
+                            end
+                        end
+                        if(t_trig) next_sw[10]=t_range;
+                    end else if(modrm==8'hfe||modrm==8'hff||modrm==8'hfb) bad_encoding=1;
+                    else begin
                         need_top();
                         if(modrm==8'hf1||modrm==8'hf3||modrm==8'hf9) if(tags_q[index_one*2+:2]==3) stack_underflow();
                         if(modrm==8'hf2&&tags_q[index_push*2+:2]!=3) stack_overflow();

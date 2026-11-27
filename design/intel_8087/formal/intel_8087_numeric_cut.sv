@@ -5,8 +5,9 @@ module intel_8087_alu #(parameter int VARIANT=0) (input enable_i,input [79:0] a_
     assign {result_o,exceptions_o,rounded_up_o,condition_o}=response;
 endmodule
 module intel_8087_trans #(parameter int VARIANT=0) (input clk,rst_n,start_i,input [2:0] op_i,input [79:0] x_i,y_i,
-    output logic done_o,output [79:0] result_o);
-    (* anyseq *) logic [79:0] response;
+    output logic done_o,output [79:0] result_o,output [79:0] result2_o);
+    (* anyseq *) logic [79:0] response,response2;
     assign result_o=response;
+    assign result2_o=response2;
     always_ff @(posedge clk) if(!rst_n) done_o<=0;else done_o<=start_i;
 endmodule

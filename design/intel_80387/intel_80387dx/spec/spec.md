@@ -5,7 +5,7 @@
 - **[387PRM]** Intel *80387 Programmer's Reference Manual*, order 231917-001 (1987). It includes Appendix C (differences from the 80287/8087), Appendix D (differences from the 8087), Figures 2-5 to 2-8 (pointer images) and the 80387 data sheet (231920-002, January 1987) as an appendix. "Section" references below are to this manual.
 - **[287]** The 80287 specification in [../../../intel_80287/spec/spec.md](../../../intel_80287/spec/spec.md), and through it the 8087 specification.
 
-## 2. Implementation boundary (milestone M1)
+## 2. Implementation boundary (milestones M1 and M2)
 
 The design is the shared x87 controller `intel_8087` with `VARIANT = 2` and `AW = 32`. The interface is the transaction interface of [287] section 2.1. For the 387 the host also supplies `protected_i` and `opsize32_i`, because the 386 decides the pointer-image format and operand size for each instruction ([387PRM] C.4, FSETPM row: "the 80386 handles all addressing and exception-pointer information").
 
@@ -47,7 +47,8 @@ Every row cites [387PRM] Appendix C, unless another section is given.
 | A2 | On the 387, two NaN operands propagate the one with the larger significand (the positive one if they are equal), and an SNaN/QNaN pair returns the QNaN. Both rules are as the host does. | Host-checked (section 4.1) |
 | A3 | RESET is modelled as FINIT. The manual's RESET-only side effect that marks 387 presence (IE and ES set, IM clear, so ERROR# is asserted) is not modelled in M1. | Open; M3 pin interface |
 | A4 | Pseudo-denormals (exponent 0, J bit 1) are accepted as denormal operands with value 2^(−16382) × 1.f, as on the host. | Host-checked |
-| A5 | FSIN/FCOS/FSINCOS and the full-range FPTAN/FPATAN/F2XM1 are not implemented in M1. They are reported as unsupported (`unsupported_o`) rather than computed. The reduced-domain 8087 FPTAN/FPATAN/F2XM1/FYL2X/FYL2XP1 algorithms are used for in-domain operands, and only those are compared, with a tolerance. | Open: M2 |
+| A5 | The transcendental algorithms are not Intel microcode. FSIN, FCOS, FSINCOS and FPTAN reduce \|x\| > π/4 exactly modulo π/2 with a 192-bit fixed-point divider, then evaluate sine and cosine series on the reduced argument. FPATAN runs the arctangent series on min/max and applies the octant and quadrant adjustment of Table 4-10. F2XM1, FYL2X and FYL2XP1 use the 8087 series. Results are compared with the host within an 8-ULP bound. Exceptional operands are compared exactly: ±0, ±∞, NaNs, unsupported formats, \|x\| ≥ 2^63 (C2 = 1, ST unchanged), stack faults, and the FPATAN zero/∞ table. | Host-checked; maximum observed error in the report |
+| A7 | The 387 reduces trigonometric arguments with the x87's documented 66-bit π, 0.C90FDAA22168C234C × 2^2. Intel documents this constant for the x87 FPU; the 1987 387 manual does not state it. | Agrees with the host for every \|x\| < 2^63 tested |
 | A6 | The reserved upper halves of the 32-bit image words are stored as FFFFh (the host value), and the reserved low bits as zero. | Unvalidated against a physical 387 |
 
 ### 4.1 Behaviour measured on the host oracle
@@ -62,9 +63,8 @@ The manual does not state these rules. Each is implemented as the host behaves, 
 - An unchanged pseudo-denormal FPREM/FPREM1 dividend is returned in normal form.
 - A real32/real64 SNaN memory operand counts as signalling when two NaN operands are compared for selection.
 
-## 5. Not in M1
+## 5. Not in M1/M2
 
-- **Transcendentals:** full-range transcendentals and FSIN/FCOS/FSINCOS (A5).
 - **Native interface:** the native coprocessor bus of the DX and SX.
 - **RESET signature:** the ERROR#-asserted state after RESET (A3).
 - **Timing:** instruction timing.
