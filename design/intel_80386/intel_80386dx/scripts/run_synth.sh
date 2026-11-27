@@ -10,7 +10,8 @@ SRC="$DESIGN_DIR/src/intel_80386_pkg.sv $DESIGN_DIR/src/intel_80386_decode.sv $D
 mkdir -p "$WORK_DIR"
 for top in intel_80386_divider intel_80386_decode intel_80386_core; do
     echo "=== Synthesizing $top ==="
-    "$YOSYS" -Q -q -l "$WORK_DIR/$top.log" -p "read_verilog -sv $SRC; hierarchy -check -top $top; synth -top $top; check -assert; stat" >/dev/null
+    # The SAT-based share pass exhausts memory on the core; -noshare skips it.
+    "$YOSYS" -Q -q -l "$WORK_DIR/$top.log" -p "read_verilog -sv $SRC; hierarchy -check -top $top; synth -noshare -top $top; check -assert; stat" >/dev/null
     grep -E "cells$|Number of cells" "$WORK_DIR/$top.log" | tail -1
 done
 echo "=== Synthesis complete ==="

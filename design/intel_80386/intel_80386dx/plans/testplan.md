@@ -5,7 +5,7 @@
 | Lint | `scripts/run_lint.sh` | `verilator --lint-only -Wall` | pass |
 | Physical-capture replay | `scripts/run_vectors.sh` | SingleStepTests/80386 `459d49fb` `v1_ex_real_mode`, captured on an 80386EX | 1,758,671 / 1,758,691 pass; 20 listed open |
 | Formal | `scripts/run_formal.sh` | Division identity; ALU flags against integer definitions | pass |
-| Synthesis | `scripts/run_synth.sh` | Yosys generic synthesis | see report |
+| Synthesis | `scripts/run_synth.sh` | Yosys generic synthesis (`-noshare`) | pass (85,524 cells) |
 | Original software | (to add) | Unchanged historical program against an independent emulator | open |
 
 ## Replay method

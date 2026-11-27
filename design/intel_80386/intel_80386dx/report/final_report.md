@@ -10,7 +10,7 @@ Date: 2026-11-27. Canonical issue: [hevangel/ai_engineer#116](https://github.com
 | Physical-capture replay (SingleStepTests/80386 `459d49fb`, `v1_ex_real_mode`, 941 files) | **1,758,671 pass, 20 fail** (all 20 listed open), 8 waived, 1 upstream-revoked; 937 of 941 files fully pass |
 | Formal: divider (W = 4) prove + cover | pass |
 | Formal: ALU flags | cover pass; the 32-bit prove did not finish within the session's memory limit (see below) |
-| Synthesis (Yosys) | see the Synthesis section |
+| Synthesis (Yosys 0.33, `synth -noshare`) | pass, `check -assert` clean; 85,524 generic cells for the core |
 | Original historical software | **not run; this gate is open** |
 
 The milestone delivers the real-mode architectural core. It is **not** a complete 80386. Protected mode, paging, virtual-8086 mode, debug breakpoints, hardware interrupts and both native bus units remain (see `plans/implementation_plan.md`). Nothing here should be read as acceptance of issue #116 as a whole.
@@ -86,7 +86,13 @@ The captures contain no records for these paths. They are implemented from the P
 
 The core was restructured for synthesis: a single limit-check/base-add stage shared by every data access, one shared multiplier, and AAM on the iterative divider. Results of `scripts/run_synth.sh` are recorded below when available.
 
-SYNTH_RESULT_PLACEHOLDER
+| Top | Result | Generic cells |
+| --- | --- | --- |
+| `intel_80386_divider` | pass | 497 |
+| `intel_80386_decode` | pass | 5,786 |
+| `intel_80386_core` (includes both) | pass | 85,524 (about 1,270 flip-flops) |
+
+With the default `synth`, the core run was killed by the container's memory limit in the SAT-based `share` pass. The script therefore uses `-noshare`. No FPGA mapping or timing analysis has been done.
 
 ## Limits
 
