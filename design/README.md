@@ -102,6 +102,7 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1983 | Apple IIe MMU (341-0266) | Full-custom memory mapper: main/aux/bank-switched RAM selection, soft switches, ROM decode and multiplexed DRAM address | [apple_iie_mmu](apple_iie_mmu/) |
 | 1983 | Apple IIe IOU (341-0267) | Full-custom video machine: display scanner and interleaved display-address fold, video-mode soft switches, keyboard strobe/auto-repeat, annunciator/speaker/cassette outputs | [apple_iie_iou](apple_iie_iou/) |
 | 1983 | Apple IIe timing PAL (PAL16R8) | Apple-programmed timing generator: φ0/φ1 CPU clocks, asymmetric Q3 strobe, PRAS'/PCAS' DRAM strobes with CAS gating, LDPS' video load and the 7 MHz dot clock | [apple_iie_pal](apple_iie_pal/) |
+| 1985 (October) | Intel 80386DX | Work in progress (M1, real mode): 32-bit CPU core with 16/32-bit operand and address sizes; 1,758,671 of 1,758,691 physical-386EX captures replay (20 listed open); protected mode, paging, V86 and the native bus unit are planned | [intel_80386dx](intel_80386/intel_80386dx/) |
 | By 1986* (bibliographic evidence; launch unconfirmed) | MOS Technology 8520 CIA | Amiga peripheral controller: 6526 core with binary 24-bit TOD event counter and 8520 timer/interrupt timing; matches MAME except nine classified residuals; Amiga software pending | [mos_8520](mos_8520/) |
 | 1984 (announced 10 September 1984) | IBM Enhanced Graphics Adapter (EGA) | ISA display card and its five LSI devices (CRTC, sequencer, two graphics controllers, attribute controller), 256 KB planes, BIOS ROM 6277356 at C0000h; matches an independent technical-reference model on directed, random, all 23 BIOS mode-table entries and BIOS font-load/mode-set replays (modes 3, 3*, 7) pixel for pixel; formal, mutation, synthesis | [ibm_ega](ibm_ega/) |
 | 1984 | WDC W65C816S | 16-bit 6502 extension: run-time 8/16-bit registers, relocatable direct page, 24-bit banks, block moves, emulation mode; every bus cycle matches SingleStepTests (5.08 million records) | [wdc_65c816](wdc_65c816/) |
@@ -112,6 +113,7 @@ Sorted by first-introduced year; within a year, entries are grouped by company a
 | 1987 (Am29332 Instruction Manual © 1987; datasheet Amendment 10, 1988) | AMD Am29332 | 32-bit non-cascadable ALU: 124-instruction set over byte-aligned and variable-field operands, 64-in/32-out funnel shifter, priority encoder, mask generator, modified-Booth multiply and nonrestoring divide steps over the Q register, two-cycle BCD arithmetic with nibble carries, interruptible 32-bit status register, byte parity and master/slave checking; all 124 opcodes against the manual's worked traces, independent arithmetic oracle, formal BMC/induction/cover | [amd_am29332](amd_am29xxx/members/am29332/) |
 | 1986* (preliminary, September 1986) | AMD Am29434 | ECL 64 × 18 four-port dual-access register file; same documented function as the Am29334, shares its RTL and suite | [amd_am29434](amd_am29xxx/members/am29434/) |
 | 1987 (announced 2 April 1987) | IBM PS/2 Display Adapter (ISA VGA) | ISA VGA card: VGA gate-array function (CRTC, sequencer, graphics and attribute controllers), 256 KB in four maps, 256 x 18-bit video DAC, 46E8h/POS 102h enable, BIOS ROM 10/27/86 at C0000h; matches an independent technical-reference model on directed, random and all 28 BIOS mode-table entries (22 against IBM's timing figures), and on the ROM's own POST and INT 10h mode 3/12h/13h executed in Unicorn, pixel for pixel; formal, mutation, synthesis | [ibm_vga](ibm_vga/) |
+| 1988 | Intel 80386SX | Planned profile: the shared 386 core behind a 16-bit data bus and 24-bit address; SX bus unit not built | [intel_80386sx](intel_80386/intel_80386sx/) |
 | 1990 | Ricoh 5A22 (S-CPU) | SNES CPU: 65C816 core with 6/8/12-clock memory cycles, DRAM refresh, 8-channel DMA/HDMA, H/V IRQ/NMI, multiplier/divider, auto-joypad; Peter Lemon CPU, bank and HDMA test ROMs | [ricoh_5a22](ricoh_5a22/) |
 | 1990 | Ricoh 5C77 (S-PPU1) | SNES picture unit 1: VRAM/OAM, modes 0–7, offset-per-tile, Mode 7 and multiplier, sprites with overflow flags, high resolution, interlace, mosaic; matched against test-ROM screenshots | [ricoh_5c77](ricoh_5c77/) |
 | 1990 | Ricoh 5C78 (S-PPU2) | SNES picture unit 2: NTSC/PAL timing, CGRAM, windows, priority, colour math, brightness, H/V latches; matched against test-ROM screenshots | [ricoh_5c78](ricoh_5c78/) |
@@ -195,6 +197,10 @@ The Zilog Z80 entry records **July 1976**, the launch month given by the [Z80 hi
 ### Intel â€” 8086
 
 The Intel 8086 entry records **1978**; Intel dates its introduction to June 8, 1978 in its [manufacturer history](https://timeline.intel.com/1978/the-beginning-of-a-legend%3A-the-8086). This design implements the complete documented instruction set, interrupts and a six-byte prefetch BIU with minimum/maximum-mode digital pins. Independent physical-chip vectors, original DEBUG.COM, formal checks and native bus tests verify the implementation; original EU cycle counts and electrical timing are outside its RTL contract. See the [chip overview](intel_8086_8088/intel_8086//README.md). Its standalone software regression runs unchanged Microsoft DEBUG.COM through the execution unit and both native bus modes.
+
+### Intel — 80386DX and 80386SX
+
+The Intel 80386DX entry records **October 1985**. Secondary sources give the launch day as 16 or 17 October 1985, with pre-production samples first and volume production from 1986 ([Centre for Computing History](https://www.computinghistory.org.uk/det/6192/Intel-introduces-the-80386-microprocessor/), [WikiChip](https://en.wikichip.org/wiki/i386)). No Intel press release fixing the day was located, so only the month is claimed. The 80386SX entry records **1988**: [WikiChip](https://en.wikichip.org/wiki/i386) dates the first 386SX-16 to June 16, 1988, which has not been checked against an Intel source. Both chips share one execution core. Milestone M1 covers real-address mode and is checked against the SingleStepTests/80386 captures, which come from a physical 80386EX. See the [family overview](intel_80386/README.md).
 
 ### Motorola — 6800, 6809, 68000
 
@@ -1705,6 +1711,7 @@ Family issues own the corresponding root folder; physical chips use member sub-i
 - [amd_am29xx](amd_am29xx/README.md)
 - [amd_am29xxx](amd_am29xxx/README.md)
 - [intel_8086_8088](intel_8086_8088/README.md)
+- [intel_80386](intel_80386/README.md)
 - [intel_mcs4](intel_mcs4/README.md)
 - [intel_mcs8](intel_mcs8/README.md)
 - [mos_6502_family](mos_6502_family/README.md)

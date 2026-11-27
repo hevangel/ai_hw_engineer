@@ -64,6 +64,10 @@
       "members/am26s11",
       "members/am26s12",
       "members/am26s12a"
+    ],
+    "intel_80386": [
+      "intel_80386dx",
+      "intel_80386sx"
     ]
   },
   "catalogs": {

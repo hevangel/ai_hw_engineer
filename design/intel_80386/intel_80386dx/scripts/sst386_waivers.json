@@ -1,0 +1,61 @@
+{
+ "description": "Capture records rejected by this design's replay with a documented reason. Each entry is pinned by the upstream test hash.",
+ "waivers": [
+  {
+   "file": "660F80",
+   "idx": 113,
+   "hash": "004701235475173299664ca6733c9b01ad4d9b3d",
+   "name": "jo near dword 00001CF1h",
+   "reason": "Taken Jcc whose target (1CF1h) lies inside the instruction itself. The capture records no change to any register or memory, including EIP, although the test ends with an executed HLT, which always advances EIP; no execution of this instruction can produce that state, so the record is treated as a capture-board artifact of the HLT injection at the re-fetched word."
+  },
+  {
+   "file": "660F82",
+   "idx": 97,
+   "hash": "c39e628fa65a7ea25e81c7aaff7729336d2e51e9",
+   "name": "jb near dword 00001CF1h",
+   "reason": "Taken Jcc whose target (1CF1h) lies inside the instruction itself. The capture records no change to any register or memory, including EIP, although the test ends with an executed HLT, which always advances EIP; no execution of this instruction can produce that state, so the record is treated as a capture-board artifact of the HLT injection at the re-fetched word."
+  },
+  {
+   "file": "660F84",
+   "idx": 81,
+   "hash": "db98247012bb76edac644ed437402538eca5854d",
+   "name": "je near dword 00001CF1h",
+   "reason": "Taken Jcc whose target (1CF1h) lies inside the instruction itself. The capture records no change to any register or memory, including EIP, although the test ends with an executed HLT, which always advances EIP; no execution of this instruction can produce that state, so the record is treated as a capture-board artifact of the HLT injection at the re-fetched word."
+  },
+  {
+   "file": "660F86",
+   "idx": 65,
+   "hash": "f32d89a59068b2950103964b0f5a3be80cdbf8db",
+   "name": "jbe near dword 00001CF1h",
+   "reason": "Taken Jcc whose target (1CF1h) lies inside the instruction itself. The capture records no change to any register or memory, including EIP, although the test ends with an executed HLT, which always advances EIP; no execution of this instruction can produce that state, so the record is treated as a capture-board artifact of the HLT injection at the re-fetched word."
+  },
+  {
+   "file": "660F88",
+   "idx": 49,
+   "hash": "cafcf279cd711379eebebc13b23616ee7bbf95e4",
+   "name": "js near dword 00001CF1h",
+   "reason": "Taken Jcc whose target (1CF1h) lies inside the instruction itself. The capture records no change to any register or memory, including EIP, although the test ends with an executed HLT, which always advances EIP; no execution of this instruction can produce that state, so the record is treated as a capture-board artifact of the HLT injection at the re-fetched word."
+  },
+  {
+   "file": "660F8A",
+   "idx": 33,
+   "hash": "0e90a2ff475606e75896e482bc950b07756b6df3",
+   "name": "jp near dword 00001CF1h",
+   "reason": "Taken Jcc whose target (1CF1h) lies inside the instruction itself. The capture records no change to any register or memory, including EIP, although the test ends with an executed HLT, which always advances EIP; no execution of this instruction can produce that state, so the record is treated as a capture-board artifact of the HLT injection at the re-fetched word."
+  },
+  {
+   "file": "660F8D",
+   "idx": 25,
+   "hash": "afa60793db7460bed103506ecb746a03a368baf2",
+   "name": "jge near dword 00001CF1h",
+   "reason": "Taken Jcc whose target (1CF1h) lies inside the instruction itself. The capture records no change to any register or memory, including EIP, although the test ends with an executed HLT, which always advances EIP; no execution of this instruction can produce that state, so the record is treated as a capture-board artifact of the HLT injection at the re-fetched word."
+  },
+  {
+   "file": "660F8E",
+   "idx": 1,
+   "hash": "c7758fea455820ad2c345728f83bfe4e3129db46",
+   "name": "jle near dword 00001CF1h",
+   "reason": "Taken Jcc whose target (1CF1h) lies inside the instruction itself. The capture records no change to any register or memory, including EIP, although the test ends with an executed HLT, which always advances EIP; no execution of this instruction can produce that state, so the record is treated as a capture-board artifact of the HLT injection at the re-fetched word."
+  }
+ ]
+}

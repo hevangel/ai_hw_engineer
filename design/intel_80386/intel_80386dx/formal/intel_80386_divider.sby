@@ -1,0 +1,22 @@
+[tasks]
+prove
+cover
+
+[options]
+prove: mode prove
+prove: depth 24
+cover: mode cover
+cover: depth 24
+
+[engines]
+prove: smtbmc z3
+cover: smtbmc z3
+
+[script]
+read_verilog -sv -formal intel_80386_divider.sv
+read_verilog -sv -formal intel_80386_divider_props.sv
+prep -top intel_80386_divider_props
+
+[files]
+../src/intel_80386_divider.sv
+intel_80386_divider_props.sv

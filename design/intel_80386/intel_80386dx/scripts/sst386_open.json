@@ -1,0 +1,165 @@
+{
+ "description": "Open discrepancies: accepted capture records the core does not yet reproduce. They are reported as failures in every run; run_vectors.sh fails on any failure not listed here and on any listed record that starts passing (so the list stays exact).",
+ "open": [
+  {
+   "file": "67F6.7",
+   "idx": 375,
+   "hash": "c30147a2fb7f67459cb7a1a4c888b670edd838f5",
+   "name": "idiv cl",
+   "observed": "eax expected AF1A1E80 got AF1A741E (mask FFFFFFFF)",
+   "reason": "Same IDIV r/m8 negative-overflow behaviour as F6.7 under a 67h prefix."
+  },
+  {
+   "file": "67F6.7",
+   "idx": 460,
+   "hash": "8bddec44e46b709759d5d1550cd9fa16ab8e89fc",
+   "name": "idiv byte [ds:edx+46h]",
+   "observed": "eax expected 0A9E0080 got 0A9E6180 (mask FFFFFFFF)",
+   "reason": "Same IDIV r/m8 negative-overflow behaviour as F6.7 under a 67h prefix."
+  },
+  {
+   "file": "67F6.7",
+   "idx": 516,
+   "hash": "a06745936bac371e6afb861b5bc87be4b2dd676e",
+   "name": "idiv cl",
+   "observed": "eax expected A171F180 got A1719C71 (mask FFFFFFFF)",
+   "reason": "Same IDIV r/m8 negative-overflow behaviour as F6.7 under a 67h prefix."
+  },
+  {
+   "file": "C2",
+   "idx": 1489,
+   "hash": "35f2dfaf4d9a6d4d9b5e5bb0370c41db1eab1faa",
+   "name": "ret BC90h",
+   "observed": "esp expected 0000D56A got 000018D8 (mask FFFFFFFF)",
+   "reason": "RET imm16 with SS=FFFFh: captured SP differs from SP+2+imm16 (D56Ah vs 18D8h) with EIP equal to the popped word; unexplained."
+  },
+  {
+   "file": "D4",
+   "idx": 56,
+   "hash": "6b00e0df24d4e7b0ce6ed4f679ff281d79a956f9",
+   "name": "aam 0",
+   "observed": "eflags expected FFFC0006 got FFFC0042 (mask FFFFF7EE) (exception 0)",
+   "reason": "AAM 0 raises #DE but the 386EX also changes SF/ZF/PF to values (PF only, or none) that do not follow from AL, AH or the prior flags; the source of the value is not yet identified."
+  },
+  {
+   "file": "D4",
+   "idx": 722,
+   "hash": "caba701ba68505fee6e08211ac8552616247d93a",
+   "name": "aam 0",
+   "observed": "eflags expected FFFC0006 got FFFC0843 (mask FFFFF7EE) (exception 0)",
+   "reason": "AAM 0 raises #DE but the 386EX also changes SF/ZF/PF to values (PF only, or none) that do not follow from AL, AH or the prior flags; the source of the value is not yet identified."
+  },
+  {
+   "file": "D4",
+   "idx": 787,
+   "hash": "ea4adfbaf2e2cf0688b6af05d01a3e8eb805695b",
+   "name": "aam 0",
+   "observed": "eflags expected FFFC0006 got FFFC0047 (mask FFFFF7EE) (exception 0)",
+   "reason": "AAM 0 raises #DE but the 386EX also changes SF/ZF/PF to values (PF only, or none) that do not follow from AL, AH or the prior flags; the source of the value is not yet identified."
+  },
+  {
+   "file": "D4",
+   "idx": 1049,
+   "hash": "0b95793c7af6a3ff1d743192522f804bfa2171ec",
+   "name": "aam 0",
+   "observed": "eflags expected FFFC0406 got FFFC0C82 (mask FFFFF7EE) (exception 0)",
+   "reason": "AAM 0 raises #DE but the 386EX also changes SF/ZF/PF to values (PF only, or none) that do not follow from AL, AH or the prior flags; the source of the value is not yet identified."
+  },
+  {
+   "file": "D4",
+   "idx": 1220,
+   "hash": "6f787529179973f826f8f037d81935cddad3a0a9",
+   "name": "aam 0",
+   "observed": "eflags expected FFFC0402 got FFFC04D6 (mask FFFFF7EE) (exception 0)",
+   "reason": "AAM 0 raises #DE but the 386EX also changes SF/ZF/PF to values (PF only, or none) that do not follow from AL, AH or the prior flags; the source of the value is not yet identified."
+  },
+  {
+   "file": "D4",
+   "idx": 1492,
+   "hash": "6486142b75f8845fe3cb4b462c62b4ef11070134",
+   "name": "aam 0",
+   "observed": "eflags expected FFFC0406 got FFFC04C6 (mask FFFFF7EE) (exception 0)",
+   "reason": "AAM 0 raises #DE but the 386EX also changes SF/ZF/PF to values (PF only, or none) that do not follow from AL, AH or the prior flags; the source of the value is not yet identified."
+  },
+  {
+   "file": "D4",
+   "idx": 1699,
+   "hash": "50eaa6eed86e0b65ab79fde5cb4c8462824d32f5",
+   "name": "aam 0",
+   "observed": "eflags expected FFFC0406 got FFFC0446 (mask FFFFF7EE) (exception 0)",
+   "reason": "AAM 0 raises #DE but the 386EX also changes SF/ZF/PF to values (PF only, or none) that do not follow from AL, AH or the prior flags; the source of the value is not yet identified."
+  },
+  {
+   "file": "D4",
+   "idx": 1813,
+   "hash": "6eac1c2aae3786f4bcd060b48847126a75a5d744",
+   "name": "aam 0",
+   "observed": "eflags expected FFFC0002 got FFFC08C6 (mask FFFFF7EE) (exception 0)",
+   "reason": "AAM 0 raises #DE but the 386EX also changes SF/ZF/PF to values (PF only, or none) that do not follow from AL, AH or the prior flags; the source of the value is not yet identified."
+  },
+  {
+   "file": "D4",
+   "idx": 1905,
+   "hash": "c320e2d1ddd327db36854f5e0b8320cd24902bd4",
+   "name": "aam 0",
+   "observed": "eflags expected FFFC0402 got FFFC04D3 (mask FFFFF7EE) (exception 0)",
+   "reason": "AAM 0 raises #DE but the 386EX also changes SF/ZF/PF to values (PF only, or none) that do not follow from AL, AH or the prior flags; the source of the value is not yet identified."
+  },
+  {
+   "file": "D4",
+   "idx": 2024,
+   "hash": "f3b8b0bc0c728919bf44964e6c7f8d6d4d8da009",
+   "name": "aam 0",
+   "observed": "eflags expected FFFC0006 got FFFC00C3 (mask FFFFF7EE) (exception 0)",
+   "reason": "AAM 0 raises #DE but the 386EX also changes SF/ZF/PF to values (PF only, or none) that do not follow from AL, AH or the prior flags; the source of the value is not yet identified."
+  },
+  {
+   "file": "F6.7",
+   "idx": 469,
+   "hash": "8813025dcf45588bd5141eb4d7081c67d6cf3ec3",
+   "name": "idiv byte [ds:di-1F4h]",
+   "observed": "eax expected 587F0C80 got 587F648C (mask FFFFFFFF)",
+   "reason": "IDIV r/m8 whose true quotient is a negative value below -128 sometimes completes on the 386EX with AL=80h and AH=(dividend+128*divisor) mod 256 instead of raising #DE; the selection rule is not yet derived (2 distinct register cases, see report)."
+  },
+  {
+   "file": "F6.7",
+   "idx": 516,
+   "hash": "c6d731127bec724d40594edc28a6ad8fdf14acbc",
+   "name": "idiv cl",
+   "observed": "eax expected A171F180 got A1719C71 (mask FFFFFFFF)",
+   "reason": "IDIV r/m8 whose true quotient is a negative value below -128 sometimes completes on the 386EX with AL=80h and AH=(dividend+128*divisor) mod 256 instead of raising #DE; the selection rule is not yet derived (2 distinct register cases, see report)."
+  },
+  {
+   "file": "F6.7",
+   "idx": 850,
+   "hash": "c1392c8316c2d0532d80fb1fcb78832533093e4e",
+   "name": "idiv byte [ds:3F74h]",
+   "observed": "eax expected 1AE7C780 got 1AE78947 (mask FFFFFFFF)",
+   "reason": "IDIV r/m8 whose true quotient is a negative value below -128 sometimes completes on the 386EX with AL=80h and AH=(dividend+128*divisor) mod 256 instead of raising #DE; the selection rule is not yet derived (2 distinct register cases, see report)."
+  },
+  {
+   "file": "F6.7",
+   "idx": 1265,
+   "hash": "b674afe8d525fdf51217456b4a3f0b9102350cc4",
+   "name": "idiv byte [es:bx-5281h]",
+   "observed": "eax expected A16D0080 got A16D4800 (mask FFFFFFFF)",
+   "reason": "IDIV r/m8 whose true quotient is a negative value below -128 sometimes completes on the 386EX with AL=80h and AH=(dividend+128*divisor) mod 256 instead of raising #DE; the selection rule is not yet derived (2 distinct register cases, see report)."
+  },
+  {
+   "file": "F6.7",
+   "idx": 1754,
+   "hash": "13e7537c7cd00f676d17da613b4289afb93b338d",
+   "name": "idiv byte [ds:bx+di+BB0h]",
+   "observed": "eax expected A084E880 got A084ACE8 (mask FFFFFFFF)",
+   "reason": "IDIV r/m8 whose true quotient is a negative value below -128 sometimes completes on the 386EX with AL=80h and AH=(dividend+128*divisor) mod 256 instead of raising #DE; the selection rule is not yet derived (2 distinct register cases, see report)."
+  },
+  {
+   "file": "F6.7",
+   "idx": 2348,
+   "hash": "a4a926d8bbca1f281b0a479fd8c79fe3231bad34",
+   "name": "idiv byte [ds:407h]",
+   "observed": "eax expected 2ECC3D80 got 2ECC7DBD (mask FFFFFFFF)",
+   "reason": "IDIV r/m8 whose true quotient is a negative value below -128 sometimes completes on the 386EX with AL=80h and AH=(dividend+128*divisor) mod 256 instead of raising #DE; the selection rule is not yet derived (2 distinct register cases, see report)."
+  }
+ ]
+}
