@@ -10,8 +10,8 @@ Date: 2026-11-27. Canonical issue: [hevangel/ai_engineer#113](https://github.com
 | Shared x87 suite with the 80287's differences, plus 80287-only tests | **246,934 checks pass** (340,167 cycles) |
 | Host-x87 finite arithmetic (7,680 cases), 180 square roots, rounding ties | pass (part of the suite) |
 | Original Intel ARRSUM software | pass |
-| Controller formal (`VARIANT=1`) | FORMAL_RESULT |
-| Synthesis elaboration | SYNTH_RESULT |
+| Controller formal (`VARIANT=1`, yices 2.7.0) | BMC, induction proof and both covers pass |
+| Synthesis elaboration (Yosys 0.69, `proc; opt; check -assert`) | pass, 0 problems; 15,403 word-level cells |
 
 This is an **architectural** 80287 behind the transaction interface. The native processor-extension I/O interface to the 80286 is milestone M2. Not acceptance of issue #113.
 

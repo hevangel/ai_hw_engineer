@@ -13,8 +13,8 @@ Date: 2026-11-27. Canonical issue: [hevangel/ai_engineer#115](https://github.com
 | Transcendentals: FSIN, FCOS, FSINCOS, FPTAN, FPATAN, F2XM1, FYL2X, FYL2XP1 (three seeds) | **180,024 / 180,024** within 8 ULP of the host, max observed 6 ULP; exceptional classes, flags, C2, TOP and tags exact |
 | Directed control, images, stack fault, FSTSW AX | pass |
 | Original Intel ARRSUM software (8087 supplement, figure S-24) | pass |
-| Controller formal (`VARIANT=2`) | FORMAL_RESULT |
-| Synthesis elaboration | SYNTH_RESULT |
+| Controller formal (`VARIANT=2`, yices 2.7.0) | BMC, induction proof and both covers pass |
+| Synthesis elaboration (Yosys 0.69, `proc; opt; check -assert`) | pass, 0 problems; 23,215 word-level cells |
 
 This is an **architectural** 80387. It is not a complete one:
 - the native 386 coprocessor bus does not exist;
