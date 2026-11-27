@@ -1,4 +1,4 @@
-# Verification report: Intel 80387, milestone M1 (architectural model)
+# Verification report: Intel 80387, milestones M1 and M2 (architectural model)
 
 Date: 2026-11-27. Canonical issue: [hevangel/ai_engineer#115](https://github.com/hevangel/ai_engineer/issues/115).
 
@@ -10,16 +10,18 @@ Date: 2026-11-27. Canonical issue: [hevangel/ai_engineer#115](https://github.com
 | Host-x87 differential, seed 0x803871987, 20,000 per form | **920,028 / 920,028** match |
 | Host-x87 differential, seed 0x1987, 20,000 per form | **920,028 / 920,028** match |
 | Host-x87 differential, seed 0x387dead, 50,000 per form | **2,300,028 / 2,300,028** match |
+| Transcendentals: FSIN, FCOS, FSINCOS, FPTAN, FPATAN, F2XM1, FYL2X, FYL2XP1 (three seeds) | **180,024 / 180,024** within 8 ULP of the host, max observed 6 ULP; exceptional classes, flags, C2, TOP and tags exact |
 | Directed control, images, stack fault, FSTSW AX | pass |
 | Original Intel ARRSUM software (8087 supplement, figure S-24) | pass |
 | Controller formal (`VARIANT=2`) | FORMAL_RESULT |
 | Synthesis elaboration | SYNTH_RESULT |
 
 This is an **architectural** 80387. It is not a complete one:
-- FSIN, FCOS and FSINCOS are reported as unsupported encodings;
-- the full-range FPTAN/FPATAN/F2XM1 are not built;
 - the native 386 coprocessor bus does not exist;
-- the RESET signature is not modelled.
+- the RESET signature is not modelled;
+- transcendental results are within 8 ULP of the host, not bit-identical to the 387's microcode.
+
+The full instruction set, transcendentals included, is implemented.
 
 See `plans/implementation_plan.md`. This milestone is not acceptance of issue #115.
 
@@ -73,7 +75,11 @@ Two of these were defects of the shared 8087 controller itself: zero-vs-denormal
 
 ## Limits
 
-- **Transcendentals:** FSIN/FCOS/FSINCOS are not implemented (A5). FPTAN/FPATAN/F2XM1/FYL2X/FYL2XP1 use the 8087's reduced-domain algorithms, and their results are not compared with the host.
+- **Transcendentals (M2, spec A5/A7):** the algorithms are reconstructions, not Intel microcode.
+  - FSIN, FCOS, FSINCOS and FPTAN reduce the argument exactly modulo π/2 with the documented 66-bit π, then evaluate series.
+  - FPATAN covers every octant and quadrant.
+  - Agreement with the host is within 8 ULP, not bit-exact. The round-up bit (C1) and PE/UE are not compared for these instructions.
+  - FYL2X and FYL2XP1 are tested only in their main domains (x > 0, and \|x\| < 1 − √2/2). Their behaviour for zero, negative and infinite operands is the inherited 8087 behaviour and is unverified.
 - **Unmasked exceptions:** covered only by directed tests and the shared 8087 suite. The host bench runs with all exceptions masked.
 - **Reserved image bits:** the reserved fields of the 32-bit images (A6) are unvalidated.
 - **Interface and timing:** RESET signature, native bus, timing and electrical behaviour are outside M1.

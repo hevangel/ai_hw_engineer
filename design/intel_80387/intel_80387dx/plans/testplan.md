@@ -3,7 +3,7 @@
 | Check | Command | Oracle | Status |
 | --- | --- | --- | --- |
 | Lint | `scripts/run_lint.sh` | Verilator `-Wall` with `VARIANT=2` | pass |
-| Host differential | `scripts/run_sim.sh N SEED` | The build host's x87 runs the same instruction bytes from the same state | 920,028/920,028 (seed 0x803871987, 20,000 per form); second seed in report |
+| Host differential | `scripts/run_sim.sh N SEED` | The build host's x87 runs the same instruction bytes from the same state | 4,140,084/4,140,084 over three seeds |
 | Transcendentals | (same bench) | Host x87, same bytes; values within 8 ULP, exceptional classes exact | pass |
 | Directed | (same bench) | 387PRM 4.7, App. C/D, Fig. 2-5 to 2-8 | pass |
 | Original software | (same bench) | Intel ARRSUM (8087 numerics supplement, figure S-24), which runs unchanged on the 387 per App. D | pass |
