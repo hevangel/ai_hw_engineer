@@ -122,9 +122,16 @@ module ibm_pc_xt_5160 (
     // ownership still passes through the shared bus's HOLD boundary.
     assign fpu_grant=hlda && !dma_hrq && fpu_mem_valid;
     assign fault=cpu_fault || fpu_fault;
+    /* verilator lint_off UNUSEDSIGNAL */
+    logic fpu_ax_write_unused;
+    logic [15:0] fpu_ax_unused;
+    /* verilator lint_on UNUSEDSIGNAL */
     intel_8087 fpu(.clk(clk),.rst_n(rst_n),.cmd_valid_i(esc_pending),.cmd_ready_o(fpu_ready),
         .opcode_i(fpu_opcode),.modrm_i(fpu_modrm),.address_i(fpu_operand),.instruction_i(fpu_instruction),
-        .cpu_wait_i(cpu_waiting),.mem_valid_o(fpu_mem_valid),.mem_write_o(fpu_mem_write),
+        .cpu_wait_i(cpu_waiting),
+        // 80287/80387-only pointer and FSTSW AX ports are unused by the 8087.
+        .cs_sel_i(16'd0),.ds_sel_i(16'd0),.protected_i(1'b0),.opsize32_i(1'b0),
+        .ax_write_o(fpu_ax_write_unused),.ax_o(fpu_ax_unused),.mem_valid_o(fpu_mem_valid),.mem_write_o(fpu_mem_write),
         .mem_address_o(fpu_address),.mem_wdata_o(fpu_wdata),.mem_ready_i(fpu_grant),.mem_rdata_i(mem_rdata),
         .busy_o(fpu_busy),.int_o(fpu_irq),.done_o(fpu_done),.unsupported_o(fpu_unsupported),
         .control_o(fpu_control),.status_o(fpu_status),.tags_o(fpu_tags),.registers_o(fpu_registers));

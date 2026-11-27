@@ -68,6 +68,10 @@
     "intel_80386": [
       "intel_80386dx",
       "intel_80386sx"
+    ],
+    "intel_80387": [
+      "intel_80387dx",
+      "intel_80387sx"
     ]
   },
   "catalogs": {

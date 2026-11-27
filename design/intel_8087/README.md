@@ -40,3 +40,11 @@ The [IBM XT 5160 platform](../../system/ibm_pc_xt_5160/README.md) connects real
 with the CPU and DMA. Expensive numeric combinational paths are enabled only
 during execution, avoiding reevaluation during the XT's lengthy original RAM
 POST. This optimization preserves the numerical contract.
+
+## Shared x87 controller: 80287 and 80387
+
+`intel_8087` is parameterized by `VARIANT` (0 = 8087, the default; 1 = [80287](../intel_80287/README.md); 2 = [80387](../intel_80387/README.md)) and by the address width `AW`.
+
+- **Variant differences:** each one is guarded in the source and cited from Intel's own compatibility appendices.
+- **Ports added for the 287 and 387 (2026-11-27):** `cs_sel_i`, `ds_sel_i`, `protected_i`, `opsize32_i`, `ax_write_o` and `ax_o`. The 8087 ignores them, and the XT system ties them off.
+- **Escaped defects fixed in the same change:** chop-valued constants, zero/denormal compare ordering, and FRNDINT at 2^63. See [failure_notes/2026-11-27-x87-zero-denormal-compare.md](../../failure_notes/2026-11-27-x87-zero-denormal-compare.md).

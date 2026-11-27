@@ -13,6 +13,13 @@
 #include <stdexcept>
 #include <vector>
 
+// X87_VARIANT selects the shared controller member under test: 0 = 8087
+// (default), 1 = 80287 (design/intel_80287 builds this file with
+// -DX87_VARIANT=1 and its extra tests). Only behaviour that differs between
+// the members is conditional.
+#ifndef X87_VARIANT
+#define X87_VARIANT 0
+#endif
 static_assert(LDBL_MANT_DIG==64 && LDBL_MAX_EXP==16384,
               "Regression needs a real x87 extended-precision host");
 using Ext=std::array<uint8_t,10>;
@@ -40,6 +47,9 @@ static long double oracle_round(long double x,uint16_t cw) {
 static float oracle_single(long double x,uint16_t cw) {
     uint16_t old;asm volatile("fnstcw %0":"=m"(old));host_cw(uint16_t((cw&0x0f00)|0x007f));
     float result;asm volatile("fldt %1; fstps %0":"=m"(result):"m"(x));host_cw(old);return result;
+}
+static Ext encoded_bits(uint16_t se,uint64_t mant) {
+    Ext v{};std::memcpy(v.data(),&mant,8);std::memcpy(v.data()+8,&se,2);return v;
 }
 class Bench {
 public:
@@ -111,14 +121,24 @@ static void architecture(Bench &b) {
     require((b.d.status_o&1)!=0,"stack overflow IE");require(std::isnan(b.top()),"stack overflow indefinite");
     b.init();b.cmd(0xd9,0xf6);require(((b.d.status_o>>11)&7)==7&&b.d.tags_o==0xffff,"FDECSTP without tag mutation");
     b.cmd(0xd9,0xf7);require(((b.d.status_o>>11)&7)==0,"FINCSTP wrap");
+#if X87_VARIANT==0
     b.cmd(0xdf,0xe0,0,0,true); // FNSTSW AX belongs to later hardware.
+#endif
     b.cmd(0xda,0xe9,0,0,true); // FUCOMPP belongs to later hardware.
     b.init();b.load(4);b.load(0);b.cw(0x03fb);b.cmd(0xde,0xf9);
+#if X87_VARIANT==0
     require((b.d.status_o&4)&&!b.d.int_o,"interrupt-enable mask");b.expect(0,"unmasked divide retains top");b.expect(4,"unmasked divide retains destination",1);
     b.cmd(0xdb,0xe0);require(b.d.int_o,"FENI raises pending interrupt");
     b.cmd(0xdb,0xe1);require(!b.d.int_o,"FDISI masks interrupt");
     require((b.d.status_o&0x80)!=0,"IR status survives interrupt-disable mask");
     b.d.cpu_wait_i=1;b.tick();require(b.d.int_o,"WAIT overrides IEM to prevent deadlock");b.d.cpu_wait_i=0;b.tick();
+#else
+    // 80287 ERROR# ignores IEM (286PRM App. B item 1); FENI/FDISI change
+    // nothing (item 2).
+    require((b.d.status_o&4)&&b.d.int_o,"80287 ERROR# despite IEM");b.expect(0,"unmasked divide retains top");b.expect(4,"unmasked divide retains destination",1);
+    {uint16_t c=b.d.control_o;b.cmd(0xdb,0xe0);b.cmd(0xdb,0xe1);require(b.d.control_o==c&&b.d.int_o,"80287 FENI/FDISI no-ops");}
+    require((b.d.status_o&0x80)!=0,"ES status");
+#endif
     b.cmd(0xdb,0xe2);require((b.d.status_o&0x3f)==0&&!b.d.busy_o,"FCLEX clears pending busy");
     b.init();b.load(3);b.load(8);b.cmd(0xd9,0xf8);b.expect(2,"FPREM");require((b.d.status_o&0x4700)==0x4000,"FPREM quotient 2 condition bits");
     b.init();b.load(12);b.cmd(0xd9,0xf4);b.expect(1.5L,"FXTRACT significand");b.expect(3,"FXTRACT exponent",1);
@@ -135,6 +155,21 @@ static void architecture(Bench &b) {
     require(std::isnan(b.top())&&(b.d.status_o&1),"projective infinity + infinity");
     b.init();b.cw(0x13ff);b.load(INFINITY);b.load(INFINITY);b.cmd(0xd8,0xc1);
     require(std::isinf(b.top())&&!(b.d.status_o&1),"affine infinity + infinity");
+    // Escaped defects (failure_notes/2026-11-27-x87-zero-denormal-compare.md).
+    // Intel 387PRM App. C.4: the 8087/80287 load constants without rounding
+    // control, giving the chop values.
+    const uint64_t chop[5]={0xd49a784bcd1b8afeULL,0xb8aa3b295c17f0bbULL,0xc90fdaa22168c234ULL,
+                            0x9a209a84fbcff798ULL,0xb17217f7d1cf79abULL};
+    for(unsigned k=0;k<5;++k){b.init();b.cmd(0xd9,uint8_t(0xe9+k));
+        uint64_t m;Ext t=b.top_bits();std::memcpy(&m,t.data(),8);require(m==chop[k],"8087/80287 constant is the chop value");}
+    // A zero orders below a denormal of either sign.
+    b.init();b.load_bits(encoded_bits(0x0000,0x10));b.load(0);b.cmd(0xd8,0xd1);
+    require((b.d.status_o&0x4500)==0x0100,"0 < +denormal");
+    b.init();b.load_bits(encoded_bits(0x8000,0x10));b.load(0);b.cmd(0xd8,0xd1);
+    require((b.d.status_o&0x4500)==0x0000,"0 > -denormal");
+    // FRNDINT has no integer range limit.
+    b.init();b.load_bits(encoded_bits(0x403d,0xffffffffffffffffULL));b.cmd(0xd9,0xfc);
+    require(b.top_bits()==encoded_bits(0x403e,0x8000000000000000ULL)&&!(b.d.status_o&1),"FRNDINT rounds up to 2^63");
     std::cout<<"PASS architecture, stack, original control and exception behavior\n";
 }
 
@@ -165,8 +200,10 @@ static void formats(Bench &b) {
         std::memcpy(b.mem.data()+0x200,v.data(),10);b.init();b.cmd(0xdf,0x20,0x200);b.expect(static_cast<long double>(n),"FBLD");
         b.cmd(0xdf,0x30,0x300);require(std::memcmp(b.mem.data()+0x300,v.data(),10)==0,"FBSTP");
     }
+#if X87_VARIANT==0
     b.init();b.load(1);b.cmd(0xdb,0x38,0xffffb);
     Ext one=bits(1);for(unsigned i=0;i<10;++i)require(b.mem[(0xffffb+i)&0xfffff]==one[i],"physical address wrap");
+#endif
     b.init();b.load(7);b.load(9);b.cw(0x0bff);
     auto regs=b.d.registers_o;uint16_t tags=b.d.tags_o;uint16_t cw=b.d.control_o,sw=b.d.status_o;
     b.cmd(0xdd,0x30,0x500);require(b.d.tags_o==0xffff&&b.d.control_o==0x03ff,"FSAVE initializes");
@@ -288,11 +325,17 @@ static void transcendental(Bench &b) {
     }
     std::cout<<"PASS reduced-domain transcendental accuracy samples (4e-18 relative tolerance)\n";
 }
+#ifdef X87_EXTRA_TESTS
+#include X87_EXTRA_TESTS
+#endif
 int main(int argc,char **argv) {
     Verilated::commandArgs(argc,argv);
     try {
         Bench b;
         architecture(b);formats(b);arithmetic(b);extremes(b);manufacturer_software(b);transcendental(b);
-        std::cout<<"PASS Intel 8087: "<<checks<<" checks, "<<b.cycles<<" cycles, "<<b.reads<<" reads, "<<b.writes<<" writes\n";
+#ifdef X87_EXTRA_TESTS
+        extra_tests(b);
+#endif
+        std::cout<<(X87_VARIANT==1?"PASS Intel 80287: ":"PASS Intel 8087: ")<<checks<<" checks, "<<b.cycles<<" cycles, "<<b.reads<<" reads, "<<b.writes<<" writes\n";
     } catch(const std::exception &e) {std::cerr<<"FAIL: "<<e.what()<<'\n';return 1;}
 }

@@ -11,6 +11,9 @@ endfunction
 function automatic logic fp_nan(input logic [79:0] x);
     fp_nan=x[78:64]==15'h7fff&&x[62:0]!=0;
 endfunction
+function automatic logic fp_snan(input logic [79:0] x);
+    fp_snan=fp_nan(x)&&!x[62];
+endfunction
 function automatic logic fp_bad(input logic [79:0] x);
     fp_bad=x[78:64]!=0&&!x[63];
 endfunction

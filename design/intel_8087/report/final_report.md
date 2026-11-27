@@ -92,3 +92,15 @@ Numeric combinational paths now have execution enables for complete-system
 simulation. The existing 246,624-check numerical regression passed unchanged
 after this optimization. The XT platform also exercises CPU-issued ESC/WAIT,
 memory arbitration and a DOS program computing 6*7 and SQRT(169).
+
+## 2026-11-27 update: shared controller and escaped-defect fixes
+
+The controller now also builds the 80287 (`VARIANT = 1`) and 80387 (`VARIANT = 2`); with `VARIANT = 0` the 8087 contract is unchanged. Three defects found through the 80387 work are fixed for every variant:
+
+1. **Load constants.** FLDL2E/FLDPI/FLDLG2/FLDLN2 now return the chop significands that Intel 231917-001 App. C.4 gives for the 8087. They had been one LSB high.
+2. **Zero vs. denormal.** A zero now orders below a denormal in FCOM/FTST.
+3. **FRNDINT.** A value that rounds up to +2^63 returns +2^63 instead of IE.
+
+The regression adds checks for each. Against the old RTL, the constant check, the `0 < +denormal` check and the FRNDINT check fail. The suite now passes **246,729 checks** (Verilator 5.052).
+
+**Controller formal.** BMC, induction and both covers pass on the modified controller with the pinned yices 2.7.0 and Yosys 0.71. In this session the job ran from a copy of the job file with a longer timeout, because the WebAssembly Yosys build is slower than the project image's native one. See [failure_notes/2026-11-27-x87-zero-denormal-compare.md](../../../failure_notes/2026-11-27-x87-zero-denormal-compare.md).

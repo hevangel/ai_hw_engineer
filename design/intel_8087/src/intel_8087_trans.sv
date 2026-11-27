@@ -2,7 +2,9 @@
 // on Intel's reduced domains; see the spec's approximation ledger.
 // original Intel microcode and bit-identical transcendental rounding are not
 // claimed. One shared integer-significand ALU executes every micro-operation.
-module intel_8087_trans (
+module intel_8087_trans #(
+    parameter int VARIANT = 0
+) (
     input logic clk, rst_n, start_i,
     input logic [2:0] op_i, // 0=2xm1, 1=yl2x, 2=tan, 3=atan, 4=yl2xp1
     input logic [79:0] x_i, y_i,
@@ -23,7 +25,7 @@ module intel_8087_trans (
     logic [5:0] unused_flags;
     logic unused_round;
     logic [3:0] unused_cc;
-    intel_8087_alu alu(.enable_i(phase!=0),.a_i(a),.b_i(b),.op_i(alu_op),.control_i(16'h13ff),
+    intel_8087_alu #(.VARIANT(VARIANT)) alu(.enable_i(phase!=0),.a_i(a),.b_i(b),.op_i(alu_op),.control_i(16'h13ff),
         .result_o(value),.exceptions_o(unused_flags),.rounded_up_o(unused_round),.condition_o(unused_cc));
     always_comb begin
         a=0; b=0; alu_op=0;

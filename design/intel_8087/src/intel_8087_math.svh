@@ -1,4 +1,5 @@
-// Integer-only extended-real primitives. Included inside modules.
+// Integer-only extended-real primitives. Included inside modules that
+// declare the x87 family parameter VARIANT (0 = 8087, 1 = 80287, 2 = 80387).
 /* verilator lint_off UNUSEDSIGNAL */
 localparam logic [79:0] FP_INDEF = 80'hffffc000000000000000;
 
@@ -11,12 +12,23 @@ endfunction
 function automatic logic fp_nan(input logic [79:0] x);
     fp_nan = x[78:64] == 15'h7fff && x[62:0] != 0;
 endfunction
-function automatic logic fp_bad(input logic [79:0] x);
-    fp_bad = (x[78:64] != 0 && !x[63]) || (fp_nan(x) && !x[62]);
+function automatic logic fp_snan(input logic [79:0] x);
+    fp_snan = fp_nan(x) && !x[62];
 endfunction
+// 8087/80287: unnormals and NaNs without the top fraction bit are invalid
+// operands. 80387: the unsupported formats (pseudo-zero, pseudo-NaN,
+// pseudo-infinity, unnormal: nonzero exponent with the integer bit clear)
+// are invalid; SNaNs are handled separately (387PRM App. C.2).
+function automatic logic fp_bad(input logic [79:0] x);
+    if(VARIANT == 2) fp_bad = x[78:64] != 0 && !x[63];
+    else fp_bad = (x[78:64] != 0 && !x[63]) || (fp_nan(x) && !x[62]);
+endfunction
+// 80387 tags unsupported formats as special; the 8087/80287 tag pseudo-zero
+// and unnormal as valid (387PRM App. C.2).
 function automatic logic [1:0] fp_tag(input logic [79:0] x);
     if(fp_zero(x)) fp_tag = 1;
     else if(x[78:64] == 0 || x[78:64] == 15'h7fff) fp_tag = 2;
+    else if(VARIANT == 2 && !x[63]) fp_tag = 2;
     else fp_tag = 0;
 endfunction
 function automatic logic [130:0] fp_shr(input logic [130:0] x, input integer n);
@@ -76,11 +88,17 @@ function automatic logic [86:0] fp_pack(input logic sign_bit,
             flags[4]=tiny;
             if(exp_value>emax) begin
                 flags[3]=1; flags[5]=1;
-                // Original 8087 chop overflows to infinity (Intel S-80).
-                if((rc==1&&!sign_bit) || (rc==2&&sign_bit))
+                // Original 8087 chop overflows to infinity (Intel S-80); the
+                // 80387 chop gives the largest finite number (387PRM C.2).
+                if((rc==1&&!sign_bit) || (rc==2&&sign_bit) || (VARIANT==2&&rc==3))
                     result={sign_bit,15'(emax+16383),64'hffffffffffffffff} &
                            {16'hffff,({64{1'b1}}<<(64-precision))};
-                else result={sign_bit,15'h7fff,64'h8000000000000000};
+                else begin
+                    result={sign_bit,15'h7fff,64'h8000000000000000};
+                    // 80387: an overflow to infinity rounds the magnitude up
+                    // (C1 = 1, as on the host oracle).
+                    if(VARIANT==2) increment=1;
+                end
             end else if(value==0) begin
                 result={sign_bit,79'd0};
             end else begin
@@ -125,6 +143,9 @@ function automatic logic [85:0] fp_load(input logic [79:0] bits_value,
                     mantissa={1'b0,bits_value[22:0],40'd0};
                     if(exp_value==255) begin
                         value={sign_bit,15'h7fff,1'b1,bits_value[22:0],40'd0};
+                        // 80387: loading a signalling NaN raises IE and
+                        // quiets it (387PRM App. C.4, "FLD single/double").
+                        if(VARIANT==2&&bits_value[22:0]!=0&&!bits_value[22]) begin flags[0]=1; value[62]=1; end
                     end else begin
                         if(exp_value!=0) mantissa[63]=1;
                         else if(mantissa!=0) flags[1]=1;
@@ -137,6 +158,7 @@ function automatic logic [85:0] fp_load(input logic [79:0] bits_value,
                     mantissa={1'b0,bits_value[51:0],11'd0};
                     if(exp_value==2047) begin
                         value={sign_bit,15'h7fff,1'b1,bits_value[51:0],11'd0};
+                        if(VARIANT==2&&bits_value[51:0]!=0&&!bits_value[51]) begin flags[0]=1; value[62]=1; end
                     end else begin
                         if(exp_value!=0) mantissa[63]=1;
                         else if(mantissa!=0) flags[1]=1;
@@ -197,8 +219,10 @@ function automatic logic [86:0] fp_to_integer(input logic [79:0] x,
         if(rounded > (131'd1<<(width_value-1)) ||
             (rounded==(131'd1<<(width_value-1))&&!x[79])) flags[0]=1;
         result=x[79] ? (~rounded[63:0]+64'd1):rounded[63:0];
-        if(x[78:64]==0 && x[63:0]!=0) flags[0]=1;
-        if(flags[0]) result=64'd1<<(width_value-1);
+        // 8087/80287: a denormal is an invalid integer-conversion operand;
+        // the 80387 converts it (387PRM App. C.2, C.4).
+        if(VARIANT!=2 && x[78:64]==0 && x[63:0]!=0) flags[0]=1;
+        if(flags[0]) begin result=64'd1<<(width_value-1); if(VARIANT==2) increment=0; end
         else flags[5]=inexact;
         fp_to_integer={increment,flags,16'd0,result};
     end
@@ -218,9 +242,14 @@ function automatic logic [86:0] fp_store(input logic [79:0] x,
         case(format_value)
             0,1:begin
                 bias_value=format_value==0 ? 127:1023;
-                if(fp_nan(x)||fp_inf(x)) begin
-                    if(format_value==0) result={48'd0,x[79],8'hff,x[62:40]};
-                    else result={16'd0,x[79],11'h7ff,x[62:11]};
+                if(VARIANT==2&&fp_bad(x)) begin
+                    result= format_value==0 ? 80'hffc00000:80'hfff8000000000000; flags[0]=1;
+                end else if(fp_nan(x)||fp_inf(x)) begin
+                    // 80387: storing a signalling NaN raises IE and stores
+                    // it quieted.
+                    if(VARIANT==2&&fp_snan(x)) flags[0]=1;
+                    if(format_value==0) result={48'd0,x[79],8'hff,(VARIANT==2&&fp_nan(x)),x[61:40]} | {57'd0,x[62],22'd0};
+                    else result={16'd0,x[79],11'h7ff,(VARIANT==2&&fp_nan(x)),x[61:11]} | {28'd0,x[62],51'd0};
                 end else if(fp_bad(x)) begin result= format_value==0 ? 80'hffc00000:80'hfff8000000000000; flags[0]=1; end
                 else begin
                     converted=fp_pack(x[79],(x[78:64]==0?1:int'({1'b0,x[78:64]}))-16383,
@@ -246,6 +275,7 @@ function automatic logic [86:0] fp_store(input logic [79:0] x,
                 result={x[79],79'd0};
                 if(magnitude>64'd999999999999999999 || flags[0]) begin
                     flags=6'b000001; result=80'hffffc000000000000000;
+                    if(VARIANT==2) increment=0;
                 end else for(integer k=0;k<18;k=k+1) begin
                     result[k*4+:4]=4'(magnitude%10); magnitude=magnitude/10;
                 end
