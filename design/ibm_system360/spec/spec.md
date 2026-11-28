@@ -1,6 +1,6 @@
-# IBM System/360 — architecture specification (M6)
+# IBM System/360 — architecture specification (M7)
 
-Status: **sixth functional increment**. This document fixes the architecture
+Status: **seventh functional increment**. This document fixes the architecture
 that `src/` implements, records every deliberate deviation, and lists the
 assumptions that must be validated before any compatibility claim. It is *not*
 the full S/360 specification: the instruction-set and model option matrix is
@@ -31,6 +31,9 @@ In scope and implemented:
 - **addressing exceptions** (code 5) for operands outside installed storage and
   the **external (timer) interruption** with the old/new PSWs at `0x18`/`0x58`
   and code `0x0080` (M6);
+- **instruction-fetch addressing exceptions** (code 5) and the **odd
+  instruction-address specification exception** (code 6), completing the
+  addressing checks (M7);
 - **program interruptions** with the causes operation (1), privileged
   operation (2), specification (6) and fixed-point overflow (8), the program
   old PSW at storage `0x28`, the program new PSW at `0x68`, and problem-state
@@ -236,7 +239,8 @@ interruptible by a second program interruption.
 | Item | Behaviour | Source |
 |---|---|---|
 | Installed storage | parameter `MEM_SIZE_BYTES`, default 64 KiB | p. 34 |
-| Addressing exception | operand or field reference at or beyond installed storage raises code 5; the instruction is suppressed and the old PSW carries the updated address | pp. 34, 72 |
+| Addressing exception | operand, field, `TR` table or instruction reference at or beyond installed storage raises code 5; for an operand the instruction is suppressed and the old PSW carries the updated address, for an unfetchable instruction the address and ILC 0 are stored | pp. 34, 72 |
+| Odd instruction address | a PSW whose instruction address is odd raises code 6 before any fetch | p. 72 |
 | External interruption | a latched timer request is taken between instructions when system-mask bit 7 is set; old/new PSWs at `0x18`/`0x58`; code `0x0080` (timer, bit 24) | pp. 16-17, Figure 17 |
 | Wait state | ended by an external interruption | p. 17 |
 
@@ -246,8 +250,9 @@ terminated part way with unpredictable results (p. 34). Suppressing is the
 stronger, deterministic choice, and is recorded rather than presented as
 architecture.
 
-Not implemented in M6: storage protection keys (code 4), instruction-fetch
-addressing exceptions, I/O and machine-check interruptions.
+Not implemented: storage protection keys (code 4), I/O and machine-check
+interruptions, and the remaining specification checks (unaligned word operands,
+invalid register fields).
 
 ## 3. Storage interface
 
@@ -378,6 +383,7 @@ These are deliberate and must not be presented as architectural behaviour.
 | A-3 | An implemented-length but unassigned/unimplemented operation raises code 1 with the instruction address advanced by the ILC. | The manual defines code 1 for *unassigned* opcodes (p. 16); it does not define how a partially implemented machine should report a missing instruction. | Must disappear as the instruction set is completed; tracked by #384. |
 | A-4 | Byte operands are read from the aligned word and word operands must be aligned. | The storage port returns an aligned word. | Re-check when specification exceptions are complete. |
 | A-5 | The interruption sequence is treated as atomic (no priority nesting). | The manual describes priority ordering between classes (p. 16); with only program interruptions there is no competing request. | Re-check when I/O and external interruptions exist. |
+| A-9 | An unfetchable instruction (address outside storage, or an odd address) stores ILC 0 in the old PSW. | The manual updates the stored address by the ILC (p. 72) but no instruction length exists when nothing could be fetched. | Validate against the oracle's interrupt-entry mode when it exists. |
 | A-8 | An SS operation whose field leaves installed storage is suppressed before its first byte. | The manual terminates such an operation part way, leaving results unpredictable (p. 34); a deterministic suppression is easier to verify. | Revisit when the oracle can compare partial-store cases. |
 | A-7 | `TRT` writes general registers 1 and 2 (it has no register fields), and `EXECUTE` stores ILC 2 with the address advanced by four — including when the subject instruction raises an exception. | The manual names "general register 1/2" and states the EXECUTE address rule (p. 67), but OCR damage to the TRT format figure leaves the register encoding to be confirmed. | Validate against the independent oracle (#383). |
 | A-6 | Divide-exception and supervisor-call interruptions store an old PSW whose instruction address is advanced by the instruction length. | The manual states that rule for suppressed program checks (p. 72) and says division is suppressed (p. 34), but does not spell out the address for these two classes. | Re-check against an independent emulator (#383) and IBM diagnostics (#441). |
@@ -414,3 +420,4 @@ microarchitecture.
 - [../report/2026-11-18-m4-character-ss.md](../report/2026-11-18-m4-character-ss.md)
 - [../report/2026-11-20-m5-translate-execute.md](../report/2026-11-20-m5-translate-execute.md)
 - [../report/2026-11-23-m6-addressing-external.md](../report/2026-11-23-m6-addressing-external.md)
+- [../report/2026-11-24-m7-fetch-checks.md](../report/2026-11-24-m7-fetch-checks.md)
