@@ -242,9 +242,31 @@ module tb_ibm_s360_cpu;
     rst_n = 1'b0;
     trace_enable = 1'b0;
     clear_mem();
-    int_count = 0;
-    last_int_code = 16'd0;
     repeat (2) @(posedge clk);
+    // The storage-key array has no architectural reset (A22-6821-7 pp. 68-70
+    // define only the power-up state), so every test begins by clearing all
+    // keys through the key port while the machine is briefly out of reset.
+    // The wild fetches during this window are discarded by the reset below.
+    #1 rst_n = 1'b1;
+    key_we            = 1'b1;
+    key_data          = 4'd0;
+    key_fetch_protect = 1'b0;
+    for (int i = 0; i < 64; i++) begin
+      key_block = i[5:0];
+      @(posedge clk);
+      if (i < 3) begin
+        #1;
+        $display("DBG clr i=%0d we=%b rst=%b st=%0d key0=%b", i, key_we, rst_n, dut.state, dut.st_key[0]);
+      end
+    end
+    #1;
+    key_we = 1'b0;
+    $display("DBG start_reset: key0=%b key25=%b", dut.st_key[0], dut.st_key[25]);
+    rst_n  = 1'b0;
+    repeat (2) @(posedge clk);
+    // Counters are zeroed last so the wild fetches above do not count.
+    int_count     = 0;
+    last_int_code = 16'd0;
   endtask
 
   task automatic set_key(input int blk, input logic [3:0] key, input bit fetch_protect);
@@ -401,7 +423,7 @@ module tb_ibm_s360_cpu;
 
     check(int_count == 0, "SPM caused an unexpected interruption");
     check(psw[29:28] === 2'd0, "SPM did not set CC 0");
-    check(psw[27:24] === 4'h1, "SPM did not set program mask bit 36");
+    check(psw[27:24] === 4'h8, "SPM did not set program mask bit 36 (nibble 1000)");
     check(psw[23:0] === 24'h00_010A, "SPM program is not in its self-loop");
 
     // =========================================================================
@@ -463,8 +485,8 @@ module tb_ibm_s360_cpu;
     check(int_count == 1, "overflow interruption did not fire once");
     check(last_int_code == 16'd8, "overflow interruption code is not 8");
     check_word(24'h00_0028, 32'h0000_0008, "overflow old PSW word 0 (code 8)");
-    check_word(24'h00_002C, 32'hB100_010E,
-               "overflow old PSW: ILC 2, CC 3, program mask 1, IA 0x10E");
+    check_word(24'h00_002C, 32'hB800_010E,
+               "overflow old PSW: ILC 2, CC 3, program mask bit 36, IA 0x10E");
     check_gpr(4, 32'h8000_0000);
     check(ovf_pending, "overflow flag not set");
     check_gpr(15, 32'h0000_0304);
@@ -863,13 +885,428 @@ module tb_ibm_s360_cpu;
     end
 
     // =========================================================================
+    // Test 27: PACK -- zoned F1 F2 F3 F4 packs to 00 01 23 4F (p. 39).
+    // =========================================================================
+    start_reset();
+    poke_hex(24'h00_0200, "F1F2F3F4");
+    poke_hex(24'h00_0100, "F2330210020041F0010A07FF");
+    run_cycles(150);
+
+
+    $display("DBG PACK keys: st_key0=%b pswkey=%0d protbad=%b range=%b",
+             dut.st_key[0], dut.psw_word[55:52], dut.dec_prot_bad, dut.dec_range_bad);
+    check(int_count == 0, "PACK caused an unexpected interruption");
+    check_word(24'h00_0210, 32'h0001_234F, "PACK result");
+    check_word(24'h00_0200, 32'hF1F2_F3F4, "PACK left operand 2 unchanged");
+
+    // =========================================================================
+    // Test 28: UNPK -- packed 12 34 5C unpacks to F1 F2 F3 F4 5C (p. 39).
+    // =========================================================================
+    start_reset();
+    poke_hex(24'h00_0200, "12345C");
+    poke_hex(24'h00_0100, "F3420210020041F0010A07FF");
+    run_cycles(150);
+
+    check(int_count == 0, "UNPK caused an unexpected interruption");
+    check_word(24'h00_0210, 32'hF1F2_F3F4, "UNPK result bytes 0-3");
+    check_word(24'h00_0214, 32'hC500_0000, "UNPK result byte 4 carries the sign in the zone");
+
+    // =========================================================================
+    // Test 29: MVO -- a nibble shift, in place and into a longer field (p. 40).
+    // =========================================================================
+    start_reset();
+    poke_hex(24'h00_0200, "12345C");
+    poke_hex(24'h00_0100, "F1220200020041F0010A07FF");
+    run_cycles(150);
+
+    check(int_count == 0, "MVO in place caused an unexpected interruption");
+    check_word(24'h00_0200, 32'h2345_CC00, "MVO self-overlap shifts left one nibble");
+
+    start_reset();
+    poke_hex(24'h00_0200, "12345C");
+    poke_hex(24'h00_0100, "F1320210020041F0010A07FF");
+    run_cycles(150);
+
+    check(int_count == 0, "MVO to a longer field caused an unexpected interruption");
+    check_word(24'h00_0210, 32'h0123_45C0, "MVO result keeps operand 1 low nibble");
+
+    // =========================================================================
+    // Test 30: ZAP -- move with sign and overflow handling (p. 37).
+    // =========================================================================
+    start_reset();
+    poke_hex(24'h00_0200, "123C");
+    poke_hex(24'h00_0100, "F8210210020041F0010A07FF");
+    run_cycles(200);
+
+    check(int_count == 0, "ZAP caused an unexpected interruption");
+    check_word(24'h00_0210, 32'h0012_3C00, "ZAP moves the second operand with a plus sign");
+    check(psw[29:28] === 2'd2, "ZAP of a positive value did not set CC 2");
+
+    start_reset();
+    poke_hex(24'h00_0200, "123D");
+    poke_hex(24'h00_0100, "F8210210020041F0010A07FF");
+    run_cycles(200);
+
+    check(int_count == 0, "ZAP negative caused an unexpected interruption");
+    check_word(24'h00_0210, 32'h0012_3D00, "ZAP keeps the minus sign of operand 2");
+    check(psw[29:28] === 2'd1, "ZAP of a negative value did not set CC 1");
+
+    start_reset();
+    poke_hex(24'h00_0200, "123C");
+    poke_hex(24'h00_0100, "F8010215020041F0010A07FF");
+    run_cycles(200);
+
+    check(int_count == 0, "masked ZAP overflow caused an unexpected interruption");
+    check_word(24'h00_0214, 32'h003C_0000, "masked ZAP overflow stores the truncated digit");
+    check(psw[29:28] === 2'd3, "masked ZAP overflow did not set CC 3");
+
+    // =========================================================================
+    // Test 31: AP -- same-sign, different-sign and overflow results (p. 37).
+    // =========================================================================
+    start_reset();
+    poke_hex(24'h00_0200, "456C");
+    poke_hex(24'h00_0210, "00123C");
+    poke_hex(24'h00_0100, "FA210210020041F0010A07FF");
+    run_cycles(250);
+
+    check(int_count == 0, "AP same sign caused an unexpected interruption");
+    check_word(24'h00_0210, 32'h0057_9C00, "AP 123 + 456 = 579");
+    check(psw[29:28] === 2'd2, "AP positive sum did not set CC 2");
+
+    start_reset();
+    poke_hex(24'h00_0200, "456D");
+    poke_hex(24'h00_0210, "00123C");
+    poke_hex(24'h00_0100, "FA210210020041F0010A07FF");
+    run_cycles(250);
+
+    check(int_count == 0, "AP different sign caused an unexpected interruption");
+    check_word(24'h00_0210, 32'h0033_3D00, "AP 123 + (-456) = -333");
+    check(psw[29:28] === 2'd1, "AP negative sum did not set CC 1");
+
+    start_reset();
+    poke_hex(24'h00_0200, "1C");
+    poke_hex(24'h00_0210, "09999C");
+    poke_hex(24'h00_0100, "FA200210020041F0010A07FF");
+    run_cycles(250);
+
+    check(int_count == 0, "AP carry caused an unexpected interruption");
+    check_word(24'h00_0210, 32'h1000_0C00, "AP 09999 + 1 = 10000 with a carry");
+
+    start_reset();
+    poke_hex(24'h00_0200, "1C");
+    poke_hex(24'h00_0215, "999C");
+    poke_hex(24'h00_0100, "FA100215020041F0010A07FF");
+    run_cycles(250);
+
+    check(int_count == 0, "masked AP overflow caused an unexpected interruption");
+    check_word(24'h00_0214, 32'h0000_0C00, "masked AP overflow stores the truncated sum");
+    check(psw[29:28] === 2'd3, "masked AP overflow did not set CC 3");
+
+    start_reset();
+    poke_hex(24'h00_0200, "1D");
+    poke_hex(24'h00_0215, "999D");
+    poke_hex(24'h00_0100, "FA100215020041F0010A07FF");
+    run_cycles(250);
+
+    check(int_count == 0, "masked AP negative overflow caused an unexpected interruption");
+    check_word(24'h00_0214, 32'h0000_0D00, "overflowed zero sum keeps the negative sign");
+    check(psw[29:28] === 2'd3, "masked AP negative overflow did not set CC 3");
+
+    // =========================================================================
+    // Test 32: SP -- subtract decimal, including a negative operand (p. 37).
+    // =========================================================================
+    start_reset();
+    poke_hex(24'h00_0200, "456C");
+    poke_hex(24'h00_0210, "00123C");
+    poke_hex(24'h00_0100, "FB210210020041F0010A07FF");
+    run_cycles(250);
+
+    check(int_count == 0, "SP caused an unexpected interruption");
+    check_word(24'h00_0210, 32'h0033_3D00, "SP 123 - 456 = -333");
+    check(psw[29:28] === 2'd1, "SP negative difference did not set CC 1");
+
+    start_reset();
+    poke_hex(24'h00_0200, "456D");
+    poke_hex(24'h00_0210, "00123C");
+    poke_hex(24'h00_0100, "FB210210020041F0010A07FF");
+    run_cycles(250);
+
+    check(int_count == 0, "SP negative operand caused an unexpected interruption");
+    check_word(24'h00_0210, 32'h0057_9C00, "SP 123 - (-456) = 579");
+    check(psw[29:28] === 2'd2, "SP positive difference did not set CC 2");
+
+    // =========================================================================
+    // Test 33: CP -- compare decimal with signs and a data exception (p. 38).
+    // =========================================================================
+    start_reset();
+    poke_hex(24'h00_0200, "456C");
+    poke_hex(24'h00_0210, "00123C");
+    poke_hex(24'h00_0100, "F9210210020041F0010A07FF");
+    run_cycles(250);
+
+    check(int_count == 0, "CP low caused an unexpected interruption");
+    check(psw[29:28] === 2'd1, "CP 123 vs 456 did not set CC 1");
+
+    start_reset();
+    poke_hex(24'h00_0200, "123C");
+    poke_hex(24'h00_0210, "00456C");
+    poke_hex(24'h00_0100, "F9210210020041F0010A07FF");
+    run_cycles(250);
+
+    check(psw[29:28] === 2'd2, "CP 456 vs 123 did not set CC 2");
+
+    start_reset();
+    poke_hex(24'h00_0200, "123C");
+    poke_hex(24'h00_0210, "00123C");
+    poke_hex(24'h00_0100, "F9210210020041F0010A07FF");
+    run_cycles(250);
+
+    check(psw[29:28] === 2'd0, "CP of equal values did not set CC 0");
+
+    start_reset();
+    poke_hex(24'h00_0200, "0D");
+    poke_hex(24'h00_0210, "000C");
+    poke_hex(24'h00_0100, "F9100210020041F0010A07FF");
+    run_cycles(200);
+
+    check(psw[29:28] === 2'd0, "CP of +0 and -0 did not set CC 0");
+
+    start_reset();
+    poke_hex(24'h00_0200, "012D");
+    poke_hex(24'h00_0210, "5C");
+    poke_hex(24'h00_0100, "F9010210020041F0010A07FF");
+    run_cycles(200);
+
+    check(psw[29:28] === 2'd2, "CP +5 vs -12 did not set CC 2 by sign");
+
+    start_reset();
+    poke_hex(24'h00_0200, "012D");
+    poke_hex(24'h00_0210, "5D");
+    poke_hex(24'h00_0100, "F9010210020041F0010A07FF");
+    run_cycles(200);
+
+    check(psw[29:28] === 2'd1, "CP -5 vs -12 did not set CC 1 by magnitude");
+
+    start_reset();
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
+    poke_handler(24'h00_0300);
+    poke_hex(24'h00_0200, "1A3C");
+    poke_hex(24'h00_0210, "000C");
+    poke_hex(24'h00_0100, "F9110210020041F0010A07FF");
+    run_cycles(250);
+
+    check(int_count == 1, "CP data exception was not taken once");
+    check(last_int_code == 16'd7, "CP data exception code is not 7");
+    check_word(24'h00_002C, 32'hC000_0106, "data-exception old PSW: ILC 3, IA 0x106");
+
+    // =========================================================================
+    // Test 34: MP -- multiply decimal, specification and data checks (p. 38).
+    // =========================================================================
+    start_reset();
+    poke_hex(24'h00_0200, "2C");
+    poke_hex(24'h00_0210, "00123C");
+    poke_hex(24'h00_0100, "95FF0200FC200210020041F0010E07FF");
+    run_cycles(300);
+
+    check(int_count == 0, "MP caused an unexpected interruption");
+    check_word(24'h00_0210, 32'h0024_6C00, "MP 123 * 2 = 246");
+    check(psw[29:28] === 2'd1, "MP did not leave the condition code unchanged");
+
+    start_reset();
+    poke_hex(24'h00_0200, "2C");
+    poke_hex(24'h00_0210, "00123D");
+    poke_hex(24'h00_0100, "FC200210020041F0010A07FF");
+    run_cycles(300);
+
+    check(int_count == 0, "MP negative caused an unexpected interruption");
+    check_word(24'h00_0210, 32'h0024_6D00, "MP (-123) * 2 = -246 by algebra");
+
+    start_reset();
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
+    poke_handler(24'h00_0300);
+    poke_hex(24'h00_0100, "FC000210020041F0010A07FF");
+    run_cycles(150);
+
+    check(int_count == 1, "MP specification exception was not taken once");
+    check(last_int_code == 16'd6, "MP L2 >= L1 code is not 6");
+
+    start_reset();
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
+    poke_handler(24'h00_0300);
+    poke_hex(24'h00_0200, "2C");
+    poke_hex(24'h00_0210, "45678C");
+    poke_hex(24'h00_0100, "FC200210020041F0010A07FF");
+    run_cycles(200);
+
+    check(int_count == 1, "MP data exception was not taken once");
+    check(last_int_code == 16'd7, "MP without multiplier-field leading zeros code is not 7");
+
+    // =========================================================================
+    // Test 35: DP -- divide decimal, remainder sign, divide check (p. 39).
+    // =========================================================================
+    start_reset();
+    poke_hex(24'h00_0200, "2C");
+    poke_hex(24'h00_0210, "00123C");
+    poke_hex(24'h00_0100, "FD200210020041F0010A07FF");
+    run_cycles(400);
+
+    check(int_count == 0, "DP caused an unexpected interruption");
+    check_word(24'h00_0210, 32'h061C_1C00, "DP 123 / 2: quotient 0061+ and remainder 1+");
+
+    start_reset();
+    poke_hex(24'h00_0200, "2C");
+    poke_hex(24'h00_0210, "00123D");
+    poke_hex(24'h00_0100, "FD200210020041F0010A07FF");
+    run_cycles(400);
+
+    check(int_count == 0, "DP negative caused an unexpected interruption");
+    check_word(24'h00_0210, 32'h061D_1D00, "DP -123 / 2 keeps the dividend sign in the remainder");
+
+    start_reset();
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
+    poke_handler(24'h00_0300);
+    poke_hex(24'h00_0200, "0C");
+    poke_hex(24'h00_0210, "00123C");
+    poke_hex(24'h00_0100, "FD200210020041F0010A07FF");
+    run_cycles(300);
+
+    check(int_count == 1, "DP by zero was not taken once");
+    check(last_int_code == 16'd11, "DP by zero code is not 11");
+    check_word(24'h00_0210, 32'h0012_3C00, "DP by zero leaves the dividend unchanged");
+
+    start_reset();
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
+    poke_handler(24'h00_0300);
+    poke_hex(24'h00_0200, "1C");
+    poke_hex(24'h00_0210, "01234C");
+    poke_hex(24'h00_0100, "FD200210020041F0010A07FF");
+    run_cycles(300);
+
+    check(int_count == 1, "DP quotient overflow was not taken once");
+    check(last_int_code == 16'd11, "DP quotient overflow code is not 11");
+
+    // =========================================================================
+    // Test 36: CVB -- packed doubleword to binary, exceptions (pp. 31-32).
+    // =========================================================================
+    start_reset();
+    poke_hex(24'h00_0210, "000000000025594C");
+    poke_hex(24'h00_0100, "41D002104F70D00041F0010807FF");
+    run_cycles(200);
+
+    check(int_count == 0, "CVB caused an unexpected interruption");
+    check_gpr(7, 32'h0000_63FA);
+    check(psw[29:28] === 2'd0, "CVB did not leave the condition code unchanged");
+
+    start_reset();
+    poke_hex(24'h00_0210, "000000000000123D");
+    poke_hex(24'h00_0100, "41D002104F70D00041F0010807FF");
+    run_cycles(200);
+
+    check_gpr(7, 32'hFFFF_FF85);
+
+    start_reset();
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
+    poke_handler(24'h00_0300);
+    poke_hex(24'h00_0210, "000002147483648C");
+    poke_hex(24'h00_0100, "41D002104F70D00041F0010807FF");
+    run_cycles(300);
+
+    check(int_count == 1, "CVB overflow was not taken once");
+    check(last_int_code == 16'd9, "CVB overflow code is not 9");
+    check_gpr(7, 32'h8000_0000);
+
+    start_reset();
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
+    poke_handler(24'h00_0300);
+    poke_hex(24'h00_0100, "41D002124F70D00041F0010807FF");
+    run_cycles(150);
+
+    check(int_count == 1, "CVB unaligned was not taken once");
+    check(last_int_code == 16'd6, "CVB unaligned operand code is not 6");
+
+    start_reset();
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
+    poke_handler(24'h00_0300);
+    poke_hex(24'h00_0210, "00000000000001AC");
+    poke_hex(24'h00_0100, "41D002104F70D00041F0010807FF");
+    run_cycles(200);
+
+    check(int_count == 1, "CVB data exception was not taken once");
+    check(last_int_code == 16'd7, "CVB invalid digit code is not 7");
+
+    // =========================================================================
+    // Test 37: CVD -- binary to packed doubleword, exceptions (pp. 31-32).
+    // =========================================================================
+    start_reset();
+    poke_hex(24'h00_0100, "41100F0F41D002104E10D00041F0010807FF");
+    run_cycles(300);
+
+    check(int_count == 0, "CVD caused an unexpected interruption");
+    check_word(24'h00_0210, 32'h0000_0000, "CVD result bytes 0-3");
+    check_word(24'h00_0214, 32'h0003_855C, "CVD of 3,855 with the EBCDIC plus sign");
+
+    start_reset();
+    poke_word(24'h00_0220, 32'hFFFF_F0F1);
+    poke_hex(24'h00_0100, "41D00210581002204E10D00041F0010807FF");
+    run_cycles(300);
+
+    check(int_count == 0, "CVD negative caused an unexpected interruption");
+    check_word(24'h00_0214, 32'h0003_855D, "CVD of -3,855 carries the EBCDIC minus sign");
+
+    start_reset();
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
+    poke_handler(24'h00_0300);
+    poke_hex(24'h00_0100, "4110000041D002124E10D00041F0010807FF");
+    run_cycles(200);
+
+    check(int_count == 1, "CVD unaligned was not taken once");
+    check(last_int_code == 16'd6, "CVD unaligned operand code is not 6");
+
+    start_reset();
+    poke_hex(24'h00_0100, "4110000041D002104E10D00041F0010807FF");
+    run_cycles(250);
+
+    check(int_count == 0, "CVD zero caused an unexpected interruption");
+    check_word(24'h00_0214, 32'h0000_000C, "CVD of zero carries the plus sign");
+
+    // =========================================================================
+    // Test 38: ASCII-8 mode (PSW bit 12) changes the generated codes (pp. 32,
+    // 39) and the decimal-overflow mask bit 37 gates code 10 (pp. 16, 40).
+    // =========================================================================
+    start_reset();
+    poke_dw(24'h00_0070, 64'h0008_0000_0000_0120);
+    poke_hex(24'h00_0100, "82000070");
+    poke_hex(24'h00_0200, "12345C");
+    poke_hex(24'h00_0120, "F3420210020041D0021841100F0F4E10D00041F0013607FF");
+    run_cycles(500);
+
+    check(int_count == 0, "ASCII-mode decimal group caused an unexpected interruption");
+    check_word(24'h00_0210, 32'h5152_5354, "ASCII-mode UNPK generates zone 0101");
+    check_word(24'h00_0214, 32'hC500_0000, "ASCII-mode UNPK moves the packed sign unchanged");
+    check_word(24'h00_021C, 32'h0003_855A, "ASCII-mode CVD generates the 1010 plus sign");
+
+    start_reset();
+    poke_dw(24'h00_0068, 64'h0000_0000_0000_0300);
+    poke_handler(24'h00_0300);
+    poke_hex(24'h00_0200, "1C");
+    poke_hex(24'h00_0215, "999C");
+    poke_hex(24'h00_0100, "413000300430FA100215020041F0010C07FF");
+    run_cycles(400);
+
+    check(int_count == 1, "decimal overflow with mask bit 37 was not taken once");
+    check(last_int_code == 16'd10, "decimal overflow code is not 10");
+    check_word(24'h00_0028, 32'h0000_000A, "decimal-overflow old PSW word 0 (code 10)");
+    check_word(24'h00_002C, 32'hFC00_010C,
+               "decimal-overflow old PSW: ILC 3, CC 3, mask bits 36-37, IA 0x10C");
+
+    // =========================================================================
     // Report
     // =========================================================================
     if (errors == 0) begin
-      $display("IBM S360 M8 CORE TESTS PASSED (%0d checks)", checks);
+      $display("IBM S360 M9 CORE TESTS PASSED (%0d checks)", checks);
       $finish;
     end else begin
-      $display("IBM S360 M8 CORE TESTS FAILED: %0d error(s) in %0d checks", errors, checks);
+      $display("IBM S360 M9 CORE TESTS FAILED: %0d error(s) in %0d checks", errors, checks);
       $fatal(1, "testbench failures");
     end
   end
