@@ -107,3 +107,38 @@ python3 scripts/replay_manual.py --url http://127.0.0.1:8081 \
 Omit `--profile` to compare literally with the scanned manual. The five known
 differences remain failures in that strict mode. Both runners compare actual
 ROM-driven printer output, retaining exact decimal strings and duplicate lines.
+
+## CLI and TUI modes
+
+![Busicom 141-PF TUI showing paper tape, switches, keypad shortcuts, and drum phase](assets/tui-app.jpg)
+
+TUI render (`panel_tui.py`) showing the paper tape, decimal/rounding switches,
+keypad shortcuts, and expanded printer mechanism (`m`). Both
+[host/panel_cli.py](host/panel_cli.py) and
+[host/panel_tui.py](host/panel_tui.py) connect to the same `panel_bridge.c`
+HTTP API (`/state.json`, `/press`, `/advance`, `/switches`) as the web front end,
+using only the Python 3 standard library.
+
+Attach to an already running simulator (e.g. on `http://localhost:8081`):
+
+```sh
+# One-shot CLI commands
+python3 host/panel_cli.py --url http://127.0.0.1:8081 status
+python3 host/panel_cli.py --url http://127.0.0.1:8081 switches -p 2 -r 5/4
+python3 host/panel_cli.py --url http://127.0.0.1:8081 press "C 14 + 29 + ="
+python3 host/panel_cli.py --url http://127.0.0.1:8081 advance
+
+# Interactive line-oriented REPL or full-screen TUI
+python3 host/panel_cli.py --url http://127.0.0.1:8081 repl
+python3 host/panel_tui.py --url http://127.0.0.1:8081
+```
+
+Or launch the simulator and TUI/CLI together via `BUSICOM_UI=tui` or
+`BUSICOM_UI=cli`:
+
+```sh
+docker run --rm -it -p 127.0.0.1:8081:8080 \
+  -v "$PWD:/workspace" \
+  -e BUSICOM_UI=tui -e BUSICOM_REALTIME=1 ai-hw-engineer:latest \
+  sh /workspace/system/busicom_141pf/scripts/run_system.sh
+```
