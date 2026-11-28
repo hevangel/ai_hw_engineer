@@ -4,7 +4,7 @@ set -eu
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 mkdir -p "$HERE/work/sim"
 
-echo "=== ibm_s360 M7 core simulation (Verilator) ==="
+echo "=== ibm_s360 M8 core simulation (Verilator) ==="
 verilator --binary --timing -Wall -I"$HERE/src" -Wno-BLKSEQ -Wno-PROCASSINIT -Wno-UNUSEDSIGNAL \
     -j 4 --top-module tb_ibm_s360_cpu \
     --Mdir "$HERE/work/sim/obj" \
@@ -17,5 +17,5 @@ verilator --binary --timing -Wall -I"$HERE/src" -Wno-BLKSEQ -Wno-PROCASSINIT -Wn
 
 (cd "$HERE" && ./work/sim/obj/Vtb_ibm_s360_cpu > work/sim/verilator.log 2>&1)
 cat "$HERE/work/sim/verilator.log"
-grep -q 'IBM S360 M7 CORE TESTS PASSED' "$HERE/work/sim/verilator.log"
-echo "=== ibm_s360 M7 core simulation passed ==="
+grep -q 'IBM S360 M8 CORE TESTS PASSED' "$HERE/work/sim/verilator.log"
+echo "=== ibm_s360 M8 core simulation passed ==="
