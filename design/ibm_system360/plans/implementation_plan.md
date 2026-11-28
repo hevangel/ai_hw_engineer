@@ -65,9 +65,10 @@ Deliverables and their evidence:
    This removes deviations 1-5 in `spec/spec.md`.
 2. **Storage timing** (#384 follow-up): registered read, storage access cycles,
    and the fetch buffer; then instruction timing can be compared with A22-6825.
-3. **Remaining instruction groups**: `ED`/`EDMK` and floating point, with the
-   feature profiles fixed by #382. The halfword, shift, multiply/divide,
-   decimal, SS moves/compares, `EXECUTE` and `TR`/`TRT` groups are complete.
+3. **Remaining instruction groups**: floating point, with the feature
+   profiles fixed by #382. The halfword, shift, multiply/divide, decimal,
+   SS moves/compares, `EXECUTE`, `TR`/`TRT` and `ED`/`EDMK` groups are
+   complete.
 4. **DAT** (#398): the Model 67 address translation; storage keys and the
    protection exception are complete (M8), `SSK`/`ISK` and instruction-fetch
    protection remain.

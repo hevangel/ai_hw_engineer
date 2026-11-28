@@ -41,6 +41,11 @@ In scope and implemented:
   `CVD` and the packed-decimal group `ZAP`, `CP`, `AP`, `SP`, `MP`, `DP` with
   the data (7), decimal-overflow (10, mask bit 37) and decimal-divide (11)
   program interruptions, plus the SET PROGRAM MASK bit-order correction;
+- **editing** (M10): `ED` and `EDMK` over the pattern-driven procedure of
+  pp. 58-60 — fill from the pattern's first byte, digit selectors,
+  significance starters, field separators, the significance-indicator and
+  condition-code rules, source termination on a high-order sign code, and
+  the EDMK general-register-1 marking rule;
 - **program interruptions** with the causes operation (1), privileged
   operation (2), specification (6) and fixed-point overflow (8), the program
   old PSW at storage `0x28`, the program new PSW at `0x68`, and problem-state
@@ -48,9 +53,9 @@ In scope and implemented:
 - the wait state as a state in which no instruction is fetched, and which an
   external interruption can end (M2, M6).
 
-Out of scope (each has its own issue or milestone): floating-point operations;
-`ED` and `EDMK`; DAT; I/O and machine-check interruptions; channel I/O;
-timing and microarchitecture.
+Out of scope (each has its own issue or milestone): floating-point
+operations; DAT; I/O and machine-check interruptions; channel I/O; timing
+and microarchitecture.
 
 ## 2. Architectural summary
 
@@ -315,6 +320,32 @@ completes with the truncated low-order result and CC 3. `MP`/`DP` operands are
 captured and validated before any store, so a data or divide exception leaves
 storage unchanged (deviation A-11).
 
+### 2.13 EDIT and EDIT AND MARK (M10, pp. 58-60)
+
+`ED` (DE) and `EDMK` (DF) use the SS format with one length field: the length
+bounds the *pattern* (first operand); the source (second operand) is consumed
+digit by digit without a length, one examination per digit selector or
+significance starter in the pattern.
+
+| Item | Behaviour |
+|---|---|
+| Processing | pattern left to right, one result character per pattern byte, stored immediately (pp. 35-36 procedure) |
+| Fill character | the content of the pattern's first byte, taken before its own editing action (p. 58) |
+| Digit selector (20) / significance starter (21) | examine the significance indicator and the next source digit: a zoned source digit replaces the pattern byte when the indicator is on or the digit is nonzero, otherwise the fill; the stored digit uses the preferred zone (1111 EBCDIC / 0101 ASCII-8, PSW bit 12) |
+| Field separator (22) | always replaced by the fill; the indicator goes off and the CC digit/nonzero context resets |
+| Message character | unchanged when the indicator is on, replaced by the fill when it is off |
+| Indicator | on when a starter sees a valid digit or a selector sees a nonzero digit and the examined byte has no plus code in its low nibble; off at the start, after a separator, and after a plus code (1010, 1100, 1110, 1111) in an examined byte's low nibble; a minus code (1011, 1101) leaves it unchanged (p. 58) |
+| Source termination | a sign code in a fetched source byte's high nibble terminates the operation; the remaining pattern is untouched and the instruction retires normally (p. 58) |
+| Condition code | 0 last field's digits all zero (also when no selector follows the last separator or none exists), 1 nonzero with the indicator on (negative), 2 nonzero with the indicator off (positive) (pp. 58-59) |
+| EDMK marking | whenever a zoned source digit replaces the pattern byte and the indicator was off before that examination, the result character's address is recorded in general register 1 bits 8-31; bits 0-7 are unchanged (p. 60) |
+| Consumption checks | each fetched source byte is checked for installed storage and fetch protection at consumption; a violation raises code 5 or 4 with the earlier stores in place (deviation A-13) |
+
+Deviations specific to editing are A-12 and A-13 in the ledger. The data
+exception listed for `ED`/`EDMK` in the instruction summary is not raised by
+this core: under the -7 rules every examined nibble either is a valid digit,
+is a sign in the low-order position (handled), or is a sign in the
+high-order position (termination); see A-12.
+
 ## 3. Storage interface
 
 | Signal | Width | Meaning |
@@ -331,7 +362,7 @@ Storage timing, interleaving, protection and channel contention are not
 modelled. Word operands must be aligned; apart from the `LPSW` doubleword
 check, unaligned operands are not detected.
 
-## 4. Implemented instruction set (65 operations)
+## 4. Implemented instruction set (67 operations)
 
 | Opcode | Mnemonic | Format | Operation | CC |
 |---|---|---|---|---|
@@ -400,6 +431,8 @@ check, unaligned operands are not detected.
 | `FB` | SP | SS | subtract packed | set |
 | `FC` | MP | SS | multiply packed | unchanged |
 | `FD` | DP | SS | divide packed | unchanged |
+| `DE` | ED | SS L | edit under a pattern | set |
+| `DF` | EDMK | SS L | edit and mark | set |
 
 Encodings are from the instruction tables on pp. 26-32 (fixed point), 53-56
 (logical), 72-74 (status switching) and 73-74 (branching). Every other
@@ -411,8 +444,8 @@ length and raises interruption code 1.
 These are deliberate and must not be presented as architectural behaviour.
 
 1. **Assigned but unimplemented instructions raise code 1.** A real S/360
-   executes `ED`/`EDMK` and the floating-point group, which this core decodes
-   as an operation exception. This is an implementation gap, not
+   executes the floating-point group, which this core decodes as an
+   operation exception. This is an implementation gap, not
    architecture, and is the reason no compatibility claim may be made until
    the remaining instruction groups and the external oracle exist.
 2. **No supervisor-call, I/O or machine-check interruptions.** The external
@@ -433,9 +466,9 @@ These are deliberate and must not be presented as architectural behaviour.
    byte plus fixed decode/execute/commit cycles, and five cycles per
    interruption. No storage access timing, overlap, prefetch or model-specific
    microarchitecture is modelled.
-7. **No `ED`/`EDMK` or floating point.** They raise code 1 as described
-   above. The fixed-point group, the SS moves/compares/logical group, the
-   translate group, `EXECUTE` and the decimal group are complete.
+7. **No floating point.** It raises code 1 as described above. The
+   fixed-point group, the SS moves/compares/logical group, the translate
+   group, `EXECUTE`, the decimal group and the editing group are complete.
 8. **Decimal data and divide exceptions suppress the instruction.** The
    manual terminates a decimal instruction on a data exception and calls the
    result data and condition code unpredictable (p. 40); this core validates
@@ -460,6 +493,8 @@ These are deliberate and must not be presented as architectural behaviour.
 | A-5 | The interruption sequence is treated as atomic (no priority nesting). | The manual describes priority ordering between classes (p. 16); with only program interruptions there is no competing request. | Re-check when I/O and external interruptions exist. |
 | A-10 | A fetch violation is suppressed (no register or storage change) instead of terminating the instruction. | The manual terminates a fetch-protected operation and calls the results unpredictable (pp. 34, 69); suppression is deterministic. | Revisit when partial-completion cases can be compared against the oracle. |
 | A-11 | Decimal data and decimal-divide exceptions leave storage, registers and the condition code unchanged. | The manual terminates these operations with unpredictable results (p. 40); validating the captured operands before the first store is deterministic. | Compare terminated decimal cases against the oracle when its driver is event-aligned. |
+| A-12 | EDIT never raises the data exception listed in its instruction summary: an examined high-order sign code terminates the operation (p. 58) instead. The independent emulator raises code 7 there (z/Architecture behaviour), so the oracle case set keeps selectors equal to digits and never exercises the boundary. | The -7 text is the source of record for this design; z/Architecture refines it into a data exception. | Validate against IBM diagnostics (#441) or a Hercules-class oracle. |
+| A-13 | An EDIT addressing or protection violation on a consumed source byte raises mid-operation, leaving earlier result stores in place. | The manual terminates the instruction with unpredictable results (pp. 34, 72); stores happen per pattern byte, so the partial field is the deterministic choice. | Compare terminated edit cases against an event-aligned oracle driver. |
 | A-9 | An unfetchable instruction (address outside storage, or an odd address) stores ILC 0 in the old PSW. | The manual updates the stored address by the ILC (p. 72) but no instruction length exists when nothing could be fetched. | Validate against the oracle's interrupt-entry mode when it exists. |
 | A-8 | An SS operation whose field leaves installed storage is suppressed before its first byte. | The manual terminates such an operation part way, leaving results unpredictable (p. 34); a deterministic suppression is easier to verify. | Revisit when the oracle can compare partial-store cases. |
 | A-7 | `TRT` writes general registers 1 and 2 (it has no register fields), and `EXECUTE` stores ILC 2 with the address advanced by four — including when the subject instruction raises an exception. | The manual names "general register 1/2" and states the EXECUTE address rule (p. 67), but OCR damage to the TRT format figure leaves the register encoding to be confirmed. | Validate against the independent oracle (#383). |

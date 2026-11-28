@@ -1299,14 +1299,112 @@ module tb_ibm_s360_cpu;
     check_word(24'h00_002C, 32'hFC00_010C,
                "decimal-overflow old PSW: ILC 3, CC 3, mask bits 36-37, IA 0x10C");
 
+
+    // =========================================================================
+    // Test 39: EDIT -- packed 0123456C edited under the pattern
+    // " ss 1,23.456"; the leading zero is suppressed by the significance
+    // rules and the sign byte's plus code turns the indicator off (CC 2)
+    // (pp. 58-59).
+    // =========================================================================
+    start_reset();
+    poke_hex(24'h00_0200, "4020206B20204B202020");
+    poke_hex(24'h00_0210, "0123456C");
+    poke_hex(24'h00_0100, "DE090200021041F0010A07FF");
+    run_cycles(220);
+
+    check(int_count == 0, "EDIT caused an unexpected interruption");
+    check_word(24'h00_0200, 32'h4040_F16B, "EDIT result bytes 0-3");
+    check_word(24'h00_0204, 32'hF2F3_4BF4, "EDIT result bytes 4-7");
+    check_word(24'h00_0208, 32'hF5F6_0000, "EDIT result bytes 8-9");
+    check(psw[29:28] === 2'd2, "EDIT of a positive value did not set CC 2");
+    check_gpr(1, 32'h0000_0000);
+
+    // =========================================================================
+    // Test 40: EDIT of a negative number -- the D sign leaves the indicator
+    // on, so the same nonzero field gives CC 1 (pp. 58-59).
+    // =========================================================================
+    start_reset();
+    poke_hex(24'h00_0200, "402020202021");
+    poke_hex(24'h00_0210, "01234D");
+    poke_hex(24'h00_0100, "DE050200021041F0010A07FF");
+    run_cycles(200);
+
+    check(int_count == 0, "negative EDIT caused an unexpected interruption");
+    check_word(24'h00_0200, 32'h4040_F1F2, "negative EDIT result bytes 0-3");
+    check_word(24'h00_0204, 32'hF3F4_0000, "negative EDIT result bytes 4-5");
+    check(psw[29:28] === 2'd1, "negative EDIT did not set CC 1");
+
+    // =========================================================================
+    // Test 41: EDIT of all-zero digits -- every position becomes the fill and
+    // CC 0 regardless of the indicator (p. 59).
+    // =========================================================================
+    start_reset();
+    poke_hex(24'h00_0200, "402020202021");
+    poke_hex(24'h00_0210, "00000C");
+    poke_hex(24'h00_0100, "DE050200021041F0010A07FF");
+    run_cycles(200);
+
+    check(int_count == 0, "zero EDIT caused an unexpected interruption");
+    check_word(24'h00_0200, 32'h4040_4040, "zero EDIT fills every selector");
+    check_word(24'h00_0204, 32'h4040_0000, "zero EDIT fills the starter");
+    check(psw[29:28] === 2'd0, "zero EDIT did not set CC 0");
+
+    // =========================================================================
+    // Test 42: EDIT AND MARK over two adjacent source fields -- the field
+    // separator resets significance, the minus of the second field leaves it
+    // on (CC 1), and GR1 holds the second field's first significant digit
+    // address (p. 60).
+    // =========================================================================
+    start_reset();
+    poke_hex(24'h00_0200, "20202022202021");
+    poke_hex(24'h00_0210, "012C045D");
+    poke_hex(24'h00_0100, "DF060200021041F0010A07FF");
+    run_cycles(200);
+
+    check(int_count == 0, "EDMK caused an unexpected interruption");
+    check_word(24'h00_0200, 32'h20F1_F220, "EDMK result bytes 0-3 (fill is the 20 pattern byte)");
+    check_word(24'h00_0204, 32'h20F4_F500, "EDMK result bytes 4-6");
+    check_gpr(1, 32'h0000_0205);
+    check(psw[29:28] === 2'd1, "EDMK of a negative second field did not set CC 1");
+
+    // =========================================================================
+    // Test 43: EDIT source termination -- a sign code in a fetched byte's
+    // high nibble ends the operation; the remaining pattern is untouched and
+    // the instruction retires normally (p. 58).
+    // =========================================================================
+    start_reset();
+    poke_hex(24'h00_0200, "20202020");
+    poke_hex(24'h00_0210, "123CAB");
+    poke_hex(24'h00_0100, "DE030200021041F0010A07FF");
+    run_cycles(200);
+
+    check(int_count == 0, "terminated EDIT raised an unexpected interruption");
+    check_word(24'h00_0200, 32'hF1F2_F320, "terminated EDIT keeps the rest of the pattern");
+    check(psw[29:28] === 2'd2, "terminated EDIT did not set CC 2");
+
+    // =========================================================================
+    // Test 44: EDIT in ASCII-8 mode -- the generated zone is 0101 (p. 58).
+    // =========================================================================
+    start_reset();
+    poke_dw(24'h00_0070, 64'h0008_0000_0000_0120);
+    poke_hex(24'h00_0100, "82000070");
+    poke_hex(24'h00_0200, "20");
+    poke_hex(24'h00_0210, "1C");
+    poke_hex(24'h00_0120, "DE000200021041F0012A07FF");
+    run_cycles(300);
+
+    check(int_count == 0, "ASCII EDIT caused an unexpected interruption");
+    check_word(24'h00_0200, 32'h5100_0000, "ASCII EDIT generates zone 0101");
+    check(psw[29:28] === 2'd2, "ASCII EDIT did not set CC 2");
+
     // =========================================================================
     // Report
     // =========================================================================
     if (errors == 0) begin
-      $display("IBM S360 M9 CORE TESTS PASSED (%0d checks)", checks);
+      $display("IBM S360 M10 CORE TESTS PASSED (%0d checks)", checks);
       $finish;
     end else begin
-      $display("IBM S360 M9 CORE TESTS FAILED: %0d error(s) in %0d checks", errors, checks);
+      $display("IBM S360 M10 CORE TESTS FAILED: %0d error(s) in %0d checks", errors, checks);
       $fatal(1, "testbench failures");
     end
   end

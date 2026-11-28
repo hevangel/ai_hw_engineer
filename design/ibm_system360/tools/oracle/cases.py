@@ -62,6 +62,22 @@ CASES = [
     dict(name="cvb_cvd", note="CVB then CVD round trip",
          words=[0x41D00210, 0x4F70D000, 0x4E70D000], steps=3,
          data={0x210: 0x00000000, 0x214: 0x0025594C}),
+    dict(name="ed_basic", note="EDIT 1,23.456 with leading-zero suppression",
+         words=[0xDE090200, 0x021041F0, 0x010A07FF], steps=2,
+         data={0x200: 0x4020206B, 0x204: 0x20204B20, 0x208: 0x20000000,
+               0x210: 0x0123456C}),
+    dict(name="ed_negative", note="EDIT keeps the indicator on for a D sign",
+         words=[0xDE050200, 0x021041F0, 0x010A07FF], steps=2,
+         data={0x200: 0x40202020, 0x204: 0x21000000, 0x210: 0x01234D00}),
+    dict(name="ed_zero", note="EDIT of all-zero digits fills and gives CC 0",
+         words=[0xDE050200, 0x021041F0, 0x010A07FF], steps=2,
+         data={0x200: 0x40202020, 0x204: 0x21000000, 0x210: 0x00000C00}),
+    dict(name="edmk_fields", note="EDMK marks each field's first significant digit",
+         words=[0xDF060200, 0x021041F0, 0x010A07FF], steps=2,
+         data={0x200: 0x20202022, 0x204: 0x20202100, 0x210: 0x012C045D}),
+    dict(name="edmk_starter", note="significance starter forces the indicator without a mark",
+         words=[0xDE020200, 0x021041F0, 0x010A07FF], steps=2,
+         data={0x200: 0x40202100, 0x210: 0x0C000000}),
 ]
 
 # Note: interruption-entry cases are not in this set. The emulator performs the
