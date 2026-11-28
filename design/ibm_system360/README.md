@@ -10,7 +10,7 @@ reaches implementation.
 - Source and provenance ledger: [spec/sources.md](spec/sources.md)
 - Architecture specification and current milestone report:
   [spec/spec.md](spec/spec.md),
-  [report/2026-11-27-m9-decimal.md](report/2026-11-27-m9-decimal.md)
+  [report/2026-11-28-m10-edit.md](report/2026-11-28-m10-edit.md)
 
 ## History
 
@@ -61,6 +61,7 @@ compatibility implies cycle fidelity.
 | Fetch checks (M7) | implemented: code 5 for an unfetchable instruction address and code 6 for an odd instruction address |
 | Protection keys (M8) | implemented: 2 KiB blocks with a 4-bit key and fetch-protection bit, protection exception (code 4) for protected stores and fetches |
 | Decimal conversions and arithmetic (M9) | implemented: `PACK`, `UNPK`, `MVO`, `CVB`, `CVD`, `ZAP`, `CP`, `AP`, `SP`, `MP`, `DP` with data (7), decimal-overflow (10) and decimal-divide (11) interruptions, and the SET PROGRAM MASK bit-order correction |
+| Editing (M10) | implemented: `ED` and `EDMK` with the fill/selector/starter/separator rules, the significance-indicator and CC rules, source termination on a high-order sign code, and the GR1 marking rule |
 | Storage, channel I/O, protection/DAT, SVC/external/I/O interruptions | not started |
 | Model members (20, 22, 25, 30, 40, 44, 50, 65, 67, 75, 85, 91, 95, 195) | not started; each will be a member folder |
 | Independent emulator oracle, IBM diagnostics, real OS boot | not started (issues #383, #441, #429 and later) |
@@ -87,6 +88,8 @@ and
 [report/2026-11-25-m8-protection-keys.md](report/2026-11-25-m8-protection-keys.md)
 and
 [report/2026-11-27-m9-decimal.md](report/2026-11-27-m9-decimal.md)
+and
+[report/2026-11-28-m10-edit.md](report/2026-11-28-m10-edit.md)
 for the measured evidence and the exact list of limitations.
 
 ## Folder layout

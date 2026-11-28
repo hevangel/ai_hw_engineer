@@ -16,6 +16,7 @@
 //   - Instruction tables and descriptions for fixed-point, logical and
 //     branching instructions (pp. 26-32, 53-56, 64-65, 73-74)
 //   - Decimal instructions, conversions and their exceptions (pp. 31-32, 35-40)
+//   - EDIT and EDIT AND MARK (pp. 58-60)
 //
 // Only the encodings that the core executes are listed. Instructions that
 // the manual defines but this core does not implement decode as OP_ILLEGAL and
@@ -134,7 +135,9 @@ typedef enum logic [6:0] {
   OP_AP   = 7'd62,  // FA
   OP_SP   = 7'd63,  // FB
   OP_MP   = 7'd64,  // FC
-  OP_DP   = 7'd65   // FD
+  OP_DP   = 7'd65,  // FD
+  OP_ED   = 7'd66,  // DE
+  OP_EDMK = 7'd67   // DF
 } s360_op_e;
 
 typedef struct packed {
@@ -263,6 +266,9 @@ function automatic s360_dec_t s360_decode(input logic [7:0] opcode);
     8'hFB: d.op = OP_SP;
     8'hFC: d.op = OP_MP;
     8'hFD: d.op = OP_DP;
+    // ---- Editing, pp. 58-60 -------------------------------------------------
+    8'hDE: d.op = OP_ED;
+    8'hDF: d.op = OP_EDMK;
     default: begin
       d.valid = 1'b0;
       d.op    = OP_ILLEGAL;

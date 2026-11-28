@@ -13,6 +13,10 @@
 //       plus the specification exceptions of p. 34 (halfword not on a 16-bit
 //       boundary, odd register for a 64-bit pair) and the fixed-point divide
 //       exception (code 9, p. 31/34).
+//   M10 the editing group (pp. 58-60):
+//         EDIT (DE) and EDIT AND MARK (DF) over the pattern-driven SS loop,
+//         with the significance-indicator and condition-code rules of the
+//         summary table and the source-termination rule of p. 58.
 //   M9  decimal conversions and arithmetic (pp. 31-32, 35-40):
 //         conversions  PACK, UNPK, MVO               (pp. 39-40)
 //         register     CVB, CVD                      (pp. 31-32)
@@ -189,6 +193,78 @@ module ibm_s360_cpu #(
   logic [8:0]  ss_i_q;
   logic [7:0]  ss_b1_q;
   logic [7:0]  ss_b2_q;
+
+  // ---------------------------------------------------------------------------
+  // EDIT / EDIT AND MARK datapath (M10, A22-6821-7 pp. 58-60)
+  // ---------------------------------------------------------------------------
+  logic [7:0]  ed_fill_q;     // fill character = the pattern's first byte
+  logic [23:0] ed_src_q;      // next source byte to fetch
+  logic [7:0]  ed_byte_q;     // held source byte whose low nibble is next
+  logic        ed_use_lo_q;   // next examination takes the held byte's low nibble
+  logic        ed_sig_q;      // significance indicator
+  logic        ed_nonzero_q;  // last field examined a nonzero digit
+  logic        ed_term_q;     // p. 58: sign code in a fetched byte's high nibble
+
+  logic [3:0] ed_zone;
+  assign ed_zone = dec_pref_zone(psw_word[51]);
+
+  // Examination of one pattern position, computed in S_SS_B. Inputs: the
+  // pattern byte (ss_b1_q), the fetched-or-held source byte, and the ED
+  // registers. Outputs are registered at the end of S_SS_B.
+  logic       ed_examine;    // digit selector or significance starter
+  logic       ed_fetch;      // this examination fetches a new source byte
+  logic [7:0] ed_srcb;       // the examined source byte
+  logic [3:0] ed_digit;      // the examined nibble
+  logic       ed_plus_lo;    // fetched byte has a plus code in its low nibble
+  logic       ed_sign_lo;    // fetched byte has any sign code in its low nibble
+  logic       ed_hi_sign;    // fetched byte's high nibble is a sign code
+  logic       ed_result_dig; // a zoned source digit replaces the pattern byte
+  logic       ed_mark;       // EDMK: record the result-character address
+  logic [7:0] ed_out;        // result character
+
+  assign ed_examine = (ss_b1_q == 8'h20) || (ss_b1_q == 8'h21);
+  assign ed_fetch   = ed_examine && !ed_use_lo_q;
+  assign ed_srcb    = ed_fetch ? read_byte : ed_byte_q;
+  assign ed_digit   = ed_use_lo_q ? ed_srcb[3:0] : ed_srcb[7:4];
+  // Plus: 1010, 1100, 1110, 1111; minus: 1011, 1101 (p. 58).
+  assign ed_sign_lo = (ed_srcb[3:0] >= 4'd10);
+  assign ed_plus_lo = ed_sign_lo && ((ed_srcb[3:0] == 4'hA) || (ed_srcb[3:0] == 4'hC) ||
+                                     (ed_srcb[3:0] == 4'hE) || (ed_srcb[3:0] == 4'hF));
+  assign ed_hi_sign = ed_fetch && (ed_srcb[7:4] >= 4'd10);
+  // A zoned source digit replaces the pattern byte when the indicator is on
+  // or the digit is nonzero (selector and starter alike, summary table p. 59).
+  assign ed_result_dig = ed_examine && !ed_hi_sign &&
+                         (ed_sig_q || (ed_digit != 4'd0));
+  assign ed_mark = ed_op && (dec.op == OP_EDMK) && ed_result_dig && !ed_sig_q;
+  assign ed_out = ed_hi_sign ? 8'h00
+                : (ss_b1_q == 8'h22) ? ed_fill_q
+                : ed_result_dig ? {ed_zone, ed_digit}
+                : ed_sig_q ? ss_b1_q : ed_fill_q;
+
+  logic       ed_sig_next;
+  logic       ed_nonzero_next;
+  logic       ed_use_lo_next;
+  logic       ed_fetch_raise;
+  // The indicator turns on when a starter sees a valid digit or a selector
+  // sees a nonzero digit, unless the examined byte carries a plus code in its
+  // low nibble; a plus code always turns it off; a minus leaves it (p. 58).
+  assign ed_sig_next = ed_plus_lo ? 1'b0
+                     : (!ed_examine || ed_hi_sign) ? ed_sig_q
+                     : ((ss_b1_q == 8'h21) || (ed_digit != 4'd0)) ? 1'b1
+                     : ed_sig_q;
+  assign ed_nonzero_next = (ss_b1_q == 8'h22) ? 1'b0
+                         : (ed_examine && !ed_hi_sign && (ed_digit != 4'd0)) ? 1'b1
+                         : ed_nonzero_q;
+  assign ed_use_lo_next = !ed_examine || ed_hi_sign ? ed_use_lo_q
+                        : ed_fetch ? !ed_sign_lo : 1'b0;
+  // Consumed-byte checks: addressing and protection terminate the operation
+  // with a program interruption, leaving earlier stores in place (A-13).
+  assign ed_fetch_raise = ed_fetch && (out_of_range(ed_src_q) ||
+                                       !fetch_permitted(ed_src_q));
+
+  // Condition code from the last field's digits and indicator (p. 59).
+  logic [1:0] ed_cc;
+  assign ed_cc = !ed_nonzero_q ? 2'd0 : (ed_sig_q ? 2'd1 : 2'd2);
 
   // ---------------------------------------------------------------------------
   // Decimal datapath (M9, A22-6821-7 pp. 31-32, 35-40)
@@ -488,7 +564,8 @@ module ibm_s360_cpu #(
                      (dec.op == OP_MVZ) || (dec.op == OP_NC) ||
                      (dec.op == OP_OC) || (dec.op == OP_XC) ||
                      (dec.op == OP_CLC) || (dec.op == OP_TR) ||
-                     (dec.op == OP_TRT);
+                     (dec.op == OP_TRT) || (dec.op == OP_ED) ||
+                     (dec.op == OP_EDMK);
     dec_ss_op      = (dec.op == OP_PACK) || (dec.op == OP_UNPK) ||
                      (dec.op == OP_MVO)  || (dec.op == OP_ZAP) ||
                      (dec.op == OP_CP)   || (dec.op == OP_AP) ||
@@ -549,7 +626,9 @@ module ibm_s360_cpu #(
   logic [23:0] ss_last1, ss_last2;
   logic        ss_range_bad;
   assign ss_last1 = ss_addr1 + {15'd0, ib[1]};
-  assign ss_last2 = ss_addr2 + {15'd0, ib[1]};
+  // EDIT has no second length: only the source's first byte is checked up
+  // front; consumed bytes are checked as they are fetched.
+  assign ss_last2 = ed_op ? ss_addr2 : (ss_addr2 + {15'd0, ib[1]});
   always_comb begin
     ss_range_bad = ss_op && (out_of_range(ss_addr1) || out_of_range(ss_last1) ||
                              out_of_range(ss_addr2) || out_of_range(ss_last2));
@@ -847,7 +926,8 @@ module ibm_s360_cpu #(
                 : (state == S_DEC_B)  ? dec_rd_b_addr[1:0]
                                       : ea_q[1:0];
   logic [23:0] ss_read_b_addr;
-  assign ss_read_b_addr = ((dec.op == OP_TR) || (dec.op == OP_TRT)) ? ss_table_addr
+  assign ss_read_b_addr = ed_op ? ed_src_q
+                        : ((dec.op == OP_TR) || (dec.op == OP_TRT)) ? ss_table_addr
                                                                     : ss_a2_cur;
 
   assign read_word = mem_rdata;
@@ -874,8 +954,13 @@ module ibm_s360_cpu #(
     endcase
     ss_writes = (dec.op == OP_MVC) || (dec.op == OP_MVN) || (dec.op == OP_MVZ) ||
                 (dec.op == OP_NC) || (dec.op == OP_OC) || (dec.op == OP_XC) ||
-                (dec.op == OP_TR);
+                (dec.op == OP_TR) || (dec.op == OP_ED) || (dec.op == OP_EDMK);
   end
+
+  // EDIT and EDIT AND MARK: the SS length field bounds only the pattern;
+  // the source is consumed digit by digit without a length.
+  logic ed_op;
+  assign ed_op = (dec.op == OP_ED) || (dec.op == OP_EDMK);
 
   // Whole-field protection for the character SS group. A field of at most 256
   // bytes spans at most two 2 KiB blocks, so its two end bytes cover it.
@@ -1358,9 +1443,10 @@ module ibm_s360_cpu #(
       S_SS_B: mem_addr = ss_read_b_addr;
       S_SS_C: begin
         mem_addr  = ss_a1_cur;
-        mem_we    = ss_writes;
+        mem_we    = ss_writes && !(ed_op && ed_term_q);
         mem_wdata = {4{ss_merged_byte}};
-        mem_wbe   = ss_writes ? (4'b1000 >> ss_a1_cur[1:0]) : 4'd0;
+        mem_wbe   = (ss_writes && !(ed_op && ed_term_q))
+                    ? (4'b1000 >> ss_a1_cur[1:0]) : 4'd0;
       end
       S_DEC_A: mem_addr = dec_rd_a_addr;
       S_DEC_B: mem_addr = dec_rd_b_addr;
@@ -1441,6 +1527,13 @@ module ibm_s360_cpu #(
       ss_i_q       <= 9'd0;
       ss_b1_q      <= 8'd0;
       ss_b2_q      <= 8'd0;
+      ed_fill_q    <= 8'd0;
+      ed_src_q     <= 24'd0;
+      ed_byte_q    <= 8'd0;
+      ed_use_lo_q  <= 1'b0;
+      ed_sig_q     <= 1'b0;
+      ed_nonzero_q <= 1'b0;
+      ed_term_q    <= 1'b0;
       dec_n1_q     <= 5'd0;
       dec_n2_q     <= 5'd0;
       dec_addr1_q  <= 24'd0;
@@ -1726,6 +1819,22 @@ module ibm_s360_cpu #(
                 ss_addr2_q <= ss_addr2;
                 ss_i_q     <= 9'd0;
               end
+              OP_ED, OP_EDMK: begin
+                // The pattern drives the loop; the fill is the pattern's
+                // first byte, read at decode (p. 58). The source has no
+                // length and is consumed digit by digit.
+                ss_len_q     <= ib[1];
+                ss_addr1_q   <= ss_addr1;
+                ss_addr2_q   <= ss_addr2;
+                ss_i_q       <= 9'd0;
+                ed_fill_q    <= str_q;
+                ed_src_q     <= ss_addr2;
+                ed_byte_q    <= 8'd0;
+                ed_use_lo_q  <= 1'b0;
+                ed_sig_q     <= 1'b0;
+                ed_nonzero_q <= 1'b0;
+                ed_term_q    <= 1'b0;
+              end
               OP_EX: begin
                 // Execute the subject instruction at the operand address with
                 // bits 24-31 of the R1 register ORed into its second byte;
@@ -1952,8 +2061,44 @@ module ibm_s360_cpu #(
         end
 
         S_SS_B: begin
-          ss_b2_q <= read_byte;
-          state   <= S_SS_C;
+          if (ed_op) begin
+            // EDIT: compute the result character and the new indicator
+            // state from the pattern byte and the examined source byte.
+            ss_b2_q       <= ed_out;
+            ed_sig_q      <= ed_sig_next;
+            ed_nonzero_q  <= ed_nonzero_next;
+            ed_term_q     <= ed_hi_sign;
+            if (ed_fetch) begin
+              ed_byte_q <= read_byte;
+              ed_src_q  <= ed_src_q + 24'd1;
+            end
+            ed_use_lo_q   <= ed_use_lo_next;
+            if (ed_mark) begin
+              // The address of each first significant result character goes
+              // into general register 1, bits 8-31 (p. 60).
+              wr_en_q  <= 1'b1;
+              wr_idx_q <= 4'd1;
+              res_q    <= {gpr[1][31:24], ss_a1_cur};
+            end
+            if (ed_fetch_raise) begin
+              int_code_q     <= out_of_range(ed_src_q) ? CODE_ADDRESSING
+                                                       : CODE_PROTECTION;
+              int_psw_q      <= {psw_word[63:48],
+                                 out_of_range(ed_src_q) ? CODE_ADDRESSING
+                                                        : CODE_PROTECTION,
+                                 ilc_q, psw_word[29:24],
+                                 (ia_cur + {20'd0, len_q})};
+              int_pending_q  <= 1'b1;
+              int_old_addr_q <= PROGRAM_OLD_PSW;
+              int_new_addr_q <= PROGRAM_NEW_PSW;
+              state          <= S_CHECK;
+            end else begin
+              state <= S_SS_C;
+            end
+          end else begin
+            ss_b2_q <= read_byte;
+            state   <= S_SS_C;
+          end
         end
 
         S_SS_C: begin
@@ -1987,6 +2132,18 @@ module ibm_s360_cpu #(
             end else if (ss_i_q == {1'b0, ss_len_q}) begin
               cc_we_q <= 1'b1;
               cc_q    <= 2'd0;
+              state   <= S_COMMIT;
+            end else begin
+              ss_i_q <= ss_i_q + 9'd1;
+              state  <= S_SS_A;
+            end
+          end else if (ed_op) begin
+            // A terminated position is left untouched; otherwise the result
+            // character was already written by the port. The condition code
+            // reflects the last field's digits and indicator (p. 59).
+            if (ed_term_q || (ss_i_q == {1'b0, ss_len_q})) begin
+              cc_we_q <= 1'b1;
+              cc_q    <= ed_cc;
               state   <= S_COMMIT;
             end else begin
               ss_i_q <= ss_i_q + 9'd1;
@@ -2459,11 +2616,13 @@ module ibm_s360_cpu #(
                      ((state == S_EXEC) && ((is_divide_op && div_overflow) ||
                                             (dec.op == OP_SVC))) ||
                      dec_raise ||
+                     ((state == S_SS_B) && ed_fetch_raise) ||
                      ((state == S_COMMIT) && ovf_int_q);
   assign int_raise_cc_same = ((state == S_DECODE) && suppress) ||
                              ((state == S_EXEC) && ((is_divide_op && div_overflow) ||
                                                     (dec.op == OP_SVC))) ||
-                             dec_raise;
+                             dec_raise ||
+                             ((state == S_SS_B) && ed_fetch_raise);
   assign int_raise_len = ((state == S_DECODE) && suppress) ? len : len_q;
 `endif
 
