@@ -1,11 +1,13 @@
 # Intel 80286 verification report
 
 Current state of `design/intel_80286` on branch
-`design/intel-80286-fable-review-284`, after the fixes for the issue #284
-review. Results are from runs on 2026-11-22 in the `ai-hw-engineer:latest`
-image (Verilator 5.052, Yosys 0.69). History before this report is in the
-[archived README status log](2026-11-22-readme-status-log.md) and the dated
-reports in this folder.
+`design/intel-80286-release-gate`, combining the issue #284 fixes with the
+2026-11-24 single-pass release-gate closure (`ai-hw-engineer:latest`: Verilator
+5.052, Yosys 0.69, SymbiYosys, Yices 2.7.0, ABC). See the
+[release-gate closure report](2026-11-24-release-gate-closure.md) for exact
+formal witness architecture details and digests. History before issue #284 is
+in the [archived README status log](2026-11-22-readme-status-log.md) and the
+dated reports in this folder.
 
 ## Issue #284 review findings
 
@@ -77,26 +79,30 @@ Commands, from the repository root in the tool container:
 sh design/intel_80286/scripts/run_all.sh --work-dir <empty dir>
 ```
 
-The formal half and the rest of the gate were run in parallel in separate
-work folders (`run_all.sh` in one, the same remaining steps in the same order
-in the other); the results are the same steps `run_all.sh` runs.
+The full release gate ran end-to-end in a single uninterrupted pass
+(`work/release_20261124`, formal epoch `release.ClGBL2`, `12,907 s` wall time,
+exit `0`), with every artifact bound to `src/intel_80286.sv` SHA-256
+`5dc923fc3573b17c04e65e4e5072745d79631c89cbbe440400dec41b2eda6c81` and
+`formal/intel_80286_props.sv` SHA-256
+`b02d3d3f2c5c92d0bf1a985709a0886674f1b774ba9cc0270deb6e0e607f6b5f`.
+See [2026-11-24-release-gate-closure.md](2026-11-24-release-gate-closure.md).
 
 | Gate | Result |
 |---|---|
-| Preflight and unit tests | Pass |
-| Lint, `verilator --lint-only -Wall` | Clean |
-| Component formal (access, bus owner, cached reference, code check, code load, datapath, decimal, EA, event control, mul/div, segment check, segment load) | bmc, prove and cover pass for every component |
-| Connected-core formal (`intel_80286.sby`) | BMC depth 24 PASS (1 h 28 min); k-induction depth 12 PASS. Cover: 25 covers reached by step 18 in the first hour, none reported unreachable; stopped there. The connected-core cover task has never completed on any RTL (see the 2026-11-05 report), so it is bounded evidence only |
+| Preflight and unit tests | Pass (`preflight.py`: `442`/`1`/`52`; `check_mutation_patterns.py`: `119` patterns across all `16` suites; `test_preflight`, `test_audit_formal`, `test_build_runner`, `test_work_paths` pass) |
+| Lint, `verilator --lint-only -Wall` | Clean (`0` warnings) |
+| Component formal (12 suites: access, bus owner, cached reference, code check, code load, datapath, decimal, EA, event control, mul/div, segment check, segment load) | `36/36` tasks (`bmc`, `prove`, `cover`) pass |
+| Connected-core formal (`intel_80286.sby` + witnesses) | `bmc` PASS (`5,989 s`); `prove` k-induction depth 12 PASS (`1,014 s`); `cover` depth 15 PASS (`1,100 s`, `14/14` shallow blind covers); `intel_80286_cover_witnesses` PASS (`81 s`, `38/38` deep covers via Yosys `sim -assert` on lowered `prove` model; `52/52` total core covers); `audit_formal.py` `40/40` tasks PASS |
 | Bus owner, native bus, native core | Pass |
-| Directed bootstrap suite (`run_sim.sh`) | Pass, including the new #284 tests |
-| Instruction vectors (`run_vectors.sh`) | Pass |
-| Physical Harris-286 captures (SingleStepTests/80286 `37c73ca`) | 1,427,994 general, 68,510 port, 50,000 string and 52 #GP records replay exactly, each with and without bus stalls |
-| Mutation suites in the gate | Undefined-opcode, protection, protected-event and protected-string (15 of 15) mutants all detected |
-| IBM AT BIOS (`run_software.sh`) | 196,846 instruction states match Unicorn to the ROM-checksum checkpoint; timer, DMA, page-register and refresh runs to F000:038A and F000:03A2 match Unicorn in both bus modes (247,196 to 1,295,769 states) |
-| PCE-286 oracle | 3,019 scenarios: 2,926 pass, 93 waived with citations, 0 mismatch |
-| Synthesis (Yosys `check -assert`) | 72,285 cells, 0 problems |
+| Directed bootstrap suite (`run_sim.sh`) | Pass, including the #284 tests |
+| Instruction vectors (`run_vectors.sh`) | `99,650` cases, `1,715,162` states pass against Unicorn 2.1.4 |
+| Physical Harris-286 captures (`run_hardware.sh`) | Pinned SingleStepTests/80286 (`37c73ca`) MOO captures replay exact |
+| Gate mutation suites | Undefined-opcode (4), protection (4), protected-event (6) and protected-string (15) mutants all caught (`29/29`) |
+| IBM AT BIOS (`run_software.sh`) | `196,846` instruction states match Unicorn to `F000:0225`; timer, DMA, page-register and refresh checks pass |
+| PCE-286 oracle (`run_pce_oracle.sh`) | `3,019` scenarios: `2,926` pass, `93` waived with citations, `0` mismatch |
+| Synthesis (`run_synth.sh`, Yosys `check -assert`) | All `13` targets pass (`intel_80286` `71,624` cells / `744.28 s`; `intel_80286_native_beats` `71,042` cells / `787.24 s`; `intel_80286_native_cpu` `72,285` cells / `764.42 s`) |
 
-Non-formal half wall time: 42 minutes.
+Total single-pass wall time: `12,907 s` (`3 h 35 m 07 s`).
 
 ## Known issues and limits
 
@@ -104,17 +110,16 @@ Non-formal half wall time: 42 minutes.
   is settled with PCE-286 only; A48 (shadows across WAIT) is a choice the
   review left to the owner; A31 rests on Appendix B where the manual
   contradicts itself. None is confirmed on a physical 286.
-- **Connected-core cover** does not finish, so `run_all.sh` cannot run to its end in one pass; the steps after it were run separately (above). This predates the review.
 - **Finding 11** was confirmed fixed with the pinned Verilator only; the
   newer build the review used was not run.
-- **Mutation suites outside the gate** (fixed after this review, PR #300).
-  A recount found 4 stale patterns, not 20, in `run_irq_mutations.py`,
-  `run_debug_mutations.py` and `run_reference_mutations.py`; all
-  `run_protected_event_mutations.py` patterns matched. With the 4 re-anchored,
-  `run_mutations` (13/13), irq (8/8), debug (4/4) and reference (7/7) detect
-  every mutant. `run_all.sh` now runs `check_mutation_patterns.py`, which
-  fails if any of 62 patterns in 9 suites stops matching exactly once.
+- **Standalone mutation suites outside the gate.** All `16` mutation suites
+  (`119` patterns, including the 7 component suites added to
+  `scripts/check_mutation_patterns.py`) now pass target pattern checks cleanly;
+  standalone runtime mutation scripts outside `run_all.sh` remain separate from
+  the release-gate execution path.
 - **Oracle waivers.** 93 PCE-286 differences are waived, each with a cited
-  reason; four are new for finding 3 (PCE-286 applies the 386 #TS rule).
-- What remains for a complete 80286 is listed in
+  reason; four are for finding 3 (PCE-286 applies the 386 #TS rule).
+- **Remaining full-chip `#80` scope.** OS/2 SDK 1.00 `CPGREP.EXE` RTL trace,
+  remaining protected-mode/ISA combinations, native timing/pin behavior, and
+  attached-80287 validation remain open as listed in
   [the completion requirements](../plans/completion_requirements.md).

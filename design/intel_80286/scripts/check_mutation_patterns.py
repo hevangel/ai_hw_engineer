@@ -25,6 +25,13 @@ SUITES = {
     'run_undefined_mutations': lambda entry: (entry[0], CORE, entry[1]),
     'run_protection_mutations': lambda entry: (entry[0], CORE, entry[1]),
     'run_protected_event_mutations': lambda entry: (entry[0], CORE, entry[1]),
+    'run_access_check_mutations': lambda entry: (entry[0], 'intel_80286_access_check.sv', entry[1]),
+    'run_cached_reference_mutations': lambda entry: (entry[0], 'intel_80286_cached_reference.sv', entry[1]),
+    'run_code_check_mutations': lambda entry: (entry[0], 'intel_80286_code_check.sv', entry[1]),
+    'run_code_load_mutations': lambda entry: (entry[0], 'intel_80286_code_load.sv', entry[1]),
+    'run_event_mutations': lambda entry: (entry[0], 'intel_80286_event_control.sv', entry[1]),
+    'run_segment_load_mutations': lambda entry: (entry[0], 'intel_80286_segment_load.sv', entry[1]),
+    'run_segment_mutations': lambda entry: (entry[0], 'intel_80286_segment_check.sv', entry[1]),
 }
 
 
@@ -37,13 +44,15 @@ def inspect(source_dir=SOURCE_DIR):
     for module_name, unpack in SUITES.items():
         module = importlib.import_module(module_name)
         for entry in module.MUTATIONS:
-            name, target, pattern = unpack(entry)
+            name, target, patterns = unpack(entry)
             if target not in cache:
                 cache[target] = (source_dir / target).read_text()
-            matches = cache[target].count(pattern)
-            checked += 1
-            if matches != 1:
-                errors.append(f'{module_name}.{name}: {matches} matches in {target}')
+            pattern_list = patterns if isinstance(patterns, tuple) else (patterns,)
+            for pattern in pattern_list:
+                matches = cache[target].count(pattern)
+                checked += 1
+                if matches != 1:
+                    errors.append(f'{module_name}.{name}: {matches} matches in {target}')
     return checked, errors
 
 

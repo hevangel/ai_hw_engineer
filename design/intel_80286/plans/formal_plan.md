@@ -1,5 +1,37 @@
 # Intel 80286 formal plan
 
+## Single-pass connected-core formal closure — 2026-11-24
+
+All `40/40` current formal tasks now pass in a single uninterrupted
+`scripts/run_all.sh` run on `branch design/intel-80286-release-gate`, reaching
+`52/52` connected-core covers (`449` elaborated core assertions and `52` core
+covers in `intel_80286_prove/model/design.json`):
+
+- **Property cleanup (`formal/intel_80286_props.sv`, `formal/property_inventory.json`)**:
+  Removed the two unreachable dead cover statements (`fault_o && fault_code_o == 2`
+  deleted in `f1b8e4a8`, and `fault_o && fault_code_o == 3` excluded by the
+  `STOPPED` assertions), added `if (rst_n) assert(fault_code_o <= 2'd1);`, and
+  labeled the `52` remaining core covers into `14` `cov_shallow_*` and `38`
+  `cov_deep_*` obligations (`442` asserts, `1` assume, `52` covers in inventory).
+- **Split shallow blind cover + witnessed deep cover**:
+  - `intel_80286.sby` (`cover` task) searches depth 15 for `cov_shallow_*`
+    only (removing submodule `$check` covers already proven in component `.sby`
+    tasks and `cov_deep_*` from blind SMT search); all `14` `cov_shallow_*`
+    targets are reached by step 13 (`1100 s`).
+  - `tb/core_cover_witnesses.cpp` and `scripts/run_core_cover_witnesses.py`
+    generate `11` pure primary-input-only traces from reset (`.smtc` + Yosys `.yw`)
+    and verify all `38` `cov_deep_*` covers on lowered `intel_80286_prove/model/design.il`
+    (preserving all `560` `$assert`, `6` `$assume`, and `52` `$cover` cells) using
+    Yosys formal `sim -q -assert` without `-zinit` in `81 s` (`52/52` union cover
+    reachability, zero assertion/assumption failures).
+- **Fail-closed audit (`scripts/audit_formal.py`, `scripts/run_formal.sh`)**:
+  `run_formal.sh` skips redundant `intel_80286_pdr.sby` unless `--include-pdr`
+  is given (corresponding `--require-pdr` in `audit_formal.py`). `audit_core_cover_witnesses`
+  validates source snapshots, lowered `$assert`/`$assume`/`$cover` counts,
+  primary-input-only `.smtc` and `.yw` files (`rst_n == 0` at step 0, binary inputs),
+  Yosys `sim` script/log/summary integrity, and `52/52` union cover reachability.
+  See [`2026-11-24-release-gate-closure.md`](../report/2026-11-24-release-gate-closure.md).
+
 ## WAIT/event counterexample — 2026-10-29
 
 The current-source PDR run described below finished **FAIL** at step 9.

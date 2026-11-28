@@ -95,8 +95,11 @@ class EvidenceAuditTests(unittest.TestCase):
         resolved = task_config(sections(pdr_config), 'prove')
         (run / 'config.sby').write_text('\n'.join(
             f'[{name}]\n' + '\n'.join(lines) for name, lines in resolved.items()))
-        results = self.results()
-        self.assertEqual([result['result'] for result in results], ['PASS'] * 4)
+        # Default audit skips optional PDR; --require-pdr audits it.
+        default_results = audit(self.design, self.work)
+        self.assertEqual([result['result'] for result in default_results], ['PASS'] * 3)
+        pdr_results = audit(self.design, self.work, require_pdr=True)
+        self.assertEqual([result['result'] for result in pdr_results], ['PASS'] * 4)
 
     def test_separate_core_epoch_never_falls_back_to_old_results(self):
         (self.design / 'formal/intel_80286.sby').write_text(self.config.read_text())
@@ -142,8 +145,11 @@ class CoreElaboratedPropertyAuditTests(unittest.TestCase):
                             {'name': 'cpu_assert',
                              'attributes': {'src': 'intel_80286_props.sv:10.5-10.20'},
                              'parameters': {'FLAVOR': 'assert'}},
-                            {'name': 'cpu_cover',
+                            {'name': 'cov_shallow_ex',
                              'attributes': {'src': 'formal/intel_80286_props.sv:11.5-11.20'},
+                             'parameters': {'FLAVOR': 'cover'}},
+                            {'name': 'cov_deep_ex',
+                             'attributes': {'src': 'formal/intel_80286_props.sv:12.5-12.20'},
                              'parameters': {'FLAVOR': 'cover'}},
                         ],
                     }],
@@ -182,15 +188,115 @@ class CoreElaboratedPropertyAuditTests(unittest.TestCase):
             model_path = run / 'model/design.json'
             model_path.parent.mkdir(parents=True, exist_ok=True)
             model_path.write_text(json.dumps(model))
+        (self.core_work / 'intel_80286_prove/model/design_smt2.smt2').write_text(
+            '; yosys-smt2-assert 0 cpu_assert intel_80286_props.sv:10.5-10.20\n')
+        (self.core_work / 'intel_80286_cover/logfile.txt').write_text(
+            '## 0:00:01 Reached cover statement in step 1 at intel_80286: cov_shallow_ex\n')
+        witness_dir = self.core_work / 'intel_80286_cover_witnesses'
+        (witness_dir / 'src').mkdir(parents=True, exist_ok=True)
+        (witness_dir / 'model').mkdir(parents=True, exist_ok=True)
+        (witness_dir / 'src/intel_80286.sv').write_bytes(
+            (self.design / 'src/intel_80286.sv').read_bytes())
+        (witness_dir / 'src/intel_80286_props.sv').write_bytes(
+            (self.design / 'formal/intel_80286_props.sv').read_bytes())
+        (witness_dir / 'status').write_text('PASS 0 1\n')
+        (witness_dir / 'PASS').write_text('verified\n')
+        (witness_dir / 'model/sim_prep.il').write_text('# lowered RTLIL placeholder\n')
+        (witness_dir / 'model/sim_prep_stat.json').write_text(json.dumps({
+            'design': {
+                'num_cells_by_type': {
+                    '$assert': 1,
+                    '$assume': 1,
+                    '$cover': 2,
+                },
+            },
+        }))
+        group_dir = witness_dir / 'groups/deep_group'
+        group_dir.mkdir(parents=True, exist_ok=True)
+        (group_dir / 'witness.smtc').write_text(
+            'state 0\n'
+            'assume (= [rst_n] false)\n'
+            'assume (= [bus_ready_i] false)\n'
+            'assume (= [bus_rdata_i] #x0000)\n'
+            'assume (= [intr_i] false)\n'
+            'assume (= [nmi_i] false)\n'
+            'assume (= [inta_ready_i] false)\n'
+            'assume (= [inta_vector_i] #x00)\n'
+            'assume (= [busy_i] false)\n'
+            'assume (= [error_n_i] true)\n'
+            'assume (= [pereq_i] false)\n\n'
+            'state 1\n'
+            'assume (= [rst_n] true)\n'
+            'assume (= [bus_ready_i] true)\n'
+            'assume (= [bus_rdata_i] #x0000)\n'
+            'assume (= [intr_i] false)\n'
+            'assume (= [nmi_i] false)\n'
+            'assume (= [inta_ready_i] false)\n'
+            'assume (= [inta_vector_i] #x00)\n'
+            'assume (= [busy_i] false)\n'
+            'assume (= [error_n_i] true)\n'
+            'assume (= [pereq_i] false)\n'
+        )
+        port_order = [
+            ('rst_n', 1), ('bus_ready_i', 1), ('bus_rdata_i', 16), ('intr_i', 1), ('nmi_i', 1),
+            ('inta_ready_i', 1), ('inta_vector_i', 8), ('busy_i', 1), ('error_n_i', 1), ('pereq_i', 1),
+        ]
+        step0_vals = {
+            'rst_n': '0', 'bus_ready_i': '0', 'bus_rdata_i': '0' * 16, 'intr_i': '0', 'nmi_i': '0',
+            'inta_ready_i': '0', 'inta_vector_i': '0' * 8, 'busy_i': '0', 'error_n_i': '1', 'pereq_i': '0',
+        }
+        step1_vals = dict(step0_vals, rst_n='1', bus_ready_i='1')
+        (group_dir / 'witness.yw').write_text(json.dumps({
+            'format': 'Yosys Witness Trace',
+            'generator': 'core_cover_witnesses',
+            'clocks': [{'path': ['\\clk'], 'edge': 'posedge', 'offset': 0}],
+            'signals': [
+                {'path': [f'\\{name}'], 'width': width, 'offset': 0, 'init_only': False}
+                for name, width in port_order
+            ],
+            'steps': [
+                {'bits': ''.join(step0_vals[name] for name, _ in reversed(port_order))},
+                {'bits': ''.join(step1_vals[name] for name, _ in reversed(port_order))},
+            ],
+        }))
+        (group_dir / 'sim.ys').write_text(
+            'read_rtlil model/sim_prep.il\n'
+            'sim -q -assert -r groups/deep_group/witness.yw '
+            '-summary groups/deep_group/summary.json intel_80286\n'
+        )
+        (group_dir / 'sim.log').write_text('End of script. Logfile hash: 000000\n')
+        (group_dir / 'summary.json').write_text(json.dumps({
+            'top': 'intel_80286',
+            'steps': 1,
+            'assertions': [
+                {'step': 1, 'type': '$cover', 'path': ['\\cov_deep_ex']},
+            ],
+        }))
+        (witness_dir / 'manifest.json').write_text(json.dumps({
+            'engine': 'yosys-sim',
+            'model_il': 'model/sim_prep.il',
+            'model_stat': 'model/sim_prep_stat.json',
+            'groups': [{
+                'name': 'deep_group',
+                'targets': ['cov_deep_ex'],
+                'smtc': 'groups/deep_group/witness.smtc',
+                'yw': 'groups/deep_group/witness.yw',
+                'script': 'groups/deep_group/sim.ys',
+                'log': 'groups/deep_group/sim.log',
+                'summary': 'groups/deep_group/summary.json',
+            }],
+        }))
 
     def results(self):
         return audit(self.design, self.work, self.core_work)
 
     def test_cpu_checks_pass_for_every_formal_task(self):
         results = self.results()
-        self.assertEqual([result['result'] for result in results], ['PASS'] * 3)
-        for result in results:
-            self.assertEqual(result['core_properties'], {'assert': 1, 'cover': 1})
+        self.assertEqual([result['result'] for result in results], ['PASS'] * 4)
+        for result in results[:3]:
+            self.assertEqual(result['core_properties'], {'assert': 1, 'cover': 2})
+        self.assertEqual(results[3]['core_covers_reached'], 2)
+        self.assertEqual(results[3]['core_covers_total'], 2)
 
     def test_component_checks_do_not_satisfy_cpu_inventory(self):
         model = json.loads(json.dumps(self.base_model))
@@ -198,7 +304,7 @@ class CoreElaboratedPropertyAuditTests(unittest.TestCase):
             cell for cell in model['modules'][0]['cell_sorts'][0]['cells']
             if cell['parameters']['FLAVOR'] == 'cover']
         self.write_evidence(model)
-        for result in self.results():
+        for result in self.results()[:3]:
             self.assertEqual(result['result'], 'FAIL')
             self.assertTrue(any('no elaborated CPU assert cells' in error
                                 for error in result['errors']))
@@ -237,14 +343,104 @@ class CoreElaboratedPropertyAuditTests(unittest.TestCase):
         self.assertTrue(all(result['result'] == 'FAIL' and
                             any('no elaborated CPU assert cells' in error
                                 for error in result['errors'])
-                            for result in self.results()))
+                            for result in self.results()[:3]))
 
     def test_model_without_cpu_module_fails_closed(self):
         self.write_evidence({'modules': [self.base_model['modules'][1]]})
         self.assertTrue(all(result['result'] == 'FAIL' and
                             any('expected one intel_80286 module' in error
                                 for error in result['errors'])
-                            for result in self.results()))
+                            for result in self.results()[:3]))
+
+    def test_missing_core_cover_from_union_fails_closed(self):
+        (self.core_work / 'intel_80286_cover/logfile.txt').write_text('## 0:00:01 Status: PASSED\n')
+        results = {r['task']: r for r in self.results()}
+        self.assertEqual(results['intel_80286_cover_witnesses']['result'], 'FAIL')
+        self.assertTrue(any('missing core covers' in e
+                            for e in results['intel_80286_cover_witnesses']['errors']))
+
+    def test_witness_smtc_rejects_initial_or_internal_signal(self):
+        smtc = self.core_work / 'intel_80286_cover_witnesses/groups/deep_group/witness.smtc'
+        smtc.write_text('initial\nassume (= [state] #x00)\n')
+        results = {r['task']: r for r in self.results()}
+        self.assertEqual(results['intel_80286_cover_witnesses']['result'], 'FAIL')
+        self.assertTrue(any('disallowed .smtc directive' in e
+                            for e in results['intel_80286_cover_witnesses']['errors']))
+        smtc.write_text('state 0\nassume (= [state] #x00)\n')
+        results = {r['task']: r for r in self.results()}
+        self.assertEqual(results['intel_80286_cover_witnesses']['result'], 'FAIL')
+        self.assertTrue(any('non-primary-input constraint' in e
+                            for e in results['intel_80286_cover_witnesses']['errors']))
+
+    def test_witness_assert_failed_log_or_summary_rejected(self):
+        log = self.core_work / 'intel_80286_cover_witnesses/groups/deep_group/sim.log'
+        log.write_text('ERROR: Assertion intel_80286.foo failed.\nEnd of script.\n')
+        results = {r['task']: r for r in self.results()}
+        self.assertEqual(results['intel_80286_cover_witnesses']['result'], 'FAIL')
+        self.assertTrue(any('assertion or assumption failure' in e
+                            for e in results['intel_80286_cover_witnesses']['errors']))
+        self.write_evidence(self.base_model)
+        summary = self.core_work / 'intel_80286_cover_witnesses/groups/deep_group/summary.json'
+        summary.write_text(json.dumps({
+            'top': 'intel_80286',
+            'steps': 1,
+            'assertions': [
+                {'step': 1, 'type': '$assert', 'path': ['\\foo']},
+                {'step': 1, 'type': '$cover', 'path': ['\\cov_deep_ex']},
+            ],
+        }))
+        results = {r['task']: r for r in self.results()}
+        self.assertEqual(results['intel_80286_cover_witnesses']['result'], 'FAIL')
+        self.assertTrue(any('non-cover failures' in e
+                            for e in results['intel_80286_cover_witnesses']['errors']))
+
+    def test_witness_yw_rejects_internal_signal_or_x_bits(self):
+        yw = self.core_work / 'intel_80286_cover_witnesses/groups/deep_group/witness.yw'
+        doc = json.loads(yw.read_text())
+        bad_sig = json.loads(json.dumps(doc))
+        bad_sig['signals'].append({'path': ['\\_witness_', '\\x'], 'width': 1, 'offset': 0, 'init_only': False})
+        yw.write_text(json.dumps(bad_sig))
+        results = {r['task']: r for r in self.results()}
+        self.assertEqual(results['intel_80286_cover_witnesses']['result'], 'FAIL')
+        self.assertTrue(any('non-primary-input signal path' in e
+                            for e in results['intel_80286_cover_witnesses']['errors']))
+        bad_bits = json.loads(json.dumps(doc))
+        bad_bits['steps'][1]['bits'] = 'x' + bad_bits['steps'][1]['bits'][1:]
+        yw.write_text(json.dumps(bad_bits))
+        results = {r['task']: r for r in self.results()}
+        self.assertEqual(results['intel_80286_cover_witnesses']['result'], 'FAIL')
+        self.assertTrue(any('invalid or non-binary bits' in e
+                            for e in results['intel_80286_cover_witnesses']['errors']))
+
+    def test_witness_stripped_sim_model_assertions_rejected(self):
+        stat = self.core_work / 'intel_80286_cover_witnesses/model/sim_prep_stat.json'
+        stat.write_text(json.dumps({
+            'design': {'num_cells_by_type': {'$assert': 0, '$assume': 1, '$cover': 2}},
+        }))
+        results = {r['task']: r for r in self.results()}
+        self.assertEqual(results['intel_80286_cover_witnesses']['result'], 'FAIL')
+        self.assertTrue(any('$assert count' in e
+                            for e in results['intel_80286_cover_witnesses']['errors']))
+
+    def test_witness_script_missing_assert_or_using_zinit_rejected(self):
+        ys = self.core_work / 'intel_80286_cover_witnesses/groups/deep_group/sim.ys'
+        ys.write_text('read_rtlil model/sim_prep.il\nsim -q -r groups/deep_group/witness.yw -summary groups/deep_group/summary.json intel_80286\n')
+        results = {r['task']: r for r in self.results()}
+        self.assertEqual(results['intel_80286_cover_witnesses']['result'], 'FAIL')
+        self.assertTrue(any('missing sim -assert' in e
+                            for e in results['intel_80286_cover_witnesses']['errors']))
+        ys.write_text('read_rtlil model/sim_prep.il\nsim -q -zinit -assert -r groups/deep_group/witness.yw -summary groups/deep_group/summary.json intel_80286\n')
+        results = {r['task']: r for r in self.results()}
+        self.assertEqual(results['intel_80286_cover_witnesses']['result'], 'FAIL')
+        self.assertTrue(any('-zinit' in e
+                            for e in results['intel_80286_cover_witnesses']['errors']))
+
+    def test_witness_stale_source_snapshot_rejected(self):
+        (self.core_work / 'intel_80286_cover_witnesses/src/intel_80286.sv').write_text('module stale; endmodule\n')
+        results = {r['task']: r for r in self.results()}
+        self.assertEqual(results['intel_80286_cover_witnesses']['result'], 'FAIL')
+        self.assertTrue(any('stale source snapshot' in e
+                            for e in results['intel_80286_cover_witnesses']['errors']))
 
 
 if __name__ == '__main__':

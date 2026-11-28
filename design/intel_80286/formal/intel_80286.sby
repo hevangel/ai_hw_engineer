@@ -9,7 +9,7 @@ bmc: depth 24
 prove: mode prove
 prove: depth 12
 cover: mode cover
-cover: depth 64
+cover: depth 15
 
 [engines]
 bmc: abc bmc3
@@ -21,6 +21,8 @@ read -formal -sv -I. intel_80286_alu.sv intel_80286_shift.sv intel_80286_ea.sv i
 prep -top intel_80286
 memory_map
 opt
+cover: chformal -cover -remove */t:$check intel_80286/t:$check %d
+cover: chformal -cover -remove intel_80286/c:cov_deep_*
 
 [files]
 ../src/intel_80286.sv
