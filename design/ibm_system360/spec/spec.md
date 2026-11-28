@@ -37,6 +37,10 @@ In scope and implemented:
 - **storage protection keys** and the **protection exception** (code 4): a
   4-bit key and fetch-protection bit per 2 KiB block, compared with PSW bits
   8-11 (M8);
+- **decimal conversions and arithmetic** (M9): `PACK`, `UNPK`, `MVO`, `CVB`,
+  `CVD` and the packed-decimal group `ZAP`, `CP`, `AP`, `SP`, `MP`, `DP` with
+  the data (7), decimal-overflow (10, mask bit 37) and decimal-divide (11)
+  program interruptions, plus the SET PROGRAM MASK bit-order correction;
 - **program interruptions** with the causes operation (1), privileged
   operation (2), specification (6) and fixed-point overflow (8), the program
   old PSW at storage `0x28`, the program new PSW at `0x68`, and problem-state
@@ -44,11 +48,8 @@ In scope and implemented:
 - the wait state as a state in which no instruction is fetched, and which an
   external interruption can end (M2, M6).
 
-Out of scope (each has its own issue or milestone): decimal and floating-point
-operations; `ED`, `EDMK`, `PACK`, `UNPK`, `MVO`, `CVB`, `CVD` and the decimal
-arithmetic group.
-protection keys, storage protection and DAT; supervisor-call, external, I/O and
-machine-check interruptions; addressing exceptions; channel I/O; `EXECUTE`;
+Out of scope (each has its own issue or milestone): floating-point operations;
+`ED` and `EDMK`; DAT; I/O and machine-check interruptions; channel I/O;
 timing and microarchitecture.
 
 ## 2. Architectural summary
@@ -146,7 +147,7 @@ Branching instructions never change the condition code.
 
 | Opcode | Mnemonic | Format | Privileged | Behaviour |
 |---|---|---|---|---|
-| `04` | SPM | RR | no | register bits 2-3 replace CC, bits 4-7 replace the program mask; other register bits are ignored and the register is unchanged |
+| `04` | SPM | RR | no | register bits 2-3 replace CC (PSW bits 34-35) and bits 4-7 replace the program mask (PSW bits 36-39) positionally; other register bits are ignored and the register is unchanged |
 | `80` | SSM | SI | yes | the byte at the operand address replaces PSW bits 0-7 (system mask); CC unchanged |
 | `82` | LPSW | SI | yes | the doubleword at the operand address replaces the PSW; CC comes from its bits 34-35; problem and wait state come from bits 15 and 14; the operand address must have its three low-order bits zero |
 | `0A` | SVC | RR | no | supervisor-call interruption with the instruction's bits 8-15 placed in old-PSW bits 24-31 and bits 16-23 zeroed; old/new PSWs at `0x20`/`0x60` |
@@ -224,14 +225,20 @@ Implemented causes (Figure 16, p. 16):
 |---|---|---|---|
 | 1 | Operation | the decoded opcode is not implemented | updated: instruction address + length |
 | 2 | Privileged operation | `LPSW`/`SSM` executed with PSW bit 15 = 1 | updated |
-| 6 | Specification | `LPSW` operand address not doubleword aligned | updated |
+| 6 | Specification | `LPSW` operand address not doubleword aligned, a halfword or doubleword operand misaligned, an odd register pair, or a `MP`/`DP` length code violation | updated (suppressed) |
+| 7 | Data | an invalid digit or sign code in a decimal operand, or a multiplicand without the required high-order zeros | updated (suppressed) |
 | 8 | Fixed-point overflow | `AR`/`A`/`SR`/`S` overflow with PSW bit 36 = 1 | the completed instruction's next address |
+| 9 | Fixed-point divide | `DR`/`D` quotient does not fit (suppressed); `CVB` result out of range (completed, register updated) | updated |
+| 10 | Decimal overflow | `ZAP`/`AP`/`SP` result overflows the first-operand field, completed, with PSW bit 37 = 1 | the completed instruction's next address |
+| 11 | Decimal divide | `DP` divisor zero or quotient does not fit; suppressed | updated |
 
-For the suppressed causes (1, 2, 6) the instruction is suppressed: the
+For the suppressed causes (1, 2, 6, 7, 11) the instruction is suppressed: the
 condition code, the registers and storage are unchanged, and the instruction
 address stored in the old PSW has been advanced by the number of halfwords in
-the ILC (p. 72). For fixed-point overflow the instruction completes — result
-and CC 3 are stored — and the interruption follows (pp. 27-28).
+the ILC (p. 72). For fixed-point overflow and masked-out-of-range decimal
+overflow the instruction completes — result and CC 3 are stored — and the
+interruption follows (pp. 27-28, 40); for `CVB` the register is updated and
+code 9 follows (p. 31).
 
 The interruption sequence takes five cycles on this core: two word stores for
 the old PSW, two word reads for the new PSW, and the PSW load. It is not
@@ -272,7 +279,41 @@ The key array resets to zero in hardware terms — every block unprotected — s
 behaviour is unchanged until keys are loaded. `SET STORAGE KEY` and `INSERT
 STORAGE KEY` are not implemented, so a **key load port** (`key_we`, `key_block`,
 `key_data`, `key_fetch_protect`) is provided as a test aid; it is documented as
-such rather than presented as an instruction.
+such rather than presented as an instruction. The character SS group checks the
+protection keys of both end bytes of each field (a field of at most 256 bytes
+spans at most two 2 KiB blocks), which closes the first-byte-only check the M8
+increment shipped with.
+
+### 2.12 Decimal conversions and arithmetic (M9, pp. 31-32, 35-40)
+
+Packed-decimal fields of `n` bytes hold `2n-1` digit positions plus the sign
+nibble in the low nibble of the rightmost byte; byte `k >= 1` carries digit
+`2k` in its high nibble and digit `2k-1` in its low nibble. Digit codes
+`0000-1001` are valid; sign codes `1010`, `1100`, `1110`, `1111` are plus and
+`1011`, `1101` are minus (p. 36). The fields are processed right to left, one
+byte at a time, exactly as pp. 35-36 prescribe, so overlapped operands produce
+the architectural result.
+
+| Op | Format | Behaviour | CC | Exceptions |
+|---|---|---|---|---|
+| `PACK` | SS `L1/L2` | zoned operand 2 to packed; byte 0 is the nibble swap of operand 2's rightmost byte, byte `k >= 1` is `{digit(2k), digit(2k-1)}` | unchanged | protection, addressing |
+| `UNPK` | SS `L1/L2` | packed operand 2 to zoned; byte 0 keeps the sign nibble, bytes `k >= 1` get zone `1111` (EBCDIC) or `0101` (ASCII-8) and digit `k` | unchanged | protection, addressing |
+| `MVO` | SS `L1/L2` | operand 2 shifted left four bit positions into operand 1, operand 1's low nibble preserved | unchanged | protection, addressing |
+| `ZAP` | SS `L1/L2` | operand 2 moved into operand 1 with high-order zeros; only operand 2's codes are checked | 0/1/2, 3 on overflow | protection, addressing, data, decimal overflow |
+| `CP` | SS `L1/L2` | algebraic comparison after high-order zero extension; equal-length fields compare digit by digit, most significant difference decides; zero values compare equal regardless of sign | 0 equal, 1 low, 2 high | protection, addressing, data |
+| `AP` / `SP` | SS `L1/L2` | algebraic sum/difference into operand 1; `SP` flips operand 2's sign class | 0/1/2, 3 on overflow | protection, addressing, data, decimal overflow |
+| `MP` | SS `L1/L2` | multiplicand x multiplier into operand 1; operand 2 at most 15 digits and sign, `L2 > 7` or `L2 >= L1` is a specification exception; the multiplicand must have high-order zero digits for the whole multiplier field size | unchanged | protection, addressing, specification, data |
+| `DP` | SS `L1/L2` | dividend / divisor: quotient in the leftmost `L1-L2` bytes, remainder in the rightmost `L2+1` bytes with the dividend sign even when zero; a zero divisor or a quotient that does not fit is the decimal-divide exception, suppressed | unchanged | protection, addressing, specification, data, decimal divide |
+| `CVB` | RX | 8-byte packed operand at a doubleword boundary to binary in `R1`; an out-of-range result stores the low 32 bits and raises fixed-point divide (code 9) | unchanged | protection, addressing, specification, data, fixed-point divide |
+| `CVD` | RX | `R1` to an 8-byte packed field at a doubleword boundary with the preferred sign | unchanged | protection, addressing, specification |
+
+Results carry the preferred sign (plus `1100`/`1010`, minus `1101`/`1011` for
+EBCDIC/ASCII-8 by PSW bit 12); an unoverflowed zero result is positive, an
+overflowed one keeps the sign of the true result (pp. 37, 40). Decimal
+overflow interrupts only when program mask bit 37 is one; masked, the operation
+completes with the truncated low-order result and CC 3. `MP`/`DP` operands are
+captured and validated before any store, so a data or divide exception leaves
+storage unchanged (deviation A-11).
 
 ## 3. Storage interface
 
@@ -290,7 +331,7 @@ Storage timing, interleaving, protection and channel contention are not
 modelled. Word operands must be aligned; apart from the `LPSW` doubleword
 check, unaligned operands are not detected.
 
-## 4. Implemented instruction set (54 operations)
+## 4. Implemented instruction set (65 operations)
 
 | Opcode | Mnemonic | Format | Operation | CC |
 |---|---|---|---|---|
@@ -348,6 +389,17 @@ check, unaligned operands are not detected.
 | `8F` | SLDA | RS | shift left double | set |
 | `92` | MVI | SI | move immediate byte | unchanged |
 | `95` | CLI | SI | compare logical immediate byte | set |
+| `4E` | CVD | RX | binary register to packed doubleword | unchanged |
+| `4F` | CVB | RX | packed doubleword to binary register | unchanged |
+| `F1` | MVO | SS | move with offset (nibble shift) | unchanged |
+| `F2` | PACK | SS | zoned to packed | unchanged |
+| `F3` | UNPK | SS | packed to zoned | unchanged |
+| `F8` | ZAP | SS | zero and add | set |
+| `F9` | CP | SS | compare packed decimal | set |
+| `FA` | AP | SS | add packed | set |
+| `FB` | SP | SS | subtract packed | set |
+| `FC` | MP | SS | multiply packed | unchanged |
+| `FD` | DP | SS | divide packed | unchanged |
 
 Encodings are from the instruction tables on pp. 26-32 (fixed point), 53-56
 (logical), 72-74 (status switching) and 73-74 (branching). Every other
@@ -359,35 +411,38 @@ length and raises interruption code 1.
 These are deliberate and must not be presented as architectural behaviour.
 
 1. **Assigned but unimplemented instructions raise code 1.** A real S/360
-   executes `ED`/`EDMK`, `PACK`/`UNPK`/`MVO`, `CVB`/`CVD`, and decimal and
-   floating-point operations; this core decodes them as an operation
-   exception. This is an implementation gap, not
+   executes `ED`/`EDMK` and the floating-point group, which this core decodes
+   as an operation exception. This is an implementation gap, not
    architecture, and is the reason no compatibility claim may be made until
    the remaining instruction groups and the external oracle exist.
-2. **Only program interruptions exist.** Supervisor call, external, I/O and
-   machine-check interruptions are not implemented; their codes (3, 4, 5, 7
-   and the other classes) are never generated. Storage protection and
-   addressing exceptions are therefore also absent, since no storage limit or
-   key is modelled.
-3. **Specification exceptions are partial.** Checked: the `LPSW` doubleword
-   alignment rule, an odd halfword operand address for `LH`/`STH`/`AH`/`SH`/
-   `CH`/`MH`, and an odd `R1` for the 64-bit pair operations
-   `MR`/`DR`/`SLDA`/`SRDA`. Not checked: odd instruction addresses, unaligned
-   word operands, and invalid register fields outside those cases.
-4. **No protection or DAT.** The protection key field is stored and inert.
-5. **Wait state cannot be left.** With no I/O or external interruption, no new
-   PSW can arrive, so `LPSW` with bit 14 set stops the machine permanently.
+2. **No supervisor-call, I/O or machine-check interruptions.** The external
+   class exists for the interval timer only (M6). The I/O and machine-check
+   classes and their old/new PSW areas never activate.
+3. **Specification exceptions are broad but not exhaustive.** Checked: the
+   `LPSW`/`CVB`/`CVD` doubleword alignment rules, an odd halfword operand
+   address, an odd `R1` for the 64-bit pair operations, an odd instruction
+   address (M7), and the `MP`/`DP` length-code rule (M9). Not checked:
+   unaligned word operands and invalid register fields outside those cases.
+4. **No DAT.** Storage protection keys are implemented (M8); dynamic address
+   translation is not.
+5. **Wait state exits only on a timer interruption.** With no I/O
+   interruption, no new PSW can arrive except through the timer (M2, M6).
    This matches the architectural definition (p. 17) for a machine with no
-   such interruption sources, but it is a limitation of this core.
+   other interruption sources, but it is a limitation of this core.
 6. **No timing.** Instruction execution takes one fetch cycle per instruction
    byte plus fixed decode/execute/commit cycles, and five cycles per
    interruption. No storage access timing, overlap, prefetch or model-specific
    microarchitecture is modelled.
-7. **No `ED`/`EDMK`, decimal conversions, decimal arithmetic or floating
-   point.** They raise code 1 as described above. The fixed-point group, the
-   SS moves/compares/logical group, the translate group and `EXECUTE` are
-   complete.
-8. **Divide and supervisor-call old-PSW addresses.** For the divide exception
+7. **No `ED`/`EDMK` or floating point.** They raise code 1 as described
+   above. The fixed-point group, the SS moves/compares/logical group, the
+   translate group, `EXECUTE` and the decimal group are complete.
+8. **Decimal data and divide exceptions suppress the instruction.** The
+   manual terminates a decimal instruction on a data exception and calls the
+   result data and condition code unpredictable (p. 40); this core validates
+   the captured operands before the first store, so storage, the registers and
+   the condition code are unchanged. The same hold for the suppressed
+   decimal-divide exception. Recorded as deviation A-11.
+9. **Divide and supervisor-call old-PSW addresses.** For the divide exception
    and for `SVC` the core stores the *updated* instruction address and the ILC
    of the instruction, matching the suppressed-check rule of p. 72. The manual
    states the update rule explicitly only for the suppressed operation,
@@ -404,6 +459,7 @@ These are deliberate and must not be presented as architectural behaviour.
 | A-4 | Byte operands are read from the aligned word and word operands must be aligned. | The storage port returns an aligned word. | Re-check when specification exceptions are complete. |
 | A-5 | The interruption sequence is treated as atomic (no priority nesting). | The manual describes priority ordering between classes (p. 16); with only program interruptions there is no competing request. | Re-check when I/O and external interruptions exist. |
 | A-10 | A fetch violation is suppressed (no register or storage change) instead of terminating the instruction. | The manual terminates a fetch-protected operation and calls the results unpredictable (pp. 34, 69); suppression is deterministic. | Revisit when partial-completion cases can be compared against the oracle. |
+| A-11 | Decimal data and decimal-divide exceptions leave storage, registers and the condition code unchanged. | The manual terminates these operations with unpredictable results (p. 40); validating the captured operands before the first store is deterministic. | Compare terminated decimal cases against the oracle when its driver is event-aligned. |
 | A-9 | An unfetchable instruction (address outside storage, or an odd address) stores ILC 0 in the old PSW. | The manual updates the stored address by the ILC (p. 72) but no instruction length exists when nothing could be fetched. | Validate against the oracle's interrupt-entry mode when it exists. |
 | A-8 | An SS operation whose field leaves installed storage is suppressed before its first byte. | The manual terminates such an operation part way, leaving results unpredictable (p. 34); a deterministic suppression is easier to verify. | Revisit when the oracle can compare partial-store cases. |
 | A-7 | `TRT` writes general registers 1 and 2 (it has no register fields), and `EXECUTE` stores ILC 2 with the address advanced by four — including when the subject instruction raises an exception. | The manual names "general register 1/2" and states the EXECUTE address rule (p. 67), but OCR damage to the TRT format figure leaves the register encoding to be confirmed. | Validate against the independent oracle (#383). |

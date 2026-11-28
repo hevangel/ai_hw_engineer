@@ -9,13 +9,15 @@
 const fs = require('fs');
 const path = require('path');
 
-const root = process.env.ORACLE_ROOT;
-if (!root) {
-  console.error('ORACLE_ROOT is not set');
+// The emulator is loaded by the runner through node's `-r` preload flags
+// (see run_diff.py), because it lives in the ignored work/ tree and cannot
+// be required from this repository file with a literal path. This script
+// only consumes the global the preload installs.
+if (typeof S360 === 'undefined') {
+  console.error('emulator not preloaded: run via run_diff.py, which passes '
+                + '-r <ORACLE_ROOT>/src/ebcdic.js -r <ORACLE_ROOT>/src/core.js');
   process.exit(2);
 }
-require(path.join(root, 'src/ebcdic.js'));
-require(path.join(root, 'src/core.js'));
 
 const [progPath, wordsArg, stepsArg, outPath] = process.argv.slice(2);
 const words = parseInt(wordsArg, 10);

@@ -81,7 +81,10 @@ def main():
     for case in cases:
         out_dir = WORK / case["name"]
         ref_out = out_dir / "ref.txt"
-        r = subprocess.run(["node", str(HERE / "js_run.js"), str(out_dir / "prog.hex"),
+        r = subprocess.run(["node",
+                            "-r", str(root / "src" / "ebcdic.js"),
+                            "-r", str(root / "src" / "core.js"),
+                            str(HERE / "js_run.js"), str(out_dir / "prog.hex"),
                             str(len(build_image(case))), str(case["steps"]), str(ref_out)],
                            capture_output=True, text=True, env=env)
         if r.returncode != 0:

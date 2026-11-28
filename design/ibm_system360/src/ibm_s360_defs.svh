@@ -15,8 +15,9 @@
 //   - "Program Status Word Format", p. 15, Figure 14
 //   - Instruction tables and descriptions for fixed-point, logical and
 //     branching instructions (pp. 26-32, 53-56, 64-65, 73-74)
+//   - Decimal instructions, conversions and their exceptions (pp. 31-32, 35-40)
 //
-// Only the encodings that the M1 core executes are listed. Instructions that
+// Only the encodings that the core executes are listed. Instructions that
 // the manual defines but this core does not implement decode as OP_ILLEGAL and
 // are reported to the caller instead of being silently ignored.
 
@@ -55,72 +56,85 @@ typedef enum logic [1:0] {
   FMT_SS    = 2'b11   // three halfwords
 } s360_fmt_e;
 
-// Operation selectors implemented by the core. Six bits are needed because the
-// fixed-point group alone contributes more than 32 distinct operations.
-typedef enum logic [5:0] {
-  OP_ILLEGAL = 6'd0,
+// Operation selectors implemented by the core. Seven bits are needed because
+// the fixed-point and decimal groups together contribute more than 64 distinct
+// operations.
+typedef enum logic [6:0] {
+  OP_ILLEGAL = 7'd0,
   // RR format, fixed point and branching
-  OP_BCR  = 6'd1,   // 07
-  OP_LTR  = 6'd2,   // 12
-  OP_NR   = 6'd3,   // 14
-  OP_CLR  = 6'd4,   // 15
-  OP_OR   = 6'd5,   // 16
-  OP_XR   = 6'd6,   // 17
-  OP_LR   = 6'd7,   // 18
-  OP_CR   = 6'd8,   // 19
-  OP_AR   = 6'd9,   // 1A
-  OP_SR   = 6'd10,  // 1B
+  OP_BCR  = 7'd1,   // 07
+  OP_LTR  = 7'd2,   // 12
+  OP_NR   = 7'd3,   // 14
+  OP_CLR  = 7'd4,   // 15
+  OP_OR   = 7'd5,   // 16
+  OP_XR   = 7'd6,   // 17
+  OP_LR   = 7'd7,   // 18
+  OP_CR   = 7'd8,   // 19
+  OP_AR   = 7'd9,   // 1A
+  OP_SR   = 7'd10,  // 1B
   // RX format, fixed point
-  OP_LA   = 6'd11,  // 41
-  OP_BC   = 6'd12,  // 47
-  OP_ST   = 6'd13,  // 50
-  OP_N    = 6'd14,  // 54
-  OP_CL   = 6'd15,  // 55
-  OP_O    = 6'd16,  // 56
-  OP_X    = 6'd17,  // 57
-  OP_L    = 6'd18,  // 58
-  OP_C    = 6'd19,  // 59
-  OP_A    = 6'd20,  // 5A
-  OP_S    = 6'd21,  // 5B
+  OP_LA   = 7'd11,  // 41
+  OP_BC   = 7'd12,  // 47
+  OP_ST   = 7'd13,  // 50
+  OP_N    = 7'd14,  // 54
+  OP_CL   = 7'd15,  // 55
+  OP_O    = 7'd16,  // 56
+  OP_X    = 7'd17,  // 57
+  OP_L    = 7'd18,  // 58
+  OP_C    = 7'd19,  // 59
+  OP_A    = 7'd20,  // 5A
+  OP_S    = 7'd21,  // 5B
   // SI format
-  OP_MVI  = 6'd22,  // 92
-  OP_CLI  = 6'd23,  // 95
-  OP_SSM  = 6'd24,  // 80
-  OP_LPSW = 6'd25,  // 82
+  OP_MVI  = 7'd22,  // 92
+  OP_CLI  = 7'd23,  // 95
+  OP_SSM  = 7'd24,  // 80
+  OP_LPSW = 7'd25,  // 82
   // RR format, status switching and supervisor call
-  OP_SPM  = 6'd26,  // 04
-  OP_SVC  = 6'd27,  // 0A
+  OP_SPM  = 7'd26,  // 04
+  OP_SVC  = 7'd27,  // 0A
   // RX format, halfword group (pp. 26-30)
-  OP_LH   = 6'd28,  // 48
-  OP_STH  = 6'd29,  // 40
-  OP_AH   = 6'd30,  // 4A
-  OP_SH   = 6'd31,  // 4B
-  OP_CH   = 6'd32,  // 49
-  OP_MH   = 6'd33,  // 4C
+  OP_LH   = 7'd28,  // 48
+  OP_STH  = 7'd29,  // 40
+  OP_AH   = 7'd30,  // 4A
+  OP_SH   = 7'd31,  // 4B
+  OP_CH   = 7'd32,  // 49
+  OP_MH   = 7'd33,  // 4C
   // RR/RX multiply and divide (pp. 30-31)
-  OP_MR   = 6'd34,  // 1C
-  OP_M    = 6'd35,  // 5C
-  OP_DR   = 6'd36,  // 1D
-  OP_D    = 6'd37,  // 5D
+  OP_MR   = 7'd34,  // 1C
+  OP_M    = 7'd35,  // 5C
+  OP_DR   = 7'd36,  // 1D
+  OP_D    = 7'd37,  // 5D
   // RS format shifts (pp. 32-34)
-  OP_SLA  = 6'd38,  // 8B
-  OP_SRA  = 6'd39,  // 8A
-  OP_SLDA = 6'd40,  // 8F
-  OP_SRDA = 6'd41,  // 8E
+  OP_SLA  = 7'd38,  // 8B
+  OP_SRA  = 7'd39,  // 8A
+  OP_SLDA = 7'd40,  // 8F
+  OP_SRDA = 7'd41,  // 8E
   // Character and SS-format logical group (pp. 53-57)
-  OP_MVC  = 6'd42,  // D2
-  OP_MVN  = 6'd43,  // D1
-  OP_MVZ  = 6'd44,  // D3
-  OP_NC   = 6'd45,  // D4
-  OP_OC   = 6'd46,  // D6
-  OP_XC   = 6'd47,  // D7
-  OP_CLC  = 6'd48,  // D5
-  OP_TM   = 6'd49,  // 91
-  OP_IC   = 6'd50,  // 43
-  OP_STC  = 6'd51,  // 42
-  OP_TR   = 6'd52,  // DC
-  OP_TRT  = 6'd53,  // DD
-  OP_EX   = 6'd54   // 44
+  OP_MVC  = 7'd42,  // D2
+  OP_MVN  = 7'd43,  // D1
+  OP_MVZ  = 7'd44,  // D3
+  OP_NC   = 7'd45,  // D4
+  OP_OC   = 7'd46,  // D6
+  OP_XC   = 7'd47,  // D7
+  OP_CLC  = 7'd48,  // D5
+  OP_TM   = 7'd49,  // 91
+  OP_IC   = 7'd50,  // 43
+  OP_STC  = 7'd51,  // 42
+  OP_TR   = 7'd52,  // DC
+  OP_TRT  = 7'd53,  // DD
+  OP_EX   = 7'd54,  // 44
+  // Decimal conversions and arithmetic (pp. 31-32, 35-40)
+  OP_CVD  = 7'd55,  // 4E
+  OP_CVB  = 7'd56,  // 4F
+  OP_MVO  = 7'd57,  // F1
+  OP_PACK = 7'd58,  // F2
+  OP_UNPK = 7'd59,  // F3
+  OP_ZAP  = 7'd60,  // F8
+  OP_CP   = 7'd61,  // F9
+  OP_AP   = 7'd62,  // FA
+  OP_SP   = 7'd63,  // FB
+  OP_MP   = 7'd64,  // FC
+  OP_DP   = 7'd65   // FD
 } s360_op_e;
 
 typedef struct packed {
@@ -237,6 +251,18 @@ function automatic s360_dec_t s360_decode(input logic [7:0] opcode);
     8'hD7: d.op = OP_XC;
     8'hDC: d.op = OP_TR;
     8'hDD: d.op = OP_TRT;
+    // ---- Decimal conversions and arithmetic, pp. 31-32, 35-40 --------------
+    8'h4E: d.op = OP_CVD;
+    8'h4F: d.op = OP_CVB;
+    8'hF1: d.op = OP_MVO;
+    8'hF2: d.op = OP_PACK;
+    8'hF3: d.op = OP_UNPK;
+    8'hF8: d.op = OP_ZAP;
+    8'hF9: d.op = OP_CP;
+    8'hFA: d.op = OP_AP;
+    8'hFB: d.op = OP_SP;
+    8'hFC: d.op = OP_MP;
+    8'hFD: d.op = OP_DP;
     default: begin
       d.valid = 1'b0;
       d.op    = OP_ILLEGAL;

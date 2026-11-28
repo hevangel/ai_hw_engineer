@@ -13,6 +13,14 @@
 //       plus the specification exceptions of p. 34 (halfword not on a 16-bit
 //       boundary, odd register for a 64-bit pair) and the fixed-point divide
 //       exception (code 9, p. 31/34).
+//   M9  decimal conversions and arithmetic (pp. 31-32, 35-40):
+//         conversions  PACK, UNPK, MVO               (pp. 39-40)
+//         register     CVB, CVD                      (pp. 31-32)
+//         arithmetic   ZAP, CP, AP, SP, MP, DP       (pp. 37-39)
+//       with the data (7), decimal-overflow (10, mask bit 37) and
+//       decimal-divide (11) program interruptions, and the correction of the
+//       SET PROGRAM MASK bit order (register bits 2-3 -> CC, 4-7 -> program
+//       mask, p. 72).
 //
 // Semantics that are easy to get wrong and are implemented from the manual:
 //   - MR/M take the multiplicand from the odd register of the R1 pair, replace
@@ -33,10 +41,9 @@
 // Storage interface: combinational read of the aligned word, one-cycle write.
 // Access timing, interleaving and channel contention are not modelled.
 //
-// Not implemented: protection keys and storage protection, DAT, addressing
-// exceptions, external/I/O/machine-check interruptions, EXECUTE, decimal,
-// floating point, SS-format instructions and the character/logical group that
-// is not yet in the table.
+// Not implemented: SET STORAGE KEY/INSERT STORAGE KEY, instruction-fetch
+// protection, DAT, I/O and machine-check interruptions, ED/EDMK and floating
+// point.
 `ifndef IBM_S360_CPU_SV
 `define IBM_S360_CPU_SV
 
@@ -92,6 +99,9 @@ module ibm_s360_cpu #(
   localparam logic [15:0] CODE_EXECUTE     = 16'd3;
   localparam logic [15:0] CODE_PROTECTION  = 16'd4;
   localparam logic [15:0] CODE_ADDRESSING  = 16'd5;
+  localparam logic [15:0] CODE_DATA        = 16'd7;
+  localparam logic [15:0] CODE_DEC_OVERFLOW= 16'd10;
+  localparam logic [15:0] CODE_DEC_DIVIDE  = 16'd11;
   localparam int KEY_BLOCKS = 64;   // 2 KiB blocks covering 128 KiB
   localparam logic [15:0] CODE_TIMER       = 16'h0080;
   localparam logic [23:0] EXTERNAL_OLD_PSW = 24'h00_0018;
@@ -117,7 +127,16 @@ module ibm_s360_cpu #(
     S_LPSW_LOAD = 5'd13,
     S_SS_A      = 5'd14,  // read first operand byte
     S_SS_B      = 5'd15,  // read second operand byte (or the translate-table byte)
-    S_SS_C      = 5'd16   // merge/store or compare, then step the loop
+    S_SS_C      = 5'd16,  // merge/store or compare, then step the loop
+    // Decimal datapath (M9). One fetch, compute or store step per state.
+    S_DEC_A     = 5'd17,  // fetch an operand byte (or the CVB first word)
+    S_DEC_B     = 5'd18,  // fetch the second operand byte (or CVB second word)
+    S_DEC_C     = 5'd19,  // compute/store one byte, step the loop
+    S_DEC_ST    = 5'd20,  // store one result byte from a register (no fetch)
+    S_DEC_MP    = 5'd21,  // MP multiply step: product += A * b_j
+    S_DEC_DIV   = 5'd22,  // DP bring-down plus trial-subtract step
+    S_DEC_CVB   = 5'd23,  // CVB Horner conversion step
+    S_DEC_CVD   = 5'd24   // CVD double-dabble step
   } state_e;
 
   state_e state;
@@ -170,6 +189,189 @@ module ibm_s360_cpu #(
   logic [8:0]  ss_i_q;
   logic [7:0]  ss_b1_q;
   logic [7:0]  ss_b2_q;
+
+  // ---------------------------------------------------------------------------
+  // Decimal datapath (M9, A22-6821-7 pp. 31-32, 35-40)
+  //
+  // Packed fields are processed right to left, one byte at a time, exactly as
+  // pp. 35-36 prescribe ("fetched right to left from storage, eight bits at a
+  // time, just before they are processed ... placed in storage, eight bits at
+  // a time, as soon as they are generated"), so overlapped operands produce
+  // the architectural result. A field of n bytes holds digit positions
+  // 0..2n-2 plus the sign nibble in the low nibble of its rightmost byte:
+  // byte k>=1 carries digit 2k in its high nibble and digit 2k-1 in its low
+  // nibble; byte 0 carries digit 0 high and the sign low.
+  //
+  // Captured operands are held digit-ordered: acc nibble i = digit i, so
+  // result byte k>=1 is acc[8*(2k-1) +: 8] and byte 0 is {acc[3:0], sign}.
+  // ---------------------------------------------------------------------------
+  localparam int DEC_ACC_DIGITS = 32;  // covers a 16-byte field (31 digits)
+
+  logic [4:0]  dec_n1_q;        // op1 field bytes (L1+1), up to 16
+  logic [4:0]  dec_n2_q;        // op2 field bytes (L2+1), up to 16
+  logic [23:0] dec_addr1_q;     // leftmost byte of operand 1
+  logic [23:0] dec_addr2_q;     // leftmost byte of operand 2
+  logic [4:0]  dec_k_q;         // byte index from the right (0 = rightmost)
+  logic [2:0]  dec_phase_q;     // per-instruction phase counter
+  logic [7:0]  dec_ba_q;        // fetched operand-1 byte
+  logic [7:0]  dec_bb_q;        // fetched operand-2 byte
+  logic [7:0]  dec_bb_prev_q;   // previous operand-2 byte (PACK/MVO)
+  logic [3:0]  dec_lo_a_q;      // operand-1 rightmost low nibble (MVO)
+  logic [3:0]  dec_s1_q;        // operand-1 sign class nibble
+  logic [3:0]  dec_s2_q;        // operand-2 sign nibble (flipped for SP)
+  logic        dec_carry_q;     // BCD carry (add) or borrow state
+  logic        dec_big_a_q;     // magnitude of operand 1 is the larger
+  logic        dec_diff_q;      // magnitudes differ (compare tracker)
+  logic        dec_zero_q;      // true result magnitude is zero
+  logic        dec_ovf_q;       // decimal overflow detected
+  logic        dec_pass2_q;     // add-type: second (store) pass
+  logic        dec_fin_q;       // add-type/compare: finalize cycle next
+  logic        dec_div9_q;      // CVB result out of range -> code 9
+  logic        dec_decovf_q;    // completed decimal overflow -> code 10
+  logic [DEC_ACC_DIGITS*4-1:0] dec_acc1_q;  // operand-1 digits (multiplicand / dividend)
+  logic [DEC_ACC_DIGITS*4-1:0] dec_prod_q;  // MP product / DP quotient digits
+  logic [63:0] dec_acc2_q;      // operand-2 digits (multiplier / divisor)
+  logic [71:0] dec_rem_q;       // DP remainder register (2n2+1 digits <= 17)
+  logic [63:0] dec_dbl_q;       // CVB captured doubleword / CVD bcd register
+  logic [55:0] dec_bin_q;       // CVB Horner accumulator / CVD binary input
+  logic [5:0]  dec_step_q;      // MP j / DP p / CVB digit / CVD dabble counter
+  logic [4:0]  dec_j_q;         // UNPK result index / DP trial counter
+
+  logic        dec_ascii;       // PSW bit 12 (A): ASCII-8 preferred codes
+  assign dec_ascii = psw_word[51];
+
+  // Sign and digit validity (p. 36): digits 0000-1001; the sign position takes
+  // 1010-1111, of which 1011 and 1101 are minus.
+  function automatic logic dec_digit_ok(input logic [3:0] n);
+    dec_digit_ok = (n <= 4'd9);
+  endfunction
+  function automatic logic dec_sign_ok(input logic [3:0] n);
+    dec_sign_ok = (n >= 4'd10);
+  endfunction
+  function automatic logic dec_sign_minus(input logic [3:0] n);
+    dec_sign_minus = (n == 4'd11) || (n == 4'd13);
+  endfunction
+
+  // Preferred result codes for the current PSW bit 12 (pp. 36, 39).
+  function automatic logic [3:0] dec_pref_plus(input logic ascii);
+    dec_pref_plus = ascii ? 4'hA : 4'hC;
+  endfunction
+  function automatic logic [3:0] dec_pref_minus(input logic ascii);
+    dec_pref_minus = ascii ? 4'hB : 4'hD;
+  endfunction
+  function automatic logic [3:0] dec_pref_zone(input logic ascii);
+    dec_pref_zone = ascii ? 4'h5 : 4'hF;
+  endfunction
+
+  // Whole-field reference permission. A decimal field is at most 16 bytes, so
+  // it spans at most two 2 KiB protection blocks and its two end bytes cover
+  // every byte of the field. The same bound holds for the character SS group
+  // (at most 256 bytes) and the translate table (256 bytes).
+  function automatic logic dec_range_perm(input logic [23:0] lo, input logic [23:0] hi,
+                                          input logic store);
+    if (store) begin
+      dec_range_perm = store_permitted(lo) && store_permitted(hi);
+    end else begin
+      dec_range_perm = fetch_permitted(lo) && fetch_permitted(hi);
+    end
+  endfunction
+
+  // Whole-field installed-storage check (two end bytes for a contiguous field).
+  function automatic logic dec_range_in_mem(input logic [23:0] lo, input logic [23:0] hi);
+    dec_range_in_mem = !out_of_range(lo) && !out_of_range(hi);
+  endfunction
+
+  // Digit i of a captured digit-ordered operand.
+  logic [31:0] dec_step_i;
+  assign dec_step_i = {26'd0, dec_step_q};
+  // Yosys 0.69 cannot part-select a function result, so the DP trial
+  // subtraction goes through a named signal.
+  /* verilator lint_off UNUSEDSIGNAL */
+  logic [DEC_ACC_DIGITS*4-1:0] dec_div_sub;
+  /* verilator lint_on UNUSEDSIGNAL */
+  assign dec_div_sub = dec_sub({56'd0, dec_rem_q}, {64'd0, dec_acc2_q});
+  function automatic logic [3:0] dec_dig(input logic [DEC_ACC_DIGITS*4-1:0] acc,
+                                         input int i);
+    dec_dig = acc[4*i +: 4];
+  endfunction
+
+  // Digit i of a packed 8-byte doubleword, nibble 15 being the sign.
+  function automatic logic [3:0] dec_dbl_dig(input logic [63:0] w, input int i);
+    dec_dbl_dig = w[4*i +: 4];
+  endfunction
+
+  // Magnitude comparison of two digit-ordered BCD registers, leading zeros
+  // included (a >= b).
+  function automatic logic dec_ge(input logic [DEC_ACC_DIGITS*4-1:0] a,
+                                  input logic [DEC_ACC_DIGITS*4-1:0] b);
+    logic gt, eq;
+    gt = 1'b0;
+    eq = 1'b1;
+    for (int i = DEC_ACC_DIGITS-1; i >= 0; i--) begin
+      if (eq && (a[4*i +: 4] != b[4*i +: 4])) begin
+        gt = (a[4*i +: 4] > b[4*i +: 4]);
+        eq = 1'b0;
+      end
+    end
+    dec_ge = gt || eq;
+  endfunction
+
+  // BCD magnitude subtraction a - b with borrow, over DEC_ACC_DIGITS digits.
+  function automatic logic [DEC_ACC_DIGITS*4-1:0] dec_sub(input logic [DEC_ACC_DIGITS*4-1:0] a,
+                                                          input logic [DEC_ACC_DIGITS*4-1:0] b);
+    logic       borrow;
+    logic [4:0] t;
+    borrow = 1'b0;
+    for (int i = 0; i < DEC_ACC_DIGITS; i++) begin
+      t = {1'b0, a[4*i +: 4]} - {1'b0, b[4*i +: 4]} - {4'd0, borrow};
+      if (t[4]) begin
+        t = t + 5'd10;
+        borrow = 1'b1;
+      end else begin
+        borrow = 1'b0;
+      end
+      dec_sub[4*i +: 4] = t[3:0];
+    end
+  endfunction
+
+  // MP multiply step: product += (A * m) shifted left by off digits. The
+  // leading-zero data check of p. 38 keeps every partial sum below 10^(2n1-1),
+  // so 32 digits never overflow.
+  function automatic logic [DEC_ACC_DIGITS*4-1:0] dec_mul_step(
+      input logic [DEC_ACC_DIGITS*4-1:0] p,
+      input logic [DEC_ACC_DIGITS*4-1:0] a,
+      input logic [3:0] m,
+      input int off);
+    logic [DEC_ACC_DIGITS*4-1:0] pp;
+    logic [6:0] t;
+    /* verilator lint_off UNUSEDSIGNAL */
+    logic [6:0] md, mc;
+    /* verilator lint_on UNUSEDSIGNAL */
+    logic [3:0] c;
+    logic [4:0] s;
+    logic       cin;
+    // Partial product A * m: per-digit 4x4 multiply with BCD carry. The digit
+    // product is at most 9*9+8 = 89, so t fits seven bits.
+    c = 4'd0;
+    for (int i = 0; i < DEC_ACC_DIGITS; i++) begin
+      t  = a[4*i +: 4] * m + {3'd0, c};
+      md = t % 7'd10;
+      mc = t / 7'd10;
+      pp[4*i +: 4] = md[3:0];
+      c = mc[3:0];
+    end
+    // Add the partial product, digit-shifted by off, into p with BCD carry.
+    cin = 1'b0;
+    for (int i = 0; i < DEC_ACC_DIGITS; i++) begin
+      if (i >= off) begin
+        s = {1'b0, p[4*i +: 4]} + {1'b0, pp[4*(i-off) +: 4]} + {4'd0, cin};
+        dec_mul_step[4*i +: 4] = s[3:0];
+        cin = (s >= 5'd10);
+      end else begin
+        dec_mul_step[4*i +: 4] = p[4*i +: 4];
+      end
+    end
+  endfunction
 
   logic [15:0] int_code_q;
   logic [63:0] int_psw_q;
@@ -252,6 +454,8 @@ module ibm_s360_cpu #(
   logic is_shift_double;
   logic is_addsub;        // ALU add/subtract that can overflow
   logic ss_op;            // SS-format storage-to-storage operation
+  logic dec_ss_op;        // decimal SS-format operation (L1/L2 length fields)
+  logic dec_mp_dp;        // MULTIPLY/DECIMAL DIVIDE (specification checks)
   logic needs_operand_fetch;  // fetches a storage operand (not an instruction)
   logic needs_store;          // writes storage
 
@@ -274,7 +478,7 @@ module ibm_s360_cpu #(
         (dec.op == OP_O) || (dec.op == OP_X) || (dec.op == OP_LH) ||
         (dec.op == OP_AH) || (dec.op == OP_SH) || (dec.op == OP_CH) ||
         (dec.op == OP_MH) || (dec.op == OP_CLI) || (dec.op == OP_TM) ||
-        (dec.op == OP_SSM) || (dec.op == OP_LPSW);
+        (dec.op == OP_SSM) || (dec.op == OP_LPSW) || (dec.op == OP_CVB);
     needs_store = (dec.op == OP_ST) || (dec.op == OP_STH) ||
                   (dec.op == OP_MVI) || (dec.op == OP_MVC) ||
                   (dec.op == OP_MVN) || (dec.op == OP_MVZ) ||
@@ -285,6 +489,12 @@ module ibm_s360_cpu #(
                      (dec.op == OP_OC) || (dec.op == OP_XC) ||
                      (dec.op == OP_CLC) || (dec.op == OP_TR) ||
                      (dec.op == OP_TRT);
+    dec_ss_op      = (dec.op == OP_PACK) || (dec.op == OP_UNPK) ||
+                     (dec.op == OP_MVO)  || (dec.op == OP_ZAP) ||
+                     (dec.op == OP_CP)   || (dec.op == OP_AP) ||
+                     (dec.op == OP_SP)   || (dec.op == OP_MP) ||
+                     (dec.op == OP_DP);
+    dec_mp_dp      = (dec.op == OP_MP) || (dec.op == OP_DP);
   end
 
   // ---------------------------------------------------------------------------
@@ -375,7 +585,7 @@ module ibm_s360_cpu #(
       suppress      = 1'b1;
       suppress_code = CODE_PROTECTION;
     end else if (lpsw_unaligned || odd_pair_register || odd_halfword_address ||
-                 ex_odd_address) begin
+                 ex_odd_address || cvb_cvd_unaligned) begin
       suppress      = 1'b1;
       suppress_code = CODE_SPECIF;
     end
@@ -633,6 +843,8 @@ module ibm_s360_cpu #(
                 : (state == S_SS_A)   ? ss_a1_cur[1:0]
                 : (state == S_SS_B)   ? ss_read_b_addr[1:0]
                 : (state == S_SS_C)   ? ss_a1_cur[1:0]
+                : (state == S_DEC_A)  ? dec_rd_a_addr[1:0]
+                : (state == S_DEC_B)  ? dec_rd_b_addr[1:0]
                                       : ea_q[1:0];
   logic [23:0] ss_read_b_addr;
   assign ss_read_b_addr = ((dec.op == OP_TR) || (dec.op == OP_TRT)) ? ss_table_addr
@@ -664,6 +876,451 @@ module ibm_s360_cpu #(
                 (dec.op == OP_NC) || (dec.op == OP_OC) || (dec.op == OP_XC) ||
                 (dec.op == OP_TR);
   end
+
+  // Whole-field protection for the character SS group. A field of at most 256
+  // bytes spans at most two 2 KiB blocks, so its two end bytes cover it.
+  logic ss_prot_bad;
+  assign ss_prot_bad = ss_op &&
+      ((ss_writes && !dec_range_perm(ss_addr1, ss_last1, 1'b1)) ||
+       !dec_range_perm(ss_addr1, ss_last1, 1'b0) ||
+       !dec_range_perm(ss_addr2, ss_last2, 1'b0) ||
+       (((dec.op == OP_TR) || (dec.op == OP_TRT)) &&
+        !dec_range_perm(ss_addr2, ss_addr2 + 24'h00_00FF, 1'b0)));
+
+  // ---------------------------------------------------------------------------
+  // Decimal field checks (pp. 34, 38-40), evaluated before the first byte.
+  // ---------------------------------------------------------------------------
+  logic [23:0] dec_last1, dec_last2;
+  logic        dec_range_bad;
+  logic        dec_prot_bad;
+  logic        dec_spec_bad;
+  assign dec_last1 = ss_addr1 + {20'd0, ib[1][7:4]};
+  assign dec_last2 = ss_addr2 + {20'd0, ib[1][3:0]};
+  always_comb begin
+    dec_range_bad = dec_ss_op &&
+        (!dec_range_in_mem(ss_addr1, dec_last1) ||
+         !dec_range_in_mem(ss_addr2, dec_last2));
+    // Store side: operand 1 of every decimal SS instruction except COMPARE
+    // DECIMAL. Fetch side: operand 2 always; operand 1 also for the
+    // instructions that read it (AP, SP, CP, MP, DP). MVO reads operand 1's
+    // rightmost byte, which a store-permitted reference already covers.
+    dec_prot_bad = dec_ss_op &&
+        (((dec.op != OP_CP) && !dec_range_perm(ss_addr1, dec_last1, 1'b1)) ||
+         (((dec.op == OP_AP) || (dec.op == OP_SP) || (dec.op == OP_CP) ||
+           dec_mp_dp) && !dec_range_perm(ss_addr1, dec_last1, 1'b0)) ||
+         !dec_range_perm(ss_addr2, dec_last2, 1'b0));
+    // MULTIPLY/DECIMAL DIVIDE: a second-operand length code larger than seven
+    // or not smaller than the first is a specification exception (pp. 38-39).
+    dec_spec_bad = dec_mp_dp &&
+        ((ib[1][3:0] > 4'd7) || (ib[1][3:0] >= ib[1][7:4]));
+  end
+
+  // CVB/CVD doubleword checks (pp. 31-32): the operand address must have its
+  // three low-order bits zero, and the whole doubleword is referenced.
+  logic        cvb_cvd_op;
+  logic        cvb_cvd_unaligned;
+  logic        cvb_cvd_range_bad;
+  logic        cvb_cvd_prot_bad;
+  assign cvb_cvd_op = (dec.op == OP_CVB) || (dec.op == OP_CVD);
+  assign cvb_cvd_unaligned = cvb_cvd_op && (ea[2:0] != 3'b000);
+  always_comb begin
+    cvb_cvd_range_bad = cvb_cvd_op && !dec_range_in_mem(ea, ea + 24'd7);
+    cvb_cvd_prot_bad  = (dec.op == OP_CVB) ? !dec_range_perm(ea, ea + 24'd7, 1'b0)
+                                           : !dec_range_perm(ea, ea + 24'd7, 1'b1);
+  end
+
+  // ---------------------------------------------------------------------------
+  // Decimal datapath combinational logic
+  // ---------------------------------------------------------------------------
+  // Byte j (0 = rightmost) of an n-byte field whose leftmost byte is `base`.
+  function automatic logic [23:0] dec_byte_addr(input logic [23:0] base,
+                                                input logic [4:0] n,
+                                                input logic [4:0] j);
+    dec_byte_addr = base + {19'd0, (n - 5'd1)} - {19'd0, j};
+  endfunction
+
+  logic [4:0] dec_n1_w, dec_n2_w;
+  assign dec_n1_w = dec_n1_q;
+  assign dec_n2_w = dec_n2_q;
+  logic [4:0] dec_max_n;
+  assign dec_max_n = (dec_n1_w > dec_n2_w) ? dec_n1_w : dec_n2_w;
+  logic [31:0] dec_n1_i, dec_n2_i;
+  assign dec_n1_i = {27'd0, dec_n1_w};
+  assign dec_n2_i = {27'd0, dec_n2_w};
+  logic [6:0] dec_qlen;        // DP quotient digit count 2(n1-n2)-1
+  logic [4:0] dec_ndiff;
+  /* verilator lint_off UNUSEDSIGNAL */
+  logic [7:0] dec_qlen_t;
+  /* verilator lint_on UNUSEDSIGNAL */
+  assign dec_ndiff  = dec_n1_w - dec_n2_w;
+  assign dec_qlen_t = {1'b0, dec_ndiff, 1'b0} - 8'd1;
+  assign dec_qlen   = dec_qlen_t[6:0];
+  logic [5:0] dec_mp_lim;      // MP multiplier digit limit 2n2-2
+  assign dec_mp_lim = {dec_n2_w, 1'b0} - 6'd2;
+
+  // Read addressing and validity for S_DEC_A / S_DEC_B.
+  logic [23:0] dec_rd_a_addr;
+  logic        dec_rd_a_real;
+  logic [23:0] dec_rd_b_addr;
+  logic        dec_rd_b_real;
+  always_comb begin
+    dec_rd_a_addr = dec_addr1_q;
+    dec_rd_a_real = 1'b0;
+    unique case (dec.op)
+      OP_PACK: begin
+        // Result byte k consumes zoned bytes 2k-1 (A step) and 2k (B step);
+        // byte 0 of the result consumes zoned byte 0 only.
+        if (dec_k_q == 5'd0) begin
+          dec_rd_a_addr = dec_byte_addr(dec_addr2_q, dec_n2_w, 5'd0);
+          dec_rd_a_real = 1'b1;
+        end else if ((dec_k_q << 1) - 5'd1 < dec_n2_w) begin
+          dec_rd_a_addr = dec_byte_addr(dec_addr2_q, dec_n2_w, (dec_k_q << 1) - 5'd1);
+          dec_rd_a_real = 1'b1;
+        end
+      end
+      OP_UNPK: begin
+        // Result byte 0 comes from packed byte 0; result bytes 2b-1 and 2b
+        // come from packed byte b, so the loop advances one operand byte per
+        // fetch and stores up to two result bytes from it (p. 39).
+        if (dec_k_q < dec_n2_w) begin
+          dec_rd_a_addr = dec_byte_addr(dec_addr2_q, dec_n2_w, dec_k_q);
+          dec_rd_a_real = 1'b1;
+        end
+      end
+      OP_MVO: begin
+        if (dec_phase_q == 3'd0) begin
+          dec_rd_a_addr = dec_byte_addr(dec_addr1_q, dec_n1_w, 5'd0);
+          dec_rd_a_real = 1'b1;                 // operand-1 rightmost byte
+        end else if (dec_k_q < dec_n2_w) begin
+          dec_rd_a_addr = dec_byte_addr(dec_addr2_q, dec_n2_w, dec_k_q);
+          dec_rd_a_real = 1'b1;
+        end
+      end
+      OP_ZAP: begin
+        // Both passes scan operand 2 only; operand 1 is overwritten.
+        if (dec_k_q < dec_n2_w) begin
+          dec_rd_a_addr = dec_byte_addr(dec_addr2_q, dec_n2_w, dec_k_q);
+          dec_rd_a_real = 1'b1;
+        end
+      end
+      OP_AP, OP_SP, OP_CP, OP_MP, OP_DP: begin
+        if (dec_mp_dp && (dec_phase_q == 3'd1)) begin
+          dec_rd_a_addr = dec_byte_addr(dec_addr2_q, dec_n2_w, dec_k_q);
+          dec_rd_a_real = 1'b1;                 // capture operand 2
+        end else if (dec_k_q < dec_n1_w) begin
+          dec_rd_a_addr = dec_byte_addr(dec_addr1_q, dec_n1_w, dec_k_q);
+          dec_rd_a_real = 1'b1;
+        end
+      end
+      OP_CVB: begin
+        dec_rd_a_addr = ea_q;
+        dec_rd_a_real = 1'b1;
+      end
+      default: ;
+    endcase
+  end
+  always_comb begin
+    dec_rd_b_addr = dec_addr2_q;
+    dec_rd_b_real = 1'b0;
+    unique case (dec.op)
+      OP_PACK: begin
+        if ((dec_k_q != 5'd0) && ((dec_k_q << 1) < dec_n2_w)) begin
+          dec_rd_b_addr = dec_byte_addr(dec_addr2_q, dec_n2_w, dec_k_q << 1);
+          dec_rd_b_real = 1'b1;
+        end
+      end
+      OP_AP, OP_SP, OP_CP: begin
+        if (dec_k_q < dec_n2_w) begin
+          dec_rd_b_addr = dec_byte_addr(dec_addr2_q, dec_n2_w, dec_k_q);
+          dec_rd_b_real = 1'b1;
+        end
+      end
+      OP_CVB: begin
+        dec_rd_b_addr = ea_q + 24'd4;
+        dec_rd_b_real = 1'b1;
+      end
+      default: ;
+    endcase
+  end
+
+  // Store addressing for S_DEC_C / S_DEC_ST.
+  logic [23:0] dec_store_addr;
+  logic        dec_store_en;
+  always_comb begin
+    dec_store_addr = dec_addr1_q;
+    dec_store_en   = 1'b0;
+    unique case (dec.op)
+      OP_PACK, OP_MVO: begin
+        dec_store_addr = dec_byte_addr(dec_addr1_q, dec_n1_w, dec_k_q);
+        dec_store_en   = 1'b1;
+      end
+      OP_UNPK: begin
+        // The unpack loop stores result bytes 2b-1 and 2b from operand byte b;
+        // dec_j_q holds the result index of the pending store.
+        dec_store_addr = dec_byte_addr(dec_addr1_q, dec_n1_w, dec_j_q);
+        dec_store_en   = 1'b1;
+      end
+      OP_AP, OP_SP: begin
+        dec_store_addr = dec_byte_addr(dec_addr1_q, dec_n1_w, dec_k_q);
+        dec_store_en   = dec_pass2_q && !dec_fin_q && (dec_k_q < dec_n1_w);
+      end
+      OP_ZAP: begin
+        dec_store_addr = dec_byte_addr(dec_addr1_q, dec_n1_w, dec_k_q);
+        dec_store_en   = dec_pass2_q && !dec_fin_q;
+      end
+      OP_MP, OP_DP: begin
+        dec_store_addr = dec_byte_addr(dec_addr1_q, dec_n1_w, dec_k_q);
+        dec_store_en   = (dec_phase_q == 3'd3);
+      end
+      OP_CVD: begin
+        dec_store_addr = ea_q + {19'd0, (5'd7 - dec_k_q)};
+        dec_store_en   = (dec_phase_q == 3'd1);
+      end
+      default: ;
+    endcase
+  end
+
+  // Effective sign classes. SUBTRACT DECIMAL flips the second operand's sign
+  // class after the operand is obtained (p. 37).
+  logic dec_min1, dec_min2_eff, dec_min2_raw, dec_same_sign;
+  assign dec_min1     = dec_sign_minus(dec_s1_q);
+  assign dec_min2_raw = dec_sign_minus(dec_s2_q);
+  assign dec_min2_eff = (dec.op == OP_SP) ? !dec_min2_raw : dec_min2_raw;
+  assign dec_same_sign = (dec_min1 == dec_min2_eff);
+
+  // Digit nibbles of the bytes fetched for the add-type scan. Byte 0 carries
+  // digit 0 in its high nibble and the sign in its low nibble; byte k>=1
+  // carries digit 2k high and digit 2k-1 low.
+  logic [3:0] dec_a_lo, dec_a_hi, dec_b_lo, dec_b_hi;
+  assign dec_a_lo = dec_ba_q[3:0];
+  assign dec_a_hi = dec_ba_q[7:4];
+  assign dec_b_lo = dec_bb_q[3:0];
+  assign dec_b_hi = dec_bb_q[7:4];
+
+  // Sign classes still unknown at byte 0: taken from the bytes being scanned.
+  logic dec_min1_now, dec_min2_now, dec_same_now;
+  assign dec_min1_now = (dec_k_q == 5'd0) ? dec_sign_minus(dec_a_lo) : dec_min1;
+  assign dec_min2_now = (dec_k_q == 5'd0)
+      ? ((dec.op == OP_SP) ? !dec_sign_minus(dec_b_lo) : dec_sign_minus(dec_b_lo))
+      : dec_min2_eff;
+  assign dec_same_now = (dec_min1_now == dec_min2_now);
+
+  // Same-sign add of the current byte: digit 2k-1 (low nibbles) first, then
+  // digit 2k (high nibbles); byte 0 contributes digit 0 only, so its carry
+  // input is the registered carry rather than the low-nibble chain.
+  logic [4:0] dec_t1, dec_t2;
+  // The digit results hold 0-9; their bit 4 is unused by construction.
+  /* verilator lint_off UNUSEDSIGNAL */
+  logic [4:0] dec_d1, dec_d2;
+  /* verilator lint_on UNUSEDSIGNAL */
+  logic       dec_c1, dec_c2;
+  always_comb begin
+    dec_t1 = {1'b0, dec_a_lo} + {1'b0, dec_b_lo} + {4'd0, dec_carry_q};
+    dec_d1 = (dec_t1 >= 5'd10) ? (dec_t1 - 5'd10) : {1'b0, dec_t1[3:0]};
+    dec_c1 = (dec_t1 >= 5'd10);
+    dec_t2 = {1'b0, dec_a_hi} + {1'b0, dec_b_hi}
+           + {4'd0, ((dec_k_q == 5'd0) ? dec_carry_q : dec_c1)};
+    dec_d2 = (dec_t2 >= 5'd10) ? (dec_t2 - 5'd10) : {1'b0, dec_t2[3:0]};
+    dec_c2 = (dec_t2 >= 5'd10);
+  end
+
+  // Different-sign pass 2: subtract the smaller magnitude from the larger.
+  logic [3:0] dec_x_lo, dec_x_hi, dec_y_lo, dec_y_hi;
+  assign dec_x_lo = dec_big_a_q ? dec_a_lo : dec_b_lo;
+  assign dec_x_hi = dec_big_a_q ? dec_a_hi : dec_b_hi;
+  assign dec_y_lo = dec_big_a_q ? dec_b_lo : dec_a_lo;
+  assign dec_y_hi = dec_big_a_q ? dec_b_hi : dec_a_hi;
+  logic [4:0] dec_s1t, dec_s2t;
+  logic [3:0] dec_sd1, dec_sd2;
+  logic       dec_sb1, dec_sb2;
+  always_comb begin
+    dec_s1t = {1'b0, dec_x_lo} - {1'b0, dec_y_lo} - {4'd0, dec_carry_q};
+    if (dec_s1t[4]) begin
+      dec_sd1 = dec_s1t[3:0] + 4'd10;
+      dec_sb1 = 1'b1;
+    end else begin
+      dec_sd1 = dec_s1t[3:0];
+      dec_sb1 = 1'b0;
+    end
+    dec_s2t = {1'b0, dec_x_hi} - {1'b0, dec_y_hi}
+            - {4'd0, ((dec_k_q == 5'd0) ? dec_carry_q : dec_sb1)};
+    if (dec_s2t[4]) begin
+      dec_sd2 = dec_s2t[3:0] + 4'd10;
+      dec_sb2 = 1'b1;
+    end else begin
+      dec_sd2 = dec_s2t[3:0];
+      dec_sb2 = 1'b0;
+    end
+  end
+
+  // Add-type operand-code validity for the byte being scanned (p. 40). ZAP
+  // checks only the second operand (p. 37).
+  logic dec_add_bad;
+  always_comb begin
+    if (dec.op == OP_ZAP) begin
+      dec_add_bad = (dec_k_q == 5'd0)
+          ? (!dec_digit_ok(dec_b_hi) || !dec_sign_ok(dec_b_lo))
+          : (!dec_digit_ok(dec_b_lo) || !dec_digit_ok(dec_b_hi));
+    end else begin
+      dec_add_bad = (dec_k_q == 5'd0)
+          ? (!dec_digit_ok(dec_a_hi) || !dec_digit_ok(dec_b_hi) ||
+             !dec_sign_ok(dec_a_lo) || !dec_sign_ok(dec_b_lo))
+          : (!dec_digit_ok(dec_a_lo) || !dec_digit_ok(dec_a_hi) ||
+             !dec_digit_ok(dec_b_lo) || !dec_digit_ok(dec_b_hi));
+    end
+  end
+
+  // Preferred result signs. MP/DP derive them from the captured sign classes;
+  // CVD from the converted register value; the DP remainder keeps the dividend
+  // sign even when it is zero (p. 39).
+  logic [3:0] dec_sign_mp, dec_sign_rem, dec_sign_cvd;
+  assign dec_sign_mp  = (dec_min1 != dec_min2_eff)
+      ? dec_pref_minus(dec_ascii) : dec_pref_plus(dec_ascii);
+  assign dec_sign_rem = dec_min1 ? dec_pref_minus(dec_ascii)
+                                 : dec_pref_plus(dec_ascii);
+  assign dec_sign_cvd = dec_s1_q[0] ? dec_pref_minus(dec_ascii)
+                                    : dec_pref_plus(dec_ascii);
+
+  // Result byte for the current store step (S_DEC_C / S_DEC_ST). Byte k>=1 of
+  // a digit-ordered register occupies bits 4*(2k-1) +: 8 (digits 2k-1 low,
+  // 2k high); byte 0 is {digit 0, sign}.
+  logic [3:0] dec_res_sign;   // preferred sign/zone nibble of result byte 0
+  logic [7:0] dec_res_byte;
+  logic       dec_res_minus;  // true result sign class (add-type)
+  always_comb begin
+    dec_res_minus = 1'b0;
+    unique case (dec.op)
+      OP_ZAP:   dec_res_minus = dec_min2_now;
+      OP_AP,
+      OP_SP:    dec_res_minus = dec_same_now ? dec_min1_now
+                                             : (dec_big_a_q ? dec_min1_now : dec_min2_now);
+      default:  dec_res_minus = 1'b0;
+    endcase
+    // An unoverflowed zero result is positive; an overflow keeps the sign of
+    // the true result (pp. 37, 40).
+    dec_res_sign = (dec.op == OP_UNPK)
+        ? dec_pref_zone(dec_ascii)
+        : (((dec.op == OP_ZAP) || (dec.op == OP_AP) || (dec.op == OP_SP))
+            ? ((dec_zero_q && !dec_ovf_q) ? dec_pref_plus(dec_ascii)
+             : (dec_res_minus ? dec_pref_minus(dec_ascii) : dec_pref_plus(dec_ascii)))
+            : 4'h0);
+    unique case (dec.op)
+      OP_PACK: dec_res_byte = (dec_k_q == 5'd0)
+          ? {dec_bb_q[3:0], dec_bb_q[7:4]}
+          : {dec_bb_prev_q[3:0], dec_bb_q[3:0]};
+      // Zoned byte 0 carries the sign in the zone (high) position and the
+      // digit low (Figure 9, p. 35), so it is the nibble swap of packed
+      // byte 0, which stores {digit, sign}.
+      OP_UNPK: dec_res_byte = (dec_k_q == 5'd0)
+          ? {dec_bb_q[3:0], dec_bb_q[7:4]}
+          : {dec_res_sign, (dec_pass2_q ? dec_bb_q[7:4] : dec_bb_q[3:0])};
+      OP_MVO: dec_res_byte = (dec_k_q == 5'd0)
+          ? {dec_bb_q[3:0], dec_lo_a_q}
+          : {dec_bb_q[3:0], dec_bb_prev_q[7:4]};
+      OP_ZAP: dec_res_byte = (dec_k_q == 5'd0)
+          ? {dec_b_hi, dec_res_sign}
+          : {dec_b_hi, dec_b_lo};
+      OP_AP, OP_SP: dec_res_byte = (dec_k_q == 5'd0)
+          ? {(dec_same_now ? dec_d2[3:0] : dec_sd2), dec_res_sign}
+          : {(dec_same_now ? dec_d2[3:0] : dec_sd2),
+             (dec_same_now ? dec_d1[3:0] : dec_sd1)};
+      OP_MP: dec_res_byte = (dec_k_q == 5'd0)
+          ? {dec_prod_q[3:0], dec_sign_mp}
+          : dec_prod_q[4*(2*dec_k_q - 1) +: 8];
+      OP_DP: dec_res_byte = (dec_k_q < dec_n2_w)
+          ? ((dec_k_q == 5'd0) ? {dec_rem_q[3:0], dec_sign_rem}
+                               : dec_rem_q[4*(2*dec_k_q - 1) +: 8])
+          : (((dec_k_q - dec_n2_w) == 5'd0)
+              ? {dec_prod_q[3:0], dec_sign_mp}
+              : dec_prod_q[4*(2*(dec_k_q - dec_n2_w) - 1) +: 8]);
+      OP_CVD: dec_res_byte = (dec_k_q == 5'd0)
+          ? {dec_dbl_q[3:0], dec_sign_cvd}
+          : dec_dbl_q[4*(2*dec_k_q - 1) +: 8];
+      default: dec_res_byte = 8'h00;
+    endcase
+  end
+
+  // Digit i of the CVB doubleword captured as {word at ea, word at ea+4}, with
+  // byte j from the right at w[8*j +: 8] (p. 31).
+  function automatic logic [3:0] dec_cvb_dig(input logic [63:0] w, input int i);
+    if (i == 0) begin
+      dec_cvb_dig = w[4 +: 4];
+    end else if (i[0] == 1'b0) begin
+      dec_cvb_dig = w[8*(i/2) + 4 +: 4];
+    end else begin
+      dec_cvb_dig = w[8*((i+1)/2) +: 4];
+    end
+  endfunction
+
+  // Captured-operand validity for MP/DP (p. 40) and the MP leading-zero rule:
+  // the multiplicand must have high-order zero digits for the whole
+  // multiplier field size (p. 38).
+  logic dec_cap1_bad, dec_cap2_bad, dec_mp_lead_ok, dec_dv_zero;
+  always_comb begin
+    dec_cap1_bad = !dec_sign_ok(dec_s1_q);
+    for (int i = 0; i < DEC_ACC_DIGITS; i++) begin
+      if ((i == 0) || (i <= 2*dec_n1_i - 2)) begin
+        dec_cap1_bad |= !dec_digit_ok(dec_acc1_q[4*i +: 4]);
+      end
+    end
+    dec_cap2_bad = !dec_sign_ok(dec_s2_q);
+    for (int i = 0; i < 16; i++) begin
+      if ((i == 0) || (i <= 2*dec_n2_i - 2)) begin
+        dec_cap2_bad |= !dec_digit_ok(dec_acc2_q[4*i +: 4]);
+      end
+    end
+    dec_mp_lead_ok = 1'b1;
+    for (int i = 0; i < DEC_ACC_DIGITS; i++) begin
+      if ((i >= 2*(dec_n1_i - dec_n2_i)) && (i <= 2*dec_n1_i - 2)) begin
+        dec_mp_lead_ok &= (dec_acc1_q[4*i +: 4] == 4'd0);
+      end
+    end
+    dec_dv_zero = 1'b1;
+    for (int i = 0; i < 16; i++) begin
+      if (i <= 2*dec_n2_i - 2) begin
+        dec_dv_zero &= (dec_acc2_q[4*i +: 4] == 4'd0);
+      end
+    end
+  end
+
+  // CVB operand validity (p. 31): digits 0-9 and a valid sign nibble. In
+  // S_DEC_B the second word is being captured, so validation reads the
+  // composite of the first word and the incoming second word.
+  logic [63:0] dec_cvb_word;
+  logic dec_cvb_bad;
+  assign dec_cvb_word = (state == S_DEC_B) ? {dec_dbl_q[63:32], read_word}
+                                            : dec_dbl_q;
+  always_comb begin
+    dec_cvb_bad = !dec_sign_ok(dec_cvb_word[3:0]);
+    for (int i = 0; i < 16; i++) begin
+      if (i <= 14) begin
+        dec_cvb_bad |= !dec_digit_ok(dec_cvb_dig(dec_cvb_word, i));
+      end
+    end
+  end
+
+  // CVD double-dabble adjustment (add 3 to every nibble of 5 or more). The
+  // shift below discards the top bit by design.
+  /* verilator lint_off UNUSEDSIGNAL */
+  logic [63:0] dec_dbl_adj;
+  /* verilator lint_on UNUSEDSIGNAL */
+  always_comb begin
+    for (int i = 0; i < 16; i++) begin
+      dec_dbl_adj[4*i +: 4] = (dec_dbl_q[4*i +: 4] >= 4'd5)
+          ? dec_dbl_q[4*i +: 4] + 4'd3 : dec_dbl_q[4*i +: 4];
+    end
+  end
+
+  // CVB Horner digit and converted value.
+  logic [55:0] dec_cvb_next;
+  assign dec_cvb_next = dec_bin_q * 7'd10 + {52'd0, dec_cvb_dig(dec_dbl_q, dec_step_i)};
+  logic [31:0] dec_cvb_val;
+  logic        dec_cvb_ovf;
+  // The stored result is the low 32 bits of the signed value (p. 31), which
+  // two's-complement arithmetic produces directly in 32 bits.
+  assign dec_cvb_val = dec_min1 ? (32'd0 - dec_bin_q[31:0]) : dec_bin_q[31:0];
+  assign dec_cvb_ovf = dec_min1 ? ({8'd0, dec_bin_q} > 64'd2147483648)
+                                : ({8'd0, dec_bin_q} > 64'd2147483647);
 
   // ---------------------------------------------------------------------------
   // Storage port
@@ -704,6 +1361,15 @@ module ibm_s360_cpu #(
         mem_we    = ss_writes;
         mem_wdata = {4{ss_merged_byte}};
         mem_wbe   = ss_writes ? (4'b1000 >> ss_a1_cur[1:0]) : 4'd0;
+      end
+      S_DEC_A: mem_addr = dec_rd_a_addr;
+      S_DEC_B: mem_addr = dec_rd_b_addr;
+      S_DEC_C,
+      S_DEC_ST: begin
+        mem_addr  = dec_store_addr;
+        mem_we    = dec_store_en;
+        mem_wdata = {4{dec_res_byte}};
+        mem_wbe   = dec_store_en ? (4'b1000 >> dec_store_addr[1:0]) : 4'd0;
       end
       S_INT_NEW0: mem_addr = int_new_addr_q;
       S_INT_NEW1: mem_addr = int_new_addr_q + 24'd4;
@@ -775,6 +1441,35 @@ module ibm_s360_cpu #(
       ss_i_q       <= 9'd0;
       ss_b1_q      <= 8'd0;
       ss_b2_q      <= 8'd0;
+      dec_n1_q     <= 5'd0;
+      dec_n2_q     <= 5'd0;
+      dec_addr1_q  <= 24'd0;
+      dec_addr2_q  <= 24'd0;
+      dec_k_q      <= 5'd0;
+      dec_j_q      <= 5'd0;
+      dec_phase_q  <= 3'd0;
+      dec_ba_q     <= 8'd0;
+      dec_bb_q     <= 8'd0;
+      dec_bb_prev_q<= 8'd0;
+      dec_lo_a_q   <= 4'd0;
+      dec_s1_q     <= 4'd0;
+      dec_s2_q     <= 4'd0;
+      dec_carry_q  <= 1'b0;
+      dec_big_a_q  <= 1'b0;
+      dec_diff_q   <= 1'b0;
+      dec_zero_q   <= 1'b0;
+      dec_ovf_q    <= 1'b0;
+      dec_pass2_q  <= 1'b0;
+      dec_fin_q    <= 1'b0;
+      dec_div9_q   <= 1'b0;
+      dec_decovf_q <= 1'b0;
+      dec_acc1_q   <= '0;
+      dec_prod_q   <= '0;
+      dec_acc2_q   <= 64'd0;
+      dec_rem_q    <= 72'd0;
+      dec_dbl_q    <= 64'd0;
+      dec_bin_q    <= 56'd0;
+      dec_step_q   <= 6'd0;
       int_code_q   <= 16'd0;
       int_psw_q    <= 64'd0;
       int_pending_q<= 1'b0;
@@ -893,8 +1588,10 @@ module ibm_s360_cpu #(
           pmask_en_q <= 1'b0;
           spm_cc_en_q<= 1'b0;
           sysmask_en_q <= 1'b0;
-          ovf_int_q  <= 1'b0;
-          next_ia_q  <= ia_cur + {20'd0, len_q};
+          ovf_int_q    <= 1'b0;
+          dec_div9_q   <= 1'b0;
+          dec_decovf_q <= 1'b0;
+          next_ia_q    <= ia_cur + {20'd0, len_q};
 
           // A store into a protected block with a different key is suppressed
           // and raises the protection exception (A22-6821-7 p. 69). SS
@@ -1042,10 +1739,14 @@ module ibm_s360_cpu #(
                 cnt            <= 3'd0;
               end
               OP_SPM: begin
+                // "Bits 2-7 of the general register specified by the R1 field
+                // replace the condition code and the program mask bits of the
+                // current psw" (p. 72): register bit 2 -> PSW bit 34 (CC high),
+                // register bit 4 -> PSW bit 36 (fixed-point-overflow mask).
                 spm_cc_en_q <= 1'b1;
-                spm_cc_q    <= gpr[r1_f][3:2];
+                spm_cc_q    <= {gpr[r1_f][2], gpr[r1_f][3]};
                 pmask_en_q  <= 1'b1;
-                pmask_q     <= gpr[r1_f][7:4];
+                pmask_q     <= {gpr[r1_f][4], gpr[r1_f][5], gpr[r1_f][6], gpr[r1_f][7]};
               end
               OP_SSM: begin
                 sysmask_en_q <= 1'b1;
@@ -1065,9 +1766,11 @@ module ibm_s360_cpu #(
             end
 
             // Fixed-point overflow: add/subtract from the ALU, and left shifts.
+            // The mask bit is PSW bit 36, the most significant bit of the
+            // program-mask field (psw_pmask[3], Figure 14 p. 15).
             if ((is_addsub && alu_ovf) || (is_shift_op && shift_ovf)) begin
               ovf_q <= 1'b1;
-              if (psw_pmask[0]) begin
+              if (psw_pmask[3]) begin
                 ovf_int_q <= 1'b1;
               end
             end
@@ -1082,11 +1785,37 @@ module ibm_s360_cpu #(
               next_ia_q <= branch_taken ? branch_target : ex_return_ia_q;
               ilc_q     <= 2'd2;
             end
-            if (ss_op && (ss_range_bad || !store_permitted(ss_addr1) ||
-                          !fetch_permitted(ss_addr2))) begin
+            if (ss_op && (ss_range_bad || ss_prot_bad)) begin
               int_code_q     <= ss_range_bad ? CODE_ADDRESSING : CODE_PROTECTION;
               int_psw_q      <= {psw_word[63:48],
                                  ss_range_bad ? CODE_ADDRESSING : CODE_PROTECTION,
+                                 ilc_q, psw_word[29:24],
+                                 (ia_cur + {20'd0, len_q})};
+              int_pending_q  <= 1'b1;
+              int_old_addr_q <= PROGRAM_OLD_PSW;
+              int_new_addr_q <= PROGRAM_NEW_PSW;
+              state          <= S_CHECK;
+            end else if (dec_ss_op && (dec_range_bad || dec_prot_bad || dec_spec_bad)) begin
+              // Whole-field addressing, protection and the MULTIPLY/DECIMAL
+              // DIVIDE length-code checks, before the first byte (pp. 34,
+              // 38-40). Suppression before any store is deviation A-8 style.
+              int_code_q     <= dec_range_bad ? CODE_ADDRESSING
+                              : dec_prot_bad  ? CODE_PROTECTION
+                                              : CODE_SPECIF;
+              int_psw_q      <= {psw_word[63:48],
+                                 dec_range_bad ? CODE_ADDRESSING
+                               : dec_prot_bad  ? CODE_PROTECTION
+                                               : CODE_SPECIF,
+                                 ilc_q, psw_word[29:24],
+                                 (ia_cur + {20'd0, len_q})};
+              int_pending_q  <= 1'b1;
+              int_old_addr_q <= PROGRAM_OLD_PSW;
+              int_new_addr_q <= PROGRAM_NEW_PSW;
+              state          <= S_CHECK;
+            end else if (cvb_cvd_op && (cvb_cvd_range_bad || cvb_cvd_prot_bad)) begin
+              int_code_q     <= cvb_cvd_range_bad ? CODE_ADDRESSING : CODE_PROTECTION;
+              int_psw_q      <= {psw_word[63:48],
+                                 cvb_cvd_range_bad ? CODE_ADDRESSING : CODE_PROTECTION,
                                  ilc_q, psw_word[29:24],
                                  (ia_cur + {20'd0, len_q})};
               int_pending_q  <= 1'b1;
@@ -1099,6 +1828,60 @@ module ibm_s360_cpu #(
               state <= S_FETCH;
             end else if (ss_op) begin
               state <= S_SS_A;
+            end else if (dec_ss_op || cvb_cvd_op) begin
+              // Decimal entry: field geometry, loop indices and flags.
+              dec_addr1_q   <= ss_addr1;
+              dec_addr2_q   <= ss_addr2;
+              dec_n1_q      <= {1'b0, ib[1][7:4]} + 5'd1;
+              dec_n2_q      <= {1'b0, ib[1][3:0]} + 5'd1;
+              dec_k_q       <= 5'd0;
+              dec_j_q       <= 5'd0;
+              dec_phase_q   <= 3'd0;
+              dec_pass2_q   <= 1'b0;
+              dec_fin_q     <= 1'b0;
+              dec_carry_q   <= 1'b0;
+              dec_big_a_q   <= 1'b0;
+              dec_diff_q    <= 1'b0;
+              dec_zero_q    <= 1'b1;
+              dec_ovf_q     <= 1'b0;
+              dec_div9_q    <= 1'b0;
+              dec_decovf_q  <= 1'b0;
+              dec_bb_prev_q <= 8'd0;
+              dec_lo_a_q    <= 4'd0;
+              dec_acc1_q    <= '0;
+              dec_prod_q    <= '0;
+              dec_acc2_q    <= 64'd0;
+              dec_rem_q     <= 72'd0;
+              dec_dbl_q     <= 64'd0;
+              dec_bin_q     <= 56'd0;
+              dec_step_q    <= 6'd0;
+              dec_s1_q      <= 4'd0;
+              dec_s2_q      <= 4'd0;
+              unique case (dec.op)
+                OP_CVB: begin
+                  state <= S_DEC_A;          // capture the two words first
+                end
+                OP_CVD: begin
+                  // Magnitude and sign of R1 (p. 32); the preferred sign is
+                  // applied when the result bytes are stored.
+                  dec_bin_q  <= {24'd0,
+                                 (gpr[r1_f][31] ? (~gpr[r1_f] + 32'd1) : gpr[r1_f])};
+                  dec_s1_q   <= {3'b000, gpr[r1_f][31]};
+                  dec_step_q <= 6'd0;
+                  state      <= S_DEC_CVD;
+                end
+                OP_MP, OP_DP: begin
+                  dec_phase_q <= 3'd0;       // capture operand 1, then operand 2
+                  state       <= S_DEC_A;
+                end
+                OP_MVO: begin
+                  dec_phase_q <= 3'd0;       // phase 0 captures op1's low nibble
+                  state       <= S_DEC_A;
+                end
+                default: begin
+                  state <= S_DEC_A;
+                end
+              endcase
             end else if (is_store) begin
               state <= S_WRITE;
             end else begin
@@ -1119,10 +1902,17 @@ module ibm_s360_cpu #(
           if (ex_active_q) begin
             ex_active_q <= 1'b0;
           end
-          if (ovf_int_q) begin
-            int_code_q     <= CODE_OVERFLOW;
-            int_psw_q      <= {psw_word[63:48], CODE_OVERFLOW, ilc_q, cc_q,
-                               psw_word[27:24], next_ia_q};
+          if (ovf_int_q || dec_div9_q) begin
+            // Completed-then-interrupted causes: fixed-point overflow (8)
+            // from the ALU and shifts, decimal overflow (10) from the
+            // add-type decimal instructions when mask bit 37 is one, and the
+            // CVB fixed-point divide (9), which has no mask bit (pp. 31, 40).
+            int_code_q     <= dec_div9_q ? CODE_DIVIDE
+                            : dec_decovf_q ? CODE_DEC_OVERFLOW : CODE_OVERFLOW;
+            int_psw_q      <= {psw_word[63:48],
+                               dec_div9_q ? CODE_DIVIDE
+                             : dec_decovf_q ? CODE_DEC_OVERFLOW : CODE_OVERFLOW,
+                               ilc_q, cc_q, psw_word[27:24], next_ia_q};
             int_pending_q  <= 1'b1;
             int_old_addr_q <= PROGRAM_OLD_PSW;
             int_new_addr_q <= PROGRAM_NEW_PSW;
@@ -1210,6 +2000,443 @@ module ibm_s360_cpu #(
           end
         end
 
+        // -------------------------------------------------------------------
+        // Decimal datapath (M9). Fetch, compute and store steps follow the
+        // manual's right-to-left byte procedure so overlapped operands see
+        // the architectural result.
+        // -------------------------------------------------------------------
+        S_DEC_A: begin
+          unique case (dec.op)
+            OP_CVB: begin
+              dec_dbl_q[63:32] <= read_word;
+              state <= S_DEC_B;
+            end
+            OP_MVO: begin
+              if (dec_phase_q == 3'd0) begin
+                // Operand 1's rightmost byte is fetched before any store; its
+                // low nibble survives in result byte 0 (p. 40).
+                dec_lo_a_q  <= read_byte[3:0];
+                dec_phase_q <= 3'd1;
+              end else begin
+                dec_bb_q <= dec_rd_a_real ? read_byte : 8'd0;
+                state    <= S_DEC_C;
+              end
+            end
+            OP_PACK: begin
+              // The A fetch is operand 2 byte 2k-1 (byte 0 for k=0): it is the
+              // low digit of the result byte, so it lands in dec_bb_q.
+              dec_bb_q <= dec_rd_a_real ? read_byte : 8'd0;
+              if (!dec_rd_b_real) begin
+                dec_bb_prev_q <= 8'd0;    // digit 2k beyond operand 2
+              end
+              state <= dec_rd_b_real ? S_DEC_B : S_DEC_C;
+            end
+            OP_MP, OP_DP: begin
+              dec_ba_q <= dec_rd_a_real ? read_byte : 8'd0;
+              state    <= S_DEC_C;
+            end
+            OP_UNPK, OP_ZAP: begin
+              dec_bb_q <= dec_rd_a_real ? read_byte : 8'd0;
+              state    <= S_DEC_C;
+            end
+            default: begin  // AP, SP, CP: operand 1 byte, then operand 2
+              dec_ba_q <= dec_rd_a_real ? read_byte : 8'd0;
+              state    <= S_DEC_B;
+            end
+          endcase
+        end
+
+        S_DEC_B: begin
+          unique case (dec.op)
+            OP_CVB: begin
+              dec_dbl_q[31:0] <= read_word;
+              if (dec_cvb_bad) begin
+                int_code_q     <= CODE_DATA;
+                int_psw_q      <= {psw_word[63:48], CODE_DATA, ilc_q,
+                                   psw_word[29:24], (ia_cur + {20'd0, len_q})};
+                int_pending_q  <= 1'b1;
+                int_old_addr_q <= PROGRAM_OLD_PSW;
+                int_new_addr_q <= PROGRAM_NEW_PSW;
+                state          <= S_CHECK;
+              end else begin
+                dec_s1_q   <= read_word[3:0];   // sign nibble of byte ea+7
+                dec_bin_q  <= 56'd0;
+                dec_step_q <= 6'd14;
+                state      <= S_DEC_CVB;
+              end
+            end
+            OP_PACK: begin
+              dec_bb_prev_q <= dec_rd_b_real ? read_byte : 8'd0;
+              state <= S_DEC_C;
+            end
+            default: begin  // AP, SP, CP
+              dec_bb_q <= dec_rd_b_real ? read_byte : 8'd0;
+              state    <= S_DEC_C;
+            end
+          endcase
+        end
+
+        S_DEC_C: begin
+          unique case (dec.op)
+            // ---- move type: store one result byte and advance --------------
+            OP_PACK, OP_MVO: begin
+              if (dec.op == OP_MVO) begin
+                dec_bb_prev_q <= dec_bb_q;
+              end
+              if (dec_k_q == (dec_n1_w - 5'd1)) begin
+                state <= S_COMMIT;
+              end else begin
+                dec_k_q <= dec_k_q + 5'd1;
+                state   <= S_DEC_A;
+              end
+            end
+            OP_UNPK: begin
+              // Operand byte b stores result 2b-1 (and 2b when it exists);
+              // byte 0 stores result 0 only.
+              if (dec_k_q == 5'd0) begin
+                dec_j_q <= 5'd1;
+                dec_k_q <= 5'd1;
+                if (dec_n1_w == 5'd1) begin
+                  state <= S_COMMIT;
+                end else begin
+                  state <= S_DEC_A;
+                end
+              end else if ((dec_k_q << 1) < dec_n1_w) begin
+                dec_j_q     <= dec_k_q << 1;
+                dec_pass2_q <= 1'b1;
+                state       <= S_DEC_ST;
+              end else begin
+                dec_k_q <= dec_k_q + 5'd1;
+                if (((dec_k_q + 5'd1) << 1) - 5'd1 < dec_n1_w) begin
+                  state <= S_DEC_A;
+                end else begin
+                  state <= S_COMMIT;
+                end
+              end
+            end
+            // ---- add type: pass 1 validates and sets flags -----------------
+            OP_ZAP, OP_AP, OP_SP: begin
+              if (dec_fin_q) begin
+                // Flags settled one cycle earlier: condition code, then the
+                // masked decimal overflow interruption (pp. 37, 40).
+                cc_we_q <= 1'b1;
+                cc_q    <= dec_ovf_q ? 2'd3
+                         : (dec_zero_q ? 2'd0
+                            : ((dec.op == OP_ZAP) ? dec_min2_eff
+                               : (dec_same_sign ? dec_min1
+                                  : (dec_big_a_q ? dec_min1 : dec_min2_eff)))
+                              ? 2'd1 : 2'd2);
+                if (dec_ovf_q && psw_pmask[2]) begin
+                  ovf_int_q    <= 1'b1;
+                  dec_decovf_q <= 1'b1;
+                end
+                state <= S_COMMIT;
+              end else if (!dec_pass2_q) begin
+                if (dec_add_bad) begin
+                  int_code_q     <= CODE_DATA;
+                  int_psw_q      <= {psw_word[63:48], CODE_DATA, ilc_q,
+                                     psw_word[29:24], (ia_cur + {20'd0, len_q})};
+                  int_pending_q  <= 1'b1;
+                  int_old_addr_q <= PROGRAM_OLD_PSW;
+                  int_new_addr_q <= PROGRAM_NEW_PSW;
+                  state          <= S_CHECK;
+                end else begin
+                  if (dec_k_q == 5'd0) begin
+                    dec_s1_q <= dec_a_lo;
+                    dec_s2_q <= dec_b_lo;
+                  end
+                  if (dec.op == OP_ZAP) begin
+                    dec_zero_q <= dec_zero_q && (dec_b_hi == 4'd0) &&
+                                  ((dec_k_q == 5'd0) || (dec_b_lo == 4'd0));
+                    dec_ovf_q  <= dec_ovf_q ||
+                                  ((dec_k_q >= dec_n1_w) &&
+                                   ((dec_b_hi != 4'd0) ||
+                                    ((dec_k_q != 5'd0) && (dec_b_lo != 4'd0))));
+                  end else if (dec_same_now) begin
+                    dec_zero_q  <= dec_zero_q && (dec_d2[3:0] == 4'd0) &&
+                                   ((dec_k_q == 5'd0) || (dec_d1[3:0] == 4'd0));
+                    dec_ovf_q   <= dec_ovf_q ||
+                                   (dec_c2 && ((dec_k_q + 5'd1) >= dec_n1_w)) ||
+                                   ((dec_k_q >= dec_n1_w) &&
+                                    ((dec_d2[3:0] != 4'd0) ||
+                                     ((dec_k_q != 5'd0) && (dec_d1[3:0] != 4'd0))));
+                    dec_carry_q <= dec_c2;
+                  end else begin
+                    // Different signs: compare magnitudes right to left; the
+                    // most significant difference decides (p. 38).
+                    if ((dec_k_q != 5'd0) && (dec_a_lo != dec_b_lo)) begin
+                      dec_diff_q  <= 1'b1;
+                      dec_big_a_q <= (dec_a_lo > dec_b_lo);
+                    end
+                    if (dec_a_hi != dec_b_hi) begin
+                      dec_diff_q  <= 1'b1;
+                      dec_big_a_q <= (dec_a_hi > dec_b_hi);
+                    end
+                  end
+                  if (dec_k_q == ((dec.op == OP_ZAP) ? (dec_n2_w - 5'd1)
+                                                     : (dec_max_n - 5'd1))) begin
+                    dec_pass2_q <= 1'b1;
+                    dec_carry_q <= 1'b0;
+                    dec_k_q     <= 5'd0;
+                    if (dec.op != OP_ZAP) begin
+                      dec_zero_q <= dec_same_now ? dec_zero_q : !dec_diff_q;
+                    end
+                    state <= S_DEC_A;          // pass 2 refetches byte 0
+                  end else begin
+                    dec_k_q <= dec_k_q + 5'd1;
+                    state   <= S_DEC_A;
+                  end
+                end
+              end else begin
+                // ---- pass 2: recompute and store ---------------------------
+                dec_carry_q <= dec_same_now ? dec_c2 : dec_sb2;
+                if (!dec_same_now && (dec.op != OP_ZAP)) begin
+                  // Overflow of the difference: a nonzero digit at or beyond
+                  // position 2n1-1 (pp. 37, 40).
+                  dec_ovf_q <= dec_ovf_q ||
+                               ((dec_k_q >= dec_n1_w) &&
+                                ((dec_sd2 != 4'd0) ||
+                                 ((dec_k_q != 5'd0) && (dec_sd1 != 4'd0))));
+                end
+                if (dec_k_q == ((dec.op == OP_ZAP) ? (dec_n1_w - 5'd1)
+                                                   : (dec_max_n - 5'd1))) begin
+                  dec_fin_q <= 1'b1;   // finalize with settled flags
+                end else begin
+                  dec_k_q <= dec_k_q + 5'd1;
+                  state   <= S_DEC_A;
+                end
+              end
+            end
+            // ---- COMPARE DECIMAL: one validating compare pass --------------
+            OP_CP: begin
+              if (dec_fin_q) begin
+                // Finalize: 0 equal, 1 first low, 2 first high (p. 38); a
+                // zero value compares equal regardless of the sign nibble.
+                cc_we_q <= 1'b1;
+                cc_q    <= dec_zero_q ? 2'd0
+                         : (dec_min1 != dec_min2_eff) ?
+                           (dec_min1 ? 2'd1 : 2'd2)
+                         : (dec_diff_q ? (dec_big_a_q ? 2'd2 : 2'd1) : 2'd0);
+                state   <= S_COMMIT;
+              end else if (dec_add_bad) begin
+                int_code_q     <= CODE_DATA;
+                int_psw_q      <= {psw_word[63:48], CODE_DATA, ilc_q,
+                                   psw_word[29:24], (ia_cur + {20'd0, len_q})};
+                int_pending_q  <= 1'b1;
+                int_old_addr_q <= PROGRAM_OLD_PSW;
+                int_new_addr_q <= PROGRAM_NEW_PSW;
+                state          <= S_CHECK;
+              end else begin
+                if (dec_k_q == 5'd0) begin
+                  dec_s1_q <= dec_a_lo;
+                  dec_s2_q <= dec_b_lo;
+                end
+                if ((dec_k_q != 5'd0) && (dec_a_lo != dec_b_lo)) begin
+                  dec_diff_q  <= 1'b1;
+                  dec_big_a_q <= (dec_a_lo > dec_b_lo);
+                end
+                if (dec_a_hi != dec_b_hi) begin
+                  dec_diff_q  <= 1'b1;
+                  dec_big_a_q <= (dec_a_hi > dec_b_hi);
+                end
+                dec_zero_q <= dec_zero_q && (dec_a_hi == 4'd0) &&
+                              (dec_b_hi == 4'd0) &&
+                              ((dec_k_q == 5'd0) ||
+                               ((dec_a_lo == 4'd0) && (dec_b_lo == 4'd0)));
+                if (dec_k_q == (dec_max_n - 5'd1)) begin
+                  dec_fin_q <= 1'b1;   // finalize with settled flags
+                end else begin
+                  dec_k_q <= dec_k_q + 5'd1;
+                  state   <= S_DEC_A;
+                end
+              end
+            end
+            // ---- MP/DP operand capture -------------------------------------
+            OP_MP, OP_DP: begin
+              if (dec_phase_q == 3'd0) begin
+                if (dec_k_q == 5'd0) begin
+                  dec_acc1_q[3:0] <= dec_ba_q[7:4];   // digit 0
+                  dec_s1_q        <= dec_ba_q[3:0];   // sign
+                end else begin
+                  dec_acc1_q[4*(2*dec_k_q - 1) +: 8] <= dec_ba_q;
+                end
+                if (dec_k_q == (dec_n1_w - 5'd1)) begin
+                  dec_phase_q <= 3'd1;
+                  dec_k_q     <= 5'd0;
+                end else begin
+                  dec_k_q <= dec_k_q + 5'd1;
+                end
+                state <= S_DEC_A;
+              end else if (dec_phase_q == 3'd1) begin
+                if (dec_k_q == 5'd0) begin
+                  dec_acc2_q[3:0] <= dec_ba_q[7:4];
+                  dec_s2_q        <= dec_ba_q[3:0];
+                end else begin
+                  dec_acc2_q[4*(2*dec_k_q - 1) +: 8] <= dec_ba_q;
+                end
+                if (dec_k_q == (dec_n2_w - 5'd1)) begin
+                  // The captured registers update at this edge, so the
+                  // validation runs one cycle later in phase 2.
+                  dec_phase_q <= 3'd2;
+                end else begin
+                  dec_k_q <= dec_k_q + 5'd1;
+                  state   <= S_DEC_A;
+                end
+              end else if (dec_phase_q == 3'd2) begin
+                // Validate the captured operands (p. 40).
+                if (dec_cap1_bad || dec_cap2_bad ||
+                    ((dec.op == OP_MP) && !dec_mp_lead_ok)) begin
+                  // Invalid sign or digit code, or a multiplicand without
+                  // the required high-order zeros: data exception (p. 40).
+                  int_code_q     <= CODE_DATA;
+                  int_psw_q      <= {psw_word[63:48], CODE_DATA, ilc_q,
+                                     psw_word[29:24],
+                                     (ia_cur + {20'd0, len_q})};
+                  int_pending_q  <= 1'b1;
+                  int_old_addr_q <= PROGRAM_OLD_PSW;
+                  int_new_addr_q <= PROGRAM_NEW_PSW;
+                  state          <= S_CHECK;
+                end else if ((dec.op == OP_DP) && dec_dv_zero) begin
+                  // Division by zero: decimal-divide exception, suppressed
+                  // (pp. 39-40).
+                  int_code_q     <= CODE_DEC_DIVIDE;
+                  int_psw_q      <= {psw_word[63:48], CODE_DEC_DIVIDE, ilc_q,
+                                     psw_word[29:24],
+                                     (ia_cur + {20'd0, len_q})};
+                  int_pending_q  <= 1'b1;
+                  int_old_addr_q <= PROGRAM_OLD_PSW;
+                  int_new_addr_q <= PROGRAM_NEW_PSW;
+                  state          <= S_CHECK;
+                end else begin
+                  dec_k_q <= 5'd0;
+                  if (dec.op == OP_MP) begin
+                    dec_step_q <= 6'd0;
+                    state      <= S_DEC_MP;
+                  end else begin
+                    dec_step_q  <= {dec_n1_w, 1'b0} - 6'd2;   // 2n1-2
+                    dec_pass2_q <= 1'b0;
+                    dec_j_q     <= 5'd0;
+                    state       <= S_DEC_DIV;
+                  end
+                end
+              end else begin
+                state <= S_COMMIT;
+              end
+            end
+            // ---- CVB finish: register write, then a possible code 9 --------
+            OP_CVB: begin
+              wr_en_q    <= 1'b1;
+              wr_idx_q   <= r1_f;
+              res_q      <= dec_cvb_val;
+              dec_div9_q <= dec_cvb_ovf;
+              state      <= S_COMMIT;
+            end
+            default: state <= S_COMMIT;
+          endcase
+        end
+
+        S_DEC_ST: begin
+          unique case (dec.op)
+            OP_UNPK: begin
+              // Second result byte 2b of operand byte b.
+              dec_j_q     <= dec_j_q + 5'd1;
+              dec_k_q     <= dec_k_q + 5'd1;
+              dec_pass2_q <= 1'b0;
+              if (((dec_k_q + 5'd1) << 1) - 5'd1 < dec_n1_w) begin
+                state <= S_DEC_A;
+              end else begin
+                state <= S_COMMIT;
+              end
+            end
+            OP_MP, OP_DP, OP_CVD: begin
+              if (dec_k_q == ((dec.op == OP_CVD) ? 5'd7 : (dec_n1_w - 5'd1))) begin
+                state <= S_COMMIT;
+              end else begin
+                dec_k_q <= dec_k_q + 5'd1;
+              end
+            end
+            default: state <= S_COMMIT;
+          endcase
+        end
+
+        // CVB conversion step: Horner v = v*10 + digit, most significant
+        // digit first (p. 31).
+        S_DEC_CVB: begin
+          dec_bin_q <= dec_cvb_next;
+          if (dec_step_q == 6'd0) begin
+            state <= S_DEC_C;          // finish: register write, code 9 check
+          end else begin
+            dec_step_q <= dec_step_q - 6'd1;
+          end
+        end
+
+        // CVD conversion step: double-dabble, one bit of the magnitude per
+        // cycle into the 16-nibble BCD register (p. 32).
+        S_DEC_CVD: begin
+          dec_dbl_q <= {dec_dbl_adj[62:0], dec_bin_q[31]};
+          dec_bin_q <= {dec_bin_q[54:0], 1'b0};
+          if (dec_step_q == 6'd31) begin
+            dec_phase_q <= 3'd1;
+            dec_k_q     <= 5'd0;
+            state       <= S_DEC_ST;
+          end else begin
+            dec_step_q <= dec_step_q + 6'd1;
+          end
+        end
+
+        // MP step: product += A * digit j of the multiplier (p. 38).
+        S_DEC_MP: begin
+          dec_prod_q <= dec_mul_step(dec_prod_q, dec_acc1_q,
+                                     dec_acc2_q[4*dec_step_q +: 4], dec_step_i);
+          if (dec_step_q == dec_mp_lim) begin
+            dec_phase_q <= 3'd3;
+            dec_k_q     <= 5'd0;
+            state       <= S_DEC_ST;
+          end else begin
+            dec_step_q <= dec_step_q + 6'd1;
+          end
+        end
+
+        // DP step: bring down one dividend digit, then trial-subtract the
+        // divisor until the remainder is below it (p. 39).
+        S_DEC_DIV: begin
+          if (!dec_pass2_q) begin
+            dec_rem_q[71:4] <= dec_rem_q[67:0];
+            dec_rem_q[3:0]  <= dec_dig(dec_acc1_q, dec_step_i);
+            dec_pass2_q     <= 1'b1;
+          end else if (dec_ge({56'd0, dec_rem_q}, {64'd0, dec_acc2_q})) begin
+            dec_rem_q <= dec_div_sub[71:0];
+            dec_j_q   <= dec_j_q + 5'd1;
+          end else begin
+            // Quotient digit dec_j_q at position dec_step_q. A nonzero digit
+            // at or beyond the quotient field is the decimal-divide
+            // exception; the operation is suppressed (pp. 39-40).
+            if (({1'b0, dec_step_q} >= dec_qlen) && (dec_j_q != 5'd0)) begin
+              int_code_q     <= CODE_DEC_DIVIDE;
+              int_psw_q      <= {psw_word[63:48], CODE_DEC_DIVIDE, ilc_q,
+                                 psw_word[29:24], (ia_cur + {20'd0, len_q})};
+              int_pending_q  <= 1'b1;
+              int_old_addr_q <= PROGRAM_OLD_PSW;
+              int_new_addr_q <= PROGRAM_NEW_PSW;
+              state          <= S_CHECK;
+            end else begin
+              if ({1'b0, dec_step_q} < dec_qlen) begin
+                // Digits are emitted from the most significant position down,
+                // so a shift-left assembly leaves digit 0 in the low nibble.
+                dec_prod_q <= {dec_prod_q[123:0], dec_j_q[3:0]};
+              end
+              if (dec_step_q == 6'd0) begin
+                dec_phase_q <= 3'd3;
+                dec_k_q     <= 5'd0;
+                state       <= S_DEC_ST;
+              end else begin
+                dec_step_q  <= dec_step_q - 6'd1;
+                dec_pass2_q <= 1'b0;
+                dec_j_q     <= 5'd0;
+              end
+            end
+          end
+        end
         default: state <= S_CHECK;
       endcase
     end
@@ -1223,13 +2450,20 @@ module ibm_s360_cpu #(
   logic       int_raise_cc_same;
   logic [3:0] int_raise_len;
 
+  // Decimal suppressed causes (data 7, decimal-divide 11) are raised from the
+  // decimal states with the condition code and storage unchanged.
+  logic dec_raise;
+  assign dec_raise = ((state == S_DEC_B) || (state == S_DEC_C) ||
+                      (state == S_DEC_DIV)) && int_pending_q;
   assign int_raise = ((state == S_DECODE) && suppress) ||
                      ((state == S_EXEC) && ((is_divide_op && div_overflow) ||
                                             (dec.op == OP_SVC))) ||
+                     dec_raise ||
                      ((state == S_COMMIT) && ovf_int_q);
   assign int_raise_cc_same = ((state == S_DECODE) && suppress) ||
                              ((state == S_EXEC) && ((is_divide_op && div_overflow) ||
-                                                    (dec.op == OP_SVC)));
+                                                    (dec.op == OP_SVC))) ||
+                             dec_raise;
   assign int_raise_len = ((state == S_DECODE) && suppress) ? len : len_q;
 `endif
 
@@ -1256,6 +2490,7 @@ module ibm_s360_cpu #(
   // initial one. The temporal contracts live in formal/ibm_s360_cpu_props.sv.
   always_comb begin
     assert (!mem_we || (state == S_WRITE) || (state == S_SS_C) ||
+            (state == S_DEC_C) || (state == S_DEC_ST) ||
             (state == S_INT_OLD0) || (state == S_INT_OLD1));
     assert ((state == S_COMMIT) || (state == S_LPSW_LOAD) || !retire);
   end
