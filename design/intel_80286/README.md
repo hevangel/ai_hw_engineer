@@ -34,7 +34,9 @@ the release-gate results and the known limits, and the
 [post-mortem](../../failure_notes/2026-11-22-intel80286-review-284-fault-rules.md).
 Run the release gate with `sh design/intel_80286/scripts/run_all.sh`. What
 remains for a complete 80286 is listed in
-[the completion requirements](plans/completion_requirements.md). The earlier
+[the completion requirements](plans/completion_requirements.md); the
+[2026-11-24 handoff](../../plans/286/2026-11-24-handoff.md) lists it in
+priority order with the latest verified results. The earlier
 append-only status log is archived in
 [report/2026-11-22-readme-status-log.md](report/2026-11-22-readme-status-log.md).
 
